@@ -158,11 +158,14 @@ for i in `cat /etc/iproute2/rt_tables  | grep "table_" | grep -v '^#' | awk {'pr
 do
     echo "ip route list table $i"       >> $backup_dir/route.txt
     /sbin/ip route list table $i        >> $backup_dir/route.txt
+    /sbin/ip -6 route list table $i        >> $backup_dir/route.txt
 done
 echo "ip route list table main"         >> $backup_dir/route.txt
 /sbin/ip route list table main          >> $backup_dir/route.txt
+/sbin/ip -6 route list table main       >> $backup_dir/route.txt
 echo "ip rule list"                     >> $backup_dir/route.txt
 /sbin/ip rule list                      >> $backup_dir/route.txt
+/sbin/ip -6 rule list                   >> $backup_dir/route.txt
 
 echo "- Sockets"
 echo "netstat -putan"                   >> $backup_dir/netstat.txt

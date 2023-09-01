@@ -1574,8 +1574,8 @@ sub getHTTPFarmConfigErrorMessage    # ($farm_name)
 	shift @run if ( $run[0] =~ /starting\.\.\./ );
 	chomp @run;
 
-	&zenlog( "Error checking $configdir\/$farm_filename.", "Error", "http" );
-	&zenlog( $run[0],                                      "Error", "http" );
+	&zenlog( "Error checking $configdir\/$farm_filename.", "Error", "LSLB" );
+	&zenlog( $run[0],                                      "Error", "LSLB" );
 
 	$run[0] = $run[1] if ( $run[0] =~ /waf/i );
 
@@ -3643,7 +3643,7 @@ sub setHTTPFarmLogs    # ($farm_name, $action)
 	# check if 100 continue directive exists
 	if ( not grep { s/^LogLevel\s+(\d).*$/LogLevel\t$loglvl/ } @file )
 	{
-		&zenlog( "Error modifying http logs", "error", "HTTP" );
+		&zenlog( "Error modifying http logs", "error", "LSLB" );
 	}
 	else
 	{

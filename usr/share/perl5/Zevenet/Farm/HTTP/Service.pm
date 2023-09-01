@@ -682,6 +682,10 @@ sub getHTTPServiceStruct
 		$service_ref->{ routingpolicy }    = $routingPol;
 		$service_ref->{ rewritelocation }  = $rewriteLocation;
 	}
+	else
+	{
+		$service_ref->{ rewritelocation }  = $rewriteLocation;
+	}
 
 	# add fg
 	$service_ref->{ farmguardian } = &getFGFarm( $farmname, $service_name );
@@ -1167,7 +1171,7 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 			}
 			else
 			{
-				$output = undef;
+				$output = "enabled";
 				last;
 			}
 		}

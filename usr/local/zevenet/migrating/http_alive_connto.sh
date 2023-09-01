@@ -28,14 +28,16 @@ load_global_conf
 
 for i in $(find /usr/local/zevenet/config/ -name "*_proxy.cfg");
 do
-	if [[ ! `grep -E "^Alive " $i` ]]; then
-		if [[ ! `grep -E "^ConnTO " $i` ]]; then
-			alive_param=`grep -E "^Alive" $i | cut -f3`
-			connto_param=`grep -E "^ConnTO" $i | cut -f3`
-			if [ $alive_param -le $connto_param ]; then
-				alive_param=$((connto_param + 1)) 
-				echo "Replacing directive 'Alive' to farm $i"
-				sed -Ei "s/^Alive\s+[0-9]+/Alive\t\t$alive_param/" $i
+	if [[ "$proxy_ng" == 'true' ]]; then
+		if [[ ! `grep -E "^Alive " $i` ]]; then
+			if [[ ! `grep -E "^ConnTO " $i` ]]; then
+				alive_param=`grep -E "^Alive" $i | cut -f3`
+				connto_param=`grep -E "^ConnTO" $i | cut -f3`
+				if [ $alive_param -le $connto_param ]; then
+					alive_param=$((connto_param + 1)) 
+					echo "Replacing directive 'Alive' to farm $i"
+					sed -Ei "s/^Alive\s+[0-9]+/Alive\t\t$alive_param/" $i
+				fi
 			fi
 		fi
 	fi

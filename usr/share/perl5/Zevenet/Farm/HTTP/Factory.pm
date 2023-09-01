@@ -143,8 +143,18 @@ sub runHTTPFarmCreate    # ( $vip, $vip_port, $farm_name, $farm_type )
 			if ( &getGlobalConfiguration( "mark_routing_L7" ) eq 'true' )
 			{
 				# create L4 farm type local
+				require Zevenet::Net::Validate;
+				my $vip_family;
+				if ( &ipversion( $vip ) == 6 )
+				{
+					$vip_family = "ipv6";
+				}
+				else
+				{
+					$vip_family = "ipv4";
+				}
 				my $body =
-				  qq({"farms" : [ { "name" : "$farm_name", "virtual-addr" : "$vip", "virtual-ports" : "$vip_port", "mode" : "local", "state": "up" }]});
+				  qq({"farms" : [ { "name" : "$farm_name", "virtual-addr" : "$vip", "virtual-ports" : "$vip_port", "mode" : "local", "state": "up", "family" : "$vip_family" }]});
 				require Zevenet::Nft;
 				my $error = &httpNlbRequest(
 											 {

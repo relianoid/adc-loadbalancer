@@ -569,8 +569,8 @@ Parameters:
 	farmname - Farm name
 
 Returns:
-	None
-
+	$error_ref: $error_ref->{ code } - 0 on success, 1 on failure.
+				$error_ref->{ desc } - error message.
 =cut
 
 sub setHTTPFarmBackendsMarks    # ($farm_name)
@@ -579,8 +579,22 @@ sub setHTTPFarmBackendsMarks    # ($farm_name)
 			 "debug", "PROFILING" );
 
 	my ( $farm_name ) = @_;
+	my $error_ref->{ code } = -1;
 	require Zevenet::Farm::Core;
 	my $farm_filename = &getFarmFile( $farm_name );
+	if ( $farm_filename == -1 )
+	{
+		my $msg =
+		  "Backend Marks for farm $farm_name could not be set, config file does not exist";
+		$error_ref->{ code } = 1;
+		$error_ref->{ desc } = $msg;
+		&zenlog( $error_ref->{ desc }, "warning", "HTTP" );
+		return $error_ref;
+	}
+	else
+	{
+		$error_ref->{ code } = 0;
+	}
 
 	my $i        = -1;
 	my $farm_ref = getFarmStruct( $farm_name );
@@ -624,7 +638,7 @@ sub setHTTPFarmBackendsMarks    # ($farm_name)
 		}
 	}
 	untie @contents;
-	return;
+	return $error_ref;
 }
 
 =begin nd
@@ -888,6 +902,229 @@ sub getHTTPFarmBackendsStatus    # ($farm_name,$service)
 }
 
 =begin nd
+Function: setHTTPFarmBackendStatus
+
+	Set backend status for an http farm and stops traffic to that backend when needed.
+
+Parameters:
+	$farm_name - Farm name
+	$service - Service name
+	$backend_index - Backend index
+	$status - Backend status. The possible values are: "up", "maintenance" or "fgDOWN".
+	$cutmode - "cut" to remove sessions for such backend
+	$backends_info_ref - array ref including status and prio of all backends of the service.
+Returns:
+	$error_ref: $error_ref->{ code } - 0 on success, 1 on failure changing status,
+				2 on failure removing sessions.
+				$error_ref->{ desc } - error message.
+=cut
+
+sub setHTTPFarmBackendStatus # ($farm_name,$service,$backend_index,$status,$cutmode,$backends_info_ref)
+{
+	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+			 "debug", "PROFILING" );
+	my ( $farm_name, $service, $backend_index, $status, $cutmode,
+		 $backends_info_ref )
+	  = @_;
+
+	require Zevenet::Farm::HTTP::Service;
+	require Zevenet::Farm::HTTP::Config;
+	my $socket_file         = &getHTTPFarmSocket( $farm_name );
+	my $service_id          = &getFarmVSI( $farm_name, $service );
+	my $error_ref->{ code } = -1;
+	my $output;
+	$cutmode = "" if &getHTTPFarmVS( $farm_name, $service, "sesstype" ) eq "";
+
+	if ( $proxy_ng eq 'true' )
+	{
+		my $backend_id =
+		  &getHTTPFarmBackendIdByIndex( $farm_name, $service, $backend_index );
+		if ( $status eq 'maintenance' or $status eq 'fgDOWN' )
+		{
+			my $socket_params = {
+								  farm_name   => $farm_name,
+								  service     => $service,
+								  backend_id  => $backend_id,
+								  socket_file => $socket_file,
+								  status      => "disabled"
+			};
+			require Zevenet::Farm::HTTP::Runtime;
+			$output = &setHTTPFarmBackendStatusSocket( $socket_params );
+			if ( $output->{ code } )
+			{
+				my $msg =
+				  "Backend '$backend_id' in service '$service' of farm '$farm_name' cannot be disabled : "
+				  . $output->{ desc };
+				&zenlog( $msg, "error", "LSLB" );
+				$error_ref->{ code } = 1;
+				$error_ref->{ desc } = $msg;
+				return $error_ref;
+			}
+			$error_ref->{ code } = $output->{ code };
+			&setHTTPFarmBackendStatusFile( $farm_name, $backend_index, $status,
+										   $service_id );
+			if ( $cutmode eq 'cut' )
+			{
+				$output =
+				  &setHTTPFarmBackendsSessionsRemove( $farm_name, $service, $backend_index );
+				if ( $output )
+				{
+					my $msg =
+					  "Sessions for backend '$backend_id' in service '$service' of farm '$farm_name' were not deleted.";
+					&zenlog( $msg, "error", "LSLB" );
+					$error_ref->{ code } = 2;
+					$error_ref->{ desc } = $msg;
+					return $error_ref;
+				}
+			}
+		}
+		elsif ( $status eq 'up' )
+		{
+	 #store status and prio of all backends before turning backend 'up' unless backends info
+	 #has already been passed as parameter.
+			my $backends_info;
+			$backends_info = &getHTTPFarmBackends( $farm_name, $service, "true" )
+			  if ( ( not defined $backends_info_ref ) and ( $cutmode eq 'cut' ) );
+			my $socket_params = {
+								  farm_name   => $farm_name,
+								  service     => $service,
+								  backend_id  => $backend_id,
+								  socket_file => $socket_file,
+								  status      => "active"
+			};
+			require Zevenet::Farm::HTTP::Runtime;
+			$output = &setHTTPFarmBackendStatusSocket( $socket_params );
+			if ( $output->{ code } )
+			{
+				my $msg =
+				  "Backend '$backend_id' in service '$service' of farm '$farm_name' cannot be enabled : "
+				  . $output->{ desc };
+				&zenlog( $msg, "error", "LSLB" );
+				$error_ref->{ code } = 1;
+				$error_ref->{ desc } = $msg;
+				return $error_ref;
+			}
+			$error_ref->{ code } = $output->{ code };
+			&setHTTPFarmBackendStatusFile( $farm_name, $backend_index,
+										   'active',   $service_id );
+			if ( $cutmode eq 'cut' )
+			{
+		#compare priority algorithm status of all backends before and after turning backend 'up'
+				my $y = 0;
+				my @backends;
+				if ( defined $backends_info_ref )
+				{
+					@backends = @{ $backends_info_ref };
+				}
+				else
+				{
+					foreach my $bk ( @{ $backends_info } )
+					{
+						if ( $bk->{ status } eq "up" )
+						{
+							$backends[$y]->{ status } = "up";
+						}
+						else
+						{
+							$backends[$y]->{ status } = "down";
+						}
+						$backends[$y]->{ priority } = $bk->{ priority };
+						$y++;
+					}
+				}
+				require Zevenet::Farm::Backend;
+				my @bks_prio_status =
+				  @{ &getPriorityAlgorithmStatus( \@backends )->{ status } };
+				$backends[$backend_index]->{ status } = "up";
+				my @bks_updated_prio_status =
+				  @{ &getPriorityAlgorithmStatus( \@backends )->{ status } };
+
+				# compare priority algorithm status of all backends and remove sessions of
+				# backends that have become useless due to priority and remove traffic.
+				$y = 0;
+				foreach my $bk ( @bks_updated_prio_status )
+				{
+					if ( $bk ne $bks_prio_status[$y] )
+					{
+						if ( $backends[$y]->{ status } eq "up" )
+						{
+							$output = &setHTTPFarmBackendsSessionsRemove( $farm_name, $service, $y );
+							if ( $output )
+							{
+								my $msg =
+								  "Sessions of unused backends in service '$service' of farm '$farm_name' were not deleted.";
+								&zenlog( $msg, "error", "LSLB" );
+								$error_ref->{ code } = 2;
+								$error_ref->{ desc } = $msg;
+							}
+						}
+					}
+					$y++;
+				}
+			}
+			return $error_ref;
+		}
+	}
+	elsif ( $proxy_ng eq 'false' )
+	{
+		my $proxyctl = &getGlobalConfiguration( 'proxyctl' );
+		if ( $status eq 'maintenance' or $status eq 'fgDOWN' )
+		{
+			$output =
+			  &logAndRun( "$proxyctl -c $socket_file -b 0 $service_id $backend_index" );
+			if ( $output )
+			{
+				my $msg =
+				  "Backend '$backend_index' in service '$service' of farm '$farm_name' cannot be disabled";
+				$error_ref->{ code } = 1;
+				$error_ref->{ desc } = $msg;
+				return $error_ref;
+			}
+			else
+			{
+				$error_ref->{ code } = 0;
+			}
+			&setHTTPFarmBackendStatusFile( $farm_name, $backend_index, $status,
+										   $service_id );
+			if ( $cutmode eq 'cut' )
+			{
+				$output =
+				  &setHTTPFarmBackendsSessionsRemove( $farm_name, $service, $backend_index );
+				if ( $output )
+				{
+					my $msg =
+					  "Sessions for backend '$backend_index' in service '$service' of farm '$farm_name' were not deleted.";
+					&zenlog( $msg, "error", "LSLB" );
+					$error_ref->{ code } = 2;
+					$error_ref->{ desc } = $msg;
+					return $error_ref;
+				}
+			}
+		}
+		elsif ( $status eq 'up' )
+		{
+			$output =
+			  &logAndRun( "$proxyctl -c $socket_file -B 0 $service_id $backend_index" );
+			if ( $output )
+			{
+				my $msg =
+				  "Backend '$backend_index' in service '$service' of farm '$farm_name' cannot be enabled";
+				$error_ref->{ code } = 1;
+				$error_ref->{ desc } = $msg;
+				return $error_ref;
+			}
+			else
+			{
+				$error_ref->{ code } = 0;
+			}
+			&setHTTPFarmBackendStatusFile( $farm_name, $backend_index,
+										   'active',   $service_id );
+		}
+	}
+	return $error_ref;
+}
+
+=begin nd
 Function: getHTTPBackendStatusFromFile
 
 	Function that return if a l7 proxy backend is active, down by farmguardian or it's in maintenance mode
@@ -1119,60 +1356,15 @@ sub setHTTPFarmBackendMaintenance    # ($farm_name,$backend,$mode,$service)
 
 	my $output = 0;
 
-	#find the service number
-	my $idsv = &getFarmVSI( $farm_name, $service );
 	&zenlog(
 			"setting Maintenance mode for $farm_name service $service backend $backend",
 			"info", "LSLB" );
 
 	if ( &getFarmStatus( $farm_name ) eq 'up' )
 	{
-		require Zevenet::Farm::HTTP::Config;
-		my $socket_file = &getHTTPFarmSocket( $farm_name );
-		if ( $proxy_ng eq "false" )
-		{
-			my $proxyctl         = &getGlobalConfiguration( 'proxyctl' );
-			my $proxyctl_command = "$proxyctl -c $socket_file -b 0 $idsv $backend";
-
-			$output = &logAndRun( $proxyctl_command );
-		}
-		elsif ( $proxy_ng eq "true" )
-		{
-			my @bknd_data = @{ &getHTTPFarmBackends( $farm_name, $service, "false" ) };
-			my $backend_id =
-			  $bknd_data[$backend]->{ ip } . "-" . $bknd_data[$backend]->{ port };
-			my $socket_params = {
-								  farm_name   => $farm_name,
-								  service     => $service,
-								  backend_id  => $backend_id,
-								  socket_file => $socket_file,
-								  status      => "disabled"
-			};
-			require Zevenet::Farm::HTTP::Runtime;
-			my $error_ref = &setHTTPFarmBackendStatusSocket( $socket_params );
-			if ( $error_ref->{ code } )
-			{
-				&zenlog(
-					"Backend '$backend_id' in service '$service' in Farm '$farm_name' can not be disabled: "
-					  . $error_ref->{ desc },
-					"warning", "FARMS"
-				);
-			}
-			$output = $error_ref->{ code };
-		}
-	}
-
-	if ( not $output )
-	{
-		if ( $mode eq "cut" )
-		{
-			require Zevenet::Farm::HTTP::Service;
-			if ( &getHTTPFarmVS( $farm_name, $service, "sesstype" ) ne "" )
-			{
-				&setHTTPFarmBackendsSessionsRemove( $farm_name, $service, $backend );
-			}
-		}
-		&setHTTPFarmBackendStatusFile( $farm_name, $backend, "maintenance", $idsv );
+		$output =
+		  &setHTTPFarmBackendStatus( $farm_name, $service, $backend, 'maintenance',
+									 $mode );
 	}
 
 	return $output;
@@ -1201,8 +1393,6 @@ sub setHTTPFarmBackendNoMaintenance    # ($farm_name,$backend,$service)
 
 	my $output = 0;
 
-	#find the service number
-	my $idsv = &getFarmVSI( $farm_name, $service );
 	&zenlog(
 		"setting Disabled maintenance mode for $farm_name service $service backend $backend",
 		"info", "LSLB"
@@ -1210,44 +1400,8 @@ sub setHTTPFarmBackendNoMaintenance    # ($farm_name,$backend,$service)
 
 	if ( &getFarmStatus( $farm_name ) eq 'up' )
 	{
-		require Zevenet::Farm::HTTP::Config;
-		my $socket_file = &getHTTPFarmSocket( $farm_name );
-		if ( $proxy_ng eq "false" )
-		{
-			my $proxyctl         = &getGlobalConfiguration( 'proxyctl' );
-			my $proxyctl_command = "$proxyctl -c $socket_file -B 0 $idsv $backend";
-
-			$output = &logAndRun( $proxyctl_command );
-		}
-		elsif ( $proxy_ng eq "true" )
-		{
-			my @bknd_data = @{ &getHTTPFarmBackends( $farm_name, $service, "false" ) };
-			my $backend_id =
-			  $bknd_data[$backend]->{ ip } . "-" . $bknd_data[$backend]->{ port };
-			my $socket_params = {
-								  farm_name   => $farm_name,
-								  service     => $service,
-								  backend_id  => $backend_id,
-								  socket_file => $socket_file,
-								  status      => "active"
-			};
-			require Zevenet::Farm::HTTP::Runtime;
-			my $error_ref = &setHTTPFarmBackendStatusSocket( $socket_params );
-			if ( $error_ref->{ code } )
-			{
-				&zenlog(
-					"Backend '$backend_id' in service '$service' in Farm '$farm_name' can not be enabled: "
-					  . $error_ref->{ desc },
-					"warning", "FARMS"
-				);
-			}
-			$output = $error_ref->{ code };
-		}
-	}
-
-	if ( not $output )
-	{
-		&setHTTPFarmBackendStatusFile( $farm_name, $backend, "active", $idsv );
+		$output =
+		  &setHTTPFarmBackendStatus( $farm_name, $service, $backend, 'up', 'cut' );
 	}
 
 	return $output;
@@ -1316,7 +1470,7 @@ sub runRemoveHTTPBackendStatus    # ($farm_name,$backend,$service)
 }
 
 =begin nd
-Function: setHTTPFarmBackendStatus
+Function: setHTTPFarmBackendStatusFromFile
 
 	For a HTTP farm, it gets each backend status from status file and set it in ly proxy daemon
 
@@ -1331,7 +1485,7 @@ FIXME:
 
 =cut
 
-sub setHTTPFarmBackendStatus    # ($farm_name)
+sub setHTTPFarmBackendStatusFromFile    # ($farm_name)
 {
 	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );

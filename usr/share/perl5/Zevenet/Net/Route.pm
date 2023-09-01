@@ -1181,7 +1181,7 @@ sub configureDefaultGW    #()
 	# input: global variables $$defaultgw6 and $defaultgwif6
 	if ( $defaultgw6 and $defaultgwif6 )
 	{
-		my $if_ref = &getInterfaceConfig( $defaultgwif, 6 );
+		my $if_ref = &getInterfaceConfig( $defaultgwif6, 6 );
 		if ( $if_ref )
 		{
 			&applyRoutes( "global", $if_ref, $defaultgw6 );

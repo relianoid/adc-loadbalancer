@@ -188,7 +188,6 @@ sub farm_services
 	{
 		delete ( $service->{ replacerequestheader } );
 		delete ( $service->{ replaceresponseheader } );
-		delete ( $service->{ rewritelocation } );
 		delete ( $service->{ rewriteurl } );
 		delete ( $service->{ addrequestheader } );
 		delete ( $service->{ addresponseheader } );

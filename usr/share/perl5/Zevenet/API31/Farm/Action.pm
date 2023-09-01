@@ -207,6 +207,7 @@ sub service_backend_maintenance # ( $json_obj, $farmname, $service, $backend_id 
 	}
 
 	# validate STATUS
+	my $status;
 	if ( $json_obj->{ action } eq "maintenance" )
 	{
 		my $maintenance_mode = "drain";    # default
@@ -222,7 +223,7 @@ sub service_backend_maintenance # ( $json_obj, $farmname, $service, $backend_id 
 			$maintenance_mode = $json_obj->{ mode };
 		}
 
-		my $status =
+		$status =
 		  &setHTTPFarmBackendMaintenance( $farmname, $backend_id, $maintenance_mode,
 										  $service );
 
@@ -230,31 +231,26 @@ sub service_backend_maintenance # ( $json_obj, $farmname, $service, $backend_id 
 			"Changing status to maintenance of backend $backend_id in service $service in farm $farmname",
 			"info", "FARMS"
 		);
-
-		if ( $status )
-		{
-			my $msg = "Errors found trying to change status backend to maintenance";
-			&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-		}
 	}
 	elsif ( $json_obj->{ action } eq "up" )
 	{
-		&setHTTPFarmBackendNoMaintenance( $farmname, $backend_id, $service );
+		$status = &setHTTPFarmBackendNoMaintenance( $farmname, $backend_id, $service );
 
 		&zenlog(
 			"Changing status to up of backend $backend_id in service $service in farm $farmname",
 			"info", "FARMS"
 		);
-
-		if ( $? )
-		{
-			my $msg = "Errors found trying to change status backend to up";
-			&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-		}
 	}
 	else
 	{
 		my $msg = "Invalid action; the possible actions are up and maintenance";
+		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
+	}
+
+	if ( $status->{ code } == 1 or $status->{ code } == -1 )
+	{
+		my $msg =
+		  "Errors found trying to change status backend to $json_obj->{ action }";
 		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
 	}
 
@@ -265,6 +261,7 @@ sub service_backend_maintenance # ( $json_obj, $farmname, $service, $backend_id 
 							 farm   => { status => &getFarmVipStatus( $farmname ) }
 				 },
 	};
+
 
 	&httpResponse( { code => 200, body => $body } );
 	return;
@@ -319,6 +316,7 @@ sub backend_maintenance    # ( $json_obj, $farmname, $backend_id )
 	}
 
 	# validate STATUS
+	my $status;
 	if ( $json_obj->{ action } eq "maintenance" )
 	{
 		my $maintenance_mode = "drain";    # default
@@ -334,35 +332,30 @@ sub backend_maintenance    # ( $json_obj, $farmname, $backend_id )
 			$maintenance_mode = $json_obj->{ mode };
 		}
 
-		my $status =
+		$status =
 		  &setFarmBackendMaintenance( $farmname, $backend_id, $maintenance_mode );
 
 		&zenlog(
 				 "Changing status to maintenance of backend $backend_id in farm $farmname",
 				 "info", "FARMS" );
-
-		if ( $status != 0 )
-		{
-			my $msg = "Errors found trying to change status backend to maintenance";
-			&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-		}
 	}
 	elsif ( $json_obj->{ action } eq "up" )
 	{
-		my $status = &setFarmBackendNoMaintenance( $farmname, $backend_id );
+		$status = &setFarmBackendNoMaintenance( $farmname, $backend_id );
 
 		&zenlog( "Changing status to up of backend $backend_id in farm $farmname",
 				 "info", "FARMS" );
-
-		if ( $status )
-		{
-			my $msg = "Errors found trying to change status backend to up";
-			&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-		}
 	}
 	else
 	{
 		my $msg = "Invalid action; the possible actions are up and maintenance";
+		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
+	}
+
+	if ( $status->{ code } == 1 or $status->{ code } == -1 )
+	{
+		my $msg =
+		  "Errors found trying to change status backend to $json_obj->{ action }";
 		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
 	}
 
@@ -374,6 +367,7 @@ sub backend_maintenance    # ( $json_obj, $farmname, $backend_id )
 							 farm   => { status => &getFarmVipStatus( $farmname ) }
 				 },
 	};
+
 
 	&httpResponse( { code => 200, body => $body } );
 	return;

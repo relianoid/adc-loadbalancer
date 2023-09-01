@@ -368,5 +368,93 @@ sub setBackendRule
 	return &setRule( $action, $rule );
 }
 
+=begin nd
+Function: getPriorityAlgorithmStatus
+        Calculates the Priroty algorithm status of the backend list
+
+Parameters:
+
+        $backends_ref - list of backend_ref
+		$bk_index - backend index if defined, only returns this index values. Optional. 
+
+Returns:
+
+        $availability_ref - Hash of algorithm values.
+
+Variable:
+
+        $backend_ref->{ status } - Status of the backend. Possibles values:"up","down".
+        $backend_ref->{ priority } - Priority of the backend
+		
+		$availability_ref->{ priority } - algorithm priority.
+        $availability_ref->{ status } - Array - list of backend availability.
+        If defined parameter $backend_ref->{ status} , "true" if the backend is used, "false" if is available to be used.
+		If not defined parameter $backend_ref->{ status} , "true" if the backend is used or available to be used, "false" if the backend will never be used.	
+=cut
+
+sub getPriorityAlgorithmStatus
+{
+	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+			 "debug", "PROFILING" );
+	my ( $backends_ref, $bk_index ) = @_;
+
+	my $alg_status_ref;
+	my $sum_prio_ref;
+	foreach my $bk ( @{ $backends_ref } )
+	{
+		#determine number of backends down for each level of priority
+		if ( not defined $bk->{ status } or $bk->{ status } eq "down" )
+		{
+			$sum_prio_ref->{ $bk->{ priority } }++;
+		}
+	}
+
+	#determine the lowest priority level where backends are being used
+	my $current_alg_prio = 1;
+	my $alg_prio         = 1;
+	while ( $current_alg_prio <= $alg_prio )
+	{
+		#when the level of priority matches the number of down backends, loop stops
+		#and $alg_prio indicates the lowest level of prio being used.
+		#else, keep increasing the level of priority checked in the next iteration.
+		if ( defined $sum_prio_ref->{ $current_alg_prio } )
+		{
+			$alg_prio += $sum_prio_ref->{ $current_alg_prio };
+		}
+		last if $alg_prio == $current_alg_prio;
+		$current_alg_prio++;
+	}
+
+	$alg_status_ref->{ priority } = $alg_prio;
+	$alg_status_ref->{ status }   = [];
+
+	if ( defined $bk_index )
+	{
+		if ( @{ $backends_ref }[$bk_index]->{ priority } <= $alg_prio )
+		{
+			push @{ $alg_status_ref->{ status } }, "true";
+		}
+		else
+		{
+			push @{ $alg_status_ref->{ status } }, "false";
+		}
+	}
+	else
+	{
+		foreach my $bk ( @{ $backends_ref } )
+		{
+			if ( $bk->{ priority } <= $alg_prio )
+			{
+				push @{ $alg_status_ref->{ status } }, "true";
+			}
+			else
+			{
+				push @{ $alg_status_ref->{ status } }, "false";
+			}
+		}
+	}
+	return $alg_status_ref;
+}
+
 1;
 

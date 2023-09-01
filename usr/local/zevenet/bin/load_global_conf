@@ -22,7 +22,7 @@
 ###############################################################################
 
 load_global_conf() {
-	local TMP_CONF="/tmp/global.conf.tmp"
+	local TMP_CONF="/tmp/global.conf.tmp_$$"
 	local GLOBALCONF="/usr/local/zevenet/config/global.conf"
 
 	if [ -f "$GLOBALCONF" ]; then

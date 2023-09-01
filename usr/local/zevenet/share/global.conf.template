@@ -89,7 +89,7 @@ $apt_conf_file="/etc/apt/apt.conf";
 # apt updates dir
 $update_dir="/usr/local/zevenet/updates";
 # ZEVENET URL repo
-$repo_url_zevenet="repo.zevenet.com";
+$repo_url_zevenet="repo.relianoid.com";#update
 # ZEVENET GPG key
 $gpg_key_zevenet="ee.zevenet.com.gpg.key";
 # Bios version
@@ -366,16 +366,16 @@ $poundtpl="$templatedir/poundtpl.cfg";#update
 
 # l7 proxy
 # Set the l7 binary: NG = true => zproxy, NG = false => pound
-$proxy_ng="true";#update
+$proxy_ng="false";#update
 
 #where is l7 proxy dir?
-$base_proxy="$zdir/app/zproxy";#update
+$base_proxy="$zdir/app/pound";#update
 #where is l7 proxy binary?
-$proxy="$base_proxy/bin/zproxy";#update
+$proxy="$base_proxy/sbin/pound";#update
 #where is l7 proxy ctl?
-$proxyctl="$base_proxy/bin/zproxyctl";#update
+$proxyctl="$base_proxy/sbin/poundctl";#update
 #l7 file configuration template?
-$proxytpl="$templatedir/proxytpl.cfg";#update
+$proxytpl="$templatedir/poundtpl.cfg";#update
 
 #maximum value of http body to pass to modsecurity
 $waf_max_body="32000";
@@ -571,7 +571,7 @@ $routingRoutePrio="5";
 
 # time period to get the interface throughput stats
 
-$doc_v4_0="https://www.zevenet.com/zapidoc_ce_v4.0/";
+$doc_v4_0="https://www.relianoid.com/zapidoc/v4.0_ce/";
 
 # language used for the webgui
 $lang="";

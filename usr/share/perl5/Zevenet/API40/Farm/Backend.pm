@@ -84,6 +84,21 @@ sub new_farm_backend    # ( $json_obj, $farmname )
 		}
 	}
 
+	# check of ip version
+	if ( $type eq 'l4xnat' )
+	{
+		require Zevenet::Farm::L4xNAT::Config;
+		my $farm_vip = &getL4FarmParam( "vip", $farmname );
+
+		if ( &ipversion( $json_obj->{ ip } ) ne &ipversion( $farm_vip ) )
+		{
+			my $msg =
+			  "The IP version of backend IP '$json_obj->{ ip }' does not match with farm VIP '$farm_vip'";
+
+			&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
+		}
+	}
+
 	# Create backend
 	my $status = &setFarmServer( $farmname, undef, $id, $json_obj );
 	if ( $status == -1 )
@@ -197,8 +212,8 @@ sub new_service_backend    # ( $json_obj, $farmname, $service )
 	my $proxy_ng = &getGlobalConfiguration( 'proxy_ng' );
 	if ( $proxy_ng ne 'true' )
 	{
-		delete $params->{ "connection_limit" };
-		delete $params->{ "priority" };
+		undef $params->{ "connection_limit" };
+		undef $params->{ "priority" };
 	}
 
 	# Check allowed parameters
@@ -458,6 +473,21 @@ sub modify_backends    #( $json_obj, $farmname, $id_server )
 		&httpErrorResponse( code => 400, desc => $desc, msg => $error_msg );
 	}
 
+	# check of ip version
+	if ( $type eq 'l4xnat' )
+	{
+		if ( exists $json_obj->{ ip } )
+		{
+			require Zevenet::Farm::L4xNAT::Config;
+			my $farm_vip = &getL4FarmParam( "vip", $farmname );
+			if ( &ipversion( $json_obj->{ ip } ) ne &ipversion( $farm_vip ) )
+			{
+				my $msg =
+				  "The IP version of backend IP '$json_obj->{ ip }' does not match with farm VIP '$farm_vip'";
+				&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
+			}
+		}
+	}
 	$backend->{ ip } = $json_obj->{ ip } if exists $json_obj->{ ip };
 	$backend->{ port } = $json_obj->{ port }
 	  if exists $json_obj->{ port };    # l4xnat
@@ -576,8 +606,8 @@ sub modify_service_backends    #( $json_obj, $farmname, $service, $id_server )
 	my $proxy_ng = &getGlobalConfiguration( 'proxy_ng' );
 	if ( $proxy_ng ne 'true' )
 	{
-		delete $params->{ "connection_limit" };
-		delete $params->{ "priority" };
+		undef $params->{ "connection_limit" };
+		undef $params->{ "priority" };
 	}
 
 	# Check allowed parameters

@@ -358,7 +358,7 @@ sub runFarmReload    # ($farm_name)
 
 	# Reload Farm status from its cfg file
 	require Zevenet::Farm::HTTP::Backend;
-	&setHTTPFarmBackendStatus( $farm_name );
+	&setHTTPFarmBackendStatusFromFile( $farm_name );
 
 	return $status;
 }

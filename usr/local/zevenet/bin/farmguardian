@@ -213,6 +213,7 @@ while ( 1 )
 	my @backendprio;
 	my @backendmark;
 	my @backendorder;
+	my @bk_prio_proxyng;
 	my $i = 0;
 
 	### Collect variable values for the diferent farm types ###
@@ -249,6 +250,10 @@ while ( 1 )
 			$backendip[$i]     = $subbe[3];
 			$backendport[$i]   = $subbe[5];
 			$backendstatus[$i] = &getHTTPBackendStatusFromFile( $farmname, $i, $service );
+			if ( $proxy_ng eq 'true' )
+			{
+				$bk_prio_proxyng[$i] = ( $subbe[9] eq '-' ) ? 1 : $subbe[9];
+			}
 			if ( defined $http_prio )
 			{
 
@@ -399,8 +404,9 @@ while ( 1 )
 		  if ( defined $fgmarkbin and $usemark );
 
 		my @output;
-		my $timedout  = 0;
-		my $errorcode = '';
+		my $timedout     = 0;
+		my $errorcode    = '';
+		my $status_error = -1;
 
 		# run actual backend check
 		eval {
@@ -481,71 +487,51 @@ while ( 1 )
 			# Enabling backend for every type of farm supported
 			if ( $type eq 'http' )
 			{
-				my $idsv = &getFarmVSI( $farmname, $service );
-				if ( $proxy_ng eq "false" )
+				if ( $first_exec )
 				{
-					&logAndRun( "$proxyctl -c $portadmin -B 0 $idsv $j" );
+					$status_error =
+					  &setHTTPFarmBackendStatus( $farmname, $service, $backendid[$j], 'up', "" );
 				}
-				elsif ( $proxy_ng eq "true" )
+				else
 				{
-					my $backend_id = $backendip[$j] . "-" . $backendport[$j];
-					my $socket_params = {
-										  farm_name   => $farmname,
-										  service     => $service,
-										  backend_id  => $backend_id,
-										  socket_file => $portadmin,
-										  status      => "active"
-					};
-					require Zevenet::Farm::HTTP::Runtime;
-					my $error_ref = &setHTTPFarmBackendStatusSocket( $socket_params );
-					if ( $error_ref->{ code } )
+					my @backends;
+					my $y = 0;
+					foreach my $bk ( @backendstatus )
 					{
-						&zenlog(
-								 "Backend '$backend_id' in service '$service' can not be enabled : "
-								   . $error_ref->{ desc },
-								 "error",
-								 "FG"
-						);
+						if ( $bk eq "active" )
+						{
+							$backends[$y]->{ status } = "up";
+						}
+						else
+						{
+							$backends[$y]->{ status } = "down";
+						}
+						$y++;
 					}
+					$y = 0;
+					foreach my $bk ( @bk_prio_proxyng )
+					{
+						$backends[$y]->{ priority } = $bk;
+						$y++;
+					}
+					$status_error =
+					  &setHTTPFarmBackendStatus( $farmname, $service, $backendid[$j], 'up', 'cut',
+												 \@backends );
 				}
-				&setHTTPFarmBackendStatusFile( $farmname, $j, 'active', $idsv );
 				$auxLog = " in farm: '$farmname', service: '$service'";
 			}
 			elsif ( $type eq 'l4xnat' )
 			{
-				#if ( $cutConns eq 'true' and $backendprio[$j] > 1 ){
 				$auxLog = " in farm: '$farmname'";
-				&setL4FarmBackendStatus( $farmname, $backendid[$j], 'up' );
-				if ( $cutConns eq 'true' )
-				{
-
-					#loop the backend array and cut conns for the others
-					my $b = 0;
-
-					#while ($b < $i){
-					for ( $b = 0 ; $b < $i ; $b++ )
-					{
-						#do nothing for current backend (j)
-						next if $b == $j;
-
-						#do not cut conns if backend prio <= than current backend prio (j)
-						next if $backendprio[$b] <= $backendprio[$j];
-						if ( $backendprio[$b] > $backendprio[$j] )
-						{
-							&zenlog( "Cutting priority conns for backend $backendid[$b]" );
-							&setL4FarmBackendStatus( $farmname, $backendid[$b], '', 'cut', 'true' );
-						}
-
-					}
-				}
-
+				$status_error = &setL4FarmBackendStatus( $farmname, $backendid[$j], 'up' );
 			}
 
 			$backendstatus[$j] = 'active';
 
 			# WARNING: This message format is expected by 'sec'
 			&zenlog( "BackEnd $backendserv[$j]:$backendport[$j] resurrect$auxLog" )
-			  if ( not $first_exec );
+			  if ( not $first_exec
+				   and ( $status_error->{ code } != 1 and $status_error->{ code } != -1 ) );
 		}
 		### Disable backend
 		elsif (
@@ -565,48 +551,31 @@ while ( 1 )
 			#if exec error put in blacklist the server
 			if ( $type eq 'http' )
 			{
-				my $idsv = &getFarmVSI( $farmname, $service );
-				if ( $proxy_ng eq "false" )
+				if ( $cutConns eq 'true' )
 				{
-					&logAndRun( "$proxyctl -c $portadmin -b 0 $idsv $j" );
+					$status_error =
+					  &setHTTPFarmBackendStatus( $farmname, $service, $backendid[$j], 'fgDOWN',
+												 'cut' );
 				}
-				elsif ( $proxy_ng eq "true" )
+				else
 				{
-					my $backend_id = $backendip[$j] . "-" . $backendport[$j];
-					my $socket_params = {
-										  farm_name   => $farmname,
-										  service     => $service,
-										  backend_id  => $backend_id,
-										  socket_file => $portadmin,
-										  status      => "disabled"
-					};
-					require Zevenet::Farm::HTTP::Runtime;
-					my $error_ref = &setHTTPFarmBackendStatusSocket( $socket_params );
-					if ( $error_ref->{ code } )
-					{
-						&zenlog(
-								 "Backend '$backend_id' in service '$service' can not be disabled : "
-								   . $error_ref->{ desc },
-								 "error",
-								 "FG"
-						);
-					}
+					$status_error =
+					  &setHTTPFarmBackendStatus( $farmname, $service, $backendid[$j], 'fgDOWN',
+												 "" );
 				}
-				&setHTTPFarmBackendStatusFile( $farmname, $j, 'fgDOWN', $idsv );
-				&setHTTPFarmBackendsSessionsRemove( $farmname, $service, $j )
-				  if ( $cutConns eq 'true' );
-
 				$auxLog = " in farm: '$farmname', service: '$service'";
 			}
 			elsif ( $type eq 'l4xnat' )
 			{
 				if ( $cutConns eq 'true' )
 				{
-					&setL4FarmBackendStatus( $farmname, $backendid[$j], 'fgDOWN', 'cut' );
+					$status_error =
+					  &setL4FarmBackendStatus( $farmname, $backendid[$j], 'fgDOWN', 'cut' );
 				}
 				else
 				{
-					&setL4FarmBackendStatus( $farmname, $backendid[$j], 'fgDOWN' );
+					$status_error =
+					  &setL4FarmBackendStatus( $farmname, $backendid[$j], 'fgDOWN', "" );
 				}
 
 				$auxLog = " in farm: '$farmname'";
@@ -624,7 +593,8 @@ while ( 1 )
 
 			# WARNING: This message format is expected by 'sec'
 			&zenlog( "BackEnd $backendserv[$j]:$backendport[$j] down$auxLog" )
-			  if ( not $first_exec );
+			  if ( not $first_exec
+				   and ( $status_error->{ code } != 1 and $status_error->{ code } != -1 ) );
 		}
 		$backendidx++;
 	}

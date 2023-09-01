@@ -66,13 +66,24 @@ sub runL4FarmCreate
 	$vip_port = ""   if ( $vip_port eq "*" );
 	$vip_port =~ s/\:/\-/g;
 
+	require Zevenet::Net::Validate;
+	my $vip_family;
+	if ( &ipversion( $vip ) == 6 )
+	{
+		$vip_family = "ipv6";
+	}
+	else
+	{
+		$vip_family = "ipv4";
+	}
+
 	$output = &sendL4NlbCmd(
 		{
 		   farm   => $farm_name,
 		   file   => "$farm_filename",
 		   method => "POST",
 		   body =>
-			 qq({"farms" : [ { "name" : "$farm_name", "virtual-addr" : "$vip", "virtual-ports" : "$vip_port", "protocol" : "$proto", "mode" : "snat", "scheduler" : "weight", "state" : "$status" } ] })
+			 qq({"farms" : [ { "name" : "$farm_name", "virtual-addr" : "$vip", "virtual-ports" : "$vip_port", "protocol" : "$proto", "mode" : "snat", "scheduler" : "weight", "state" : "$status", "family" : "$vip_family" } ] })
 		}
 	);
 

@@ -131,6 +131,23 @@ sub create_le_certificate    # ()
 		&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
 	}
 
+	# check if the cert exists
+	my $force;
+	my $le_cert = &getLetsencryptCertificates( $json_obj->{ domains }[0] );
+	if ( @{ $le_cert } )
+	{
+		if ( exists $json_obj->{ force } and $json_obj->{ force } eq 'true' )
+		{
+			$force = "true";
+		}
+		else
+		{
+			my $msg =
+			  "Let's Encrypt certificate $json_obj->{ domains }[0] already exists!. Please, use the parameter 'force' if you are sure.";
+			&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
+		}
+	}
+
 	# check farm has to be listening on port 80 and up
 	if ( defined $json_obj->{ farmname } )
 	{
@@ -145,7 +162,6 @@ sub create_le_certificate    # ()
 			my $msg = "Farm $json_obj->{ farmname } must be up.";
 			&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
 		}
-
 	}
 
 	# check any farm listening on vip and port 80 and up
@@ -185,7 +201,8 @@ sub create_le_certificate    # ()
 									   $json_obj->{ farmname },
 									   $json_obj->{ vip },
 									   $json_obj->{ domains },
-									   $json_obj->{ test }
+									   $json_obj->{ test },
+									   $force
 	);
 	if ( $error )
 	{

@@ -938,11 +938,9 @@ sub runFGFarmStop
 			{
 				if ( -e $status_file )
 				{
-					require Zevenet::Farm::HTTP::Config;
 					require Zevenet::Farm::HTTP::Service;
 					require Tie::File;
 
-					my $portadmin = &getHTTPFarmSocket( $farm );
 					my $idsv = &getFarmVSI( $farm, $service );
 
 					tie my @filelines, 'Tie::File', $status_file;
@@ -950,58 +948,20 @@ sub runFGFarmStop
 					my @fileAux = @filelines;
 					my $lines   = scalar @fileAux;
 
-					if ( $proxy_ng eq "false" )
+					while ( $lines >= 0 )
 					{
-						while ( $lines >= 0 )
+						$lines--;
+						if ( $fileAux[$lines] =~ /0 $idsv (\d+) fgDOWN/ )
 						{
-							$lines--;
-							if ( $fileAux[$lines] =~ /0 $idsv (\d+) fgDOWN/ )
-							{
-								my $index = $1;
-								splice ( @fileAux, $lines, 1, );
+							my $index = $1;
+							splice ( @fileAux, $lines, 1, );
 
-								my $proxyctl = &getGlobalConfiguration( 'proxyctl' );
-								&logAndRun( "$proxyctl -c $portadmin -B 0 $idsv $index" );
-							}
-						}
-					}
-					elsif ( $proxy_ng eq "true" )
-					{
-						my @bknd_data;
-						while ( $lines >= 0 )
-						{
-							$lines--;
-							if ( $fileAux[$lines] =~ /0 $idsv (\d+) fgDOWN/ )
-							{
-								my $index = $1;
-								splice ( @fileAux, $lines, 1, );
-
-								if ( not @bknd_data )
-								{
-									require Zevenet::Farm::HTTP::Backend;
-									@bknd_data = @{ &getHTTPFarmBackends( $farm, $service, "false" ) };
-								}
-								my $backend_id =
-								  $bknd_data[$index]->{ ip } . "-" . $bknd_data[$index]->{ port };
-								my $socket_params = {
-													  farm_name   => $farm,
-													  service     => $service,
-													  backend_id  => $backend_id,
-													  socket_file => $portadmin,
-													  status      => "active"
-								};
-
-								require Zevenet::Farm::HTTP::Runtime;
-								my $error_ref = &setHTTPFarmBackendStatusSocket( $socket_params );
-								if ( $error_ref->{ code } )
-								{
-									&zenlog(
-										"Backend '$backend_id' on service '$service' on Farm '$farm' can not be enabled: "
-										  . $error_ref->{ desc },
-										"warning", "FG"
-									);
-								}
-							}
+							require Zevenet::Farm::HTTP::Backend;
+							my $error_ref =
+							  &setHTTPFarmBackendStatus( $farm, $service, $index, 'up', 'cut' );
+							$error_ref->{ code } = 0
+							  if ( $error_ref->{ code } != 1 and $error_ref->{ code } != -1 );
+							$out |= $error_ref->{ code };
 						}
 					}
 					@filelines = @fileAux;
@@ -1019,7 +979,10 @@ sub runFGFarmStop
 				{
 					if ( $l_serv->{ status } eq "fgDOWN" )
 					{
-						$out |= &setL4FarmBackendStatus( $farm, $l_serv->{ id }, "up" );
+						my $error_ref = &setL4FarmBackendStatus( $farm, $l_serv->{ id }, "up" );
+						$error_ref->{ code } = 0
+						  if ( $error_ref->{ code } != 1 and $error_ref->{ code } != -1 );
+						$out |= $error_ref->{ code };
 					}
 				}
 			}

@@ -171,7 +171,9 @@ sub setL4FarmParam
 	elsif ( $param eq "vip" )
 	{
 		$prev_config = &getFarmStruct( $farm_name );
-		$parameters  = qq(, "virtual-addr" : "$value" );
+		require Zevenet::Net::Validate;
+		my $vip_family = "ipv" . &ipversion( $value );
+		$parameters = qq(, "virtual-addr" : "$value", "family" : "$vip_family" );
 	}
 	elsif ( $param eq "vipp" or $param eq "vport" )
 	{

@@ -95,8 +95,13 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 		}
 	}
 
-	if (    exists ( $json_obj->{ contimeout } )
-		 or exists ( $json_obj->{ resurrectime } ) )
+	if (
+		 (
+		      exists ( $json_obj->{ contimeout } )
+		   or exists ( $json_obj->{ resurrectime } )
+		 )
+		 and &getGlobalConfiguration( 'proxy_ng' ) eq 'true'
+	  )
 	{
 		my $conntimeout  = $json_obj->{ contimeout }   // $farm_st->{ contimeout };
 		my $resurrectime = $json_obj->{ resurrectime } // $farm_st->{ resurrectime };

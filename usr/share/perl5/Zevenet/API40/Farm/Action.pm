@@ -284,34 +284,34 @@ sub service_backend_maintenance # ( $json_obj, $farmname, $service, $backend_id 
 	}
 
 	# validate STATUS
+	my $status;
 	if ( $json_obj->{ action } eq "maintenance" )
 	{
 		my $maintenance_mode = $json_obj->{ mode } // "drain";    # default
 
-		my $status =
+		$status =
 		  &setHTTPFarmBackendMaintenance( $farmname, $backend_id, $maintenance_mode,
 										  $service );
-
-		if ( $status )
-		{
-			my $msg = "Errors found trying to change status backend to maintenance";
-			&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-		}
 	}
 	elsif ( $json_obj->{ action } eq "up" )
 	{
-		my $status =
-		  &setHTTPFarmBackendNoMaintenance( $farmname, $backend_id, $service );
+		$status = &setHTTPFarmBackendNoMaintenance( $farmname, $backend_id, $service );
+	}
 
-		if ( $status )
-		{
-			my $msg = "Errors found trying to change status bbackend to up";
-			&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-		}
+	if ( $status->{ code } == 1 or $status->{ code } == -1 )
+	{
+		my $msg =
+		  "Errors found trying to change status backend to $json_obj->{ action }";
+		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
 	}
 
 	my $msg =
-	  "The action $json_obj->{ action } has been performed in farm $farmname.";
+	  "The action $json_obj->{ action } has been performed in farm '$farmname'.";
+	my $warning;
+	if ( $status->{ code } != 0 )
+	{
+		$warning = $status->{ desc };
+	}
 
 	my $body = {
 				 description => $desc,
@@ -323,6 +323,7 @@ sub service_backend_maintenance # ( $json_obj, $farmname, $service, $backend_id 
 							 message => $msg
 				 },
 	};
+	$body->{ warning } = $warning if $warning;
 
 	&httpResponse( { code => 200, body => $body } );
 	return;
@@ -385,32 +386,33 @@ sub backend_maintenance    # ( $json_obj, $farmname, $backend_id )
 	}
 
 	# validate STATUS
+	my $status;
 	if ( $json_obj->{ action } eq "maintenance" )
 	{
 		my $maintenance_mode = $json_obj->{ mode } // "drain";    # default
 
-		my $status =
+		$status =
 		  &setFarmBackendMaintenance( $farmname, $backend_id, $maintenance_mode );
-
-		if ( $status != 0 )
-		{
-			my $msg = "Errors found trying to change status backend to maintenance";
-			&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-		}
 	}
 	elsif ( $json_obj->{ action } eq "up" )
 	{
-		my $status = &setFarmBackendNoMaintenance( $farmname, $backend_id );
+		$status = &setFarmBackendNoMaintenance( $farmname, $backend_id );
+	}
 
-		if ( $status )
-		{
-			my $msg = "Errors found trying to change status backend to up";
-			&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-		}
+	if ( $status->{ code } == 1 or $status->{ code } == -1 )
+	{
+		my $msg =
+		  "Errors found trying to change status backend to $json_obj->{ action }";
+		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
 	}
 
 	my $msg =
-	  "The action $json_obj->{ action } has been performed in farm $farmname.";
+	  "The action $json_obj->{ action } has been performed in farm '$farmname'.";
+	my $warning;
+	if ( $status->{ code } != 0 )
+	{
+		$warning = $status->{ desc };
+	}
 
 	# no error found, send successful response
 	my $body = {
@@ -423,6 +425,8 @@ sub backend_maintenance    # ( $json_obj, $farmname, $backend_id )
 							 message => $msg
 				 },
 	};
+	$body->{ warning } = $warning if $warning;
+
 
 	&httpResponse( { code => 200, body => $body } );
 	return;

@@ -700,16 +700,17 @@ Parameters:
 	vip - VIP where the new Farm and service is created. The virtual Port will be 80.
 	domains_list - List of Domains the certificate is created for.
 	test - if "true" the action simulates all the process but no certificate is created.
+	force_update - if "true" forces an update cert and renewal the domains if exists.
 
 Returns:
 	Integer - 0 on succesfull, otherwise on error.
 =cut
 
-sub runLetsencryptObtain    # ( $farm_name, $vip, $domains_list, $test )
+sub runLetsencryptObtain    # ( $farm_name, $vip, $domains_list, $test, $force)
 {
 	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
-	my ( $farm_name, $vip, $domains_list, $test ) = @_;
+	my ( $farm_name, $vip, $domains_list, $test, $force ) = @_;
 
 	return 1 if ( not $domains_list );
 	return 2 if ( not $vip and not $farm_name );
@@ -734,10 +735,14 @@ sub runLetsencryptObtain    # ( $farm_name, $vip, $domains_list, $test )
 	# run le_binary command
 	my $test_opt;
 	$test_opt = "--test-cert" if ( $test eq "true" );
+	my $force_opt;
+	$force_opt = "--force-renewal --break-my-certs" if ( $force eq "true" );
+	my $certname_opt = "--cert-name " . @{ $domains_list }[0];
 	my $domains_opt = "-d " . join ( ',', @{ $domains_list } );
 	my $fullchain_opt =
 	  "--fullchain-path " . &getGlobalConfiguration( 'le_fullchain_path' );
 	my $method_opt;
+
 	if ( $challenge eq "http" )
 	{
 		$method_opt =
@@ -750,14 +755,15 @@ sub runLetsencryptObtain    # ( $farm_name, $vip, $domains_list, $test )
 
 	my $le_binary = &getGlobalConfiguration( 'le_certbot_bin' );
 	my $cmd =
-	  "$le_binary certonly $domains_opt $fullchain_opt $method_opt $configdir_opt $email_opt $test_opt $challenge_opt $opts";
+	  "$le_binary certonly $certname_opt $domains_opt $fullchain_opt $method_opt $configdir_opt $email_opt $test_opt $challenge_opt $force_opt $opts";
 	&zenlog( "Executing Letsencryptz obtain command : $cmd",
 			 "Info", "LetsencryptZ" );
 
-	$status = &logRunAndGet( $cmd, "array" );
+	$status = &logRunAndGet( $cmd, "array", 1 );
 	if ( $status->{ stderr } and ( $challenge eq "http" ) )
 	{
-		&zenlog( "Letsencryptz obtain command failed!", "error", "LetsencryptZ" );
+		&zenlog( "Letsencryptz obtain command failed!: $status->{ stdout }[-1]",
+				 "error", "LetsencryptZ" );
 		$rc = 3;
 	}
 	else

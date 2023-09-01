@@ -99,7 +99,7 @@ sub listL7FarmSessions
 					   . ", code: "
 					   . $output->{ code },
 					 "error",
-					 "HTTP"
+					 "LSLB"
 			);
 			return $error;
 		}
@@ -127,7 +127,7 @@ sub listL7FarmSessions
 	my $ttl = &getHTTPFarmVS( $farmname, $service, "ttl" );
 	if ( $ttl !~ /^\d+$/ )
 	{
-		&zenlog( "Unable to fetch ttl from farm $farmname", "error", "HTTP" );
+		&zenlog( "Unable to fetch ttl from farm $farmname", "error", "LSLB" );
 		return $error;
 	}
 	my $time = time ();
