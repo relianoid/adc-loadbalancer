@@ -1,5 +1,4 @@
-#!/usr/bin/perl
-
+#!/bin/bash
 ###############################################################################
 #
 #    ZEVENET Software License
@@ -22,21 +21,21 @@
 #
 ###############################################################################
 
-use strict;
-use warnings;
-require Zevenet::Farm::Core;
-require Zevenet::Farm::HTTP::Backend;
-require Zevenet::Farm::HTTP::Config;
+# Save zlb-stop and zlb-start to a temporal directory
+tmp_start="/tmp/zlb-start"
+tmp_stop="/tmp/zlb-stop"
+zvn_start="/usr/local/zevenet/config/zlb-start"
+zvn_stop="/usr/local/zevenet/config/zlb-stop"
 
-my $ng_cur = &getGlobalConfiguration( 'proxy_ng' );
+if [ -f $zvn_start ]; then
+	mv $zvn_start $tmp_start
+fi
 
-if ( $ng_cur eq "true" )
-{
-	print "Setting new proxy directives on existing l7 farms";
-	my @farmsf = &getFarmsByType( 'http' );
-	push @farmsf, &getFarmsByType( 'https' );
-	foreach my $farm_name ( @farmsf )
-	{
-		&setHTTPFarmBackendsMarks( $farm_name );
-	}
-}
+if [ -f $zvn_stop ]; then
+	mv $zvn_stop $tmp_stop
+fi
+
+# Create the new GUI system group
+groupadd -f webgui;
+usermod -a -G webgui root;
+

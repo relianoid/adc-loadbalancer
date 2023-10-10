@@ -1,4 +1,3 @@
-#!/bin/bash
 ###############################################################################
 #
 #    ZEVENET Software License
@@ -21,13 +20,20 @@
 #
 ###############################################################################
 
-# Migrate pound config file to l7 proxy config file
-for i in $(find /usr/local/zevenet/config/ -name "*pound.cfg");
-do
-	echo "Migrating config file $i from pound to l7 proxy"
+FROM zevenet/zvn-builder-base:#{version}
 
-	sed -i -e 's/pound.socket/proxy.socket/' $i
-	sed -i -E 's/^LogLevel\s+0/LogLevel\t5/g' $i
+# Base packages
+RUN apt-get update && apt-get install -y \
+    libssl-dev \
+    libperl-dev
 
-	mv "$i" "$(echo "$i" | sed s/pound.cfg/proxy.cfg/)"
-done
+# Use host user uid/gid, so the new files are owned by the user
+# running the container
+ARG host_uid
+ARG host_gid
+
+# The -o option (non-unique) is a hack that avoid problems when
+# the image is built as root
+RUN groupadd -o -g ${host_uid} host_user && \
+    useradd  -o -u ${host_uid} -g ${host_gid} host_user
+USER host_user
