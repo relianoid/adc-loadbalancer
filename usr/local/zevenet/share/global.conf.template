@@ -28,12 +28,12 @@ $cors_devel_mode = "false";
 # Minutes for Gui Session Timeout.
 $session_timeout="30";
 
-## ZEVENET Paths
-#ZEVENET root directory
+## Zevenet Paths
+#Zevenet root directory
 $zdir="/usr/local/zevenet";#update
-#ZEVENET lib directory
+#Zevenet lib directory
 $zlibdir="/usr/share/perl5/Zevenet";#update
-#ZEVENET bin directory
+#Zevenet bin directory
 $zbindir="$zdir/bin";#update
 #Document Root for Web Aplication directory
 $basedir="$zdir/www";#update
@@ -45,17 +45,15 @@ $certdir="$zdir/config/certificates";#update
 $localconfig="$configdir/local";#update
 #Directory where is check script. In this directory you can save your own check scripts.
 $libexec_dir="/usr/lib/nagios/plugins";
-#ZEVENET bin directory
+#Zevenet bin directory
 $templatedir="$zdir/share";#update
 #Save backups on
 $backupdir="$zdir/backups";#update
-#Save farm sockets on
-$socketdir="/tmp";
 #Log directory
 $logdir="/var/log";#update
 #piddir
 $piddir="/var/run";
-#ZEVENET activation certificate path
+#zevenet activation certificate path
 $zlbcertfile_path="$basedir/zlbcertfile.pem";#update
 # directory of the zapi binaries
 $zapi_directory="$basedir/zapi";
@@ -63,7 +61,7 @@ $zapi_directory="$basedir/zapi";
 $first_boot_flag="/etc/firstzlbboot";
 #zna migration flag
 $migration_flag="/etc/zlbmigration";
-#ZEVENET service
+#zevenet service
 $zevenet_service="/etc/init.d/zevenet";
 #zevenet no restart service flag
 $zevenet_service_norestart_flag="/etc/zlbnorestart";
@@ -82,15 +80,15 @@ $shadow_file="/etc/shadow";
 $filedns="/etc/resolv.conf";
 # apt sources configuration file
 $fileapt="/etc/apt/sources.list";
-# apt ZEVENET source
+# apt Zevenet source
 $apt_source_zevenet="/etc/apt/sources.list.d/zevenet.list";
 # apt user conf
 $apt_conf_file="/etc/apt/apt.conf";
 # apt updates dir
 $update_dir="/usr/local/zevenet/updates";
-# ZEVENET URL repo
+# Zevenet URL repo
 $repo_url_zevenet="repo.relianoid.com";#update
-# ZEVENET GPG key
+# Zevenet GPG key
 $gpg_key_zevenet="ee.zevenet.com.gpg.key";
 # Bios version
 $bios_version="/sys/devices/virtual/dmi/id/bios_version";
@@ -109,7 +107,7 @@ $zlb_stop_script="$configdir/zlb-stop";
 $zlb_start_tpl="$templatedir/zlb-start.template";
 $zlb_stop_tpl="$templatedir/zlb-stop.template";
 
-## ZEVENET Files
+## Zevenet Files
 #appliance version file
 $applianceVersionFile="/etc/zevenet_version";
 #this file
@@ -366,16 +364,16 @@ $poundtpl="$templatedir/poundtpl.cfg";#update
 
 # l7 proxy
 # Set the l7 binary: NG = true => zproxy, NG = false => pound
-$proxy_ng="false";#update
+$proxy_ng="true";#update
 
 #where is l7 proxy dir?
-$base_proxy="$zdir/app/pound";#update
+$base_proxy="$zdir/app/zproxy";#update
 #where is l7 proxy binary?
-$proxy="$base_proxy/sbin/pound";#update
+$proxy="$base_proxy/bin/zproxy";#update
 #where is l7 proxy ctl?
-$proxyctl="$base_proxy/sbin/poundctl";#update
+$proxyctl="$base_proxy/bin/zproxyctl";#update
 #l7 file configuration template?
-$proxytpl="$templatedir/poundtpl.cfg";#update
+$proxytpl="$templatedir/proxytpl.cfg";#update
 
 #maximum value of http body to pass to modsecurity
 $waf_max_body="32000";
@@ -487,7 +485,7 @@ $curl_bin="/usr/bin/curl";
 # zcluster-manager command path
 # ssh-copy-id file path
 # primary-backup conntrackd script
-$primary_backup="/usr/share/doc/conntrackd/examples/sync/primary-backup.sh";
+$primary_backup="$zbindir/primary-backup.sh";#update
 
 # sshd file
 $sshConf="/etc/ssh/sshd_config";
@@ -571,7 +569,7 @@ $routingRoutePrio="5";
 
 # time period to get the interface throughput stats
 
-$doc_v4_0="https://www.relianoid.com/zapidoc/v4.0_ce/";
+$doc_v4_0="https://www.relianoid.com/zapidoc/v4.0_ee/";
 
 # language used for the webgui
 $lang="";

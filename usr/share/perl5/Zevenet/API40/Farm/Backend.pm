@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,19 +22,24 @@
 ###############################################################################
 
 use strict;
-use warnings;
+
 use Zevenet::API40::HTTP;
 use Zevenet::Farm::Core;
 use Zevenet::Farm::Base;
 use Zevenet::Net::Validate;
 use Zevenet::API40::Farm::Get;
 
+my $eload;
+if ( eval { require Zevenet::ELoad; } )
+{
+	$eload = 1;
+}
 
 # POST
 
 sub new_farm_backend    # ( $json_obj, $farmname )
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $json_obj = shift;
 	my $farmname = shift;
@@ -45,7 +50,7 @@ sub new_farm_backend    # ( $json_obj, $farmname )
 	my $desc = "New farm backend";
 
 	# Check that the farm exists
-	if ( not &getFarmExists( $farmname ) )
+	if ( !&getFarmExists( $farmname ) )
 	{
 		my $msg = "The farmname $farmname does not exist.";
 		&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
@@ -65,10 +70,8 @@ sub new_farm_backend    # ( $json_obj, $farmname )
 
 	# Check allowed parameters
 	my $error_msg = &checkZAPIParams( $json_obj, $params, $desc );
-	if ( $error_msg )
-	{
-		&httpErrorResponse( code => 400, desc => $desc, msg => $error_msg );
-	}
+	return &httpErrorResponse( code => 400, desc => $desc, msg => $error_msg )
+	  if ( $error_msg );
 
 	my $id = &getFarmBackendAvailableID( $farmname );
 
@@ -133,18 +136,13 @@ sub new_farm_backend    # ( $json_obj, $farmname )
 	my $serversArray = &getFarmServers( $farmname );
 	my $out_b = &getFarmServer( $serversArray, $id );
 
-	if ( not $out_b )
+	if ( !$out_b )
 	{
 		my $msg = "Error when retrieving the backend created";
 		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
 	}
 
-	my $warning;
-	if ( &getAPIFarmBackends( $out_b, $type ) == 2 )
-	{
-		$out_b   = [];
-		$warning = "Error get info from backends";
-	}
+	&getAPIFarmBackends( $out_b, $type );
 
 	my $message = "Backend added.";
 	my $body = {
@@ -154,15 +152,19 @@ sub new_farm_backend    # ( $json_obj, $farmname )
 				 status      => &getFarmVipStatus( $farmname ),
 	};
 	$body->{ warning } = $info_msg if defined $info_msg;
-	$body->{ warning } = $warning  if $warning;
+
+	&eload(
+			module => 'Zevenet::Cluster',
+			func   => 'runZClusterRemoteManager',
+			args   => ['farm', 'restart', $farmname],
+	) if ( $eload );
 
 	&httpResponse( { code => 201, body => $body } );
-	return;
 }
 
 sub new_service_backend    # ( $json_obj, $farmname, $service )
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $json_obj = shift;
 	my $farmname = shift;
@@ -171,29 +173,43 @@ sub new_service_backend    # ( $json_obj, $farmname, $service )
 	# Initial parameters
 	my $desc = "New service backend";
 
+	my $type = &getFarmType( $farmname );
+
 	# Check that the farm exists
-	if ( not &getFarmExists( $farmname ) )
+	if ( !&getFarmExists( $farmname ) )
 	{
 		my $msg = "The farmname $farmname does not exist.";
 		&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
 	}
 
 	# validate FARM TYPE
-	my $type = &getFarmType( $farmname );
 
-		if ( $type !~ /^https?$/ )
-		{
-			my $msg = "The $type farm profile does not support services.";
-			&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-		}
+	if ( $type eq "gslb" && $eload )
+	{
+		&eload(
+				module => 'Zevenet::API40::Farm::GSLB',
+				func   => 'new_gslb_service_backend',
+				args   => [$json_obj, $farmname, $service]
+		);
+	}
+	elsif ( $type !~ /^https?$/ )
+	{
+		my $msg = "The $type farm profile does not support services.";
+		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
+	}
 
 	# HTTP
-	# validate SERVICE
+	require Zevenet::Farm::Config;
+	require Zevenet::Farm::Backend;
+	require Zevenet::Farm::Validate;
+	require Zevenet::Farm::HTTP::Backend;
 	require Zevenet::Farm::HTTP::Service;
+
+	# validate SERVICE
 	my @services = &getHTTPFarmServices( $farmname );
 
 	# Check if the provided service is configured in the farm
-	unless ( grep { /^$service$/ } @services )
+	unless ( grep ( /^$service$/, @services ) )
 	{
 		my $msg = "Invalid service name, please insert a valid value.";
 		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
@@ -207,10 +223,8 @@ sub new_service_backend    # ( $json_obj, $farmname, $service )
 		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
 	}
 
-	require Zevenet::Farm::Validate;
-	my $params   = &getZAPIModel( "farm_http_service_backend-add.json" );
-	my $proxy_ng = &getGlobalConfiguration( 'proxy_ng' );
-	if ( $proxy_ng ne 'true' )
+	my $params = &getZAPIModel( "farm_http_service_backend-add.json" );
+	if ( &getGlobalConfiguration( 'proxy_ng' ) ne 'true' )
 	{
 		undef $params->{ "connection_limit" };
 		undef $params->{ "priority" };
@@ -218,27 +232,8 @@ sub new_service_backend    # ( $json_obj, $farmname, $service )
 
 	# Check allowed parameters
 	my $error_msg = &checkZAPIParams( $json_obj, $params, $desc );
-	if ( $error_msg )
-	{
-		&httpErrorResponse( code => 400, desc => $desc, msg => $error_msg );
-	}
-
-	#check if there is other backend with same address
-	require Zevenet::Farm::HTTP::Backend;
-	if ( $proxy_ng eq 'true' )
-	{
-		my @be_list = @{ &getHTTPFarmBackends( $farmname, $service, "false" ) };
-		foreach my $backend ( @be_list )
-		{
-			if (     $backend->{ ip } eq $json_obj->{ ip }
-				 and $backend->{ port } eq $json_obj->{ port } )
-			{
-				my $msg =
-				  "A backend with address $json_obj->{ ip }:$json_obj->{ port } already exists";
-				&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-			}
-		}
-	}
+	return &httpErrorResponse( code => 400, desc => $desc, msg => $error_msg )
+	  if ( $error_msg );
 
 	# get an ID for the new backend
 	my $id = &getHTTPFarmBackendAvailableID( $farmname, $service );
@@ -270,38 +265,38 @@ sub new_service_backend    # ( $json_obj, $farmname, $service )
 		"info", "FARMS"
 	);
 
+	my $info_msg;
+	if ( $type =~ /http/ )
+	{
+		my $priorities = &getHTTPFarmPriorities( $farmname, $service );
+		if ( my $prio = &priorityAlgorithmIsOK( $priorities ) )
+		{
+			$info_msg = "Backends with high priority value ($prio) will not be used.";
+			&zenlog(
+				"Warning, backend with high priority value ($prio) in farm $farmname in service $service.",
+				"warning", "FARMS"
+			);
+		}
+	}
+
+	my $message = "Added backend to service successfully.";
+
+	my $out_b = &getFarmServers( $farmname, $service )->[$id];
+	&getAPIFarmBackends( $out_b, $type );
+
 	my $body = {
 				 description => $desc,
-				 message     => "Added backend to service successfully."
+				 params      => $out_b,
+				 message     => $message,
+				 status      => &getFarmVipStatus( $farmname ),
 	};
-
-	if ( my $prio =
-		 &priorityAlgorithmIsOK( &getHTTPFarmPriorities( $farmname, $service ) ) )
-	{
-		$body->{ warning } =
-		  "Backends with high priority value ($prio) will not be used.";
-		&zenlog(
-			"Warning, backend with high priority value ($prio) in farm $farmname in service $service.",
-			"warning", "FARMS"
-		);
-	}
-
-	require Zevenet::Farm::Backend;
-	my $out_b = &getFarmServers( $farmname, $service )->[$id];
-	if ( &getAPIFarmBackends( $out_b, $type ) == 2 )
-	{
-		$body->{ warning } = "Error get info from backends";
-		$out_b = [];
-
-	}
-
-	$body->{ params } = $out_b;
+	$body->{ warning } = $info_msg if defined $info_msg;
 
 	if ( &getFarmStatus( $farmname ) eq 'up' )
 	{
+		require Zevenet::Farm::Action;
 		if ( &getGlobalConfiguration( 'proxy_ng' ) ne 'true' )
 		{
-			require Zevenet::Farm::Action;
 			&setFarmRestart( $farmname );
 			$body->{ status } = 'needed restart';
 		}
@@ -309,26 +304,23 @@ sub new_service_backend    # ( $json_obj, $farmname, $service )
 		{
 			require Zevenet::Farm::HTTP::Config;
 			my $config_error = &getHTTPFarmConfigErrorMessage( $farmname );
-			if ( $config_error->{ code } )
+			if ( $config_error ne "" )
 			{
-				$body->{ warning } = "Farm '$farmname' config error: $config_error->{ desc }";
+				$body->{ warning } = "Farm '$farmname' config error: $config_error";
 			}
 			else
 			{
-				require Zevenet::Farm::Action;
 				&runFarmReload( $farmname );
-
+				&eload(
+						module => 'Zevenet::Cluster',
+						func   => 'runZClusterRemoteManager',
+						args   => ['farm', 'reload', $farmname],
+				) if ( $eload );
 			}
-			$body->{ status } = &getFarmVipStatus( $farmname );
 		}
-	}
-	else
-	{
-		$body->{ status } = &getFarmVipStatus( $farmname );
 	}
 
 	&httpResponse( { code => 201, body => $body } );
-	return;
 }
 
 # GET
@@ -336,7 +328,7 @@ sub new_service_backend    # ( $json_obj, $farmname, $service )
 #GET /farms/<name>/backends
 sub backends
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $farmname = shift;
 
@@ -344,7 +336,7 @@ sub backends
 	require Zevenet::Farm::Backend;
 
 	# Check that the farm exists
-	if ( not &getFarmExists( $farmname ) )
+	if ( !&getFarmExists( $farmname ) )
 	{
 		my $msg = "The farmname $farmname does not exist.";
 		&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
@@ -359,34 +351,27 @@ sub backends
 	}
 
 	my $backends = &getFarmServers( $farmname );
-	my $warning;
-	if ( &getAPIFarmBackends( $backends, $type ) == 2 )
-	{
-		$backends = [];
-		$warning  = "Error get info from backends";
-
-	}
+	&getAPIFarmBackends( $backends, $type );
 
 	my $body = {
 				 description => $desc,
 				 params      => $backends,
 	};
-	$body->{ warning } = $warning if $warning;
+
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 #GET /farms/<name>/services/<service>/backends
 sub service_backends
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farmname, $service ) = @_;
 
 	my $desc = "List service backends";
 
 	# Check that the farm exists
-	if ( not &getFarmExists( $farmname ) )
+	if ( !&getFarmExists( $farmname ) )
 	{
 		my $msg = "The farmname $farmname does not exist.";
 		&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
@@ -394,6 +379,14 @@ sub service_backends
 
 	my $type = &getFarmType( $farmname );
 
+	if ( $type eq 'gslb' && $eload )
+	{
+		&eload(
+				module => 'Zevenet::API40::Farm::GSLB',
+				func   => 'list_gslb_service_backends',
+				args   => [$farmname, $service]
+		);
+	}
 
 	if ( $type !~ /^https?$/ )
 	{
@@ -419,14 +412,13 @@ sub service_backends
 	};
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 # PUT
 
 sub modify_backends    #( $json_obj, $farmname, $id_server )
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $json_obj, $farmname, $id_server ) = @_;
 
@@ -436,7 +428,7 @@ sub modify_backends    #( $json_obj, $farmname, $id_server )
 	require Zevenet::Net::Validate;
 
 	# Check that the farm exists
-	if ( not &getFarmExists( $farmname ) )
+	if ( !&getFarmExists( $farmname ) )
 	{
 		my $msg = "The farmname $farmname does not exist.";
 		&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
@@ -454,7 +446,7 @@ sub modify_backends    #( $json_obj, $farmname, $id_server )
 
 	my $backend = &getFarmServer( $serversArray, $id_server );
 
-	if ( not $backend or ref ( $backend ) ne "HASH" )
+	if ( !$backend || ref ( $backend ) ne "HASH" )
 	{
 		my $msg = "Could not find a backend with such id.";
 		&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
@@ -468,10 +460,8 @@ sub modify_backends    #( $json_obj, $farmname, $id_server )
 	# Check allowed parameters
 	my %json_params = %{ $json_obj };
 	my $error_msg = &checkZAPIParams( \%json_params, $params, $desc );
-	if ( $error_msg )
-	{
-		&httpErrorResponse( code => 400, desc => $desc, msg => $error_msg );
-	}
+	return &httpErrorResponse( code => 400, desc => $desc, msg => $error_msg )
+	  if ( $error_msg );
 
 	# check of ip version
 	if ( $type eq 'l4xnat' )
@@ -549,62 +539,80 @@ sub modify_backends    #( $json_obj, $farmname, $id_server )
 				 status      => &getFarmVipStatus( $farmname ),
 	};
 	$body->{ warning } = $info_msg if defined $info_msg;
+
+	&eload(
+			module => 'Zevenet::Cluster',
+			func   => 'runZClusterRemoteManager',
+			args   => ['farm', 'restart', $farmname],
+	) if ( $eload && &getFarmStatus( $farmname ) eq 'up' );
+
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 sub modify_service_backends    #( $json_obj, $farmname, $service, $id_server )
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $json_obj, $farmname, $service, $id_server ) = @_;
 
 	my $desc = "Modify service backend";
 
+	my $type = &getFarmType( $farmname );
+
 	# Check that the farm exists
-	if ( not &getFarmExists( $farmname ) )
+	if ( !&getFarmExists( $farmname ) )
 	{
 		my $msg = "The farmname $farmname does not exist.";
 		&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
 	}
 
-	# validate FARM TYPE
-	my $type = &getFarmType( $farmname );
-
-		if ( $type !~ /^https?$/ )
-		{
-			my $msg = "The $type farm profile does not support services.";
-			&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
-		}
+	if ( $type eq "gslb" && $eload )
+	{
+		&eload(
+				module => 'Zevenet::API40::Farm::GSLB',
+				func   => 'modify_gslb_service_backends',
+				args   => [$json_obj, $farmname, $service, $id_server]
+		);
+	}
+	elsif ( $type !~ /^https?$/ )
+	{
+		my $msg = "The $type farm profile does not support services.";
+		&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
+	}
 
 	# HTTP
-	# validate SERVICE
+	require Zevenet::Farm::Action;
+	require Zevenet::Farm::HTTP::Config;
+	require Zevenet::Farm::HTTP::Backend;
 	require Zevenet::Farm::HTTP::Service;
+
+	# validate SERVICE
 	my @services = &getHTTPFarmServices( $farmname );
+	my $found_service = grep { $service eq $_ } @services;
 
 	# check if the service exists
-	unless ( grep { $service eq $_ } @services )
+	if ( !$found_service )
 	{
 		my $msg = "Could not find the requested service.";
 		&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
 	}
 
 	# validate BACKEND
-	require Zevenet::Farm::HTTP::Backend;
-	my @be_list = @{ &getHTTPFarmBackends( $farmname, $service, "false" ) };
-	my $be = $be_list[$id_server];
+	my $be;
+	{
+		my @be_list = @{ &getHTTPFarmBackends( $farmname, $service ) };
+		$be = $be_list[$id_server];
+	}
 
 	# check if the backend was found
-	unless ( $be )
+	if ( !$be )
 	{
 		my $msg = "Could not find a service backend with such id.";
 		&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
 	}
 
-	require Zevenet::Farm::Validate;
-	my $params   = &getZAPIModel( "farm_http_service_backend-modify.json" );
-	my $proxy_ng = &getGlobalConfiguration( 'proxy_ng' );
-	if ( $proxy_ng ne 'true' )
+	my $params = &getZAPIModel( "farm_http_service_backend-modify.json" );
+	if ( &getGlobalConfiguration( 'proxy_ng' ) ne 'true' )
 	{
 		undef $params->{ "connection_limit" };
 		undef $params->{ "priority" };
@@ -612,35 +620,13 @@ sub modify_service_backends    #( $json_obj, $farmname, $service, $id_server )
 
 	# Check allowed parameters
 	my $error_msg = &checkZAPIParams( $json_obj, $params, $desc );
-	if ( $error_msg )
-	{
-		&httpErrorResponse( code => 400, desc => $desc, msg => $error_msg );
-	}
+	return &httpErrorResponse( code => 400, desc => $desc, msg => $error_msg )
+	  if ( $error_msg );
 
-	#check if other BACKEND exists with the same address and apply address change
-	if ( $json_obj->{ ip } or $json_obj->{ port } )
-	{
-		$be->{ ip }   = $json_obj->{ ip }   // $be->{ ip };
-		$be->{ port } = $json_obj->{ port } // $be->{ port };
-		if ( $proxy_ng eq 'true' )
-		{
-			my $index = 0;
-			foreach my $backend ( @be_list )
-			{
-				if ( $backend->{ ip } eq $be->{ ip } and $backend->{ port } eq $be->{ port } )
-				{
-					if ( $index ne $id_server )
-					{
-						my $msg = "A backend with address $be->{ ip }:$be->{ port } already exists";
-						&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-					}
-				}
-				$index++;
-			}
-		}
-	}
+	# apply BACKEND change
 
-	# apply other BACKEND params changes
+	$be->{ ip }       = $json_obj->{ ip }       // $be->{ ip };
+	$be->{ port }     = $json_obj->{ port }     // $be->{ port };
 	$be->{ weight }   = $json_obj->{ weight }   // $be->{ weight };
 	$be->{ priority } = $json_obj->{ priority } // $be->{ priority };
 	$be->{ timeout }  = $json_obj->{ timeout }  // $be->{ timeout };
@@ -667,32 +653,37 @@ sub modify_service_backends    #( $json_obj, $farmname, $service, $id_server )
 		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
 	}
 
-	my $body = {
-				 description => $desc,
-				 params      => $json_obj,
-				 message     => "Backend modified.",
-	};
+	my $info_msg;
 
 	if (     ( &getGlobalConfiguration( 'proxy_ng' ) eq 'true' )
 		 and ( exists $json_obj->{ priority } ) )
 	{
+		require Zevenet::Farm::Validate;
 		if ( my $prio =
 			 &priorityAlgorithmIsOK( &getHTTPFarmPriorities( $farmname, $service ) ) )
 		{
-			$body->{ warning } =
-			  "Backends with high priority value ($prio) will not be used.";
+			$info_msg = "Backends with high priority value ($prio) will not be used.";
 			&zenlog(
 				"Warning, backend with high priority value ($prio) in farm $farmname in service $service.",
 				"warning", "FARMS"
 			);
 		}
 	}
+	my $msg = "Backend modified.";
+	my $body = {
+				 description => $desc,
+				 params      => $json_obj,
+				 message     => $msg,
+				 status      => &getFarmVipStatus( $farmname ),
+	};
+
+	$body->{ warning } = $info_msg if defined $info_msg;
 
 	if ( &getFarmStatus( $farmname ) eq "up" )
 	{
+		require Zevenet::Farm::Action;
 		if ( &getGlobalConfiguration( 'proxy_ng' ) ne 'true' )
 		{
-			require Zevenet::Farm::Action;
 			&setFarmRestart( $farmname );
 			$body->{ status } = 'needed restart';
 		}
@@ -700,26 +691,23 @@ sub modify_service_backends    #( $json_obj, $farmname, $service, $id_server )
 		{
 			require Zevenet::Farm::HTTP::Config;
 			my $config_error = &getHTTPFarmConfigErrorMessage( $farmname );
-			if ( $config_error->{ code } )
+			if ( $config_error ne "" )
 			{
-				$body->{ warning } = "Farm '$farmname' config error: $config_error->{ desc }";
+				$body->{ warning } = "Farm '$farmname' config error: $config_error";
 			}
 			else
 			{
-				require Zevenet::Farm::Action;
 				&runFarmReload( $farmname );
-
+				&eload(
+						module => 'Zevenet::Cluster',
+						func   => 'runZClusterRemoteManager',
+						args   => ['farm', 'reload', $farmname],
+				) if ( $eload );
 			}
-			$body->{ status } = &getFarmVipStatus( $farmname );
 		}
-	}
-	else
-	{
-		$body->{ status } = &getFarmVipStatus( $farmname );
 	}
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 # DELETE
@@ -727,7 +715,7 @@ sub modify_service_backends    #( $json_obj, $farmname, $service, $id_server )
 # DELETE /farms/<farmname>/backends/<backendid> Delete a backend of a Farm
 sub delete_backend    # ( $farmname, $id_server )
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farmname, $id_server ) = @_;
 
@@ -736,7 +724,7 @@ sub delete_backend    # ( $farmname, $id_server )
 	my $desc = "Delete backend";
 
 	# validate FARM NAME
-	if ( not &getFarmExists( $farmname ) )
+	if ( !&getFarmExists( $farmname ) )
 	{
 		my $msg = "The farmname $farmname does not exist.";
 		&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
@@ -744,7 +732,7 @@ sub delete_backend    # ( $farmname, $id_server )
 
 	# validate FARM TYPE
 	my $type = &getFarmType( $farmname );
-	unless ( $type eq 'l4xnat' or $type eq 'datalink' )
+	unless ( $type eq 'l4xnat' || $type eq 'datalink' )
 	{
 		my $msg = "The $type farm profile has backends only in services.";
 		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
@@ -753,7 +741,7 @@ sub delete_backend    # ( $farmname, $id_server )
 	my $backends = &getFarmServers( $farmname );
 	my $exists = &getFarmServer( $backends, $id_server );
 
-	if ( not $exists )
+	if ( !$exists )
 	{
 		my $msg = "Could not find a backend with such id.";
 		&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
@@ -782,6 +770,19 @@ sub delete_backend    # ( $farmname, $id_server )
 
 	&zenlog( "Success, the backend $id_server in farm $farmname has been deleted.",
 			 "info", "FARMS" );
+
+	&eload(
+			module => 'Zevenet::Cluster',
+			func   => 'runZClusterRemoteManager',
+			args   => ['farm', 'delete', $farmname, 'backend', $id_server],
+	) if ( $eload && $type eq 'l4xnat' );
+
+	&eload(
+			module => 'Zevenet::Cluster',
+			func   => 'runZClusterRemoteManager',
+			args   => ['farm', 'restart', $farmname],
+	) if ( $eload && $type eq 'datalink' );
+
 	my $message = "Backend removed";
 	my $body = {
 				 description => $desc,
@@ -792,20 +793,19 @@ sub delete_backend    # ( $farmname, $id_server )
 	$body->{ warning } = $info_msg if defined $info_msg;
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 #  DELETE /farms/<farmname>/services/<servicename>/backends/<backendid> Delete a backend of a Service
 sub delete_service_backend    # ( $farmname, $service, $id_server )
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farmname, $service, $id_server ) = @_;
 
 	my $desc = "Delete service backend";
 
 	# validate FARM NAME
-	if ( not &getFarmExists( $farmname ) )
+	if ( !&getFarmExists( $farmname ) )
 	{
 		my $msg = "The farmname $farmname does not exist.";
 		&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
@@ -814,15 +814,27 @@ sub delete_service_backend    # ( $farmname, $service, $id_server )
 	# validate FARM TYPE
 	my $type = &getFarmType( $farmname );
 
-		if ( $type !~ /^https?$/ )
-		{
-			my $msg = "The $type farm profile does not support services.";
-			&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-		}
+	if ( $type eq 'gslb' && $eload )
+	{
+		&eload(
+				module => 'Zevenet::API40::Farm::GSLB',
+				func   => 'delete_gslb_service_backend',
+				args   => [$farmname, $service, $id_server]
+		);
+	}
+	elsif ( $type !~ /^https?$/ )
+	{
+		my $msg = "The $type farm profile does not support services.";
+		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
+	}
 
 	# HTTP
-	# validate SERVICE
+	require Zevenet::Farm::Action;
+	require Zevenet::Farm::HTTP::Config;
+	require Zevenet::Farm::HTTP::Backend;
 	require Zevenet::Farm::HTTP::Service;
+
+	# validate SERVICE
 	my @services = &getHTTPFarmServices( $farmname );
 
 	# check if the SERVICE exists
@@ -833,10 +845,9 @@ sub delete_service_backend    # ( $farmname, $service, $id_server )
 	}
 
 	# check if the backend id is available
-	require Zevenet::Farm::HTTP::Backend;
 	my $be_found;
 	{
-		my $be = &getHTTPFarmBackends( $farmname, $service, "false" );
+		my $be = &getHTTPFarmBackends( $farmname, $service );
 		$be_found = defined @{ $be }[$id_server];
 	}
 
@@ -858,20 +869,14 @@ sub delete_service_backend    # ( $farmname, $service, $id_server )
 		&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
 	}
 
-	my $body = {
-				 description => $desc,
-				 success     => "true",
-				 message     => "Backend removed"
-	};
-
+	my $info_msg;
 	if ( &getGlobalConfiguration( 'proxy_ng' ) eq 'true' )
 	{
 		require Zevenet::Farm::Validate;
 		if ( my $prio =
 			 &priorityAlgorithmIsOK( &getHTTPFarmPriorities( $farmname, $service ) ) )
 		{
-			$body->{ warning } =
-			  "Backends with high priority value ($prio) will not be used.";
+			$info_msg = "Backends with high priority value ($prio) will not be used.";
 			&zenlog(
 				"Warning, backend with high priority value ($prio) in service $service in farm $farmname.",
 				"warning", "FARMS"
@@ -885,11 +890,21 @@ sub delete_service_backend    # ( $farmname, $service, $id_server )
 		"info", "FARMS"
 	);
 
+	my $message = "Backend removed";
+	my $body = {
+				 description => $desc,
+				 success     => "true",
+				 message     => $message,
+				 status      => &getFarmVipStatus( $farmname ),
+	};
+
+	$body->{ warning } = $info_msg if defined $info_msg;
+
 	if ( &getFarmStatus( $farmname ) eq 'up' )
 	{
+		require Zevenet::Farm::Action;
 		if ( &getGlobalConfiguration( 'proxy_ng' ) ne 'true' )
 		{
-			require Zevenet::Farm::Action;
 			&setFarmRestart( $farmname );
 			$body->{ status } = 'needed restart';
 		}
@@ -897,31 +912,28 @@ sub delete_service_backend    # ( $farmname, $service, $id_server )
 		{
 			require Zevenet::Farm::HTTP::Config;
 			my $config_error = &getHTTPFarmConfigErrorMessage( $farmname );
-			if ( $config_error->{ code } )
+			if ( $config_error ne "" )
 			{
-				$body->{ warning } = "Farm '$farmname' config error: $config_error->{ desc }";
+				$body->{ warning } = "Farm '$farmname' config error: $config_error";
 			}
 			else
 			{
-				require Zevenet::Farm::Action;
 				&runFarmReload( $farmname );
-
+				&eload(
+						module => 'Zevenet::Cluster',
+						func   => 'runZClusterRemoteManager',
+						args   => ['farm', 'reload', $farmname],
+				) if ( $eload );
 			}
-			$body->{ status } = &getFarmVipStatus( $farmname );
 		}
-	}
-	else
-	{
-		$body->{ status } = &getFarmVipStatus( $farmname );
 	}
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 sub validateDatalinkBackendIface
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $backend = shift;
 	my $msg;
@@ -938,8 +950,11 @@ sub validateDatalinkBackendIface
 		$msg = "It is not possible to configure vlan interface for datalink backends";
 	}
 	elsif (
-		not &validateGateway( $iface_ref->{ addr }, $iface_ref->{ mask }, $backend->{ ip }
-		)
+			!&validateGateway(
+							   $iface_ref->{ addr },
+							   $iface_ref->{ mask },
+							   $backend->{ ip }
+			)
 	  )
 	{
 		$msg =

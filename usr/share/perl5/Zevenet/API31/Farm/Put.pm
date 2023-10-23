@@ -1,10 +1,9 @@
-#!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,21 +21,21 @@
 ###############################################################################
 
 use strict;
-use warnings;
 use Zevenet::Farm::Core;
 
+my $eload;
+if ( eval { require Zevenet::ELoad; } ) { $eload = 1; }
 
-sub modify_farm    # ( $json_obj, $farmname )
+sub modify_farm # ( $json_obj, $farmname )
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+	&zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING" );
 	my $json_obj = shift;
 	my $farmname = shift;
 
 	my $desc = "Modify farm";
 
 	# Check that the farm exists
-	if ( not &getFarmExists( $farmname ) )
+	if ( !&getFarmExists( $farmname ) )
 	{
 		my $msg = "The farmname $farmname does not exist.";
 		&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
@@ -44,7 +43,7 @@ sub modify_farm    # ( $json_obj, $farmname )
 
 	my $type = &getFarmType( $farmname );
 
-	if ( $type eq "http" or $type eq "https" )
+	if ( $type eq "http" || $type eq "https" )
 	{
 		require Zevenet::API31::Farm::Put::HTTP;
 		&modify_http_farm( $json_obj, $farmname );
@@ -62,7 +61,14 @@ sub modify_farm    # ( $json_obj, $farmname )
 		&modify_datalink_farm( $json_obj, $farmname );
 	}
 
-	return;
+	if ( $type eq "gslb" && $eload)
+	{
+		&eload(
+			module => 'Zevenet::API31::Farm::Put::GSLB',
+			func   => 'modify_gslb_farm',
+			args   => [$json_obj, $farmname],
+		);
+	}
 }
 
 1;

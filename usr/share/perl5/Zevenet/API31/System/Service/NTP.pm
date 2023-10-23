@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,30 +22,22 @@
 ###############################################################################
 
 use strict;
-use warnings;
 
 # GET /system/ntp
 sub get_ntp
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+	&zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING" );
 	my $desc = "Get ntp";
 	my $ntp  = &getGlobalConfiguration( 'ntp' );
 
 	&httpResponse(
-				   {
-					 code => 200,
-					 body => { description => $desc, params => { "server" => $ntp } }
-				   }
-	);
-	return;
+			 { code => 200, body => { description => $desc, params => { "server" => $ntp } } } );
 }
 
 #  POST /system/ntp
 sub set_ntp
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+	&zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING" );
 	my $json_obj = shift;
 
 	my $desc = "Post ntp";
@@ -58,7 +50,7 @@ sub set_ntp
 		&httpErrorResponse( code => 400, desc => $desc, msg => $param_msg );
 	}
 
-	if ( not &getValidFormat( "ntp", $json_obj->{ 'server' } ) )
+	if ( !&getValidFormat( "ntp", $json_obj->{ 'server' } ) )
 	{
 		my $msg = "NTP hasn't a correct format.";
 		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
@@ -73,9 +65,7 @@ sub set_ntp
 	}
 
 	my $ntp = &getGlobalConfiguration( 'ntp' );
-	&httpResponse(
-				   { code => 200, body => { description => $desc, params => $ntp } } );
-	return;
+	&httpResponse( { code => 200, body => { description => $desc, params => $ntp } } );
 }
 
 1;

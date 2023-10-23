@@ -1,10 +1,9 @@
-#!/usr/bin/perl
-################################################################################
+###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,15 +21,19 @@
 ###############################################################################
 
 use strict;
-use warnings;
 use Zevenet::Net::Util;
 use Zevenet::Farm::Base;
 use Zevenet::Farm::Datalink::Config;
 
+my $eload;
+if ( eval { require Zevenet::ELoad; } )
+{
+	$eload = 1;
+}
 
 sub modify_datalink_farm    # ( $json_obj, $farmname )
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $json_obj = shift;
 	my $farmname = shift;
@@ -48,10 +51,8 @@ sub modify_datalink_farm    # ( $json_obj, $farmname )
 
 	# Check allowed parameters
 	my $error_msg = &checkZAPIParams( $json_obj, $params, $desc );
-	if ( $error_msg )
-	{
-		&httpErrorResponse( code => 400, desc => $desc, msg => $error_msg );
-	}
+	return &httpErrorResponse( code => 400, desc => $desc, msg => $error_msg )
+	  if ( $error_msg );
 
 	# Modify Farm's Name
 	if ( exists ( $json_obj->{ newfarmname } ) )
@@ -99,14 +100,14 @@ sub modify_datalink_farm    # ( $json_obj, $farmname )
 	if ( exists ( $json_obj->{ vip } ) )
 	{
 		my $fdev = &getInterfaceOfIp( $json_obj->{ vip } );
-		if ( not defined $fdev )
+		if ( !defined $fdev )
 		{
 			my $msg = "$json_obj->{ vip } has to be configured in some interface.";
 			&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
 		}
 
 		# interface must be running
-		if ( not grep { $_ eq $json_obj->{ vip } } &listallips() )
+		if ( !grep { $_ eq $json_obj->{ vip } } &listallips() )
 		{
 			my $msg = "The IP has to be UP to be used as VIP.";
 			&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
@@ -124,10 +125,16 @@ sub modify_datalink_farm    # ( $json_obj, $farmname )
 	}
 
 	# Restart Farm
-	if ( $restart_flag eq "true" and $initial_status ne 'down' )
+	if ( $restart_flag eq "true" && $initial_status ne 'down' )
 	{
 		&runFarmStop( $farmname, "true" );
 		&runFarmStart( $farmname, "true" );
+
+		&eload(
+				module => 'Zevenet::Cluster',
+				func   => 'runZClusterRemoteManager',
+				args   => ['farm', 'restart', $farmname],
+		) if ( $eload );
 	}
 
 	# no error found, return successful response
@@ -141,7 +148,6 @@ sub modify_datalink_farm    # ( $json_obj, $farmname )
 	};
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 1;

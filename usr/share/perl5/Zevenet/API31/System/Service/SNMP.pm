@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,13 +22,13 @@
 ###############################################################################
 
 use strict;
-use warnings;
+
 use Zevenet::SNMP;
 
 # GET /system/snmp
 sub get_snmp
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $desc = "Get snmp";
 
@@ -37,13 +37,12 @@ sub get_snmp
 
 	&httpResponse(
 				  { code => 200, body => { description => $desc, params => \%snmp } } );
-	return;
 }
 
 #  POST /system/snmp
 sub set_snmp
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $json_obj = shift;
 
@@ -60,7 +59,7 @@ sub set_snmp
 	# Check key format
 	foreach my $key ( keys %{ $json_obj } )
 	{
-		if ( not &getValidFormat( "snmp_$key", $json_obj->{ $key } ) )
+		if ( !&getValidFormat( "snmp_$key", $json_obj->{ $key } ) )
 		{
 			my $msg = "$key hasn't a correct format.";
 			&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
@@ -83,16 +82,16 @@ sub set_snmp
 		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
 	}
 
-	if ( not $status and &getSnmpdStatus() eq 'true' )
+	if ( !$status && &getSnmpdStatus() eq 'true' )
 	{
 		&setSnmpdStatus( 'false' );    # stopping snmp
 		&setSnmpdStatus( 'true' );     # starting snmp
 	}
-	elsif ( $status eq 'true' and &getSnmpdStatus() eq 'false' )
+	elsif ( $status eq 'true' && &getSnmpdStatus() eq 'false' )
 	{
 		&setSnmpdStatus( 'true' );     # starting snmp
 	}
-	elsif ( $status eq 'false' and &getSnmpdStatus() eq 'true' )
+	elsif ( $status eq 'false' && &getSnmpdStatus() eq 'true' )
 	{
 		&setSnmpdStatus( 'false' );    # stopping snmp
 	}
@@ -103,7 +102,6 @@ sub set_snmp
 
 	&httpResponse(
 				   { code => 200, body => { description => $desc, params => $snmp } } );
-	return;
 }
 
 1;

@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,12 +22,11 @@
 ###############################################################################
 
 use strict;
-use warnings;
 
 #	GET	/system/users
 sub get_all_users
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	require Zevenet::Zapi;
 
@@ -40,13 +39,12 @@ sub get_all_users
 
 	&httpResponse(
 				 { code => 200, body => { description => $desc, params => \@users } } );
-	return;
 }
 
 #	GET	/system/users/zapi
 sub get_user
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $user = shift;
 
@@ -67,14 +65,12 @@ sub get_user
 
 	&httpResponse(
 				   { code => 200, body => { description => $desc, params => $zapi } } );
-
-	return;
 }
 
 # POST /system/users/zapi
 sub set_user_zapi
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $json_obj = shift;
 
@@ -91,29 +87,29 @@ sub set_user_zapi
 		&httpErrorResponse( code => 400, desc => $desc, msg => $param_msg );
 	}
 
-	if ( not &getValidFormat( "zapi_key", $json_obj->{ 'key' } ) )
+	if ( !&getValidFormat( "zapi_key", $json_obj->{ 'key' } ) )
 	{
 		my $msg = "Error, character incorrect in key zapi.";
 		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
 	}
-	elsif ( not &getValidFormat( "zapi_password", $json_obj->{ 'newpassword' } ) )
+	elsif ( !&getValidFormat( "zapi_password", $json_obj->{ 'newpassword' } ) )
 	{
 		my $msg = "Error, character incorrect in password zapi.";
 		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
 	}
-	elsif ( not &getValidFormat( "zapi_status", $json_obj->{ 'status' } ) )
+	elsif ( !&getValidFormat( "zapi_status", $json_obj->{ 'status' } ) )
 	{
 		my $msg = "Error, character incorrect in status zapi.";
 		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
 	}
 
-	if (     $json_obj->{ 'status' } eq 'enable'
-		 and &getZAPI( "status" ) eq 'false' )
+	if (    $json_obj->{ 'status' } eq 'enable'
+		 && &getZAPI( "status" ) eq 'false' )
 	{
 		&setZAPI( "enable" );
 	}
-	elsif (     $json_obj->{ 'status' } eq 'disable'
-			and &getZAPI( "status" ) eq 'true' )
+	elsif (    $json_obj->{ 'status' } eq 'disable'
+			&& &getZAPI( "status" ) eq 'true' )
 	{
 		&setZAPI( "disable" );
 	}
@@ -134,13 +130,12 @@ sub set_user_zapi
 	my $body = { description => $desc, params => $json_obj, message => $msg };
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 # POST /system/users/root
 sub set_user
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $json_obj = shift;
 	my $user     = shift;
@@ -164,12 +159,12 @@ sub set_user
 		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
 	}
 
-	if ( not &getValidFormat( 'password', $json_obj->{ 'newpassword' } ) )
+	if ( !&getValidFormat( 'password', $json_obj->{ 'newpassword' } ) )
 	{
 		my $msg = "Character incorrect in password.";
 		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
 	}
-	elsif ( not &checkValidUser( $user, $json_obj->{ 'password' } ) )
+	elsif ( !&checkValidUser( $user, $json_obj->{ 'password' } ) )
 	{
 		my $msg = "Invalid current password.";
 		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
@@ -188,7 +183,6 @@ sub set_user
 	my $body = { description => $desc, params => $json_obj, message => $msg };
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 1;

@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,12 +22,16 @@
 ###############################################################################
 
 use strict;
-use warnings;
 
+my $eload;
+if ( eval { require Zevenet::ELoad; } )
+{
+	$eload = 1;
+}
 
 sub validCGISession    # ()
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	require Zevenet::CGI;
 	require CGI::Session;
@@ -41,9 +45,7 @@ sub validCGISession    # ()
 #~ &zenlog( "CGI SESSION ID: " . $session->id , "debug", "ZAPI") if $session->id;
 #~ &zenlog( "session data: " . Dumper $session->dataref(), "debug", "ZAPI" ); # DEBUG
 
-	if (     $session
-		 and $session->param( 'is_logged_in' )
-		 and not $session->is_expired )
+	if ( $session && $session->param( 'is_logged_in' ) && !$session->is_expired )
 	{
 		# ignore cluster nodes status to reset session expiration date
 		unless ( $q->path_info eq '/system/cluster/nodes' )
@@ -62,7 +64,7 @@ sub validCGISession    # ()
 
 sub getAuthorizationCredentials    # ()
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $base64_digest;
 	my $username;
@@ -94,7 +96,7 @@ sub getAuthorizationCredentials    # ()
 		}
 	}
 
-	return if not $username or not $password;
+	return if !$username or !$password;
 
 	require Zevenet::User;
 	&setUser( $username );
@@ -104,11 +106,11 @@ sub getAuthorizationCredentials    # ()
 
 sub authenticateCredentials    #($user,$curpasswd)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $user, $pass ) = @_;
 
-	return if not defined $user or not defined $pass;
+	return if !defined $user or !defined $pass;
 
 	my $valid_credentials = 0;    # output
 
@@ -127,6 +129,15 @@ sub authenticateCredentials    #($user,$curpasswd)
 
 		}
 	}
+	elsif ( $eload )
+	{
+		$valid_credentials = &eload(
+									 module => 'Zevenet::RBAC::Runtime',
+									 func   => 'runRBACAuthUser',
+									 args   => [$user, $pass]
+		);
+	}
+
 	return $valid_credentials;
 }
 

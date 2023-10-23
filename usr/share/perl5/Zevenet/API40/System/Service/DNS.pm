@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,12 +22,11 @@
 ###############################################################################
 
 use strict;
-use warnings;
 
 # GET /system/dns
 sub get_dns
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	require Zevenet::System::DNS;
 
@@ -36,13 +35,12 @@ sub get_dns
 
 	&httpResponse(
 				   { code => 200, body => { description => $desc, params => $dns } } );
-	return;
 }
 
 #  POST /system/dns
 sub set_dns
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $json_obj = shift;
 
@@ -54,11 +52,8 @@ sub set_dns
 
 	# Check allowed parameters
 	my $error_msg = &checkZAPIParams( $json_obj, $params, $desc );
-
-	if ( $error_msg )
-	{
-		&httpErrorResponse( code => 400, desc => $desc, msg => $error_msg );
-	}
+	return &httpErrorResponse( code => 400, desc => $desc, msg => $error_msg )
+	  if ( $error_msg );
 
 	foreach my $key ( keys %{ $json_obj } )
 	{
@@ -77,7 +72,6 @@ sub set_dns
 					 }
 				   }
 	);
-	return;
 }
 
 1;

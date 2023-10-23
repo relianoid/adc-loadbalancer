@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -39,13 +39,13 @@ Returns:
 
 sub getNlbPid
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 
 	my $nlbpidfile = &getNlbPidFile();
 	my $nlbpid     = -1;
 
-	if ( not -f "$nlbpidfile" )
+	if ( !-f "$nlbpidfile" )
 	{
 		return -1;
 	}
@@ -77,7 +77,7 @@ Returns:
 
 sub getNlbPidFile
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 
 	my $piddir     = &getGlobalConfiguration( 'piddir' );
@@ -102,7 +102,7 @@ Returns:
 
 sub startNlb
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $nftlbd         = &getGlobalConfiguration( 'zbindir' ) . "/nftlbd";
 	my $pidof          = &getGlobalConfiguration( 'pidof' );
@@ -146,7 +146,7 @@ Returns:
 
 sub stopNlb
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 
 	my $nftlbd = &getGlobalConfiguration( 'zbindir' ) . "/nftlbd";
@@ -181,7 +181,7 @@ Returns:
 
 sub httpNlbRequest
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $self     = shift;
 	my $curl_cmd = &getGlobalConfiguration( 'curl_bin' );
@@ -197,7 +197,7 @@ sub httpNlbRequest
 	return -1 if ( $curl_cmd eq "" );
 
 	$body = qq(-d'$self->{ body }')
-	  if ( defined $self->{ body } and $self->{ body } ne "" );
+	  if ( defined $self->{ body } && $self->{ body } ne "" );
 
 	my $execmd =
 	  qq($curl_cmd -w "%{http_code}" --noproxy "*" -s -H "Key: HoLa" -X "$self->{ method }" $body http://127.0.0.1:27$self->{ uri });
@@ -207,8 +207,8 @@ sub httpNlbRequest
 	$file = $self->{ file }
 	  if (
 		   defined $self->{ file }
-		   and (    ( $self->{ file } =~ /(?:ipds)/ )
-				 or ( $self->{ file } =~ /(?:policy)/ ) )
+		   && (    ( $self->{ file } =~ /(?:ipds)/ )
+				or ( $self->{ file } =~ /(?:policy)/ ) )
 	  );
 
 	# Send output to a file to get only the http code by the standard output
@@ -218,7 +218,7 @@ sub httpNlbRequest
 	if ( $output !~ /^2/ )    # err
 	{
 		my $tag = ( exists $self->{ check } ) ? 'debug' : 'error';
-		&zenlog( "cmd failed: $execmd", $tag, 'system' ) if ( not &debug );
+		&zenlog( "cmd failed: $execmd", $tag, 'system' ) if ( !&debug );
 		if ( open ( my $fh, '<', $file ) )
 		{
 			local $/ = undef;
@@ -235,11 +235,11 @@ sub httpNlbRequest
 	}
 
 	# filter ipds params into the configuration file
-	if (     defined $self->{ file }
-		 and $self->{ file } ne ""
-		 and not -z "$file"
-		 and $file !~ /ipds/
-		 and $file !~ /policy/ )
+	if (    defined $self->{ file }
+		 && $self->{ file } ne ""
+		 && !-z "$file"
+		 && $file !~ /ipds/
+		 && $file !~ /policy/ )
 
 	{
 		require Zevenet::Farm::L4xNAT::Config;
@@ -258,7 +258,6 @@ Function: execNft
 Parameters:
 	action		- "add", "delete", "check" or "flush"
 	table		- type and name of the table to be used (ej "netdev foo")
-
 	chain_def	- name and definition of the chain to be used
 	rule		- rule or pattern in case of deletion
 
@@ -269,7 +268,7 @@ Returns:
 
 sub execNft
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $action    = shift;
 	my $table     = shift;
@@ -289,12 +288,12 @@ sub execNft
 	}
 	elsif ( $action eq "delete" )
 	{
-		if ( not defined $chain or $chain eq "" )
+		if ( !defined $chain || $chain eq "" )
 		{
 			&zenlog( "Deleting cluster table $table" );
 			$output = &logAndRun( "$nft delete table $table" );
 		}
-		elsif ( not defined $rule or $rule eq "" )
+		elsif ( !defined $rule || $rule eq "" )
 		{
 			$output = &logAndRun( "$nft delete chain $table $chain" );
 		}
@@ -314,7 +313,7 @@ sub execNft
 	}
 	elsif ( $action eq "check" )
 	{
-		if ( not defined $chain or $chain eq "" )
+		if ( !defined $chain || $chain eq "" )
 		{
 			$output = 1;
 			my @rules = @{ &logAndGet( "$nft list table $table", 'array' ) };

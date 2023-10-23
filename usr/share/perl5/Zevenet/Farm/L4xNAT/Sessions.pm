@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -108,7 +108,7 @@ Returns:
 
 sub listL4FarmSessions
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $farmname = shift;
 
@@ -135,13 +135,13 @@ sub listL4FarmSessions
 	);
 
 	my $nftlb_resp;
-	if ( not $err )
+	if ( !$err )
 	{
 		$nftlb_resp = &decodeJSONFile( $session_tmp );
 	}
 
 	close $lock_fd;
-	return [] if ( $err or not defined $nftlb_resp );
+	return [] if ( $err or !defined $nftlb_resp );
 
 	my $client_id = 0;
 	my $backend_info;
@@ -200,7 +200,7 @@ sub getL4FarmSession
 		return $s if ( $s->{ session } eq $session );
 	}
 
-	return;
+	return undef;
 }
 
 1;

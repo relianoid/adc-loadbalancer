@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,7 +22,7 @@
 ###############################################################################
 
 use strict;
-use warnings;
+
 use Fcntl ':flock';    #use of lock functions
 
 require Zevenet::Log;
@@ -33,7 +33,7 @@ my $lock_fh   = undef;
 # generate a lock file based on a input path
 sub getLockFile
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $lock = shift;
 
@@ -83,7 +83,7 @@ Returns:
 
 sub openlock    # ( $path, $mode )
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $path = shift;
 	my $mode = shift // '';
@@ -100,9 +100,9 @@ sub openlock    # ( $path, $mode )
 	$encoding = ":raw :bytes"      if $binmode;
 
 	open ( my $fh, "$mode $encoding", $path )
-	  or do { &zenlog( "Error openning the file $path" ); return; };
+	  or do { &zenlog( "Error openning the file $path" ); return undef; };
 
-	binmode $fh if $fh and $binmode;
+	binmode $fh if $fh && $binmode;
 
 	if ( $mode =~ />/ )
 	{
@@ -144,7 +144,7 @@ Bugs:
 
 sub ztielock    # ($file_name)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $array_ref = shift;    #parameters
 	my $file_name = shift;    #parameters
@@ -152,12 +152,12 @@ sub ztielock    # ($file_name)
 	require Tie::File;
 
 	my $o = tie @{ $array_ref }, "Tie::File", $file_name;
-	return $o->flock;
+	$o->flock;
 }
 
 sub copyLock
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $ori = shift;
 	my $dst = shift;
@@ -165,7 +165,7 @@ sub copyLock
 	my $fhOri = &openlock( $ori, 'r' ) or return 1;
 	my $fhDst = &openlock( $dst, 'w' ) or do { close $fhOri; return 1; };
 
-	while ( my $line = <$fhOri> )
+	foreach my $line ( <$fhOri> )
 	{
 		print $fhDst $line;
 	}

@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,8 +22,12 @@
 ###############################################################################
 
 use strict;
-use warnings;
 
+my $eload;
+if ( eval { require Zevenet::ELoad; } )
+{
+	$eload = 1;
+}
 
 =begin nd
 Function: getMemStats
@@ -54,7 +58,7 @@ See Also:
 
 sub getMemStats
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $meminfo_filename = '/proc/meminfo';
 	my ( $format ) = @_;
@@ -97,7 +101,7 @@ sub getMemStats
 			$mfvalue = $mfvalue * 1024 if $format eq "b";
 			$mfname  = $memfree[0];
 		}
-		if ( $mname and $mfname )
+		if ( $mname && $mfname )
 		{
 			$mused = $mvalue - $mfvalue;
 		}
@@ -133,7 +137,7 @@ sub getMemStats
 			$swfvalue = $swfvalue * 1024 if $format eq "b";
 			$swfname  = $swfree[0];
 		}
-		if ( $swtname and $swfname )
+		if ( $swtname && $swfname )
 		{
 			$swused = $swtvalue - $swfvalue;
 		}
@@ -197,7 +201,7 @@ See Also:
 
 sub getLoadStats
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $load_filename = '/proc/loadavg';
 
@@ -278,7 +282,7 @@ See Also:
 
 sub getNetworkStats
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $format ) = @_;
 
@@ -293,6 +297,8 @@ sub getNetworkStats
 	}
 
 	my @outHash;
+
+	open my $file, '<', $netinfo_filename or die $!;
 	my ( $in, $out );
 	my @data;
 	my @interface;
@@ -300,20 +306,20 @@ sub getNetworkStats
 	my @interfaceout;
 
 	my $alias;
+	$alias = &eload(
+					 module => 'Zevenet::Alias',
+					 func   => 'getAlias',
+					 args   => ['interface']
+	) if $eload;
+
 	my $i = -1;
-	my $error = open my $file, '<', $netinfo_filename;
-	if ( not $error )
-	{
-		&zenlog( "Could not open file '$netinfo_filename' $!", "error" );
-		return 1;
-	}
 	while ( <$file> )
 	{
 		chomp $_;
-		if ( $_ =~ /\:/ and $_ !~ /^\s*lo\:/ )
+		if ( $_ =~ /\:/ && $_ !~ /^\s*lo\:/ )
 		{
 			$i++;
-			my @iface = split ( q{:}, $_ );
+			my @iface = split ( ":", $_ );
 			my $if = $iface[0];
 			$if =~ s/\ //g;
 
@@ -322,13 +328,13 @@ sub getNetworkStats
 			next if $if eq 'cl_maintenance';
 
 			# ignore fallback device from ip_gre module
-			( $i-- and next ) if $if =~ /^gre0$|^gretap0$|^erspan0$/;
+			( $i-- && next ) if $if =~ /^gre0$|^gretap0$|^erspan0$/;
 
 			# ignore fallback device from ip6_gre module
-			( $i-- and next ) if $if =~ /^ip6gre0$|^ip6tnl0$/;
+			( $i-- && next ) if $if =~ /^ip6gre0$|^ip6tnl0$/;
 
 			# ignore fallback device from sit module
-			( $i-- and next ) if $if =~ /^sit0$/;
+			( $i-- && next ) if $if =~ /^sit0$/;
 
 			if ( $_ =~ /:\ / )
 			{
@@ -358,16 +364,18 @@ sub getNetworkStats
 				'in'        => $in,
 				'out'       => $out
 			  };
+			$outHash[-1]->{ alias } = $alias->{ $if } if $eload;
+
 		}
 	}
-
-	close $file;
 
 	for ( my $j = 0 ; $j <= $i ; $j++ )
 	{
 		push @data, [$interface[$j] . ' in', $interfacein[$j]],
 		  [$interface[$j] . ' out', $interfaceout[$j]];
 	}
+
+	close $file;
 
 	if ( $format eq 'hash' )
 	{
@@ -407,7 +415,7 @@ See Also:
 
 sub getCPU
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my @data;
 	my $interval         = 1;
@@ -441,7 +449,7 @@ sub getCPU
 
 	open my $file, '<', $cpuinfo_filename;
 
-	while ( my $line = <$file> )
+	foreach my $line ( <$file> )
 	{
 		if ( $line =~ /^cpu\ / )
 		{
@@ -467,8 +475,8 @@ sub getCPU
 
 	sleep $interval;
 
-	open my $cpu_file, '<', $cpuinfo_filename;
-	while ( my $line = <$cpu_file> )
+	open $file, '<', $cpuinfo_filename;
+	foreach my $line ( <$file> )
 	{
 		if ( $line =~ /^cpu\ / )
 		{
@@ -490,7 +498,7 @@ sub getCPU
 			  $cpu_softirq2;
 		}
 	}
-	close $cpu_file;
+	close $file;
 
 	my $diff_cpu_user    = $cpu_user2 - $cpu_user1;
 	my $diff_cpu_nice    = $cpu_nice2 - $cpu_nice1;
@@ -545,7 +553,7 @@ sub getCPU
 
 sub getCPUUsageStats
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $out;    # Output
 
@@ -597,7 +605,7 @@ See Also:
 
 sub getDiskSpace
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my @data;    # output
 
@@ -671,7 +679,7 @@ See Also:
 
 sub getDiskPartitionsInfo
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $partitions;    # output
 
@@ -718,7 +726,7 @@ See Also:
 
 sub getDiskMountPoint
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $dev ) = @_;
 
@@ -757,7 +765,7 @@ See Also:
 
 sub getCPUTemp
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $filename = &getGlobalConfiguration( "temperatureFile" );
 	my $lastline;

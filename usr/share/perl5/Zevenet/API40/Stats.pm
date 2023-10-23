@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,15 +22,19 @@
 ###############################################################################
 
 use strict;
-use warnings;
 
 use Zevenet::System;
 
+my $eload;
+if ( eval { require Zevenet::ELoad; } )
+{
+	$eload = 1;
+}
 
 # Get all farm stats
 sub getAllFarmStats
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	require Zevenet::Farm::Core;
 	require Zevenet::Farm::Base;
@@ -81,13 +85,24 @@ sub getAllFarmStats
 		  };
 	}
 
+	if ( $eload )
+	{
+		@farms = @{
+			&eload(
+					module => 'Zevenet::RBAC::Group::Core',
+					func   => 'getRBACUserSet',
+					args   => ['farms', \@farms],
+			)
+		};
+	}
+
 	return \@farms;
 }
 
 #Get Farm Stats
 sub farm_stats    # ( $farmname, $servicename )
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $farmname    = shift;
 	my $servicename = shift;
@@ -98,7 +113,7 @@ sub farm_stats    # ( $farmname, $servicename )
 
 	my $desc = "Get farm stats";
 
-	if ( not &getFarmExists( $farmname ) )
+	if ( !&getFarmExists( $farmname ) )
 	{
 		my $msg = "The farmname $farmname does not exist.";
 		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
@@ -107,13 +122,13 @@ sub farm_stats    # ( $farmname, $servicename )
 	my $type = &getFarmType( $farmname );
 
 	if ( defined $servicename
-		 and ( $type ne 'http' and $type ne 'https' and $type ne 'gslb' ) )
+		 && ( $type ne 'http' && $type ne 'https' && $type ne 'gslb' ) )
 	{
 		my $msg = "The $type farm profile does not support services.";
 		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
 	}
 
-	if ( $type eq "http" or $type eq "https" )
+	if ( $type eq "http" || $type eq "https" )
 	{
 		require Zevenet::Farm::HTTP::Stats;
 
@@ -160,7 +175,6 @@ sub farm_stats    # ( $farmname, $servicename )
 	{
 		my $stats    = [];
 		my $sessions = [];
-		my $warning;
 
 		require Zevenet::Farm::L4xNAT::Config;
 		if ( &getL4FarmStatus( $farmname ) ne "down" )
@@ -169,13 +183,7 @@ sub farm_stats    # ( $farmname, $servicename )
 			$stats = &getL4FarmBackendsStats( $farmname );
 
 			require Zevenet::API40::Farm::Get;
-
-			if ( &getAPIFarmBackends( $stats, $type, ['established', 'pending'] ) == 1 )
-			{
-				$warning = "Error get info from backends";
-				$stats   = [];
-
-			}
+			&getAPIFarmBackends( $stats, $type, ['established', 'pending'] );
 
 			require Zevenet::Farm::L4xNAT::Sessions;
 			$sessions = &listL4FarmSessions( $farmname );
@@ -187,18 +195,60 @@ sub farm_stats    # ( $farmname, $servicename )
 					 total_sessions => $#{ $sessions } + 1,
 		};
 
-		$body->{ warning } = $warning if $warning;
-
 		&httpResponse( { code => 200, body => $body } );
 	}
 
-	return;
+	if ( $type eq "gslb" && $eload )
+	{
+		my $gslb_stats;
+
+		my $gslbStatus =
+		  &eload(
+				  module => 'Zevenet::Farm::GSLB::Config',
+				  func   => 'getGSLBFarmStatus',
+				  args   => [$farmname],
+		  );
+		if ( $gslbStatus ne "down" )
+		{
+			if ( defined $servicename )
+			{
+				my @services = &eload(
+									   module => 'Zevenet::Farm::GSLB::Service',
+									   func   => 'getGSLBFarmServices',
+									   args   => [$farmname],
+				);
+
+				# check if the SERVICE exists
+				unless ( grep { $servicename eq $_ } @services )
+				{
+					my $msg = "Could not find the requested service.";
+					return &httpErrorResponse( code => 404, desc => $desc, msg => $msg );
+				}
+			}
+			$gslb_stats = &eload(
+								  module => 'Zevenet::Farm::GSLB::Stats',
+								  func   => 'getGSLBFarmBackendsStats',
+								  args   => [$farmname, $servicename],
+								  decode => 'true'
+			);
+		}
+
+		my $body = {
+					 description => $desc,
+					 backends    => $gslb_stats->{ 'backends' } // [],
+					 client      => $gslb_stats->{ 'udp' } // [],
+					 server      => $gslb_stats->{ 'tcp' } // [],
+					 extended    => $gslb_stats->{ 'stats' } // [],
+		};
+
+		&httpResponse( { code => 200, body => $body } );
+	}
 }
 
 #Get Farm Stats
 sub all_farms_stats    # ()
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $farms = &getAllFarmStats();
 
@@ -208,13 +258,12 @@ sub all_farms_stats    # ()
 	};
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 #GET /stats
 sub stats    # ()
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	require Zevenet::Stats;
 	require Zevenet::SystemInfo;
@@ -278,13 +327,12 @@ sub stats    # ()
 	};
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 #GET /stats/network
 sub stats_network    # ()
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	require Zevenet::Stats;
 	require Zevenet::SystemInfo;
@@ -301,7 +349,6 @@ sub stats_network    # ()
 	};
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 1;

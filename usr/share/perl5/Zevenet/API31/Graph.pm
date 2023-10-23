@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,7 +22,7 @@
 ###############################################################################
 
 use strict;
-use warnings;
+
 use Zevenet::RRD;
 
 # Supported graphs periods
@@ -36,12 +36,12 @@ my $graph_period = {
 #GET disk
 sub possible_graphs    #()
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	require Zevenet::Stats;
 
-	my @farms = grep { s/-farm$// } &getGraphs2Show( "Farm" );
-	my @net   = grep { s/iface$// } &getGraphs2Show( "Network" );
+	my @farms = grep ( s/-farm$//, &getGraphs2Show( "Farm" ) );
+	my @net   = grep ( s/iface$//, &getGraphs2Show( "Network" ) );
 	my @sys = ( "cpu", "load", "ram", "swap" );
 
 	# Get mount point of disks
@@ -66,17 +66,18 @@ sub possible_graphs    #()
 	};
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 # GET all system graphs
 sub get_all_sys_graphs    #()
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	require Zevenet::Stats;
 
 	# System values
+	my @graphlist = &getGraphs2Show( "System" );
+
 	my @sys = ( "cpu", "load", "ram", "swap" );
 
 	# Get mount point of disks
@@ -99,13 +100,12 @@ sub get_all_sys_graphs    #()
 	};
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 # GET system graphs
 sub get_sys_graphs    #()
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $key = shift;
 
@@ -128,13 +128,12 @@ sub get_sys_graphs    #()
 	my $body = { description => $desc, graphs => \@output };
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 # GET frequency system graphs
 sub get_frec_sys_graphs    #()
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $key       = shift;
 	my $frequency = shift;
@@ -148,19 +147,19 @@ sub get_frec_sys_graphs    #()
 	$frequency = $1 if ( $frequency =~ /^(\w)/ );
 
 	# Print Graph Function
+	my @output;
 	my $graph = &printGraph( $key, $frequency )->{ img };
 	my $body = { description => $desc, graphs => $graph };
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 # GET all interface graphs
 sub get_all_iface_graphs    #()
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
-	my @iface = grep { s/iface$// } &getGraphs2Show( "Network" );
+	my @iface = grep ( s/iface$//, &getGraphs2Show( "Network" ) );
 	my $body = {
 		description =>
 		  "These are the possible interface graphs, you'll be able to access to the daily, weekly, monthly or yearly graph",
@@ -168,13 +167,12 @@ sub get_all_iface_graphs    #()
 	};
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 # GET interface graphs
 sub get_iface_graphs    #()
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $iface = shift;
 
@@ -184,14 +182,14 @@ sub get_iface_graphs    #()
 	my @system_interfaces = &getInterfaceList();
 
 	# validate NIC NAME
-	if ( not grep { /^$iface$/ } @system_interfaces )
+	if ( !grep ( /^$iface$/, @system_interfaces ) )
 	{
 		my $msg = "Nic interface not found.";
 		&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
 	}
 
 	# graph for this farm doesn't exist
-	elsif ( not grep { /${iface}iface$/ } &getGraphs2Show( "Network" ) )
+	elsif ( !grep ( /${iface}iface$/, &getGraphs2Show( "Network" ) ) )
 	{
 		my $msg = "There is no rrd files yet.";
 		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
@@ -215,13 +213,12 @@ sub get_iface_graphs    #()
 	my $body = { description => $desc, graphs => \@output };
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 # GET frequency interface graphs
 sub get_frec_iface_graphs    #()
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $iface     = shift;
 	my $frequency = shift;
@@ -232,12 +229,12 @@ sub get_frec_iface_graphs    #()
 	my @system_interfaces = &getInterfaceList();
 
 	# validate NIC NAME
-	if ( not grep { /^$iface$/ } @system_interfaces )
+	if ( !grep ( /^$iface$/, @system_interfaces ) )
 	{
 		my $msg = "Nic interface not found.";
 		&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
 	}
-	elsif ( not grep { /${iface}iface$/ } &getGraphs2Show( "Network" ) )
+	elsif ( !grep ( /${iface}iface$/, &getGraphs2Show( "Network" ) ) )
 	{
 		my $msg = "There is no rrd files yet.";
 		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
@@ -256,15 +253,14 @@ sub get_frec_iface_graphs    #()
 	my $body = { description => $desc, graph => $graph };
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 # GET all farm graphs
 sub get_all_farm_graphs    #()
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
-	my @farms = grep { s/-farm$// } &getGraphs2Show( "Farm" );
+	my @farms = grep ( s/-farm$//, &getGraphs2Show( "Farm" ) );
 	my $body = {
 		description =>
 		  "These are the possible farm graphs, you'll be able to access to the daily, weekly, monthly or yearly graph",
@@ -272,13 +268,12 @@ sub get_all_farm_graphs    #()
 	};
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 # GET farm graphs
 sub get_farm_graphs    #()
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $farmName = shift;
 
@@ -287,14 +282,14 @@ sub get_farm_graphs    #()
 	my $desc = "Get farm graphs";
 
 	# this farm doesn't exist
-	if ( not &getFarmExists( $farmName ) )
+	if ( !&getFarmExists( $farmName ) )
 	{
 		my $msg = "$farmName doesn't exist.";
 		&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
 	}
 
 	# graph for this farm doesn't exist
-	elsif ( not grep { /^$farmName-farm$/ } &getGraphs2Show( "Farm" ) )
+	elsif ( !grep ( /^$farmName-farm$/, &getGraphs2Show( "Farm" ) ) )
 	{
 		my $msg = "There are no rrd files yet.";
 		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
@@ -318,13 +313,12 @@ sub get_farm_graphs    #()
 	my $body = { description => $desc, graphs => \@output };
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 # GET frequency farm graphs
 sub get_frec_farm_graphs    #()
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $farmName  = shift;
 	my $frequency = shift;
@@ -334,14 +328,14 @@ sub get_frec_farm_graphs    #()
 	my $desc = "Get farm graphs";
 
 	# this farm doesn't exist
-	if ( not &getFarmExists( $farmName ) )
+	if ( !&getFarmExists( $farmName ) )
 	{
 		my $msg = "$farmName doesn't exist.";
 		&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
 	}
 
 	# graph for this farm doesn't exist
-	elsif ( not grep { /$farmName-farm/ } &getGraphs2Show( "Farm" ) )
+	elsif ( !grep ( /$farmName-farm/, &getGraphs2Show( "Farm" ) ) )
 	{
 		my $msg = "There is no rrd files yet.";
 		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
@@ -360,13 +354,12 @@ sub get_frec_farm_graphs    #()
 	my $body = { description => $desc, graph => $graph };
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 #GET mount points list
 sub list_disks    #()
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	require Zevenet::Stats;
 
@@ -387,13 +380,12 @@ sub list_disks    #()
 	};
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 #GET disk graphs for all periods
 sub graphs_disk_mount_point_all    #()
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $mount_point = shift;
 
@@ -437,13 +429,12 @@ sub graphs_disk_mount_point_all    #()
 	};
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 #GET disk graph for a single period
 sub graph_disk_mount_point_freq    #()
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $mount_point = shift;
 	my $frequency   = shift;
@@ -472,7 +463,6 @@ sub graph_disk_mount_point_freq    #()
 	};
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 1;

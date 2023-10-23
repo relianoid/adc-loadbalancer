@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,8 +22,12 @@
 ###############################################################################
 
 use strict;
-use warnings;
 
+my $eload;
+if ( eval { require Zevenet::ELoad; } )
+{
+	$eload = 1;
+}
 
 my $configdir = &getGlobalConfiguration( 'configdir' );
 
@@ -46,7 +50,7 @@ FIXME:
 
 sub setFarmHTTPNewService    # ($farm_name,$service)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name, $service ) = @_;
 
@@ -58,14 +62,14 @@ sub setFarmHTTPNewService    # ($farm_name,$service)
 	my $output = -1;
 
 	#first check if service name exist
-	if ( $service =~ /(?=)/ and $service =~ /^$/ )
+	if ( $service =~ /(?=)/ && $service =~ /^$/ )
 	{
 		#error 2 eq $service is empty
 		$output = 2;
 		return $output;
 	}
 
-	if ( not fgrep { /^\s*Service "$service"/ } "$configdir/$farm_name\_proxy.cfg" )
+	if ( !fgrep { /^\s*Service "$service"/ } "$configdir/$farm_name\_proxy.cfg" )
 	{
 		#create service
 		my @newservice;
@@ -105,7 +109,7 @@ sub setFarmHTTPNewService    # ($farm_name,$service)
 		my $lock_fh = &openlock( $lock_file, 'w' );
 
 		my @fileconf;
-		if ( not fgrep { /^\s*Service "$service"/ } "$configdir/$farm_name\_proxy.cfg" )
+		if ( !fgrep { /^\s*Service "$service"/ } "$configdir/$farm_name\_proxy.cfg" )
 		{
 			tie @fileconf, 'Tie::File', "$configdir/$farm_name\_proxy.cfg";
 			my $i         = 0;
@@ -123,8 +127,8 @@ sub setFarmHTTPNewService    # ($farm_name,$service)
 						{
 							$lline =~ s/\[DESC\]/$service/;
 						}
-						if (     $lline =~ /StrictTransportSecurity/
-							 and $farm_type eq "https" )
+						if (    $lline =~ /StrictTransportSecurity/
+							 && $farm_type eq "https" )
 						{
 							$lline =~ s/#//;
 						}
@@ -163,7 +167,7 @@ Returns:
 
 sub setFarmHTTPNewServiceFirst    # ($farm_name,$service)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name, $service ) = @_;
 
@@ -175,14 +179,14 @@ sub setFarmHTTPNewServiceFirst    # ($farm_name,$service)
 	my $output = -1;
 
 	#first check if service name exist
-	if ( $service =~ /(?=)/ and $service =~ /^$/ )
+	if ( $service =~ /(?=)/ && $service =~ /^$/ )
 	{
 		#error 2 eq $service is empty
 		$output = 2;
 		return $output;
 	}
 
-	if ( not fgrep { /^\s*Service "$service"/ } "$configdir/$farm_name\_proxy.cfg" )
+	if ( !fgrep { /^\s*Service "$service"/ } "$configdir/$farm_name\_proxy.cfg" )
 	{
 		#create service
 		my @newservice;
@@ -222,7 +226,7 @@ sub setFarmHTTPNewServiceFirst    # ($farm_name,$service)
 		my $lock_fh = &openlock( $lock_file, 'w' );
 
 		my @fileconf;
-		if ( not fgrep { /^\s*Service "$service"/ } "$configdir/$farm_name\_proxy.cfg" )
+		if ( !fgrep { /^\s*Service "$service"/ } "$configdir/$farm_name\_proxy.cfg" )
 		{
 			tie @fileconf, 'Tie::File', "$configdir/$farm_name\_proxy.cfg";
 			my $i         = 0;
@@ -240,8 +244,8 @@ sub setFarmHTTPNewServiceFirst    # ($farm_name,$service)
 						{
 							$lline =~ s/\[DESC\]/$service/;
 						}
-						if (     $lline =~ /StrictTransportSecurity/
-							 and $farm_type eq "https" )
+						if (    $lline =~ /StrictTransportSecurity/
+							 && $farm_type eq "https" )
 						{
 							$lline =~ s/#//;
 						}
@@ -280,7 +284,7 @@ Returns:
 
 sub delHTTPFarmService    # ($farm_name,$service)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name, $service ) = @_;
 
@@ -314,7 +318,7 @@ sub delHTTPFarmService    # ($farm_name,$service)
 	for ( $i = 0 ; $i < $#fileconf ; $i++ )
 	{
 		my $line = $fileconf[$i];
-		if ( $sw eq "1" and ( $line =~ /ZWACL-END/ or $line =~ /Service/ ) )
+		if ( $sw eq "1" && ( $line =~ /ZWACL-END/ || $line =~ /Service/ ) )
 		{
 			$output = 0;
 			last;
@@ -330,6 +334,18 @@ sub delHTTPFarmService    # ($farm_name,$service)
 				&delMarks( "", $mark );
 				&setBackendRule( "del", $farm_ref, $mark )
 				  if ( &getGlobalConfiguration( 'mark_routing_L7' ) eq 'true' );
+				if ( $eload )
+				{
+					if ( &getGlobalConfiguration( 'floating_L7' ) eq 'true' )
+					{
+						# Delete backend if exists in nftlb
+						&eload(
+								module => 'Zevenet::Net::Floating',
+								func   => 'removeL7FloatingSourceAddr',
+								args   => [$farm_ref->{ name }, { tag => $1 }],
+						);
+					}
+				}
 			}
 			splice @fileconf, $i, 1,;
 			$i--;
@@ -342,6 +358,15 @@ sub delHTTPFarmService    # ($farm_name,$service)
 			$i--;
 		}
 	}
+
+	if ( $eload )
+	{
+		if ( &getGlobalConfiguration( 'floating_L7' ) eq 'true' )
+		{
+			&reloadFarmsSourceAddressByFarm( $farm_name );
+		}
+	}
+
 	untie @fileconf;
 	close $lock_fh;
 
@@ -356,6 +381,12 @@ sub delHTTPFarmService    # ($farm_name,$service)
 		}
 	}
 
+	# delete service's sessions from config file
+
+	if ( &getGlobalConfiguration( 'proxy_ng' ) )
+	{
+		&deleteConfL7FarmAllSession( $farm_name, $service );
+	}
 
 # change the ID value of services with an ID higher than the service deleted (value - 1)
 	tie my @contents, 'Tie::File', "$configdir\/$farm_name\_status.cfg";
@@ -400,7 +431,7 @@ FIXME:
 
 sub getHTTPFarmServices
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name, $service_name ) = @_;
 
@@ -469,7 +500,7 @@ Returns:
 		request => [
 			'Service "sev3"											 ',
 			'	##False##HTTPS-backend##                             ',
-			'	#DynScale 1 					     ',
+			'	#DynScale 1                                          ',
 			'	#BackendCookie "ZENSESSIONID" "domainname.com" "/" 0 ',
 			'	#HeadRequire "Host: "                                ',
 			'	#Url ""                                              ',
@@ -495,7 +526,7 @@ Returns:
 				'Service "sev2"											 ',
 				'	##False##HTTPS-backend##                             ',
 				'	#DynScale 1                                          ',
-				'	#BackendCookie "ZENSESSIONID" "domainname.com" "/" 0 ',		
+				'	#BackendCookie "ZENSESSIONID" "domainname.com" "/" 0 ',
 				'	#HeadRequire "Host: "                                ',
 				'	#Url ""                                              ',
 				'	Redirect "https://SEFAwwwwwwwwwwFA.hf"               ',
@@ -510,11 +541,10 @@ Returns:
 
 sub getHTTPServiceBlocks
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $farm = shift;
 	my $srv  = shift;
-	$srv = "" if not defined $srv;
 	my $out = {
 				farm     => [],
 				services => {},
@@ -528,7 +558,7 @@ sub getHTTPServiceBlocks
 	open my $fileconf, '<', "$configdir/$farm_filename";
 
 	my $ind = 0;
-	while ( my $line = <$fileconf> )
+	foreach my $line ( <$fileconf> )
 	{
 		if ( $line =~ /^\tService \"(.+)\"/ )
 		{
@@ -559,7 +589,6 @@ sub getHTTPServiceBlocks
 		}
 	}
 
-	close $fileconf;
 	return $out;
 }
 
@@ -604,7 +633,8 @@ Returns:
       "vhost" : ""
       }
     };
-      Enterprise Edition with proxy_ng eq "false" also includes:
+
+	Enterprise Edition also includes:
 
       ...
       "cookiedomain" : "",
@@ -620,7 +650,7 @@ Notes:
 
 sub getHTTPServiceStruct
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farmname, $service_name ) = @_;
 
@@ -662,6 +692,15 @@ sub getHTTPServiceStruct
 	{
 		$be->{ 'status' } = 'up' if $be->{ 'status' } eq 'undefined';
 	}
+	if ( $eload )
+	{
+		my $backends = &eload(
+							   module => 'Zevenet::Alias',
+							   func   => 'addAliasBackendsStruct',
+							   args   => [$backends],
+		);
+	}
+
 	my $service_ref = {
 						id           => $service_name,
 						vhost        => $vser,
@@ -682,19 +721,69 @@ sub getHTTPServiceStruct
 		$service_ref->{ routingpolicy }    = $routingPol;
 		$service_ref->{ rewritelocation }  = $rewriteLocation;
 	}
-	else
-	{
-		$service_ref->{ rewritelocation }  = $rewriteLocation;
-	}
 
 	# add fg
 	$service_ref->{ farmguardian } = &getFGFarm( $farmname, $service_name );
+
+	if ( $eload )
+	{
+		if ( $proxy_ng eq 'true' )
+		{
+			my $addRequestHeader =
+			  &getHTTPFarmVS( $farmname, $service_name, "addRequestHeader" );
+			my $addResponseHeader =
+			  &getHTTPFarmVS( $farmname, $service_name, "addResponseHeader" );
+			my $removeRequestHeader =
+			  &getHTTPFarmVS( $farmname, $service_name, "removeRequestHeader" );
+			my $removeResponseHeader =
+			  &getHTTPFarmVS( $farmname, $service_name, "removeResponseHeader" );
+			my $replaceRequestHeader =
+			  &getHTTPFarmVS( $farmname, $service_name, "replaceRequestHeader" );
+			my $replaceResponseHeader =
+			  &getHTTPFarmVS( $farmname, $service_name, "replaceResponseHeader" );
+			my $rewriteUrl = &getHTTPFarmVS( $farmname, $service_name, "rewriteUrl" );
+
+			$service_ref->{ replacerequestheader }  = $replaceRequestHeader;
+			$service_ref->{ replaceresponseheader } = $replaceResponseHeader;
+			$service_ref->{ rewriteurl }            = $rewriteUrl;
+			$service_ref->{ addrequestheader }      = $addRequestHeader;
+			$service_ref->{ addresponseheader }     = $addResponseHeader;
+			$service_ref->{ removerequestheader }   = $removeRequestHeader;
+			$service_ref->{ removeresponseheader }  = $removeResponseHeader;
+		}
+
+		$service_ref = &eload(
+							   module => 'Zevenet::Farm::HTTP::Service::Ext',
+							   func   => 'add_service_cookie_insertion',
+							   args   => [$farmname, $service_ref],
+		);
+
+		$service_ref->{ redirect_code } = &eload(
+											  module => 'Zevenet::Farm::HTTP::Service::Ext',
+											  func   => 'getHTTPServiceRedirectCode',
+											  args   => [$farmname, $service_name],
+		);
+		$service_ref->{ sts_status } = &eload(
+											  module => 'Zevenet::Farm::HTTP::Service::Ext',
+											  func   => 'getHTTPServiceSTSStatus',
+											  args   => [$farmname, $service_name],
+		);
+
+		$service_ref->{ sts_timeout } = int (
+										  &eload(
+												  module => 'Zevenet::Farm::HTTP::Service::Ext',
+												  func   => 'getHTTPServiceSTSTimeout',
+												  args   => [$farmname, $service_name],
+										  )
+		);
+	}
+
 	return $service_ref;
 }
 
 sub getHTTPServiceId
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farmname, $service_name ) = @_;
 	my $id = undef;
@@ -713,7 +802,7 @@ sub getHTTPServiceId
 		}
 		$index++;
 	}
-	return unless ( $exist );
+	return undef unless ( $exist );
 	return $id;
 }
 
@@ -725,7 +814,7 @@ Function: getHTTPFarmVS
 Parameters:
 	farmname - Farm name
 	service - Service name
-	tag - Indicate which field will be returned. The options are: vs, urlp, redirect, redirecttype, dynscale, sesstype, ttl, sessionid, path, domain, httpsbackend or backends
+	tag - Indicate which field will be returned. The options are: vs, urlp, redirect, redirecttype, dynscale, sesstype, ttl, sessionid, httpsbackend or backends
 
 Returns:
 	scalar - if service and tag is blank, return all services in a string: "service0 service1 ..." else return the parameter value
@@ -736,7 +825,7 @@ FIXME:
 
 sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name, $service, $tag ) = @_;
 
@@ -747,12 +836,12 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 	my $farm_filename = &getFarmFile( $farm_name );
 	my $output        = "";
 	if (    $tag eq 'replaceRequestHeader'
-		 or $tag eq 'replaceResponseHeader'
-		 or $tag eq 'rewriteUrl'
-		 or $tag eq 'addRequestHeader'
-		 or $tag eq 'addResponseHeader'
-		 or $tag eq 'removeRequestHeader'
-		 or $tag eq 'removeResponseHeader' )
+		 || $tag eq 'replaceResponseHeader'
+		 || $tag eq 'rewriteUrl'
+		 || $tag eq 'addRequestHeader'
+		 || $tag eq 'addResponseHeader'
+		 || $tag eq 'removeRequestHeader'
+		 || $tag eq 'removeResponseHeader' )
 	{
 		$output = [];
 	}
@@ -762,6 +851,8 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 	}
 
 	my $directive_index = 0;
+
+	open my $fileconf, '<', "$configdir/$farm_filename";
 
 	my $sw         = 0;
 	my $be_section = 0;
@@ -779,17 +870,16 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 	my $outputa;
 	my $outputp;
 	my @return;
-	open my $fileconf, '<', "$configdir/$farm_filename";
 
-	while ( my $line = <$fileconf> )
+	foreach my $line ( <$fileconf> )
 	{
 		if ( $line =~ /^\tService \"$service\"/ ) { $sw = 1; }
 		if ( $line =~ /^\tEnd\s*$/ ) { $sw = 0; }
 
 		# returns all services for this farm
-		if ( $tag eq "" and $service eq "" )
+		if ( $tag eq "" && $service eq "" )
 		{
-			if ( $line =~ /^\tService\ \"/ and $line !~ "#" )
+			if ( $line =~ /^\tService\ \"/ && $line !~ "#" )
 			{
 				@return = split ( "\ ", $line );
 				$return[1] =~ s/\"//g;
@@ -802,7 +892,7 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 		#vs tag
 		if ( $tag eq "vs" )
 		{
-			if ( $line =~ "HeadRequire" and $sw == 1 and $line !~ /^\s*#/ )
+			if ( $line =~ "HeadRequire" && $sw == 1 && $line !~ /^\s*#/ )
 			{
 				@return = split ( "Host:", $line );
 				$return[1] =~ s/\"//g;
@@ -817,7 +907,7 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 		#url pattern
 		if ( $tag eq "urlp" )
 		{
-			if ( $line =~ /^\s*Url \"/ and $sw == 1 )
+			if ( $line =~ /^\s*Url \"/ && $sw == 1 )
 			{
 				@return = split ( "Url", $line );
 				$return[1] =~ s/\"//g;
@@ -832,9 +922,9 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 		if ( $tag eq "redirect" )
 		{
 			# Redirect types: 301, 302 or 307.
-			if (     $line =~ /Redirect(?:Append)?\s/
-				 and $sw == 1
-				 and $line !~ /^\s*#/ )
+			if (    $line =~ /Redirect(?:Append)?\s/
+				 && $sw == 1
+				 && $line !~ /^\s*#/ )
 			{
 				@return = split ( " ", $line );
 
@@ -849,9 +939,9 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 
 		if ( $tag eq "redirecttype" )
 		{
-			if (     $line =~ /Redirect(?:Append)?\s/
-				 and $sw == 1
-				 and $line !~ "#" )
+			if (    $line =~ /Redirect(?:Append)?\s/
+				 && $sw == 1
+				 && $line !~ "#" )
 			{
 				if    ( $line =~ /Redirect / )       { $output = "default"; }
 				elsif ( $line =~ /RedirectAppend / ) { $output = "append"; }
@@ -862,7 +952,7 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 		#dynscale
 		if ( $tag eq "dynscale" )
 		{
-			if ( $line =~ "DynScale\ " and $sw == 1 and $line !~ "#" )
+			if ( $line =~ "DynScale\ " && $sw == 1 && $line !~ "#" )
 			{
 				$output = "true";
 				last;
@@ -873,7 +963,7 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 		#sesstion type
 		if ( $tag eq "sesstype" )
 		{
-			if ( $line =~ "Type" and $sw == 1 and $line !~ "#" )
+			if ( $line =~ "Type" && $sw == 1 && $line !~ "#" )
 			{
 				@return = split ( "\ ", $line );
 				$return[1] =~ s/\"//g;
@@ -887,7 +977,7 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 		#ttl
 		if ( $tag eq "ttl" )
 		{
-			if ( $line =~ "TTL" and $sw == 1 )
+			if ( $line =~ "TTL" && $sw == 1 )
 			{
 				@return = split ( "\ ", $line );
 				$return[1] =~ s/\"//g;
@@ -901,57 +991,21 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 		#session id
 		if ( $tag eq "sessionid" )
 		{
-			if ( $proxy_mode ne "true" )
+			if ( $line =~ "\t\t\tID" && $sw == 1 && $line !~ /^\s*#/ )
 			{
-				if ( $line =~ /^\s*#?ID\s+\"(.*)\"\s*$/ and $sw == 1 )
-				{
-					$output = $1;
-					last;
-				}
-			}
-			else
-			{
-				if ( $line =~ "\t\t\tID" and $sw == 1 and $line !~ /^\s*#/ )
-				{
-					@return = split ( "\ ", $line );
-					$return[1] =~ s/\"//g;
-					$return[1] =~ s/^\s+//;
-					$return[1] =~ s/\s+$//;
-					$output = $return[1];
-					last;
-				}
-			}
-		}
-
-		#path
-		if ( $tag eq "path" )
-		{
-			if ( $proxy_mode eq "true" )
-			{
-				if ( $line =~ /^\s*#?Path\s+\"(.*)\"\s*$/ and $sw == 1 )
-				{
-					$output = $1;
-					last;
-				}
-			}
-		}
-
-		if ( $tag eq "domain" )
-		{
-			if ( $proxy_mode eq "true" )
-			{
-				if ( $line =~ /^\s*#?Domain\s+\"(.*)\"\s*$/ and $sw == 1 )
-				{
-					$output = $1;
-					last;
-				}
+				@return = split ( "\ ", $line );
+				$return[1] =~ s/\"//g;
+				$return[1] =~ s/^\s+//;
+				$return[1] =~ s/\s+$//;
+				$output = $return[1];
+				last;
 			}
 		}
 
 		#HTTPS tag
 		if ( $tag eq "httpsbackend" )
 		{
-			if ( $line =~ "##True##HTTPS-backend##" and $sw == 1 )
+			if ( $line =~ "##True##HTTPS-backend##" && $sw == 1 )
 			{
 				$output = "true";
 				last;
@@ -963,7 +1017,7 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 		{
 			if ( $proxy_mode eq "true" )
 			{
-				if ( $line =~ /^\t\t(#?)PinnedConnection\s+(.*)/ and $sw == 1 )
+				if ( $line =~ /^\t\t(#?)PinnedConnection\s+(.*)/ && $sw == 1 )
 				{
 					if ( $1 eq "#" )
 					{
@@ -977,7 +1031,7 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 						last;
 					}
 				}
-				elsif ( $sw == 1 and $line =~ /\t#BackEnd/ )
+				elsif ( $sw == 1 && $line =~ /\t#BackEnd/ )
 				{
 					$output = 0;
 					last;
@@ -995,7 +1049,7 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 		{
 			if ( $proxy_mode eq "true" )
 			{
-				if ( $line =~ /^\t\t(#?)RoutingPolicy\s+(.*)/ and $sw == 1 )
+				if ( $line =~ /^\t\t(#?)RoutingPolicy\s+(.*)/ && $sw == 1 )
 				{
 					if ( $1 eq "#" )
 					{
@@ -1009,7 +1063,7 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 						last;
 					}
 				}
-				elsif ( $sw == 1 and $line =~ /\t#BackEnd/ )
+				elsif ( $sw == 1 && $line =~ /\t#BackEnd/ )
 				{
 					$output = "ROUND_ROBIN";
 					last;
@@ -1028,8 +1082,8 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 			if ( $proxy_mode eq "true" )
 			{
 
-				if (     $line =~ /^\t\t(#?)ReplaceHeader\s+(.+)\s+"(.+)"\s+"(.+)"\s+"(.*)"/
-					 and $sw == 1 )
+				if (    $line =~ /^\t\t(#?)ReplaceHeader\s+(.+)\s+"(.+)"\s+"(.+)"\s+"(.*)"/
+					 && $sw == 1 )
 				{
 					if ( $1 eq "#" )
 					{
@@ -1051,7 +1105,7 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 						next;
 					}
 				}
-				elsif ( $sw == 1 and $line =~ /\t#BackEnd/ )
+				elsif ( $sw == 1 && $line =~ /\t#BackEnd/ )
 				{
 					last;
 				}
@@ -1069,8 +1123,8 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 			if ( $proxy_mode eq "true" )
 			{
 
-				if (     $line =~ /^\t\t(#?)ReplaceHeader\s+(.+)\s+"(.+)"\s+"(.+)"\s+"(.*)"/
-					 and $sw == 1 )
+				if (    $line =~ /^\t\t(#?)ReplaceHeader\s+(.+)\s+"(.+)"\s+"(.+)"\s+"(.*)"/
+					 && $sw == 1 )
 				{
 					if ( $1 eq "#" )
 					{
@@ -1092,7 +1146,7 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 						next;
 					}
 				}
-				elsif ( $sw == 1 and $line =~ /\t#BackEnd/ )
+				elsif ( $sw == 1 && $line =~ /\t#BackEnd/ )
 				{
 					last;
 				}
@@ -1109,8 +1163,8 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 		{
 			if ( $proxy_mode eq "true" )
 			{
-				if (     $line =~ /^\t\t(#?)RewriteUrl\s+"(.+)"\s+"(.*)"(\s+last)?/
-					 and $sw == 1 )
+				if (    $line =~ /^\t\t(#?)RewriteUrl\s+"(.+)"\s+"(.*)"(\s+last)?/
+					 && $sw == 1 )
 				{
 					if ( $1 eq "#" )
 					{
@@ -1129,7 +1183,7 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 						next;
 					}
 				}
-				elsif ( $sw == 1 and $line =~ /\t#BackEnd/ )
+				elsif ( $sw == 1 && $line =~ /\t#BackEnd/ )
 				{
 					last;
 				}
@@ -1147,8 +1201,8 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 			if ( $proxy_mode eq "true" )
 			{
 
-				if (     $line =~ /^\s*(#)?RewriteLocation\s+(\d)\s*(\d)?\s*$/
-					 and $sw == 1 )
+				if (    $line =~ /^\t\t(#)?RewriteLocation\s+(\d)\s*(path)?/
+					 && $sw == 1 )
 				{
 					if ( $1 eq "#" )
 					{
@@ -1156,14 +1210,15 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 					}
 					else
 					{
-						if ( $2 == 0 ) { $output = "disabled"; last; }
-						elsif ( $2 == 1 ) { $output = "enabled"; }
-						elsif ( $2 == 2 ) { $output = "enabled-backends"; }
-						if ( not defined $3 or $3 == 1 ) { $output .= "-path"; }
+						if ( $2 eq 0 ) { $output = "disabled"; last; }
+						elsif ( $2 eq 1 ) { $output = "enabled"; }
+						elsif ( $2 eq 2 ) { $output = "enabled-backends"; }
+
+						if ( $3 eq 'path' ) { $output .= "-path"; }
 						last;
 					}
 				}
-				elsif ( $sw == 1 and $line =~ /\t#BackEnd/ )
+				elsif ( $sw == 1 && $line =~ /\t#BackEnd/ )
 				{
 					$output = "disabled";
 					last;
@@ -1171,7 +1226,7 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 			}
 			else
 			{
-				$output = "enabled";
+				$output = undef;
 				last;
 			}
 		}
@@ -1181,8 +1236,8 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 		{
 			if ( $proxy_mode eq "true" )
 			{
-				if (     $line =~ /^\t\t(#?)AddHeader\s+"(.+)"/
-					 and $sw == 1 )
+				if (    $line =~ /^\t\t(#?)AddHeader\s+"(.+)"/
+					 && $sw == 1 )
 				{
 					if ( $1 eq "#" )
 					{
@@ -1198,7 +1253,7 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 						next;
 					}
 				}
-				elsif ( $sw == 1 and $line =~ /\t#BackEnd/ )
+				elsif ( $sw == 1 && $line =~ /\t#BackEnd/ )
 				{
 					last;
 				}
@@ -1215,8 +1270,8 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 		{
 			if ( $proxy_mode eq "true" )
 			{
-				if (     $line =~ /^\t\t(#?)AddResponseHeader\s+"(.+)"/
-					 and $sw == 1 )
+				if (    $line =~ /^\t\t(#?)AddResponseHeader\s+"(.+)"/
+					 && $sw == 1 )
 				{
 					if ( $1 eq "#" )
 					{
@@ -1232,7 +1287,7 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 						next;
 					}
 				}
-				elsif ( $sw == 1 and $line =~ /\t#BackEnd/ )
+				elsif ( $sw == 1 && $line =~ /\t#BackEnd/ )
 				{
 					last;
 				}
@@ -1249,8 +1304,8 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 		{
 			if ( $proxy_mode eq "true" )
 			{
-				if (     $line =~ /^\t\t(#?)HeadRemove\s+"(.+)"/
-					 and $sw == 1 )
+				if (    $line =~ /^\t\t(#?)HeadRemove\s+"(.+)"/
+					 && $sw == 1 )
 				{
 					if ( $1 eq "#" )
 					{
@@ -1266,7 +1321,7 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 						next;
 					}
 				}
-				elsif ( $sw == 1 and $line =~ /\t#BackEnd/ )
+				elsif ( $sw == 1 && $line =~ /\t#BackEnd/ )
 				{
 					last;
 				}
@@ -1283,8 +1338,8 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 		{
 			if ( $proxy_mode eq "true" )
 			{
-				if (     $line =~ /^\t\t(#?)RemoveResponseHeader\s+"(.+)"/
-					 and $sw == 1 )
+				if (    $line =~ /^\t\t(#?)RemoveResponseHeader\s+"(.+)"/
+					 && $sw == 1 )
 				{
 					if ( $1 eq "#" )
 					{
@@ -1300,7 +1355,7 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 						next;
 					}
 				}
-				elsif ( $sw == 1 and $line =~ /\t#BackEnd/ )
+				elsif ( $sw == 1 && $line =~ /\t#BackEnd/ )
 				{
 					last;
 				}
@@ -1315,19 +1370,19 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 		#backends
 		if ( $tag eq "backends" )
 		{
-			if ( $line =~ /#BackEnd/ and $sw == 1 )
+			if ( $line =~ /#BackEnd/ && $sw == 1 )
 			{
 				$be_section = 1;
 			}
 			if ( $be_section == 1 )
 			{
 
-				#if ($line =~ /Address/ and $be >=1){
-				if (     $line =~ /End/
-					 and $line !~ /#/
-					 and $sw == 1
-					 and $be_section == 1
-					 and $line !~ /BackEnd/ )
+				#if ($line =~ /Address/ && $be >=1){
+				if (    $line =~ /End/
+					 && $line !~ /#/
+					 && $sw == 1
+					 && $be_section == 1
+					 && $line !~ /BackEnd/ )
 				{
 					if ( $sw_ti == 0 )
 					{
@@ -1412,7 +1467,7 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 					$sw_tag     = 1;
 				}
 			}
-			if ( $sw == 1 and $be_section == 1 and $line =~ /#End/ )
+			if ( $sw == 1 && $be_section == 1 && $line =~ /#End/ )
 			{
 				last;
 			}
@@ -1426,7 +1481,7 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 =begin nd
 Function: setHTTPFarmVS
 
-	Set values for service parameters. The parameters are: vs, urlp, redirect, redirectappend, dynscale, sesstype, ttl, sessionid, path, domain, httpsbackend or backends
+	Set values for service parameters. The parameters are: vs, urlp, redirect, redirectappend, dynscale, sesstype, ttl, sessionid, httpsbackend or backends
 
 	A blank string comment the tag field in config file
 
@@ -1443,14 +1498,16 @@ Returns:
 
 sub setHTTPFarmVS    # ($farm_name,$service,$tag,$string)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name, $service, $tag, $string ) = @_;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $output        = 0;
-	my $sw            = 0;
-	my $j             = -1;
+	my $farm_filename  = &getFarmFile( $farm_name );
+	my $output         = 0;
+	my $sw             = 0;
+	my $j              = -1;
+	my $clean_sessions = 0;
+
 	$string =~ s/^\s+//;
 	$string =~ s/\s+$//;
 
@@ -1460,11 +1517,11 @@ sub setHTTPFarmVS    # ($farm_name,$service,$tag,$string)
 
 	if ( $tag eq 'rewriteLocation' )
 	{
-		if    ( $string eq "disabled" )              { $string = "0 0"; }
-		elsif ( $string eq "enabled" )               { $string = "1 0"; }
-		elsif ( $string eq "enabled-backends" )      { $string = "2 0"; }
-		elsif ( $string eq "enabled-path" )          { $string = "1 1"; }
-		elsif ( $string eq "enabled-backends-path" ) { $string = "2 1"; }
+		if    ( $string eq "disabled" )              { $string = "0"; }
+		elsif ( $string eq "enabled" )               { $string = "1"; }
+		elsif ( $string eq "enabled-backends" )      { $string = "2"; }
+		elsif ( $string eq "enabled-path" )          { $string = "1 path"; }
+		elsif ( $string eq "enabled-backends-path" ) { $string = "2 path"; }
 	}
 
 	require Tie::File;
@@ -1474,18 +1531,18 @@ sub setHTTPFarmVS    # ($farm_name,$service,$tag,$string)
 	{
 		$j++;
 		if ( $line =~ /\tService \"$service\"/ ) { $sw = 1; }
-		if ( $line =~ /^\tEnd$/ and $sw == 1 ) { last; }
+		if ( $line =~ /^\tEnd$/ && $sw == 1 ) { last; }
 		next if $sw == 0;
 
 		#vs tag
 		if ( $tag eq "vs" )
 		{
-			if ( $line =~ /^\t\t#?HeadRequire/ and $sw == 1 and $string ne "" )
+			if ( $line =~ /^\t\t#?HeadRequire/ && $sw == 1 && $string ne "" )
 			{
 				$line = "\t\tHeadRequire \"Host: $string\"";
 				last;
 			}
-			if ( $line =~ /^\t\t#?HeadRequire/ and $sw == 1 and $string eq "" )
+			if ( $line =~ /^\t\t#?HeadRequire/ && $sw == 1 && $string eq "" )
 			{
 				$line = "\t\t#HeadRequire \"Host:\"";
 				last;
@@ -1495,12 +1552,12 @@ sub setHTTPFarmVS    # ($farm_name,$service,$tag,$string)
 		#url pattern
 		if ( $tag eq "urlp" )
 		{
-			if ( $line =~ /^\t\t#?Url/ and $sw == 1 and $string ne "" )
+			if ( $line =~ /^\t\t#?Url/ && $sw == 1 && $string ne "" )
 			{
 				$line = "\t\tUrl \"$string\"";
 				last;
 			}
-			if ( $line =~ /^\t\t#?Url/ and $sw == 1 and $string eq "" )
+			if ( $line =~ /^\t\t#?Url/ && $sw == 1 && $string eq "" )
 			{
 				$line = "\t\t#Url \"\"";
 				last;
@@ -1510,12 +1567,12 @@ sub setHTTPFarmVS    # ($farm_name,$service,$tag,$string)
 		#dynscale
 		if ( $tag eq "dynscale" )
 		{
-			if ( $line =~ /^\t\t#?DynScale/ and $sw == 1 and $string ne "" )
+			if ( $line =~ /^\t\t#?DynScale/ && $sw == 1 && $string ne "" )
 			{
 				$line = "\t\tDynScale 1";
 				last;
 			}
-			if ( $line =~ /^\t\t#?DynScale/ and $sw == 1 and $string eq "" )
+			if ( $line =~ /^\t\t#?DynScale/ && $sw == 1 && $string eq "" )
 			{
 				$line = "\t\t#DynScale 1";
 				last;
@@ -1556,16 +1613,14 @@ sub setHTTPFarmVS    # ($farm_name,$service,$tag,$string)
 		#TTL
 		if ( $tag eq "ttl" )
 		{
-			if ( $line =~ /^\s*#?TTL(\s*\d+\s*)$/ and $sw == 1 )
+			if ( $line =~ /^\t\t\t#?TTL/ && $sw == 1 && $string ne "" )
 			{
-				if ( $string ne "" )
-				{
-					$line = "\t\t\tTTL $string";
-				}
-				else
-				{
-					$line = "\t\t\t#TTL$1";
-				}
+				$line = "\t\t\tTTL $string";
+				last;
+			}
+			if ( $line =~ /^\t\t\t#?TTL/ && $sw == 1 && $string eq "" )
+			{
+				$line = "\t\t\t#TTL 120";
 				last;
 			}
 		}
@@ -1573,50 +1628,14 @@ sub setHTTPFarmVS    # ($farm_name,$service,$tag,$string)
 		#session id
 		if ( $tag eq "sessionid" )
 		{
-			if ( $line =~ /^\s*#?ID(\s+\".*\"\s*)$/ and $sw == 1 )
+			if ( $line =~ "\t\t\tID|\t\t\t#ID" && $sw == 1 && $string ne "" )
 			{
-				if ( $string ne "" )
-				{
-					$line = "\t\t\tID \"$string\"";
-				}
-				else
-				{
-					$line = "\t\t\t#ID$1";
-				}
+				$line = "\t\t\tID \"$string\"";
 				last;
 			}
-		}
-
-		#path
-		if ( $tag eq "path" )
-		{
-			if ( $line =~ /^\s*#?Path(\s+\".*\"\s*)$/ and $sw == 1 )
+			if ( $line =~ "\t\t\tID|\t\t\t#ID" && $sw == 1 && $string eq "" )
 			{
-				if ( $string ne "" )
-				{
-					$line = "\t\t\tPath \"$string\"";
-				}
-				else
-				{
-					$line = "\t\t\t#Path$1";
-				}
-				last;
-			}
-		}
-
-		#domain
-		if ( $tag eq "domain" )
-		{
-			if ( $line =~ /^\s*#?Domain(\s+\".*\"\s*)$/ and $sw == 1 )
-			{
-				if ( $string ne "" )
-				{
-					$line = "\t\t\tDomain \"$string\"";
-				}
-				else
-				{
-					$line = "\t\t\t#Domain$1";
-				}
+				$line = "\t\t\t#ID \"$string\"";
 				last;
 			}
 		}
@@ -1624,35 +1643,35 @@ sub setHTTPFarmVS    # ($farm_name,$service,$tag,$string)
 		#HTTPS Backends tag
 		if ( $tag eq "httpsbackend" )
 		{
-			if ( $line =~ "##HTTPS-backend##" and $sw == 1 and $string ne "" )
+			if ( $line =~ "##HTTPS-backend##" && $sw == 1 && $string ne "" )
 			{
 				#turn on
 				$line = "\t\t##True##HTTPS-backend##";
 			}
 
-			if ( $line =~ "##HTTPS-backend##" and $sw == 1 and $string eq "" )
+			if ( $line =~ "##HTTPS-backend##" && $sw == 1 && $string eq "" )
 			{
 				#turn off
 				$line = "\t\t##False##HTTPS-backend##";
 			}
 
 			#Delete HTTPS tag in a BackEnd
-			if ( $sw == 1 and $line =~ /HTTPS$/ and $string eq "" )
+			if ( $sw == 1 && $line =~ /HTTPS$/ && $string eq "" )
 			{
 				#Delete HTTPS tag
 				splice @fileconf, $j, 1,;
 			}
 
 			#Add HTTPS tag
-			if ( $sw == 1 and $line =~ /\t\tBackEnd$/ and $string ne "" )
+			if ( $sw == 1 && $line =~ /\t\tBackEnd$/ && $string ne "" )
 			{
 				$line .= "\n\t\t\tHTTPS";
 			}
 
 			#go out of curret Service
-			if (     $line =~ /\tService \"/
-				 and $sw == 1
-				 and $line !~ /\tService \"$service\"/ )
+			if (    $line =~ /\tService \"/
+				 && $sw == 1
+				 && $line !~ /\tService \"$service\"/ )
 			{
 				$tag = "";
 				$sw  = 0;
@@ -1663,20 +1682,21 @@ sub setHTTPFarmVS    # ($farm_name,$service,$tag,$string)
 		#session type
 		if ( $tag eq "session" )
 		{
-			if ( $string ne "nothing" and $sw == 1 )
+			require Zevenet::Farm::HTTP::Sessions;
+			if ( $string ne "nothing" && $sw == 1 )
 			{
 				if ( $line =~ /^\t\t#Session/ )
 				{
 					$line = "\t\tSession";
 				}
-				if ( $line =~ /\t\t#?End/ )
+				if ( $line =~ /\t\t#End/ )
 				{
 					$line = "\t\tEnd";
-					last;
 				}
 				if ( $line =~ /^\t\t\t#?Type\s+(.*)\s*/ )
 				{
 					$line = "\t\t\tType $string";
+					$clean_sessions = 1 if ( $1 ne $string );
 				}
 				if ( $line =~ /^\t\t\t#?TTL/ )
 				{
@@ -1685,68 +1705,27 @@ sub setHTTPFarmVS    # ($farm_name,$service,$tag,$string)
 				if ( $line =~ /\t\t\t#?ID / )
 				{
 					if (    $string eq "URL"
-						 or $string eq "COOKIE"
-						 or $string eq "HEADER"
-						 or $string eq "BACKENDCOOKIE" )
+						 || $string eq "COOKIE"
+						 || $string eq "HEADER" )
 					{
-						if ( $line =~ /\t\t\t#ID/ )
-						{
-							$line =~ s/#//g;
-						}
+						$line =~ s/#//g;
 					}
 					else
 					{
-						if ( $line =~ /\t\t\tID/ )
-						{
-							$line =~ s/ID/#ID/;
-						}
-					}
-				}
-				if ( $line =~ /\t\t\t#?Path / )
-				{
-					if ( $string eq "BACKENDCOOKIE" )
-					{
-						if ( $line =~ /\t\t\t#Path/ )
-						{
-							$line =~ s/#//g;
-						}
-					}
-					else
-					{
-						if ( $line =~ /\t\t\tPath/ )
-						{
-							$line =~ s/Path/#Path/;
-						}
-					}
-				}
-				if ( $line =~ /\t\t\t#?Domain / )
-				{
-					if ( $string eq "BACKENDCOOKIE" )
-					{
-						if ( $line =~ /\t\t\t#Domain/ )
-						{
-							$line =~ s/#//g;
-						}
-					}
-					else
-					{
-						if ( $line =~ /\t\t\tDomain/ )
-						{
-							$line =~ s/Domain/#Domain/;
-						}
+						$line = "#$line";
 					}
 				}
 			}
-			if ( $string eq "nothing" and $sw == 1 )
+
+			if ( $string eq "nothing" && $sw == 1 )
 			{
 				if ( $line =~ /^\t\tSession/ )
 				{
 					$line = "\t\t#Session";
 				}
-				if ( $line =~ /^\t\t#?End/ )
+				if ( $line =~ /^\t\tEnd/ )
 				{
 					$line = "\t\t#End";
-					last;
 				}
 				if ( $line =~ /^\t\t\tTTL/ )
 				{
@@ -1754,45 +1733,33 @@ sub setHTTPFarmVS    # ($farm_name,$service,$tag,$string)
 				}
 				if ( $line =~ /^\t\t\tType/ )
 				{
-					$line = "\t\t\t#Type nothing";
+					$line           = "\t\t\t#Type nothing";
+					$clean_sessions = 1;
 				}
 				if ( $line =~ "\t\t\tID |\t\t\t#ID " )
 				{
-					require Zevenet::Config;
-					my $proxy_ng = &getGlobalConfiguration( "proxy_ng" );
-					if ( $proxy_ng eq "true" )
-					{
-						$line =~ s/\tID/\t#ID/;
-					}
-					else
-					{
-						$line = "\t\t\t#ID \"sessionname\"";
-					}
+					$line = "\t\t\t#ID \"sessionname\"";
 				}
-				if ( $line =~ "\t\t\tPath |\t\t\t#Path " )
-				{
-					$line =~ s/\tPath/\t#Path/;
-				}
-				if ( $line =~ "\t\t\tDomain |\t\t\t#Domain " )
-				{
-					$line =~ s/\tDomain/\t#Domain/;
-				}
+			}
+			if ( $sw == 1 && $line =~ /End/ )
+			{
+				&deleteConfL7FarmAllSession( $farm_name, $service ) if ( $clean_sessions );
+				last;
 			}
 		}
 
 		#PinnedConnection
 		if ( $tag eq "pinnedConnection" )
 		{
-			if ( $line =~ /^\t\t#?PinnedConnection/ and $sw == 1 and $string ne "" )
+			if ( $line =~ /^\t\t#?PinnedConnection/ && $sw == 1 && $string ne "" )
 			{
 				$line = "\t\tPinnedConnection $string";
 				last;
 			}
 
-			if ( $sw == 1 and $line =~ /BackEnd/ )
+			if ( $sw == 1 && $line =~ /BackEnd/ )
 			{
 				$line = "\t\tPinnedConnection $string\n" . $line;
-
 				last;
 			}
 		}
@@ -1800,13 +1767,13 @@ sub setHTTPFarmVS    # ($farm_name,$service,$tag,$string)
 		#RoutingPolicy
 		if ( $tag eq "routingPolicy" )
 		{
-			if ( $line =~ /^\t\t#?RoutingPolicy/ and $sw == 1 and $string ne "" )
+			if ( $line =~ /^\t\t#?RoutingPolicy/ && $sw == 1 && $string ne "" )
 			{
 				$line = "\t\tRoutingPolicy $string";
 				last;
 			}
 
-			if ( $sw == 1 and $line =~ /BackEnd/ )
+			if ( $sw == 1 && $line =~ /BackEnd/ )
 			{
 				$line = "\t\tRoutingPolicy $string\n" . $line;
 				last;
@@ -1816,13 +1783,13 @@ sub setHTTPFarmVS    # ($farm_name,$service,$tag,$string)
 		#RewriteLocation
 		if ( $tag eq "rewriteLocation" )
 		{
-			if ( $line =~ /^\t\t#?RewriteLocation/ and $sw == 1 and $string ne "" )
+			if ( $line =~ /^\t\t#?RewriteLocation/ && $sw == 1 && $string ne "" )
 			{
 				$line = "\t\tRewriteLocation $string";
 				last;
 			}
 
-			if ( $sw == 1 and $line =~ /BackEnd/ )
+			if ( $sw == 1 && $line =~ /BackEnd/ )
 			{
 				$line = "\t\tRewriteLocation $string\n" . $line;
 				last;
@@ -1854,7 +1821,7 @@ FIXME:
 
 sub getFarmVSI    # ($farm_name,$service)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farmname, $service ) = @_;
 
@@ -1882,7 +1849,7 @@ sub getFarmVSI    # ($farm_name,$service)
 # esta funcion es solo para API32. borrar y usar getHTTPServiceStruct
 sub get_http_service_struct
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farmname, $service_name ) = @_;
 
@@ -1904,13 +1871,30 @@ sub get_http_service_struct
 	$service_ref->{ farmguardian } = &getFGFarm( $farmname, $service_name );
 
 	# Add STS
+	if ( $eload )
+	{
+		$service_ref->{ sts_status } = &eload(
+											  module => 'Zevenet::Farm::HTTP::Service::Ext',
+											  func   => 'getHTTPServiceSTSStatus',
+											  args   => [$farmname, $service_name],
+		);
+
+		$service_ref->{ sts_timeout } = int (
+										  &eload(
+												  module => 'Zevenet::Farm::HTTP::Service::Ext',
+												  func   => 'getHTTPServiceSTSTimeout',
+												  args   => [$farmname, $service_name],
+										  )
+		);
+	}
+
 	return $service_ref;
 }
 
 # esta funcion es solo para API32.
 sub get_http_all_services_struct
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farmname ) = @_;
 
@@ -1923,12 +1907,23 @@ sub get_http_all_services_struct
 
 		push @services_list, $service_ref;
 	}
+
+	if ( $eload )
+	{
+		my $out_b = &eload(
+							module => 'Zevenet::Alias',
+							func   => 'addAliasBackendsStruct',
+							args   => [\@services_list],
+		);
+		@services_list = @{ $out_b };
+	}
+
 	return \@services_list;
 }
 
 sub get_http_all_services_summary_struct
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farmname ) = @_;
 
@@ -1959,7 +1954,7 @@ Returns:
 
 sub getHTTPFarmPriorities    # ( $farmname, $service_name )
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $farmname     = shift;
 	my $service_name = shift;

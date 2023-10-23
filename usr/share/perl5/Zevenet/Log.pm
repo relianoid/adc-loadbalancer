@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,15 +22,15 @@
 ###############################################################################
 
 use strict;
-use warnings;
+
 use Unix::Syslog qw(:macros :subs);    # Syslog macros
 
 # Get the program name for zenlog
 my $TAG = "[Log.pm]";
 my $program_name =
     ( $0 ne '-e' ) ? $0
-  : ( exists $ENV{ _ } and $ENV{ _ } !~ /enterprise.bin$/ ) ? $ENV{ _ }
-  :                                                           $^X;
+  : ( exists $ENV{ _ } && $ENV{ _ } !~ /enterprise.bin$/ ) ? $ENV{ _ }
+  :                                                          $^X;
 
 my $basename = ( split ( '/', $program_name ) )[-1];
 
@@ -111,7 +111,6 @@ sub zenlog    # ($string, $type)
 	}
 
 	closelog();    #close syslog
-	return;
 }
 
 =begin nd
@@ -190,7 +189,6 @@ sub notlog    # ($string, $type)
 	}
 
 	closelog();    #close syslog
-	return;
 }
 
 =begin nd
@@ -209,7 +207,7 @@ Returns:
 
 sub zlog    # (@message)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my @message = shift;
 
@@ -253,7 +251,7 @@ See Also:
 
 sub logAndRun    # ($command)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $command = shift;    # command string to log and run
 
@@ -291,7 +289,7 @@ Returns:
 
 sub logAndRunBG    # ($command)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $command = shift;    # command string to log and run
 
@@ -317,14 +315,13 @@ sub logAndRunBG    # ($command)
 
 sub zdie
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	require Carp;
 	Carp->import();
 
 	&zenlog( @_ );
 	carp( @_ );
-	return;
 }
 
 =begin nd
@@ -344,7 +341,7 @@ See Also:
 
 sub zsystem
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( @exec ) = @_;
 	my $program = $basename;
@@ -393,19 +390,20 @@ TODO:
 
 sub logAndGet
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $cmd        = shift;
 	my $type       = shift // 'string';
 	my $add_stderr = shift // 0;
 
 	my $tmp_err = ( $add_stderr ) ? '&1' : "/tmp/err.log";
+	my @print_err;
 
 	my $out      = `$cmd 2>$tmp_err`;
 	my $err_code = $?;
 	&zenlog( "Executed (out: $err_code): $cmd", "debug", "system" );
 
-	if ( $err_code and not $add_stderr )
+	if ( $err_code and !$add_stderr )
 	{
 		# execute again, removing stdout and getting stderr
 		if ( open ( my $fh, '<', $tmp_err ) )
@@ -424,7 +422,10 @@ sub logAndGet
 	chomp ( $out );
 
 	# logging if there is not any error
-	&zenlog( "out: $out", "debug3", "SYSTEM" );
+	if ( !@print_err )
+	{
+		&zenlog( "out: $out", "debug3", "SYSTEM" );
+	}
 
 	if ( $type eq 'array' )
 	{
@@ -497,7 +498,7 @@ Returns:
 
 sub logRunAndGet
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $command  = shift;
 	my $format   = shift // 'string';

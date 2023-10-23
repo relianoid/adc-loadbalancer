@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,11 +22,15 @@
 ###############################################################################
 
 use strict;
-use warnings;
 use RRDs;
 use MIME::Base64;
 use Zevenet::Config;
 
+my $eload;
+if ( eval { require Zevenet::ELoad; } )
+{
+	$eload = 1;
+}
 
 my $basedir   = &getGlobalConfiguration( 'basedir' );
 my $rrdap_dir = &getGlobalConfiguration( 'rrdap_dir' );
@@ -53,7 +57,7 @@ Returns:
 sub translateRRDTime
 {
 	my $time = shift;
-	if ( not defined $time )
+	if ( !defined $time )
 	{
 		return "now";
 	}
@@ -92,7 +96,7 @@ sub logRRDError
 	my $graph = shift;
 
 	my $rrdError = RRDs::error;
-	if ( $rrdError or not -s $graph )
+	if ( $rrdError || !-s $graph )
 	{
 		$rrdError //= 'The graph was not generated';
 		&zenlog( "$0: unable to generate $graph: $rrdError", "error" );
@@ -156,7 +160,7 @@ See Also:
 
 sub printImgFile    #($file)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $file ) = @_;
 
@@ -194,7 +198,7 @@ See Also:
 
 sub delGraph    #($name, type)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $name = shift;
 	my $type = shift;
@@ -214,6 +218,12 @@ sub delGraph    #($name, type)
 		&zenlog( "Delete graph file: $rrdap_dir/$rrd_dir/$name-farm.rrd",
 				 "info", "MONITOR" );
 		unlink glob ( "$rrdap_dir/$rrd_dir/$name-farm.rrd" );
+
+		&eload(
+				module => 'Zevenet::IPDS::Stats',
+				func   => 'delIPDSRRDFile',
+				args   => [$name],
+		) if $eload;
 	}
 	if ( $type =~ /vpn/ )
 	{
@@ -221,7 +231,6 @@ sub delGraph    #($name, type)
 				 "info", "MONITOR" );
 		unlink glob ( "$rrdap_dir/$rrd_dir/$name-vpn.rrd" );
 	}
-	return;
 }
 
 =begin nd
@@ -248,7 +257,7 @@ See Also:
 
 sub printGraph    #($type,$time)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $type, $time, $end ) = @_;
 
@@ -285,6 +294,14 @@ sub printGraph    #($type,$time)
 	elsif ( $type =~ /-farm$/ )
 	{
 		&genFarmGraph( $type, $graph, $time, $end );
+	}
+	elsif ( $eload and $type =~ /ipds$/ )
+	{
+		&eload(
+				module => 'Zevenet::IPDS::Stats',
+				func   => 'genIPDSGraph',
+				args   => [$type, $graph, $time, $end],
+		);
 	}
 	else
 	{
@@ -329,7 +346,7 @@ See Also:
 
 sub genCpuGraph    #($type,$graph,$time)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $type, $graph, $start, $end ) = @_;
 
@@ -398,7 +415,6 @@ sub genCpuGraph    #($type,$graph,$time)
 					 "GPRINT:tused:MAX:Max\\:%8.2lf %%\\n"
 		);
 	}
-	return;
 }
 
 =begin nd
@@ -423,7 +439,7 @@ See Also:
 
 sub genDiskGraph    #($type,$graph,$time)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $type, $graph, $start, $end ) = @_;
 
@@ -473,7 +489,6 @@ sub genDiskGraph    #($type,$graph,$time)
 					 "GPRINT:total:MAX:Max\\:%8.2lf %s\\n"
 		);
 	}
-	return;
 }
 
 =begin nd
@@ -497,7 +512,7 @@ See Also:
 
 sub genLoadGraph    #($type,$graph,$time)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $type, $graph, $start, $end ) = @_;
 
@@ -536,7 +551,6 @@ sub genLoadGraph    #($type,$graph,$time)
 					 "GPRINT:load15:MAX:Max\\:%3.2lf\\n"
 		);
 	}
-	return;
 }
 
 =begin nd
@@ -561,7 +575,7 @@ See Also:
 
 sub genMemGraph    #($type,$graph,$time)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $type, $graph, $start, $end ) = @_;
 
@@ -607,7 +621,6 @@ sub genMemGraph    #($type,$graph,$time)
 					 "GPRINT:memt:MAX:Max\\:%8.2lf %s\\n"
 		);
 	}
-	return;
 }
 
 =begin nd
@@ -632,7 +645,7 @@ See Also:
 
 sub genMemSwGraph    #($type,$graph,$time)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $type, $graph, $start, $end ) = @_;
 
@@ -661,7 +674,6 @@ sub genMemSwGraph    #($type,$graph,$time)
 				 "GPRINT:swt:MAX:Max\\:%8.2lf %s\\n",
 		);
 	}
-	return;
 }
 
 =begin nd
@@ -686,7 +698,7 @@ See Also:
 
 sub genNetGraph    #($type,$graph,$time)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $type, $graph, $start, $end ) = @_;
 
@@ -728,7 +740,6 @@ sub genNetGraph    #($type,$graph,$time)
 					 "HRULE:0#000000"
 		);
 	}
-	return;
 }
 
 =begin nd
@@ -753,7 +764,7 @@ See Also:
 
 sub genFarmGraph    #($type,$graph,$time)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $type, $graph, $start, $end ) = @_;
 
@@ -799,7 +810,6 @@ sub genFarmGraph    #($type,$graph,$time)
 			  # "GPRINT:closed:MAX:Max\\:%6.0lf \\n"
 		);
 	}
-	return;
 }
 
 =begin nd
@@ -823,7 +833,7 @@ See Also:
 
 sub genVPNGraph    #($type,$graph,$time)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $type, $graph, $time ) = @_;
 
@@ -867,7 +877,6 @@ sub genVPNGraph    #($type,$graph,$time)
 		my $rrdError = RRDs::error;
 		print "$0: unable to generate $graph: $rrdError\n" if ( $rrdError );
 	}
-	return;
 }
 
 =begin nd
@@ -888,7 +897,7 @@ See Also:
 #function that returns the graph list to show
 sub getGraphs2Show    #($graphtype)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $graphtype ) = @_;
 
@@ -897,7 +906,7 @@ sub getGraphs2Show    #($graphtype)
 	if ( $graphtype eq 'System' )
 	{
 		opendir ( DIR, "$rrdap_dir/$rrd_dir" );
-		my @disk = grep { /^dev-.*$/ } readdir ( DIR );
+		my @disk = grep ( /^dev-.*$/, readdir ( DIR ) );
 		closedir ( DIR );
 		for ( @disk ) { s/.rrd$//g };    # remove filenames .rrd trailing
 		@list = ( "cpu", @disk, "load", "mem", "memsw" );
@@ -905,28 +914,28 @@ sub getGraphs2Show    #($graphtype)
 	elsif ( $graphtype eq 'Network' )
 	{
 		opendir ( DIR, "$rrdap_dir/$rrd_dir" );
-		@list = grep { /iface.rrd$/ } readdir ( DIR );
+		@list = grep ( /iface.rrd$/, readdir ( DIR ) );
 		closedir ( DIR );
 		for ( @list ) { s/.rrd$//g };    # remove filenames .rrd trailing
 	}
 	elsif ( $graphtype eq 'Farm' )
 	{
 		opendir ( DIR, "$rrdap_dir/$rrd_dir" );
-		@list = grep { /farm.rrd$/ } readdir ( DIR );
+		@list = grep ( /farm.rrd$/, readdir ( DIR ) );
 		closedir ( DIR );
 		for ( @list ) { s/.rrd$//g };    # remove filenames .rrd trailing
 	}
 	elsif ( $graphtype eq 'VPN' )
 	{
 		opendir ( DIR, "$rrdap_dir/$rrd_dir" );
-		@list = grep { /vpn.rrd$/ } readdir ( DIR );
+		@list = grep ( /vpn.rrd$/, readdir ( DIR ) );
 		closedir ( DIR );
 		for ( @list ) { s/.rrd$//g };    # remove filenames .rrd trailing
 	}
 	else
 	{
 		opendir ( DIR, "$rrdap_dir/$rrd_dir" );
-		@list = grep { /.rrd$/ } readdir ( DIR );
+		@list = grep ( /.rrd$/, readdir ( DIR ) );
 		closedir ( DIR );
 		for ( @list ) { s/.rrd$//g };    # remove filenames .rrd trailing
 	}

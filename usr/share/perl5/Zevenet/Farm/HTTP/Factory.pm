@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,8 +22,12 @@
 ###############################################################################
 
 use strict;
-use warnings;
 
+my $eload;
+if ( eval { require Zevenet::ELoad; } )
+{
+	$eload = 1;
+}
 require Zevenet::Core;
 my $configdir = &getGlobalConfiguration( 'configdir' );
 
@@ -46,7 +50,7 @@ Returns:
 
 sub runHTTPFarmCreate    # ( $vip, $vip_port, $farm_name, $farm_type )
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 
 	require Zevenet::Farm::HTTP::Config;
@@ -86,24 +90,42 @@ sub runHTTPFarmCreate    # ( $vip, $vip_port, $farm_name, $farm_type )
 	untie @file;
 
 	#create files with personalized errors
-	open my $f_err414, '>', "$configdir\/$farm_name\_Err414.html";
-	print $f_err414 "Request URI is too long.\n";
-	close $f_err414;
-	open my $f_err500, '>', "$configdir\/$farm_name\_Err500.html";
-	print $f_err500 "An internal server error occurred. Please try again later.\n";
-	close $f_err500;
-	open my $f_err501, '>', "$configdir\/$farm_name\_Err501.html";
-	print $f_err501 "This method may not be used.\n";
-	close $f_err501;
-	open my $f_err503, '>', "$configdir\/$farm_name\_Err503.html";
-	print $f_err503 "The service is not available. Please try again later.\n";
-	close $f_err503;
+	my $f_err;
+	if ( $eload )
+	{
+		open $f_err, '>', "$configdir\/$farm_name\_ErrWAF.html";
+		print $f_err "The request was rejected by the server.\n";
+		close $f_err;
+	}
+	open $f_err, '>', "$configdir\/$farm_name\_Err414.html";
+	print $f_err "Request URI is too long.\n";
+	close $f_err;
+	open $f_err, '>', "$configdir\/$farm_name\_Err500.html";
+	print $f_err "An internal server error occurred. Please try again later.\n";
+	close $f_err;
+	open $f_err, '>', "$configdir\/$farm_name\_Err501.html";
+	print $f_err "This method may not be used.\n";
+	close $f_err;
+	open $f_err, '>', "$configdir\/$farm_name\_Err503.html";
+	print $f_err "The service is not available. Please try again later.\n";
+	close $f_err;
 
 	#create session file
-	open my $f_err, '>', "$configdir\/$farm_name\_sessions.cfg";
+	open $f_err, '>', "$configdir\/$farm_name\_sessions.cfg";
 	close $f_err;
 
 	&setHTTPFarmLogs( $farm_name, 'false' );
+
+	if ( $eload )
+	{
+
+		&eload(
+				module => 'Zevenet::Farm::HTTP::Ext',
+				func   => 'addHTTPFarmWafBodySize',
+				args   => [$farm_name],
+		) if ( $proxy_ng eq 'false' );
+	}
+
 	$output = &getHTTPFarmConfigIsOK( $farm_name );
 
 	if ( $output )
@@ -120,23 +142,14 @@ sub runHTTPFarmCreate    # ( $vip, $vip_port, $farm_name, $farm_type )
 
 	if ( $status eq 'up' )
 	{
-		require Zevenet::Farm::Core;
-		my $farm_filename = &getFarmFile( $farm_name );
-		my $cmd;
-		if ( $proxy_ng eq "false" )
-		{
-			$cmd =
-			  "$proxy -f $configdir\/$farm_filename -p $piddir\/$farm_name\_proxy.pid 2>/dev/null";
-		}
-		elsif ( $proxy_ng eq "true" )
-		{
-			require Zevenet::Farm::HTTP::Config;
-			my $socket_file = &getHTTPFarmSocket( $farm_name );
-			$cmd =
-			  "$proxy -f $configdir\/$farm_filename -C $socket_file -p $piddir\/$farm_name\_proxy.pid";
-		}
-		&zenlog( "Running $cmd", "info", "LSLB" );
-		$output = &zsystem( "$cmd" );
+		&zenlog(
+			"Running $proxy -f $configdir\/$farm_name\_proxy.cfg -p $piddir\/$farm_name\_proxy.pid",
+			"info", "LSLB"
+		);
+
+		$output = &zsystem(
+			"$proxy -f $configdir\/$farm_name\_proxy.cfg -p $piddir\/$farm_name\_proxy.pid 2>/dev/null"
+		);
 
 		if ( $proxy_ng eq 'true' )
 		{
@@ -171,6 +184,17 @@ sub runHTTPFarmCreate    # ( $vip, $vip_port, $farm_name, $farm_type )
 				}
 			}
 
+			if ( $eload )
+			{
+				if ( &getGlobalConfiguration( "floating_L7" ) eq 'true' )
+				{
+					&eload(
+							module => 'Zevenet::Farm::Config',
+							func   => 'reloadFarmsSourceAddressByFarm',
+							args   => [$farm_name],
+					);
+				}
+			}
 		}
 	}
 	else

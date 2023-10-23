@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,7 +22,7 @@
 ###############################################################################
 
 use strict;
-use warnings;
+
 my $configdir = &getGlobalConfiguration( 'configdir' );
 
 =begin nd
@@ -45,7 +45,7 @@ FIXME:
 
 sub runDatalinkFarmCreate    # ($farm_name,$vip,$fdev)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name, $vip, $fdev ) = @_;
 
@@ -62,7 +62,7 @@ sub runDatalinkFarmCreate    # ($farm_name,$vip,$fdev)
 	my $output = $?;
 	my $piddir = &getGlobalConfiguration( 'piddir' );
 
-	if ( not -e "$piddir/${farm_name}_datalink.pid" )
+	if ( !-e "$piddir/${farm_name}_datalink.pid" )
 	{
 		# Enable active datalink file
 		open my $fd, '>', "$piddir\/$farm_name\_datalink.pid";

@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,8 +22,12 @@
 ###############################################################################
 
 use strict;
-use warnings;
 
+my $eload;
+if ( eval { require Zevenet::ELoad; } )
+{
+	$eload = 1;
+}
 
 =begin nd
 Function: getFarmEstConns
@@ -41,17 +45,17 @@ Returns:
 
 sub getFarmEstConns    # ($farm_name,$netstat)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name, $netstat ) = @_;
 
 	my $farm_type   = &getFarmType( $farm_name );
 	my $connections = 0;
 
-	if ( $farm_type eq "http" or $farm_type eq "https" )
+	if ( $farm_type eq "http" || $farm_type eq "https" )
 	{
 		my @pid = &getFarmPid( $farm_name );
-		return $connections if ( not @pid );
+		return $connections if ( !@pid );
 		require Zevenet::Farm::HTTP::Stats;
 		$connections = &getHTTPFarmEstConns( $farm_name );
 	}
@@ -63,7 +67,12 @@ sub getFarmEstConns    # ($farm_name,$netstat)
 	elsif ( $farm_type eq "gslb" )
 	{
 		my @pid = &getFarmPid( $farm_name );
-		return $connections if ( not @pid );
+		return $connections if ( !@pid );
+		$connections = &eload(
+							   module => 'Zevenet::Farm::GSLB::Stats',
+							   func   => 'getGSLBFarmEstConns',
+							   args   => [$farm_name, $netstat],
+		) if $eload;
 	}
 
 	return $connections;
@@ -87,14 +96,14 @@ Returns:
 
 sub getBackendSYNConns    # ($farm_name,$ip_backend,$port_backend,$netstat)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name, $ip_backend, $port_backend, $netstat ) = @_;
 
 	my $farm_type   = &getFarmType( $farm_name );
 	my $connections = 0;
 
-	if ( $farm_type eq "http" or $farm_type eq "https" )
+	if ( $farm_type eq "http" || $farm_type eq "https" )
 	{
 		require Zevenet::Farm::HTTP::Stats;
 		$connections =
@@ -126,14 +135,14 @@ Returns:
 
 sub getFarmSYNConns    # ($farm_name, $netstat)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name, $netstat ) = @_;
 
 	my $farm_type   = &getFarmType( $farm_name );
 	my $connections = 0;
 
-	if ( $farm_type eq "http" or $farm_type eq "https" )
+	if ( $farm_type eq "http" || $farm_type eq "https" )
 	{
 		require Zevenet::Farm::HTTP::Stats;
 		$connections = &getHTTPFarmSYNConns( $farm_name );

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 source /usr/local/zevenet/bin/load_global_conf
 load_global_conf

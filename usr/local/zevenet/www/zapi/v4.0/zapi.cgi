@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -86,8 +86,8 @@ require Zevenet::Zapi;
 require Zevenet::API40::Session if ( $q->path_info eq '/session' );
 
 # Verify authentication
-unless (    ( exists $ENV{ HTTP_ZAPI_KEY } and &validZapiKey() )
-		 or ( exists $ENV{ HTTP_COOKIE } and &validCGISession() ) )
+unless (    ( exists $ENV{ HTTP_ZAPI_KEY } && &validZapiKey() )
+		 or ( exists $ENV{ HTTP_COOKIE } && &validCGISession() ) )
 {
 	&httpResponse(
 				   { code => 401, body => { message => 'Authorization required' } } );

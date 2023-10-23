@@ -1,10 +1,9 @@
-#!/usr/bin/perl
-################################################################################
+###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,15 +21,19 @@
 ###############################################################################
 
 use strict;
-use warnings;
 use Zevenet::Farm::Base;
 use Zevenet::Farm::L4xNAT::Config;
 
+my $eload;
+if ( eval { require Zevenet::ELoad; } )
+{
+	$eload = 1;
+}
 
 # PUT /farms/<farmname> Modify a l4xnat Farm
 sub modify_l4xnat_farm    # ( $json_obj, $farmname )
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $json_obj = shift;
 	my $farmname = shift;
@@ -41,7 +44,7 @@ sub modify_l4xnat_farm    # ( $json_obj, $farmname )
 	my $restart_flag = "false";
 
 	# Check that the farm exists
-	if ( not &getFarmExists( $farmname ) )
+	if ( !&getFarmExists( $farmname ) )
 	{
 		my $msg = "The farmname $farmname does not exist.";
 		&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
@@ -53,9 +56,26 @@ sub modify_l4xnat_farm    # ( $json_obj, $farmname )
 
 	my $reload_ipds = 0;
 	if (    exists $json_obj->{ vport }
-		 or exists $json_obj->{ vip }
-		 or exists $json_obj->{ newfarmname } )
+		 || exists $json_obj->{ vip }
+		 || exists $json_obj->{ newfarmname } )
 	{
+
+		if ( $eload )
+		{
+			$reload_ipds = 1;
+
+			&eload(
+					module => 'Zevenet::IPDS::Base',
+					func   => 'runIPDSStopByFarm',
+					args   => [$farmname],
+			);
+
+			&eload(
+					module => 'Zevenet::Cluster',
+					func   => 'runZClusterRemoteManager',
+					args   => ['ipds', 'stop', $farmname],
+			);
+		}
 	}
 
 	####### Functions
@@ -268,7 +288,7 @@ sub modify_l4xnat_farm    # ( $json_obj, $farmname )
 	if ( exists ( $json_obj->{ vport } ) )
 	{
 		# VPORT validation
-		if ( not &getValidPort( $json_obj->{ vport }, "L4XNAT", $farmname ) )
+		if ( !&getValidPort( $json_obj->{ vport }, "L4XNAT", $farmname ) )
 		{
 			my $msg = "The virtual port must be an acceptable value and must be available.";
 			&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
@@ -276,7 +296,7 @@ sub modify_l4xnat_farm    # ( $json_obj, $farmname )
 	}
 
 	# Modify only vip
-	if ( exists ( $json_obj->{ vip } ) and not exists ( $json_obj->{ vport } ) )
+	if ( exists ( $json_obj->{ vip } ) && !exists ( $json_obj->{ vport } ) )
 	{
 		require Zevenet::Farm::Config;
 		if ( &setFarmVirtualConf( $json_obj->{ vip }, $vport, $farmname ) )
@@ -289,7 +309,7 @@ sub modify_l4xnat_farm    # ( $json_obj, $farmname )
 	}
 
 	# Modify only vport
-	if ( exists ( $json_obj->{ vport } ) and not exists ( $json_obj->{ vip } ) )
+	if ( exists ( $json_obj->{ vport } ) && !exists ( $json_obj->{ vip } ) )
 	{
 		require Zevenet::Farm::Config;
 		if ( &setFarmVirtualConf( $vip, $json_obj->{ vport }, $farmname ) )
@@ -302,7 +322,7 @@ sub modify_l4xnat_farm    # ( $json_obj, $farmname )
 	}
 
 	# Modify both vip & vport
-	if ( exists ( $json_obj->{ vip } ) and exists ( $json_obj->{ vport } ) )
+	if ( exists ( $json_obj->{ vip } ) && exists ( $json_obj->{ vport } ) )
 	{
 		require Zevenet::Farm::Config;
 		if (
@@ -319,6 +339,31 @@ sub modify_l4xnat_farm    # ( $json_obj, $farmname )
 	&zenlog( "Success, some parameters have been changed in farm $farmname.",
 			 "info", "LSLB" );
 
+	if ( &getL4FarmParam( 'status', $farmname ) eq 'up' )
+	{
+
+		&eload(
+				module => 'Zevenet::Cluster',
+				func   => 'runZClusterRemoteManager',
+				args   => ['farm', 'restart', $farmname],
+		) if ( $eload );
+
+		if ( $reload_ipds && $eload )
+		{
+
+			&eload(
+					module => 'Zevenet::IPDS::Base',
+					func   => 'runIPDSStartByFarm',
+					args   => [$farmname],
+			);
+
+			&eload(
+					module => 'Zevenet::Cluster',
+					func   => 'runZClusterRemoteManager',
+					args   => ['ipds', 'start', $farmname],
+			);
+		}
+	}
 
 	my $body = {
 				 description => $desc,
@@ -326,7 +371,6 @@ sub modify_l4xnat_farm    # ( $json_obj, $farmname )
 	};
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 1;

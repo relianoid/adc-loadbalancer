@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,8 +22,12 @@
 ###############################################################################
 
 use strict;
-use warnings;
 
+my $eload;
+if ( eval { require Zevenet::ELoad; } )
+{
+	$eload = 1;
+}
 
 my $configdir = &getGlobalConfiguration( 'configdir' );
 
@@ -43,7 +47,7 @@ Returns:
 
 sub _runHTTPFarmStart    # ($farm_name, $writeconf)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name, $writeconf ) = @_;
 
@@ -66,21 +70,14 @@ sub _runHTTPFarmStart    # ($farm_name, $writeconf)
 	return -1 if ( &getHTTPFarmConfigIsOK( $farm_name ) );
 
 	my $args = '';
+	if ( $eload )
+	{
+		my $ssyncd_enabled = &getGlobalConfiguration( 'ssyncd_enabled' );
+		$args = '-s' if ( $ssyncd_enabled eq 'true' );
+	}
 
-	my $cmd;
-	my $proxy_ng = &getGlobalConfiguration( "proxy_ng" );
-	if ( $proxy_ng eq "false" )
-	{
-		$cmd =
-		  "$proxy $args -f $configdir\/$farm_filename -p $piddir\/$farm_name\_proxy.pid";
-	}
-	elsif ( $proxy_ng eq "true" )
-	{
-		require Zevenet::Farm::HTTP::Config;
-		my $socket_file = &getHTTPFarmSocket( $farm_name );
-		$cmd =
-		  "$proxy -f $configdir\/$farm_filename -C $socket_file -p $piddir\/$farm_name\_proxy.pid";
-	}
+	my $cmd =
+	  "$proxy $args -f $configdir\/$farm_filename -p $piddir\/$farm_name\_proxy.pid";
 	$status = &zsystem( "$cmd" );
 
 	if ( $status )
@@ -133,6 +130,19 @@ sub _runHTTPFarmStart    # ($farm_name, $writeconf)
 			}
 		}
 
+		if ( $eload )
+		{
+			&eload(
+					module => 'Zevenet::Farm::HTTP::Sessions::Ext',
+					func   => 'reloadL7FarmSessions',
+					args   => [$farm_name],
+			);
+
+			if ( &getGlobalConfiguration( "floating_L7" ) eq 'true' )
+			{
+				&reloadFarmsSourceAddressByFarm( $farm_name );
+			}
+		}
 	}
 
 	return $status;
@@ -153,7 +163,7 @@ Returns:
 
 sub _runHTTPFarmStop    # ($farm_name, $writeconf)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name, $writeconf ) = @_;
 
@@ -172,7 +182,7 @@ sub _runHTTPFarmStop    # ($farm_name, $writeconf)
 	if ( &getHTTPFarmConfigIsOK( $farm_name ) == 0 )
 	{
 		my @pids = &getFarmPid( $farm_name );
-		if ( not @pids )
+		if ( !@pids )
 		{
 			&zenlog( "Not found pid", "warning", "LSLB" );
 		}
@@ -242,7 +252,7 @@ Returns:
 
 sub copyHTTPFarm    # ($farm_name,$new_farm_name)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name, $new_farm_name, $del ) = @_;
 
@@ -373,7 +383,7 @@ Returns:
 
 sub sendL7ZproxyCmd
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $self = shift;
 
@@ -382,12 +392,12 @@ sub sendL7ZproxyCmd
 		&zenlog( "Property only available for zproxy", "error", "LSLB" );
 		return 1;
 	}
-	if ( not defined $self->{ farm } )
+	if ( !defined $self->{ farm } )
 	{
 		&zenlog( "Missing mandatory param farm", "error", "LSLB" );
 		return 1;
 	}
-	if ( not defined $self->{ uri } )
+	if ( !defined $self->{ uri } )
 	{
 		&zenlog( "Missing mandatory param uri", "error", "LSLB" );
 		return 1;
@@ -407,7 +417,7 @@ sub sendL7ZproxyCmd
 	my $cmd      = "$curl_bin " . $method . $body . "--unix-socket $socket $url";
 
 	my $resp = &logAndGet( $cmd, 'string' );
-	return 1 unless ( defined $resp and $resp ne '' );
+	return 1 unless ( defined $resp && $resp ne '' );
 	$resp = eval { &JSON::decode_json( $resp ) };
 	if ( $@ )
 	{
@@ -447,29 +457,13 @@ sub checkFarmHTTPSystemStatus    # ($farm_name, $status, $fix)
 		}
 		my $pgrep = &getGlobalConfiguration( "pgrep" );
 		require Zevenet::Farm::Core;
-		my $farm_file  = &getFarmFile( $farm_name );
-		my $config_dir = &getGlobalConfiguration( "configdir" );
-		my $proxy      = &getGlobalConfiguration( "proxy" );
-		my $proxy_ng   = &getGlobalConfiguration( "proxy_ng" );
-		my @pids_running;
-
-		if ( $proxy_ng eq "false" )
-		{
-			@pids_running = @{
-				&logAndGet( "$pgrep -f \"$proxy (-s )?-f $config_dir/$farm_file -p $pid_file\"",
-							"array" )
-			};
-		}
-		elsif ( $proxy_ng eq "true" )
-		{
-			require Zevenet::Farm::HTTP::Config;
-			my $socket_file = &getHTTPFarmSocket( $farm_name );
-			@pids_running = @{
-				&logAndGet(
-					  "$pgrep -f \"$proxy -f $config_dir/$farm_file -C $socket_file -p $pid_file\"",
-					  "array" )
-			};
-		}
+		my $farm_file    = &getFarmFile( $farm_name );
+		my $config_dir   = &getGlobalConfiguration( "configdir" );
+		my $proxy        = &getGlobalConfiguration( "proxy" );
+		my @pids_running = @{
+			&logAndGet( "$pgrep -f \"$proxy (-s )?-f $config_dir/$farm_file -p $pid_file\"",
+						"array" )
+		};
 
 		if ( @pids_running )
 		{

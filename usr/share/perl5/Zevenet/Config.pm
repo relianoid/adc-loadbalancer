@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -21,9 +21,9 @@
 #
 ###############################################################################
 
-use 5.01400;
+use v5.14;
 use strict;
-use warnings;
+
 use Zevenet::Log;
 
 =begin nd
@@ -61,14 +61,14 @@ sub getGlobalConfiguration
 # bugfix: it is not returned any message when the 'debug' parameter is not defined in global.conf.
 		elsif ( $parameter eq 'debug' )
 		{
-			return;
+			return undef;
 		}
 		else
 		{
 			&zenlog( "The global configuration parameter '$parameter' has not been found",
 					 'warning', 'Configuration' )
 			  if ( $parameter ne "debug" );
-			return;
+			return undef;
 		}
 	}
 
@@ -92,19 +92,18 @@ See Also:
 
 sub parseGlobalConfiguration
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 
 	my $global_conf_filepath = "/usr/local/zevenet/config/global.conf";
 	my $global_conf;
 
-	my $success = open ( my $global_conf_file, '<', $global_conf_filepath );
-	if ( not $success )
+	open ( my $global_conf_file, '<', $global_conf_filepath ) or do
 	{
 		my $msg = "Could not open $global_conf_filepath: $!";
 		&zenlog( $msg, "error", "SYSTEM" );
-		exit 1;
-	}
+		die $msg;
+	};
 
 	# build globalconf struct
 	while ( my $conf_line = <$global_conf_file> )
@@ -155,7 +154,7 @@ See Also:
 
 sub setGlobalConfiguration    # ( parameter, value )
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $param, $value ) = @_;
 
@@ -197,7 +196,7 @@ Returns:
 
 sub setConfigStr2Arr
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $obj        = shift;
 	my $param_list = shift;
@@ -232,11 +231,11 @@ See Also:
 
 sub getTiny
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $file_path = shift;
 
-	if ( not -f $file_path )
+	if ( !-f $file_path )
 	{
 		open my $fi, '>', $file_path;
 		if ( $fi )
@@ -282,28 +281,28 @@ See Also:
 
 sub getTinyObj    #( $filepath, $object, $key_ref )
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 
 	my ( $filepath, $object, $key_ref, $key_action ) = @_;
 	my $tiny_ref_tmp = &getTiny( $filepath );
-	return if ( not defined $tiny_ref_tmp );
+	return if ( !defined $tiny_ref_tmp );
 
 	my $tiny_ref;
 
-	if ( not defined $object )
+	if ( !defined $object )
 	{
 		$tiny_ref = $tiny_ref_tmp;
 	}
 	else
 	{
-		if ( not exists $tiny_ref_tmp->{ $object } )
+		if ( !exists $tiny_ref_tmp->{ $object } )
 		{
 			return;
 		}
 		else
 		{
-			if ( not defined $key_ref )
+			if ( !defined $key_ref )
 			{
 				$tiny_ref = $tiny_ref_tmp->{ $object };
 			}
@@ -319,7 +318,7 @@ sub getTinyObj    #( $filepath, $object, $key_ref )
 						}
 						else
 						{
-							return if ( not defined $key_action or $key_action eq "error" );
+							return if ( !defined $key_action or $key_action eq "error" );
 							$tiny_ref->{ $param } = undef if ( $key_action eq "undef" );
 						}
 					}
@@ -355,7 +354,7 @@ Returns:
 
 sub setTinyObj
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $path, $object, $key, $value, $action ) = @_;
 
@@ -377,12 +376,8 @@ sub setTinyObj
 
 	unless ( $fileHandle )
 	{
-		# Avoid perl -cw warning 'Name "Config::Tiny::errstr" used only once'
-		$Config::Tiny::errstr .= "";
-
-		&zenlog( "Could not open file $path: $Config::Tiny::errstr", "error" );
+		&zenlog( "Could not open file $path: $Config::Tiny::errstr" );
 		return -1;
-
 	}
 
 	# save all struct
@@ -399,7 +394,7 @@ sub setTinyObj
 				$key->{ $param } = join ( ' ', @{ $key->{ $param } } );
 			}
 			next
-			  if (     ( not exists $fileHandle->{ $object }->{ $param } )
+			  if (     ( !exists $fileHandle->{ $object }->{ $param } )
 				   and ( $value eq "update" ) );
 
 			$fileHandle->{ $object }->{ $param } = $key->{ $param };
@@ -450,7 +445,7 @@ Returns:
 
 sub delTinyObj
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $path   = shift;
 	my $object = shift;
@@ -475,7 +470,7 @@ sub delTinyObj
 =begin nd
 Function: migrateConfigFiles
 
-	Apply all migrating scripts to ZEVENET
+	Apply all migrating scripts to zevenet
 
 Parameters:
 	none - .
@@ -487,7 +482,7 @@ Returns:
 
 sub migrateConfigFiles
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 
 	my $MIG_DIR = &getGlobalConfiguration( 'mig_dir' );
@@ -495,9 +490,8 @@ sub migrateConfigFiles
 	my @listing = `ls $MIG_DIR`;
 	foreach my $file ( @listing )
 	{
-		`${MIG_DIR}/${file}`;
+		my @run = `${MIG_DIR}/${file}`;
 	}
-	return;
 
 }
 

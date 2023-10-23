@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,9 +22,14 @@
 ###############################################################################
 
 use strict;
-use warnings;
+
 use Zevenet::Farm::Backend::Maintenance;
 
+my $eload;
+if ( eval { require Zevenet::ELoad; } )
+{
+	$eload = 1;
+}
 
 =begin nd
 Function: getFarmServerIds
@@ -44,7 +49,7 @@ Returns:
 
 sub getFarmServerIds
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name, $service ) = @_;
 	my @servers   = ();
@@ -69,13 +74,36 @@ sub getFarmServerIds
 		my $farm_filename = &getFarmFile( $farm_name );
 		open my $fh, '<', "$configdir/$farm_filename";
 		{
-			while ( my $line = <$fh> )
+			foreach my $line ( <$fh> )
 			{
 				push @servers, $line if ( $line =~ /^;server;/ );
 			}
 		}
 		close $fh;
 		@servers = 0 .. $#servers if ( @servers );
+	}
+	elsif ( $farm_type eq "gslb" && $eload )
+	{
+		my $backendsvs = &eload(
+								 module => 'Zevenet::Farm::GSLB::Service',
+								 func   => 'getGSLBFarmVS',
+								 args   => [$farm_name, $service, "backends"],
+		);
+		my @be = split ( "\n", $backendsvs );
+		my $id;
+		foreach my $b ( @be )
+		{
+			$b =~ s/^\s+//;
+			next if ( $b =~ /^$/ );
+
+			# ID and IP
+			my @subbe = split ( " => ", $b );
+			$id = $subbe[0];
+			$id =~ s/^primary$/1/;
+			$id =~ s/^secondary$/2/;
+			$id += 0;
+			push @servers, $id;
+		}
 	}
 
 	return \@servers;
@@ -100,7 +128,7 @@ FIXME:
 
 sub getFarmServers    # ($farm_name, $service)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name, $service ) = @_;
 
@@ -121,6 +149,14 @@ sub getFarmServers    # ($farm_name, $service)
 	{
 		require Zevenet::Farm::Datalink::Backend;
 		$servers = &getDatalinkFarmBackends( $farm_name );
+	}
+	elsif ( $farm_type eq "gslb" && $eload )
+	{
+		$servers = &eload(
+						   module => 'Zevenet::Farm::GSLB::Backend',
+						   func   => 'getGSLBFarmBackends',
+						   args   => [$farm_name, $service],
+		);
 	}
 
 	return $servers;
@@ -143,7 +179,7 @@ Returns:
 
 sub getFarmServer    # ( $bcks_ref, $value, $param )
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $bcks_ref = shift;
 	my $value    = shift;
@@ -163,7 +199,7 @@ sub getFarmServer    # ( $bcks_ref, $value, $param )
 	}
 
 	# Error, not found so return undef
-	return;
+	return undef;
 }
 
 =begin nd
@@ -185,7 +221,7 @@ Returns:
 
 sub setFarmServer    # $output ($farm_name,$service,$bk_id,$bk_params)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name, $service, $ids, $bk ) = @_;
 
@@ -218,7 +254,7 @@ sub setFarmServer    # $output ($farm_name,$service,$bk_id,$bk_params)
 							$bk->{ priority }  // 1,
 							$bk->{ max_conns } // 0 );
 	}
-	elsif ( $farm_type eq "http" or $farm_type eq "https" )
+	elsif ( $farm_type eq "http" || $farm_type eq "https" )
 	{
 		require Zevenet::Farm::HTTP::Backend;
 		$output =
@@ -257,7 +293,7 @@ Returns:
 
 sub runFarmServerDelete    # ($ids,$farm_name,$service)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $ids, $farm_name, $service ) = @_;
 
@@ -277,10 +313,18 @@ sub runFarmServerDelete    # ($ids,$farm_name,$service)
 		require Zevenet::Farm::L4xNAT::Backend;
 		$output = &runL4FarmServerDelete( $ids, $farm_name );
 	}
-	elsif ( $farm_type eq "http" or $farm_type eq "https" )
+	elsif ( $farm_type eq "http" || $farm_type eq "https" )
 	{
 		require Zevenet::Farm::HTTP::Backend;
 		$output = &runHTTPFarmServerDelete( $ids, $farm_name, $service );
+	}
+	elsif ( $farm_type eq "gslb" && $eload )
+	{
+		$output = &eload(
+						  module => 'Zevenet::Farm::GSLB::Backend',
+						  func   => 'runGSLBFarmServerDelete',
+						  args   => [$ids, $farm_name, $service],
+		);
 	}
 
 	return $output;
@@ -301,7 +345,7 @@ Returns:
 
 sub getFarmBackendAvailableID
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $farmname = shift;
 	my $nbackends;
@@ -338,7 +382,7 @@ Returns:
 
 sub setBackendRule
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $action    = shift;
 	my $farm_ref  = shift;
@@ -347,9 +391,9 @@ sub setBackendRule
 
 	return -1
 	  if (    $action !~ /add|del/
-		   or not defined $farm_ref
-		   or $mark eq ""
-		   or $mark eq "0x0" );
+		   || !defined $farm_ref
+		   || $mark eq ""
+		   || $mark eq "0x0" );
 
 	require Zevenet::Net::Util;
 	require Zevenet::Net::Route;

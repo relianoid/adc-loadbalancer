@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,8 +22,12 @@
 ###############################################################################
 
 use strict;
-use warnings;
 
+my $eload;
+if ( eval { require Zevenet::ELoad; } )
+{
+	$eload = 1;
+}
 
 =begin nd
 Function: setFarmBlacklistTime
@@ -45,14 +49,14 @@ See Also:
 
 sub setFarmBlacklistTime    # ($blacklist_time,$farm_name)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $blacklist_time, $farm_name ) = @_;
 
 	my $farm_type = &getFarmType( $farm_name );
 	my $output    = -1;
 
-	if ( $farm_type eq "http" or $farm_type eq "https" )
+	if ( $farm_type eq "http" || $farm_type eq "https" )
 	{
 		require Zevenet::Farm::HTTP::Config;
 		$output = &setHTTPFarmBlacklistTime( $blacklist_time, $farm_name );
@@ -80,14 +84,14 @@ See Also:
 
 sub getFarmBlacklistTime    # ($farm_name)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name ) = @_;
 
 	my $farm_type      = &getFarmType( $farm_name );
 	my $blacklist_time = -1;
 
-	if ( $farm_type eq "http" or $farm_type eq "https" )
+	if ( $farm_type eq "http" || $farm_type eq "https" )
 	{
 		require Zevenet::Farm::HTTP::Config;
 		$blacklist_time = &getHTTPFarmBlacklistTime( $farm_name );
@@ -115,14 +119,14 @@ See Also:
 
 sub setFarmSessionType    # ($session,$farm_name)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $session, $farm_name ) = @_;
 
 	my $farm_type = &getFarmType( $farm_name );
 	my $output    = -1;
 
-	if ( $farm_type eq "http" or $farm_type eq "https" )
+	if ( $farm_type eq "http" || $farm_type eq "https" )
 	{
 		require Zevenet::Farm::HTTP::Config;
 		$output = &setHTTPFarmSessionType( $session, $farm_name );
@@ -133,6 +137,33 @@ sub setFarmSessionType    # ($session,$farm_name)
 		$output = &setL4FarmParam( 'persist', $session, $farm_name );
 	}
 
+	#if persistence is enabled
+	require Zevenet::Farm::Config;
+	if ( &getPersistence( $farm_name ) == 0 )
+	{
+		#register farm in ssyncd
+		if ( $eload )
+		{
+			&eload(
+					module => 'Zevenet::Ssyncd',
+					func   => 'setSsyncdFarmUp',
+					args   => [$farm_name],
+			);
+		}
+
+	}
+	else
+	{
+		#unregister farm in ssyncd
+		if ( $eload )
+		{
+			&eload(
+					module => 'Zevenet::Ssyncd',
+					func   => 'setSsyncdFarmDown',
+					args   => [$farm_name],
+			);
+		}
+	}
 	return $output;
 }
 
@@ -156,7 +187,7 @@ See Also:
 
 sub setFarmTimeout    # ($timeout,$farm_name)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $timeout, $farm_name ) = @_;
 
@@ -166,7 +197,7 @@ sub setFarmTimeout    # ($timeout,$farm_name)
 	&zenlog( "setting 'Timeout $timeout' for $farm_name farm $farm_type",
 			 "info", "LSLB", "info", "LSLB" );
 
-	if ( $farm_type eq "http" or $farm_type eq "https" )
+	if ( $farm_type eq "http" || $farm_type eq "https" )
 	{
 		require Zevenet::Farm::HTTP::Config;
 		$output = &setHTTPFarmTimeout( $timeout, $farm_name );
@@ -194,14 +225,14 @@ See Also:
 
 sub getFarmTimeout    # ($farm_name)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name ) = @_;
 
 	my $farm_type = &getFarmType( $farm_name );
 	my $output    = -1;
 
-	if ( $farm_type eq "http" or $farm_type eq "https" )
+	if ( $farm_type eq "http" || $farm_type eq "https" )
 	{
 		require Zevenet::Farm::HTTP::Config;
 		$output = &getHTTPFarmTimeout( $farm_name );
@@ -237,7 +268,7 @@ See Also:
 
 sub setFarmAlgorithm    # ($algorithm,$farm_name)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $algorithm, $farm_name ) = @_;
 
@@ -286,7 +317,7 @@ See Also:
 
 sub getFarmAlgorithm    # ($farm_name)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name ) = @_;
 
@@ -322,7 +353,7 @@ Returns:
 
 sub setFarmMaxClientTime    # ($max_client_time,$track,$farm_name)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $max_client_time, $track, $farm_name ) = @_;
 
@@ -334,7 +365,7 @@ sub setFarmMaxClientTime    # ($max_client_time,$track,$farm_name)
 		"info", "LSLB"
 	);
 
-	if ( $farm_type eq "http" or $farm_type eq "https" )
+	if ( $farm_type eq "http" || $farm_type eq "https" )
 	{
 		require Zevenet::Farm::HTTP::Config;
 		$output = &setHTTPFarmMaxClientTime( $track, $farm_name );
@@ -362,14 +393,14 @@ Returns:
 
 sub getFarmMaxClientTime    # ($farm_name)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name ) = @_;
 
 	my $farm_type = &getFarmType( $farm_name );
 	my @max_client_time;
 
-	if ( $farm_type eq "http" or $farm_type eq "https" )
+	if ( $farm_type eq "http" || $farm_type eq "https" )
 	{
 		require Zevenet::Farm::HTTP::Config;
 		@max_client_time = &getHTTPFarmMaxClientTime( $farm_name );
@@ -402,7 +433,7 @@ See Also:
 
 sub setFarmVirtualConf    # ($vip,$vip_port,$farm_name)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $vip, $vip_port, $farm_name ) = @_;
 
@@ -412,7 +443,7 @@ sub setFarmVirtualConf    # ($vip,$vip_port,$farm_name)
 	&zenlog( "setting 'VirtualConf $vip $vip_port' for $farm_name farm $farm_type",
 			 "info", "FARMS" );
 
-	if ( $farm_type eq "http" or $farm_type eq "https" )
+	if ( $farm_type eq "http" || $farm_type eq "https" )
 	{
 		require Zevenet::Farm::HTTP::Config;
 		$stat = &setHTTPFarmVirtualConf( $vip, $vip_port, $farm_name );
@@ -436,6 +467,14 @@ sub setFarmVirtualConf    # ($vip,$vip_port,$farm_name)
 			$stat = &setL4FarmParam( 'vipp', $vip_port, $farm_name );
 		}
 	}
+	elsif ( $farm_type eq "gslb" && $eload )
+	{
+		$stat = &eload(
+						module => 'Zevenet::Farm::GSLB::Config',
+						func   => 'setGSLBFarmVirtualConf',
+						args   => [$vip, $vip_port, $farm_name],
+		);
+	}
 
 	return $stat;
 }
@@ -456,7 +495,7 @@ Returns:
 
 sub setAllFarmByVip
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $vip      = shift;
 	my $farmList = shift;
@@ -476,7 +515,6 @@ sub setAllFarmByVip
 		# start farm
 		if ( $status eq 'up' ) { &runFarmStart( $farm ); }
 	}
-	return;
 
 }
 
@@ -502,7 +540,7 @@ NOTE:
 
 sub checkFarmnameOK    # ($farm_name)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $farm_name = shift;
 
@@ -527,7 +565,7 @@ Returns:
 
 sub getFarmVS    # ($farm_name, $service, $tag)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name, $service, $tag ) = @_;
 
@@ -539,6 +577,14 @@ sub getFarmVS    # ($farm_name, $service, $tag)
 	{
 		require Zevenet::Farm::HTTP::Service;
 		$output = &getHTTPFarmVS( $farm_name, $service, $tag );
+	}
+	elsif ( $farm_type eq "gslb" && $eload )
+	{
+		$output = &eload(
+						  module => 'Zevenet::Farm::GSLB::Service',
+						  func   => 'getGSLBFarmVS',
+						  args   => [$farm_name, $service, $tag],
+		);
 	}
 
 	return $output;
@@ -561,7 +607,7 @@ Returns:
 
 sub setFarmVS    # ($farm_name,$service,$tag,$string)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name, $service, $tag, $string ) = @_;
 
@@ -573,6 +619,15 @@ sub setFarmVS    # ($farm_name,$service,$tag,$string)
 		require Zevenet::Farm::HTTP::Service;
 		$output = &setHTTPFarmVS( $farm_name, $service, $tag, $string );
 	}
+	elsif ( $farm_type eq "gslb" )
+	{
+		$output = &eload(
+						  module => 'Zevenet::Farm::GSLB::Service',
+						  func   => 'setGSLBFarmVS',
+						  args   => [$farm_name, $service, $tag, $string],
+		) if $eload;
+	}
+
 	return $output;
 }
 
@@ -590,13 +645,13 @@ Returns:
 
 sub getFarmStruct
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	require Zevenet::Farm::Core;
 	my $farm;    # declare output hash
 	my $farmName = shift;                       # input: farm name
 	my $farmType = &getFarmType( $farmName );
-	return if ( $farmType eq 1 );
+	return undef if ( $farmType eq 1 );
 
 	if ( $farmType =~ /http|https/ )
 	{
@@ -607,6 +662,14 @@ sub getFarmStruct
 	{
 		require Zevenet::Farm::L4xNAT::Config;
 		$farm = &getL4FarmStruct( $farmName );
+	}
+	elsif ( $farmType =~ /gslb/ )
+	{
+		$farm = &eload(
+						module => 'Zevenet::Farm::GSLB::Config',
+						func   => 'getGSLBFarmStruct',
+						args   => [$farmName],
+		);
 	}
 
 	# elsif ( $farmType =~ /datalink/ )
@@ -633,7 +696,7 @@ Returns:
 
 sub getFarmPlainInfo    # ($farm_name)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $farm_name = shift;
 	my $file = shift // undef;
@@ -643,15 +706,15 @@ sub getFarmPlainInfo    # ($farm_name)
 
 	my $farm_filename = &getFarmFile( $farm_name );
 
-	if ( $farm_filename =~ /(?:gslb)\.cfg$/ and defined $file )
+	if ( $farm_filename =~ /(?:gslb)\.cfg$/ && defined $file )
 	{
-		open my $fd, '<', "$configdir/$farm_filename/$file" or return;
+		open my $fd, '<', "$configdir/$farm_filename/$file" or return undef;
 		chomp ( @content = <$fd> );
 		close $fd;
 	}
 	else
 	{
-		open my $fd, '<', "$configdir/$farm_filename" or return;
+		open my $fd, '<', "$configdir/$farm_filename" or return undef;
 		chomp ( @content = <$fd> );
 		close $fd;
 	}
@@ -677,7 +740,7 @@ FIXME:
 
 sub reloadFarmsSourceAddress
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 
 	require Zevenet::Farm::Core;
@@ -686,7 +749,6 @@ sub reloadFarmsSourceAddress
 	{
 		&reloadFarmsSourceAddressByFarm( $farm_name );
 	}
-	return;
 }
 
 =begin nd
@@ -704,7 +766,7 @@ Returns:
 
 sub reloadL7FarmsSourceAddress
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 
 	require Zevenet::Farm::Core;
@@ -716,7 +778,6 @@ sub reloadL7FarmsSourceAddress
 	{
 		&reloadFarmsSourceAddressByFarm( $farm_name );
 	}
-	return;
 }
 
 =begin nd
@@ -738,7 +799,7 @@ FIXME:
 
 sub reloadFarmsSourceAddressByFarm
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 
 	require Zevenet::Farm::Core;
@@ -752,9 +813,90 @@ sub reloadFarmsSourceAddressByFarm
 	{
 		my $farm_ref = &getL4FarmStruct( $farm_name );
 		return if $farm_ref->{ nattype } ne 'nat';
+
+		if ( $eload )
+		{
+			&eload(
+					module => 'Zevenet::Net::Floating',
+					func   => 'setFloatingSourceAddr',
+					args   => [$farm_ref, undef],
+			);
+
+			# reload the backend source address
+			foreach my $bk ( @{ $farm_ref->{ servers } } )
+			{
+				&eload(
+						module => 'Zevenet::Net::Floating',
+						func   => 'setFloatingSourceAddr',
+						args   => [$farm_ref, $bk],
+				);
+			}
+		}
 	}
-	elsif ( $farm_type eq 'http' or $farm_type eq 'https' )
+	elsif ( $farm_type eq 'http' || $farm_type eq 'https' )
 	{
+		if ( $eload && &getGlobalConfiguration( "proxy_ng" ) eq 'true' )
+		{
+			return if &getGlobalConfiguration( 'floating_L7' ) ne 'true';
+
+			my $farm_ref;
+			$farm_ref->{ name }  = $farm_name;
+			$farm_ref->{ vip }   = &getHTTPFarmVip( "vip", $farm_name );
+			$farm_ref->{ vport } = &getHTTPFarmVip( "vipp", $farm_name );
+			my $farm_floating_ref = &checkLocalFarmSourceAddress( $farm_name );
+
+			if (     not defined $farm_floating_ref->{ farm }
+				 and not defined $farm_floating_ref->{ backends } )
+			{
+				# no floating needed
+				&eload(
+						module => 'Zevenet::Net::Floating',
+						func   => 'removeL7FloatingSourceAddr',
+						args   => [$farm_name],
+				);
+			}
+			else
+			{
+				if ( defined $farm_floating_ref->{ farm } )
+				{
+					# farm needs floating
+					$farm_ref->{ float } = $farm_floating_ref->{ farm }->{ out }->{ floating_ip };
+					&eload(
+							module => 'Zevenet::Net::Floating',
+							func   => 'setL7FloatingSourceAddr',
+							args   => [$farm_ref, undef, $farm_floating_ref],
+					);
+				}
+				if ( defined $farm_floating_ref->{ backends } )
+				{
+					foreach my $backend_floating_ref ( @{ $farm_floating_ref->{ backends } } )
+					{
+						my $bk_ref->{ tag } = $backend_floating_ref->{ in }->{ mark };
+
+						if ( $backend_floating_ref->{ out }->{ floating_ip } )
+						{
+							# backend needs floating
+							$bk_ref->{ ip }    = $backend_floating_ref->{ in }->{ ip };
+							$bk_ref->{ float } = $backend_floating_ref->{ out }->{ floating_ip };
+							&eload(
+									module => 'Zevenet::Net::Floating',
+									func   => 'setL7FloatingSourceAddr',
+									args   => [$farm_ref, $bk_ref, $farm_floating_ref],
+							);
+						}
+						else
+						{
+							# backend does not need floating
+							&eload(
+									module => 'Zevenet::Net::Floating',
+									func   => 'removeL7FloatingSourceAddr',
+									args   => [$farm_name, $bk_ref],
+							);
+						}
+					}
+				}
+			}
+		}
 	}
 	return;
 }
@@ -780,7 +922,7 @@ Returns:
 
 sub checkLocalFarmSourceAddress
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 
 	my ( $farm_name, $floating_ref ) = @_;
@@ -792,11 +934,93 @@ sub checkLocalFarmSourceAddress
 
 	my $farm_type = &getFarmType( $farm_name );
 
-	if ( $farm_type eq 'http' or $farm_type eq 'https' )
+	if ( $farm_type eq 'http' || $farm_type eq 'https' )
 	{
 		my $floating = 0;
-
+		if ( $eload )
+		{
+			$floating = 1 if ( &getGlobalConfiguration( 'floating_L7' ) eq 'true' );
+		}
 		return $farm_srcaddr_ref if not $floating;
+
+		# check system floating
+		my $floating_config = &eload( module => 'Zevenet::Net::Floating',
+									  func   => 'getFloatingConfig', );
+		return $farm_srcaddr_ref if not $floating_config;
+
+		# check farm vip has floating
+
+		require Zevenet::Farm::HTTP::Config;
+		my $farm_vip = &getHTTPFarmVip( "vip", $farm_name );
+
+		my $floating_system_ref;
+		if ( $floating_ref )
+		{
+			$floating_system_ref = $floating_ref;
+		}
+		else
+		{
+			$floating_system_ref = &eload( module => 'Zevenet::Net::Floating',
+										   func   => 'get_floating_struct', );
+		}
+
+		require Zevenet::Net::Interface;
+		my $if_system_status = &getInterfaceSystemStatusAll();
+
+		my $farm_floating = &eload(
+						 module => 'Zevenet::Net::Floating',
+						 func   => 'getFloatingSourceAddr',
+						 args => [$farm_vip, undef, $floating_system_ref, $if_system_status]
+		);
+
+		# if iface with floating, needs snat
+		if ( $farm_floating->{ out }->{ floating_ip } )
+		{
+			$farm_srcaddr_ref->{ farm } = $farm_floating;
+		}
+
+		# check backends for every service
+		require Zevenet::Farm::HTTP::Service;
+		my @services = &getHTTPFarmServices( $farm_name );
+
+		require Zevenet::Farm::HTTP::Backend;
+		my $ip_floating_ref;
+		my $bk_floating;
+		my $exists_floating_backend = 0;
+		foreach my $serv_name ( @services )
+		{
+			my $backends_ref = &getHTTPFarmBackends( $farm_name, $serv_name, "false" );
+			foreach my $bk ( @{ $backends_ref } )
+			{
+				if ( not $ip_floating_ref->{ $bk->{ ip } } )
+				{
+					# get sourceaddress
+					my $mark = sprintf ( "0x%x", $bk->{ tag } );
+					$bk_floating = &eload(
+								   module => 'Zevenet::Net::Floating',
+								   func   => 'getFloatingSourceAddr',
+								   args => [$bk->{ ip }, $mark, $floating_system_ref, $if_system_status]
+					);
+
+					$ip_floating_ref->{ $bk->{ ip } } = $bk_floating;
+				}
+				else
+				{
+					%{ $bk_floating->{ in } }  = %{ $ip_floating_ref->{ $bk->{ ip } }->{ in } };
+					%{ $bk_floating->{ out } } = %{ $ip_floating_ref->{ $bk->{ ip } }->{ out } };
+				}
+				$bk_floating->{ in }->{ mark } = $bk->{ tag };
+
+				# check if backend uses floating
+				if ( $bk_floating->{ out }->{ floating_ip } )
+				{
+					$exists_floating_backend = 1;
+				}
+				push @{ $farm_srcaddr_ref->{ backends } }, $bk_floating;
+				$bk_floating = undef;
+			}
+		}
+		delete $farm_srcaddr_ref->{ backends } if not $exists_floating_backend;
 	}
 	return $farm_srcaddr_ref;
 }
@@ -816,7 +1040,7 @@ Returns:
 
 sub reloadBackendsSourceAddressByIface
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 
 	require Zevenet::Farm::Core;
@@ -826,11 +1050,15 @@ sub reloadBackendsSourceAddressByIface
 	{
 		my $farm_type = &getFarmType( $farm_name );
 		next if &getFarmStatus( $farm_name ) ne 'up';
-		if ( $farm_type eq 'http' or $farm_type eq 'https' )
+		if ( $farm_type eq 'http' || $farm_type eq 'https' )
 		{
 			next if ( &getGlobalConfiguration( "proxy_ng" ) ne 'true' );
 			my $floating = 0;
-			next if not $floating;
+			if ( $eload )
+			{
+				$floating = 1 if ( &getGlobalConfiguration( 'floating_L7' ) eq 'true' );
+			}
+			next if !$floating;
 			&reloadFarmsSourceAddressByFarm( $farm_name );
 		}
 		elsif ( $farm_type eq 'l4xnat' )
@@ -840,7 +1068,6 @@ sub reloadBackendsSourceAddressByIface
 			&reloadFarmsSourceAddressByFarm( $farm_name );
 		}
 	}
-	return;
 }
 
 =begin nd
@@ -864,7 +1091,16 @@ sub getPersistence
 	my $farm_ref;
 	my $nodestatus = "";
 	return 1 if $farm_type !~ /l4xnat|http/;
-	return 1 if ( defined $nodestatus and ( $nodestatus ne "master" ) );
+	if ( $eload )
+	{
+		$nodestatus = &eload(
+							  module => 'Zevenet::Cluster',
+							  func   => 'getZClusterNodeStatus',
+							  args   => [],
+		);
+	}
+
+	return 1 if ( $nodestatus ne "master" );
 	if ( $farm_type eq 'l4xnat' )
 	{
 		require Zevenet::Farm::L4xNAT::Config;

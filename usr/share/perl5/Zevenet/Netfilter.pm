@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -24,11 +24,16 @@
 use strict;
 use warnings;
 
+my $eload;
+if ( eval { require Zevenet::ELoad; } )
+{
+	$eload = 1;
+}
 
 #
 sub loadNfModule    # ($modname,$params)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $modname, $params ) = @_;
 
@@ -36,7 +41,7 @@ sub loadNfModule    # ($modname,$params)
 	my $lsmod   = &getGlobalConfiguration( 'lsmod' );
 	my @modules = @{ &logAndGet( $lsmod, "array" ) };
 
-	if ( not grep { /^$modname /x } @modules )
+	if ( !grep { /^$modname /x } @modules )
 	{
 		my $modprobe         = &getGlobalConfiguration( 'modprobe' );
 		my $modprobe_command = "$modprobe $modname $params";
@@ -51,7 +56,7 @@ sub loadNfModule    # ($modname,$params)
 #
 sub removeNfModule    # ($modname)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $modname = shift;
 
@@ -66,7 +71,7 @@ sub removeNfModule    # ($modname)
 #
 sub getNewMark    # ($farm_name)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $farm_name = shift;
 
@@ -83,7 +88,7 @@ sub getNewMark    # ($farm_name)
 	for my $i ( 512 .. 4095 )
 	{
 		my $num = sprintf ( "0x%x", $i );
-		if ( not grep { /^$num/x } @contents )
+		if ( !grep { /^$num/x } @contents )
 		{
 			$found   = 1;
 			$marknum = $num;
@@ -104,7 +109,7 @@ sub getNewMark    # ($farm_name)
 #
 sub delMarks    # ($farm_name,$mark)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name, $mark ) = @_;
 
@@ -117,14 +122,14 @@ sub delMarks    # ($farm_name,$mark)
 	if ( $farm_name ne "" )
 	{
 		&ztielock( \@contents, "$fwmarksconf" );
-		@contents = grep { not / \/\/ FARM\_$farm_name\_$/ } @contents;
+		@contents = grep { !/ \/\/ FARM\_$farm_name\_$/ } @contents;
 		untie @contents;
 	}
 
 	if ( $mark ne "" )
 	{
 		&ztielock( \@contents, "$fwmarksconf" );
-		@contents = grep { not /^$mark \/\/ FARM\_/ } @contents;
+		@contents = grep { !/^$mark \/\/ FARM\_/ } @contents;
 		untie @contents;
 	}
 
@@ -134,7 +139,7 @@ sub delMarks    # ($farm_name,$mark)
 #
 sub renameMarks    # ( $farm_name, $newfname )
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 
 	my $farm_name = shift;

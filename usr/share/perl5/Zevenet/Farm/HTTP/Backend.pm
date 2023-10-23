@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,7 +22,6 @@
 ###############################################################################
 
 use strict;
-use warnings;
 sub include;
 require Zevenet::Netfilter;
 require Zevenet::Farm::Config;
@@ -30,6 +29,11 @@ require Zevenet::Farm::Config;
 my $configdir = &getGlobalConfiguration( 'configdir' );
 my $proxy_ng  = &getGlobalConfiguration( 'proxy_ng' );
 
+my $eload;
+if ( eval { require Zevenet::ELoad; } )
+{
+	$eload = 1;
+}
 
 =begin nd
 Function: setHTTPFarmServer
@@ -53,7 +57,7 @@ Returns:
 
 sub setHTTPFarmServer # ($ids,$rip,$port,$weight,$timeout,$farm_name,$service,$priority,$connlimit)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my (
 		 $ids,       $rip,     $port,     $weight, $timeout,
@@ -99,7 +103,7 @@ sub setHTTPFarmServer # ($ids,$rip,$port,$weight,$timeout,$farm_name,$service,$p
 			{
 				$sw = 1;
 			}
-			if ( $line =~ /BackEnd/ and $line !~ /#/ and $sw eq 1 )
+			if ( $line =~ /BackEnd/ && $line !~ /#/ && $sw eq 1 )
 			{
 				$index_count++;
 				if ( $index_count == $ids )
@@ -156,17 +160,17 @@ sub setHTTPFarmServer # ($ids,$rip,$port,$weight,$timeout,$farm_name,$service,$p
 					#new item
 					if (
 						 $timeout !~ /^$/
-						 and (    $contents[$i + 3] =~ /End/
-							   or $contents[$i + 3] =~ /Priority/ )
+						 && (    $contents[$i + 3] =~ /End/
+							  || $contents[$i + 3] =~ /Priority/ )
 					  )
 					{
 						splice @contents, $i + 3, 0, "\t\t\tTimeOut $timeout";
 					}
 					if (
-						     $p_m eq 0
-						 and $priority !~ /^$/
-						 and (    $contents[$i + 3] =~ /End/
-							   or $contents[$i + 4] =~ /End/ )
+						    $p_m eq 0
+						 && $priority !~ /^$/
+						 && (    $contents[$i + 3] =~ /End/
+							  || $contents[$i + 4] =~ /End/ )
 					  )
 					{
 						if ( $contents[$i + 3] =~ /TimeOut/ )
@@ -193,19 +197,19 @@ sub setHTTPFarmServer # ($ids,$rip,$port,$weight,$timeout,$farm_name,$service,$p
 		foreach my $line ( @contents )
 		{
 			$index++;
-			if ( $be_section == 1 and $line =~ /Address/ )
+			if ( $be_section == 1 && $line =~ /Address/ )
 			{
 				$backend++;
 			}
-			if ( $line =~ /Service \"$service\"/ and $be_section == -1 )
+			if ( $line =~ /Service \"$service\"/ && $be_section == -1 )
 			{
 				$be_section++;
 			}
-			if ( $line =~ /#BackEnd/ and $be_section == 0 )
+			if ( $line =~ /#BackEnd/ && $be_section == 0 )
 			{
 				$be_section++;
 			}
-			if ( $be_section == 1 and $line =~ /#End/ )
+			if ( $be_section == 1 && $line =~ /#End/ )
 			{
 				splice @contents, $index, 0, "\t\tBackEnd";
 				$output = $?;
@@ -278,7 +282,7 @@ Returns:
 
 sub setHTTPNGFarmServer # ($ids,$rip,$port,$weight,$timeout,$farm_name,$service,$priority,$connlimit)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 
 	my (
@@ -324,7 +328,7 @@ sub setHTTPNGFarmServer # ($ids,$rip,$port,$weight,$timeout,$farm_name,$service,
 				$sw = 1;
 				next;
 			}
-			if ( $line =~ /BackEnd/ and $line !~ /#/ and $sw eq 1 )
+			if ( $line =~ /BackEnd/ && $line !~ /#/ && $sw eq 1 )
 			{
 				$index_count++;
 				if ( $index_count == $ids )
@@ -363,7 +367,7 @@ sub setHTTPNGFarmServer # ($ids,$rip,$port,$weight,$timeout,$farm_name,$service,
 					foreach my $key ( @keys )
 					{
 						$value = $data{ $key };
-						if ( not $setted{ $key } and $value !~ /^$/ )
+						if ( !$setted{ $key } && $value !~ /^$/ )
 						{
 							splice @contents, $i, 0, "\t\t\t$key $data{\"$key\"}";
 							$data{ "$key" } = 1;
@@ -371,6 +375,44 @@ sub setHTTPNGFarmServer # ($ids,$rip,$port,$weight,$timeout,$farm_name,$service,
 					}
 					last;
 				}
+			}
+		}
+		if ( $rip ne "" && $dec_mark && $eload )
+		{
+			if ( &getGlobalConfiguration( 'floating_L7' ) eq 'true' )
+			{
+				my $mark = sprintf ( "0x%x", $dec_mark );
+				my $back_srcaddr = &eload(
+										   module => 'Zevenet::Net::Floating',
+										   func   => 'getFloatingSourceAddr',
+										   args   => [$rip, $mark],
+				);
+
+				if ( $back_srcaddr->{ out }->{ floating_ip } )
+				{
+					my $farm_ref->{ name } = $farm_name;
+					$farm_ref->{ vip }   = &getFarmVip( 'vip',  $farm_name );
+					$farm_ref->{ vport } = &getFarmVip( 'vipp', $farm_name );
+					&eload(
+							module => 'Zevenet::Net::Floating',
+							func   => 'setL7FloatingSourceAddr',
+							args   => [$farm_ref, { ip => $rip, tag => $dec_mark, id => $ids }],
+					);
+				}
+				else
+				{
+					&eload(
+							module => 'Zevenet::Net::Floating',
+							func   => 'removeL7FloatingSourceAddr',
+							args   => [$farm_name, { tag => $dec_mark }],
+					);
+				}
+				my $exist = &checkLocalFarmSourceAddress( $farm_name );
+				&eload(
+						module => 'Zevenet::Net::Floating',
+						func   => 'removeL7FloatingSourceAddr',
+						args   => [$farm_name],
+				) if ( !$exist );
 			}
 		}
 	}
@@ -387,20 +429,20 @@ sub setHTTPNGFarmServer # ($ids,$rip,$port,$weight,$timeout,$farm_name,$service,
 		foreach my $line ( @contents )
 		{
 			$index++;
-			if ( $be_section == 1 and $line =~ /Address/ )
+			if ( $be_section == 1 && $line =~ /Address/ )
 			{
 				$ids++;
 				$backend++;
 			}
-			if ( $line =~ /Service \"$service\"/ and $be_section == -1 )
+			if ( $line =~ /Service \"$service\"/ && $be_section == -1 )
 			{
 				$be_section++;
 			}
-			if ( $line =~ /#BackEnd/ and $be_section == 0 )
+			if ( $line =~ /#BackEnd/ && $be_section == 0 )
 			{
 				$be_section++;
 			}
-			if ( $be_section == 1 and $line =~ /#End/ )
+			if ( $be_section == 1 && $line =~ /#End/ )
 			{
 				splice @contents, $index, 0, "\t\tBackEnd";
 				$output = $?;
@@ -460,6 +502,22 @@ sub setHTTPNGFarmServer # ($ids,$rip,$port,$weight,$timeout,$farm_name,$service,
 
 				splice @contents, $index, 0, "\t\tEnd";
 				$be_section++;    # Backend Added
+
+				if ( $eload )
+				{
+					# take care of floating interfaces without masquerading
+					if ( &getGlobalConfiguration( 'floating_L7' ) eq 'true' )
+					{
+						$farm_ref->{ vip } = &getFarmVip( 'vip', $farm_name )
+						  if not defined $farm_ref->{ vip };
+						$farm_ref->{ vport } = &getFarmVip( 'vipp', $farm_name );
+						&eload(
+								module => 'Zevenet::Net::Floating',
+								func   => 'setL7FloatingSourceAddr',
+								args   => [$farm_ref, { ip => $rip, tag => $dec_mark, id => $ids }],
+						);
+					}
+				}
 			}
 
 			# if backend added then go out of form
@@ -496,7 +554,7 @@ Returns:
 
 sub runHTTPFarmServerDelete    # ($ids,$farm_name,$service)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $ids, $farm_name, $service ) = @_;
 
@@ -521,7 +579,7 @@ sub runHTTPFarmServerDelete    # ($ids,$farm_name,$service)
 		{
 			$sw = 1;
 		}
-		if ( $line =~ /BackEnd/ and $line !~ /#/ and $sw == 1 )
+		if ( $line =~ /BackEnd/ && $line !~ /#/ && $sw == 1 )
 		{
 			$j++;
 			if ( $j == $ids )
@@ -551,6 +609,32 @@ sub runHTTPFarmServerDelete    # ($ids,$farm_name,$service)
 
 	close $lock_fh;
 
+	if ( &getGlobalConfiguration( 'proxy_ng' ) eq 'true' )
+	{
+		require Zevenet::Farm::HTTP::Sessions;
+		&deleteConfL7FarmAllSession( $farm_name, $service, $ids );
+
+		if ( $eload )
+		{
+			if ( ( &getGlobalConfiguration( 'floating_L7' ) eq 'true' )
+				 and $dec_mark )
+			{
+				&eload(
+						module => 'Zevenet::Net::Floating',
+						func   => 'removeL7FloatingSourceAddr',
+						args   => [$farm_name, { tag => $dec_mark }],
+				);
+
+				my $exist = &checkLocalFarmSourceAddress( $farm_name );
+
+				&eload(
+						module => 'Zevenet::Net::Floating',
+						func   => 'removeL7FloatingSourceAddr',
+						args   => [$farm_name],
+				) if ( !$exist );
+			}
+		}
+	}
 
 	if ( $output != -1 )
 	{
@@ -575,7 +659,7 @@ Returns:
 
 sub setHTTPFarmBackendsMarks    # ($farm_name)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 
 	my ( $farm_name ) = @_;
@@ -611,16 +695,16 @@ sub setHTTPFarmBackendsMarks    # ($farm_name)
 		{
 			$sw = 1;
 		}
-		if ( $line =~ /^\s+BackEnd/ and $sw == 1 )
+		if ( $line =~ /^\s+BackEnd/ && $sw == 1 )
 		{
 			$bw = 1;
 			$ms = 0;
 		}
-		if ( $line =~ /^\s+NfMark\s*(.*)/ and $bw == 1 )
+		if ( $line =~ /^\s+NfMark\s*(.*)/ && $bw == 1 )
 		{
 			$ms = 1;
 		}
-		if ( $line =~ /^\s+End/ and $bw == 1 )
+		if ( $line =~ /^\s+End/ && $bw == 1 )
 		{
 			$bw = 0;
 			if ( $ms == 0 )
@@ -656,7 +740,7 @@ Returns:
 
 sub removeHTTPFarmBackendsMarks    # ($farm_name)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 
 	require Zevenet::Farm::Core;
@@ -677,15 +761,15 @@ sub removeHTTPFarmBackendsMarks    # ($farm_name)
 		{
 			$sw = 1;
 		}
-		if ( $line =~ /^\tEnd/ and $sw == 1 and $bw == 0 )
+		if ( $line =~ /^\tEnd/ && $sw == 1 && $bw == 0 )
 		{
 			$sw = 0;
 		}
-		if ( $line =~ /^\t\tBackEnd/ and $sw == 1 )
+		if ( $line =~ /^\t\tBackEnd/ && $sw == 1 )
 		{
 			$bw = 1;
 		}
-		if ( $line =~ /^\s+NfMark\s*(.*)/ and $bw == 1 )
+		if ( $line =~ /^\s+NfMark\s*(.*)/ && $bw == 1 )
 		{
 			my $mark = sprintf ( "0x%x", $1 );
 			&delMarks( "", $mark );
@@ -696,13 +780,12 @@ sub removeHTTPFarmBackendsMarks    # ($farm_name)
 			}
 			splice @contents, $i, 1,;
 		}
-		if ( $line =~ /^\t\tEnd/ and $bw == 1 )
+		if ( $line =~ /^\t\tEnd/ && $bw == 1 )
 		{
 			$bw = 0;
 		}
 	}
 	untie @contents;
-	return;
 }
 
 =begin nd
@@ -715,26 +798,28 @@ Parameters:
 	sessions - "true" show sessions info. "false" sessions are not shown.
 
 Returns:
-	array - return the output of proxyctl command for a farm 
+	array - return the output of proxyctl command for a farm
 
 =cut
 
 sub getHTTPFarmBackendStatusCtl    # ($farm_name, $sessions)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name, $sessions ) = @_;
 
-	require Zevenet::Farm::HTTP::Config;
-	my $socket_file = &getHTTPFarmSocket( $farm_name );
-	my $proxyctl    = &getGlobalConfiguration( 'proxyctl' );
+	my $proxyctl = &getGlobalConfiguration( 'proxyctl' );
 
 	my $sessions_option = "-C";
 	if ( defined $sessions and $sessions = "true" )
 	{
 		$sessions_option = "";
 	}
-	return @{ &logAndGet( "$proxyctl $sessions_option -c $socket_file", "array" ) };
+	return
+	  @{
+		&logAndGet( "$proxyctl $sessions_option -c /tmp/$farm_name\_proxy.socket",
+					"array" )
+	  };
 }
 
 =begin nd
@@ -755,7 +840,7 @@ Returns:
 
 sub getHTTPFarmBackends    # ($farm_name,$service,$param_status)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farmname, $service, $param_status ) = @_;
 
@@ -765,10 +850,9 @@ sub getHTTPFarmBackends    # ($farm_name,$service,$param_status)
 	my $backendsvs = &getHTTPFarmVS( $farmname, $service, "backends" );
 	my @be         = split ( "\n", $backendsvs );
 	my @be_status;
-	if ( not $param_status or $param_status eq "true" )
+	if ( !$param_status or $param_status eq "true" )
 	{
 		@be_status = @{ &getHTTPFarmBackendsStatus( $farmname, $service ) };
-		@be_status = () if ( exists $be_status[0] and ( $be_status[0] eq -1 ) );
 	}
 	my @out_ba;
 
@@ -793,7 +877,7 @@ sub getHTTPFarmBackends    # ($farm_name,$service,$param_status)
 		$tag  = $tag eq '-'  ? undef : $tag + 0;
 
 		my $status = "undefined";
-		if ( not $param_status or $param_status eq "true" )
+		if ( !$param_status or $param_status eq "true" )
 		{
 			$status = $be_status[$id] if $be_status[$id];
 		}
@@ -822,7 +906,7 @@ sub getHTTPFarmBackends    # ($farm_name,$service,$param_status)
 							 weight  => $prio
 			};
 		}
-		if ( not $param_status or $param_status eq "true" )
+		if ( !$param_status or $param_status eq "true" )
 		{
 			$backend_ref->{ status } = $status;
 		}
@@ -850,14 +934,14 @@ Parameters:
 	service - Service name
 
 Returns:
-	Array ref - the index is backend index, the value is the backend status.
+	Array ref - the index is backend index, the value is the backend status
 
 =cut
 
 #ecm possible bug here returns 2 values instead of 1 (1 backend only)
-sub getHTTPFarmBackendsStatus    # ($farm_name,$service)
+sub getHTTPFarmBackendsStatus    # ($farm_name,@content)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name, $service ) = @_;
 
@@ -937,30 +1021,27 @@ sub setHTTPFarmBackendStatus # ($farm_name,$service,$backend_index,$status,$cutm
 
 	if ( $proxy_ng eq 'true' )
 	{
-		my $backend_id =
-		  &getHTTPFarmBackendIdByIndex( $farm_name, $service, $backend_index );
 		if ( $status eq 'maintenance' or $status eq 'fgDOWN' )
 		{
-			my $socket_params = {
-								  farm_name   => $farm_name,
-								  service     => $service,
-								  backend_id  => $backend_id,
-								  socket_file => $socket_file,
-								  status      => "disabled"
-			};
-			require Zevenet::Farm::HTTP::Runtime;
-			$output = &setHTTPFarmBackendStatusSocket( $socket_params );
-			if ( $output->{ code } )
+			require Zevenet::Farm::HTTP::Action;
+			$output = &sendL7ZproxyCmd(
+					   {
+						 farm   => $farm_name,
+						 uri    => "listener/0/service/$service_id/backend/$backend_index/status",
+						 method => "PATCH",
+						 body   => '{"status":"disabled"}',
+					   }
+			);
+			if ( $output->{ result } ne "ok" )
 			{
 				my $msg =
-				  "Backend '$backend_id' in service '$service' of farm '$farm_name' cannot be disabled : "
-				  . $output->{ desc };
+				  "Backend '$backend_index' in service '$service' of farm '$farm_name' cannot be disabled.";
 				&zenlog( $msg, "error", "LSLB" );
 				$error_ref->{ code } = 1;
 				$error_ref->{ desc } = $msg;
 				return $error_ref;
 			}
-			$error_ref->{ code } = $output->{ code };
+			$error_ref->{ code } = 0;
 			&setHTTPFarmBackendStatusFile( $farm_name, $backend_index, $status,
 										   $service_id );
 			if ( $cutmode eq 'cut' )
@@ -970,7 +1051,7 @@ sub setHTTPFarmBackendStatus # ($farm_name,$service,$backend_index,$status,$cutm
 				if ( $output )
 				{
 					my $msg =
-					  "Sessions for backend '$backend_id' in service '$service' of farm '$farm_name' were not deleted.";
+					  "Sessions for backend '$backend_index' in service '$service' of farm '$farm_name' were not deleted.";
 					&zenlog( $msg, "error", "LSLB" );
 					$error_ref->{ code } = 2;
 					$error_ref->{ desc } = $msg;
@@ -985,26 +1066,26 @@ sub setHTTPFarmBackendStatus # ($farm_name,$service,$backend_index,$status,$cutm
 			my $backends_info;
 			$backends_info = &getHTTPFarmBackends( $farm_name, $service, "true" )
 			  if ( ( not defined $backends_info_ref ) and ( $cutmode eq 'cut' ) );
-			my $socket_params = {
-								  farm_name   => $farm_name,
-								  service     => $service,
-								  backend_id  => $backend_id,
-								  socket_file => $socket_file,
-								  status      => "active"
-			};
-			require Zevenet::Farm::HTTP::Runtime;
-			$output = &setHTTPFarmBackendStatusSocket( $socket_params );
-			if ( $output->{ code } )
+
+			require Zevenet::Farm::HTTP::Action;
+			$output = &sendL7ZproxyCmd(
+					   {
+						 farm   => $farm_name,
+						 uri    => "listener/0/service/$service_id/backend/$backend_index/status",
+						 method => "PATCH",
+						 body   => '{"status":"active"}',
+					   }
+			);
+			if ( $output->{ result } ne "ok" )
 			{
 				my $msg =
-				  "Backend '$backend_id' in service '$service' of farm '$farm_name' cannot be enabled : "
-				  . $output->{ desc };
+				  "Backend '$backend_index' in service '$service' of farm '$farm_name' cannot be enabled";
 				&zenlog( $msg, "error", "LSLB" );
 				$error_ref->{ code } = 1;
 				$error_ref->{ desc } = $msg;
 				return $error_ref;
 			}
-			$error_ref->{ code } = $output->{ code };
+			$error_ref->{ code } = 0;
 			&setHTTPFarmBackendStatusFile( $farm_name, $backend_index,
 										   'active',   $service_id );
 			if ( $cutmode eq 'cut' )
@@ -1131,7 +1212,7 @@ Function: getHTTPBackendStatusFromFile
 
 Parameters:
 	farmname - Farm name
-	backend - backend id (index or ip-port)
+	backend - backend id
 	service - service name
 
 Returns:
@@ -1141,32 +1222,29 @@ Returns:
 
 sub getHTTPBackendStatusFromFile    # ($farm_name,$backend,$service)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name, $backend, $service ) = @_;
 
 	require Zevenet::Farm::HTTP::Service;
+
+	my $index;
 	my $stfile = "$configdir\/$farm_name\_status.cfg";
 
 	# if the status file does not exist the backend is ok
 	my $output = "active";
-	if ( not -e $stfile )
+	if ( !-e $stfile )
 	{
 		return $output;
 	}
 
-	my $srvc_index = &getFarmVSI( $farm_name, $service );
-
-	if ( $backend !~ /^(\d+)$/ )
-	{
-		$backend = &getHTTPFarmBackendIndexById( $farm_name, $service, $backend );
-	}
-
+	$index = &getFarmVSI( $farm_name, $service );
 	open my $fd, '<', $stfile;
+
 	while ( my $line = <$fd> )
 	{
 		#service index
-		if ( $line =~ /\ 0\ ${srvc_index}\ ${backend}/ )
+		if ( $line =~ /\ 0\ ${index}\ ${backend}/ )
 		{
 			if ( $line =~ /maintenance/ )
 			{
@@ -1207,96 +1285,58 @@ FIXME:
 
 sub setHTTPFarmBackendStatusFile    # ($farm_name,$backend,$status,$idsv)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name, $backend, $status, $idsv ) = @_;
 
 	require Tie::File;
 
-	my $status_file = "$configdir\/$farm_name\_status.cfg";
-	my $changed     = "false";
-	require Zevenet::Farm::HTTP::Config;
-	my $socket_file = &getHTTPFarmSocket( "$farm_name" );
+	my $statusfile = "$configdir\/$farm_name\_status.cfg";
+	my $changed    = "false";
 
-	if ( not -e $status_file )
+	if ( !-e $statusfile )
 	{
-		if ( $proxy_ng eq "false" )
-		{
-			open my $fd, '>', "$status_file";
-			my $proxyctl = &getGlobalConfiguration( 'proxyctl' );
-			my @run = @{ &logAndGet( "$proxyctl -C -c $socket_file", "array" ) };
-			my @sw;
-			my @bw;
+		open my $fd, '>', "$statusfile";
+		my $proxyctl = &getGlobalConfiguration( 'proxyctl' );
+		my @run =
+		  @{ &logAndGet( "$proxyctl -C -c /tmp/$farm_name\_proxy.socket", "array" ) };
+		my @sw;
+		my @bw;
 
-			foreach my $line ( @run )
+		foreach my $line ( @run )
+		{
+			if ( $line =~ /\.\ Service\ / )
 			{
-				if ( $line =~ /\.\ Service\ / )
+				@sw = split ( "\ ", $line );
+				$sw[0] =~ s/\.//g;
+				chomp $sw[0];
+			}
+			if ( $line =~ /\.\ Backend\ / )
+			{
+				@bw = split ( "\ ", $line );
+				$bw[0] =~ s/\.//g;
+				chomp $bw[0];
+				if ( $bw[3] eq "active" )
 				{
-					@sw = split ( "\ ", $line );
-					$sw[0] =~ s/\.//g;
-					chomp $sw[0];
+					#~ print FW "-B 0 $sw[0] $bw[0] active\n";
 				}
-				if ( $line =~ /\.\ Backend\ / )
+				else
 				{
-					@bw = split ( "\ ", $line );
-					$bw[0] =~ s/\.//g;
-					chomp $bw[0];
-					if ( $bw[3] ne "active" )
-					{
-						print $fd "-b 0 $sw[0] $bw[0] fgDOWN\n";
-					}
+					print $fd "-b 0 $sw[0] $bw[0] fgDOWN\n";
 				}
 			}
-			close $fd;
 		}
-		elsif ( $proxy_ng eq "true" )
-		{
-			my $call = {
-						 method   => "GET",
-						 protocol => "http",
-						 host     => "localhost",
-						 path     => "/listener/0",
-						 socket   => $socket_file,
-						 json     => 3,
-			};
-
-			require Zevenet::HTTPClient;
-			my $run = &runHTTPRequest( $call );
-			open my $fd, '>', "$status_file";
-			if ( exists $run->{ return }->{ body }->{ services } )
-			{
-				my @services   = @{ $run->{ return }->{ body }->{ services } };
-				my $srvc_index = 0;
-				my $bknd_index = 0;
-				foreach my $srvc ( @services )
-				{
-					my @backends = @{ $srvc->{ backends } };
-					if ( @backends )
-					{
-						foreach my $bknd ( @backends )
-						{
-							if ( $bknd->{ status } ne "active" )
-							{
-								print $fd "-b 0 $srvc_index $bknd_index fgDOWN\n";
-							}
-							$bknd_index++;
-						}
-					}
-					$srvc_index++;
-				}
-			}
-			close $fd;
-		}
+		close $fd;
 	}
 
-	tie my @filelines, 'Tie::File', "$status_file";
+	tie my @filelines, 'Tie::File', "$statusfile";
 	my $i;
 
 	foreach my $linea ( @filelines )
 	{
 		if ( $linea =~ /\ 0\ $idsv\ $backend/ )
 		{
-			if ( $status =~ /maintenance/ or $status =~ /fgDOWN/ )
+			if ( $status =~ /maintenance/ || $status =~ /fgDOWN/ )
 			{
 				$linea   = "-b 0 $idsv $backend $status";
 				$changed = "true";
@@ -1313,9 +1353,9 @@ sub setHTTPFarmBackendStatusFile    # ($farm_name,$backend,$status,$idsv)
 
 	if ( $changed eq "false" )
 	{
-		open my $fd, '>>', "$status_file";
+		open my $fd, '>>', "$statusfile";
 
-		if ( $status =~ /maintenance/ or $status =~ /fgDOWN/ )
+		if ( $status =~ /maintenance/ || $status =~ /fgDOWN/ )
 		{
 			print $fd "-b 0 $idsv $backend $status\n";
 		}
@@ -1326,8 +1366,99 @@ sub setHTTPFarmBackendStatusFile    # ($farm_name,$backend,$status,$idsv)
 
 		close $fd;
 	}
-	return;
 
+}
+
+=begin nd
+Function: getHTTPFarmBackendsClients
+
+	Function that return number of clients with session in a backend server
+
+Parameters:
+	backend - backend id
+	content - command output where parsing backend status
+	farmname - Farm name
+
+Returns:
+	Integer - return number of clients in the backend
+
+=cut
+
+sub getHTTPFarmBackendsClients    # ($idserver,@content,$farm_name)
+{
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
+			 "debug", "PROFILING" );
+	my ( $idserver, @content, $farm_name ) = @_;
+
+	if ( !@content )
+	{
+		@content = &getHTTPFarmBackendStatusCtl( $farm_name );
+	}
+
+	my $numclients = 0;
+
+	foreach ( @content )
+	{
+		if ( $_ =~ / Session .* -> $idserver$/ )
+		{
+			$numclients++;
+		}
+	}
+
+	return $numclients;
+}
+
+=begin nd
+Function: getHTTPFarmBackendsClientsList
+
+	Function that return sessions of clients
+
+Parameters:
+	farmname - Farm name
+	content - command output where it must be parsed backend status
+
+Returns:
+	array - return information about existing sessions. The format for each line is: "service" . "\t" . "session_id" . "\t" . "session_value" . "\t" . "backend_id"
+
+FIXME:
+	will be useful change output format to hash format
+
+=cut
+
+sub getHTTPFarmBackendsClientsList    # ($farm_name,@content)
+{
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
+			 "debug", "PROFILING" );
+	my ( $farm_name, @content ) = @_;
+
+	my @client_list;
+	my $s;
+
+	if ( !@content )
+	{
+		@content = &getHTTPFarmBackendStatusCtl( $farm_name );
+	}
+
+	foreach ( @content )
+	{
+		my $line;
+		if ( $_ =~ /Service/ )
+		{
+			my @service = split ( "\ ", $_ );
+			$s = $service[2];
+			$s =~ s/"//g;
+		}
+		if ( $_ =~ / Session / )
+		{
+			my @sess = split ( "\ ", $_ );
+			my $id = $sess[0];
+			$id =~ s/\.//g;
+			$line = $s . "\t" . $id . "\t" . $sess[2] . "\t" . $sess[4];
+			push ( @client_list, $line );
+		}
+	}
+
+	return @client_list;
 }
 
 =begin nd
@@ -1344,13 +1475,13 @@ Parameters:
 	service - Service name
 
 Returns:
-	Integer - return 0 on success or any other value on failure
+	Integer - return 0 on success or -1 on failure
 
 =cut
 
 sub setHTTPFarmBackendMaintenance    # ($farm_name,$backend,$mode,$service)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name, $backend, $mode, $service ) = @_;
 
@@ -1381,13 +1512,13 @@ Parameters:
 	service - Service name
 
 Returns:
-	Integer - return 0 on success or any other value on failure
+	Integer - return 0 on success or -1 on failure
 
 =cut
 
 sub setHTTPFarmBackendNoMaintenance    # ($farm_name,$backend,$service)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name, $backend, $service ) = @_;
 
@@ -1427,7 +1558,7 @@ FIXME:
 
 sub runRemoveHTTPBackendStatus    # ($farm_name,$backend,$service)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name, $backend, $service ) = @_;
 
@@ -1466,7 +1597,6 @@ sub runRemoveHTTPBackendStatus    # ($farm_name,$backend,$service)
 		}
 	}
 	untie @filelines;
-	return;
 }
 
 =begin nd
@@ -1487,84 +1617,40 @@ FIXME:
 
 sub setHTTPFarmBackendStatusFromFile    # ($farm_name)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $farm_name = shift;
 
 	&zenlog( "Setting backends status in farm $farm_name", "info", "LSLB" );
 
-	my $status_file = "$configdir\/$farm_name\_status.cfg";
-	require Zevenet::Farm::HTTP::Config;
-	my $socket_file = &getHTTPFarmSocket( $farm_name );
-	my $output      = 0;
+	my $be_status_filename = "$configdir\/$farm_name\_status.cfg";
 
-	unless ( -f $status_file )
+	unless ( -f $be_status_filename )
 	{
-		open my $fh, ">", $status_file;
+		open my $fh, ">", $be_status_filename;
 		close $fh;
-		return;
 	}
 
-	open my $fh, "<", $status_file;
-	if ( $proxy_ng eq "false" )
-	{
-		my $proxyctl = &getGlobalConfiguration( 'proxyctl' );
-		while ( my $line_aux = <$fh> )
-		{
-			my @line = split ( "\ ", $line_aux );
-			&logAndRun( "$proxyctl -c $socket_file $line[0] $line[1] $line[2] $line[3]" );
-			if ( $? ne 0 )
-			{
-				$output = $?;
-				&zenlog(
-						 "Error Setting Backend Status => service $line[2], backend: $line[3]:"
-						   . $output,
-						 "error",
-						 "FARMS"
-				);
-			}
-		}
-	}
-	elsif ( $proxy_ng eq "true" )
-	{
-		require Zevenet::Farm::HTTP::Service;
-		my @services = &getHTTPFarmServices( $farm_name );
-		my $service_prev;
-		my @backend_data;
-		while ( my $line_aux = <$fh> )
-		{
-			my @line = split ( "\ ", $line_aux );
-			my $service_name = $services[$line[2]];
-			if ( $service_name ne $service_prev )
-			{
-				@backend_data = @{ &getHTTPFarmBackends( $farm_name, $service_name, "false" ) };
-			}
-			my $backend_id =
-			  $backend_data[$line[3]]->{ ip } . "-" . $backend_data[$line[3]]->{ port };
-			my $socket_params = {
-								  farm_name   => $farm_name,
-								  service     => $service_name,
-								  backend_id  => $backend_id,
-								  socket_file => $socket_file,
-								  status      => "disabled"
-			};
+	open my $fh, "<", $be_status_filename;
 
-			require Zevenet::Farm::HTTP::Runtime;
-			my $error_ref = &setHTTPFarmBackendStatusSocket( $socket_params );
-			if ( $error_ref->{ code } )
-			{
-				$output = $error_ref->{ code };
-				&zenlog(
-					"Backend '$backend_id' in service '$service_name' in Farm '$farm_name' can not be disabled: "
-					  . $error_ref->{ desc },
-					"warning", "FARMS"
-				);
-			}
-			$service_prev = $service_name;
-		}
+	unless ( $fh )
+	{
+		my $msg = "Error opening $be_status_filename: $!. Aborting execution.";
+
+		&zenlog( $msg, "error", "LSLB" );
+		die $msg;
+	}
+
+	my $proxyctl = &getGlobalConfiguration( 'proxyctl' );
+
+	while ( my $line_aux = <$fh> )
+	{
+		my @line = split ( "\ ", $line_aux );
+		&logAndRun(
+			"$proxyctl -c /tmp/$farm_name\_proxy.socket $line[0] $line[1] $line[2] $line[3]"
+		);
 	}
 	close $fh;
-	return $output;
 }
 
 =begin nd
@@ -1587,55 +1673,45 @@ FIXME:
 
 sub setHTTPFarmBackendsSessionsRemove    #($farm_name,$service,$backendid)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name, $service, $backendid ) = @_;
 
-	require Zevenet::Farm::HTTP::Config;
-	my $socket_file = &getHTTPFarmSocket( $farm_name );
-	my $err         = 0;
-	my $proxy_ng    = &getGlobalConfiguration( 'proxy_ng' );
+	my $serviceid;
+	my $proxy_ng = &getGlobalConfiguration( 'proxy_ng' );
+	my $err      = 0;
 
 	&zenlog(
 		"Deleting established sessions to a backend $backendid from farm $farm_name in service $service",
 		"info", "LSLB"
 	);
 
+	$serviceid = &getFarmVSI( $farm_name, $service );
 	if ( $proxy_ng eq "true" )
 	{
-		require Zevenet::Farm::HTTP::Service;
-		my @bknd_data = @{ &getHTTPFarmBackends( $farm_name, $service, "false" ) };
-		my $backend_id =
-		  $bknd_data[$backendid]->{ ip } . "-" . $bknd_data[$backendid]->{ port };
-
-		my $proxy_request_params = {
-									 method   => "DELETE",
-									 data     => { "backend-id" => $backend_id },
-									 protocol => "http",
-									 socket   => $socket_file,
-									 host     => "localhost",
-									 path     => "/listener/0/service/$service/sessions",
-									 json     => 3,
-		};
-
-		require Zevenet::HTTPClient;
-		my $response = &runHTTPRequest( $proxy_request_params );
-		if ( $response->{ code } ne 0 )
+		require Zevenet::Farm::HTTP::Action;
+		$err = &sendL7ZproxyCmd(
+								 {
+								   farm   => $farm_name,
+								   uri    => "listener/0/service/$serviceid/sessions",
+								   method => "DELETE",
+								   body   => '{ "backend-id":' . $backendid . ' }',
+								 }
+		);
+		if ( $err->{ result } eq "ok" )
 		{
-			$err = $response->{ code };
-			&zenlog(
-				"Session for Backend '$backend_id' in service '$service' in Farms '$farm_name' can not be deleted: "
-				  . $response->{ desc },
-				"error", "FARMS"
-			);
+			$err = 0;
+		}
+		else
+		{
+			$err = 1;
 		}
 	}
 	elsif ( $proxy_ng eq "false" )
 	{
-		my $serviceid;
-		$serviceid = &getFarmVSI( $farm_name, $service );
 		my $proxyctl = &getGlobalConfiguration( 'proxyctl' );
-		my $cmd      = "$proxyctl -c $socket_file -f 0 $serviceid $backendid";
+		my $cmd =
+		  "$proxyctl -c /tmp/$farm_name\_proxy.socket -f 0 $serviceid $backendid";
 		$err = &logAndRun( $cmd );
 	}
 
@@ -1644,7 +1720,7 @@ sub setHTTPFarmBackendsSessionsRemove    #($farm_name,$service,$backendid)
 
 sub getHTTPFarmBackendAvailableID
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $farmname = shift;
 	my $service  = shift;
@@ -1698,7 +1774,7 @@ Returns:
 
 sub getHTTPFarmBackendsStatusInfo    # ($farm_name)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name ) = @_;
 
@@ -1706,202 +1782,75 @@ sub getHTTPFarmBackendsStatusInfo    # ($farm_name)
 	require Zevenet::Farm::HTTP::Backend;
 	require Zevenet::Validate;
 	my $status;
+
 	my $serviceName;
 	my $service_re = &getValidFormat( 'service' );
 
-	if ( $proxy_ng eq "false" )
+	# Get l7 proxy info
+	#i.e. of proxyctl:
 
-	  # Get l7 proxy info
-	  #i.e. of proxyctl:
+	#Requests in queue: 0
+	#0. http Listener 185.76.64.223:80 a
+	#0. Service "HTTP" active (4)
+	#0. Backend 172.16.110.13:80 active (1 0.780 sec) alive (61)
+	#1. Backend 172.16.110.14:80 active (1 0.878 sec) alive (90)
+	#2. Backend 172.16.110.11:80 active (1 0.852 sec) alive (99)
+	#3. Backend 172.16.110.12:80 active (1 0.826 sec) alive (75)
+	my @proxyctl = &getHTTPFarmBackendStatusCtl( $farm_name );
 
-	  #Requests in queue: 0
-	  #0. http Listener 185.76.64.223:80 a
-	  #0. Service "HTTP" active (4)
-	  #0. Backend 172.16.110.13:80 active (1 0.780 sec) alive (61)
-	  #1. Backend 172.16.110.14:80 active (1 0.878 sec) alive (90)
-	  #2. Backend 172.16.110.11:80 active (1 0.852 sec) alive (99)
-	  #3. Backend 172.16.110.12:80 active (1 0.826 sec) alive (75)
+	# Parse l7 proxy info
+	foreach my $line ( @proxyctl )
 	{
-		# Parse l7 proxy info
-		my @proxyStatus = &getHTTPFarmBackendStatusCtl( $farm_name );
-		foreach my $line ( @proxyStatus )
+		# i.e.
+		#     0. Service "HTTP" active (10)
+		if ( $line =~ /(\d+)\. Service "($service_re)"/ )
 		{
-			# i.e.
-			#     0. Service "HTTP" active (10)
-			if ( $line =~ /(\d+)\. Service "($service_re)"/ )
+			$serviceName = $2;
+		}
+
+		# Parse backend connections
+		# i.e.
+		#      0. Backend 192.168.100.254:80 active (5 0.000 sec) alive (0)
+		if ( $line =~
+			/(\d+)\. Backend (\d+\.\d+\.\d+\.\d+|[a-fA-F0-9:]+):(\d+) (\w+) .+ (\w+)(?: \((\d+)\))?/
+		  )
+		{
+			my $backendHash = {
+								id     => $1 + 0,
+								ip     => $2,
+								port   => $3 + 0,
+								status => $5,
+			};
+
+			# Getting real status
+			my $backend_disabled = $4;
+			if ( $backend_disabled eq "DISABLED" )
 			{
-				$serviceName = $2;
+				require Zevenet::Farm::HTTP::Backend;
+
+				#Checkstatusfile
+				$backendHash->{ "status" } =
+				  &getHTTPBackendStatusFromFile( $farm_name, $backendHash->{ id },
+												 $serviceName );
+
+				# not show fgDOWN status
+				$backendHash->{ "status" } = "down"
+				  if ( $backendHash->{ "status" } ne "maintenance" );
+			}
+			elsif ( $backendHash->{ "status" } eq "alive" )
+			{
+				$backendHash->{ "status" } = "up";
+			}
+			elsif ( $backendHash->{ "status" } eq "DEAD" )
+			{
+				$backendHash->{ "status" } = "down";
 			}
 
-			# Parse backend connections
-			# i.e.
-			#      0. Backend 192.168.100.254:80 active (5 0.000 sec) alive (0)
-			if ( $line =~
-				/(\d+)\. Backend (\d+\.\d+\.\d+\.\d+|[a-fA-F0-9:]+):(\d+) (\w+) .+ (\w+)(?: \((\d+)\))?/
-			  )
-			{
-				my $backendHash = {
-									id     => $1 + 0,
-									ip     => $2,
-									port   => $3 + 0,
-									status => $5,
-				};
-
-				# Getting real status
-				my $backend_disabled = $4;
-				if ( $backend_disabled eq "DISABLED" )
-				{
-					require Zevenet::Farm::HTTP::Backend;
-
-					#Checkstatusfile
-					$backendHash->{ "status" } =
-					  &getHTTPBackendStatusFromFile( $farm_name, $backendHash->{ id },
-													 $serviceName );
-
-					# not show fgDOWN status
-					$backendHash->{ "status" } = "down"
-					  if ( $backendHash->{ "status" } ne "maintenance" );
-				}
-				elsif ( $backendHash->{ "status" } eq "alive" )
-				{
-					$backendHash->{ "status" } = "up";
-				}
-				elsif ( $backendHash->{ "status" } eq "DEAD" )
-				{
-					$backendHash->{ "status" } = "down";
-				}
-
-				push ( @{ $status->{ $serviceName }->{ backends } }, $backendHash );
-			}
-		}
-
-		return $status;
-	}
-	elsif ( $proxy_ng eq "true" )
-	{
-		require Zevenet::Farm::HTTP::Runtime;
-		my $proxyStatus = &getHTTPFarmBackendStatusSocket( $farm_name );
-
-		foreach ( @{ $proxyStatus->{ services } } )
-		{
-			$serviceName = $_->{ name };
-
-			foreach my $backend ( @{ $_->{ backends } } )
-			{
-				my $backendHash = {
-									id     => $backend->{ id },
-									ip     => $backend->{ address },
-									port   => $backend->{ port },
-									status => $backend->{ status },
-				};
-
-				# Getting real status
-				if ( $backendHash->{ status } eq "disabled" )
-				{
-					require Zevenet::Farm::HTTP::Backend;
-
-					#Checkstatusfile
-					$backendHash->{ "status" } =
-					  &getHTTPBackendStatusFromFile( $farm_name, $backendHash->{ id },
-													 $serviceName );
-
-					# not show fgDOWN status
-					$backendHash->{ "status" } = "down"
-					  if ( $backendHash->{ "status" } ne "maintenance" );
-				}
-				elsif ( $backendHash->{ "status" } eq "active" )
-				{
-					$backendHash->{ "status" } = "up";
-				}
-
-				push ( @{ $status->{ $serviceName }->{ backends } }, $backendHash );
-			}
-		}
-
-		return $status;
-	}
-}
-
-=begin nd
-Function: getHTTPFarmBackendIndexById
-
-	Get backend index from config using backend id.
-
-Parameters:
-	farm_name - Farm name
-	service_name - Service name
-	backend_id - Backend id . Format "ipaddr-port"
-
-Returns:
-	Integer . -1 if not index found.
-
-=cut
-
-sub getHTTPFarmBackendIndexById    # ($farm_name, $service, $backend_id)
-{
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $farm_name  = shift;
-	my $service    = shift;
-	my $backend_id = shift;
-
-	my $backend_idx = -1;
-
-	my ( $address, $port ) = split ( '-', $backend_id );
-
-	require Zevenet::Farm::HTTP::Backend;
-	my $index = 0;
-	foreach
-	  my $backend_ref ( @{ &getHTTPFarmBackends( $farm_name, $service, "false" ) } )
-	{
-		if ( $backend_ref->{ ip } eq $address and $backend_ref->{ port } == $port )
-		{
-			$backend_idx = $index;
-			last;
-		}
-		else
-		{
-			$index++;
+			push ( @{ $status->{ $serviceName }->{ backends } }, $backendHash );
 		}
 	}
 
-	return $backend_idx;
-}
-
-=begin nd
-Function: getHTTPFarmBackendIdByIndex
-
-	Get backend id form config using backend index.
-
-Parameters:
-	farm_name - Farm name
-	service_name - Service name
-	backend_index - Backend index .
-
-Returns:
-	String . Format "ipaddr-port". Undef if not index found.
-
-=cut
-
-sub getHTTPFarmBackendIdByIndex    # ($farm_name, $service, $backend_index)
-{
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $farm_name   = shift;
-	my $service     = shift;
-	my $backend_idx = shift;
-
-	my $backend_id;
-
-	my $backends_ref = &getHTTPFarmBackends( $farm_name, $service, "false" );
-	if (     defined @{ $backends_ref }[$backend_idx]->{ ip }
-		 and defined @{ $backends_ref }[$backend_idx]->{ port } )
-	{
-		$backend_id = @{ $backends_ref }[$backend_idx]->{ ip } . "-"
-		  . @{ $backends_ref }[$backend_idx]->{ port };
-	}
-
-	return $backend_id;
+	return $status;
 }
 
 1;

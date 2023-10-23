@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,7 +22,7 @@
 ###############################################################################
 
 use strict;
-use warnings;
+
 use Zevenet::Core;
 
 =begin nd
@@ -80,7 +80,7 @@ Returns:
 
 sub getProtoTransport
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $profile = shift;
 
@@ -162,7 +162,7 @@ Returns:
 
 sub validatePortKernelSpace
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $ip, $port, $proto, $farmname ) = @_;
 
@@ -170,10 +170,10 @@ sub validatePortKernelSpace
 	require Zevenet::Farm::Base;
 	require Zevenet::Arrays;
 	my @farm_list = &getFarmListByVip( $ip );
-	return 1 if not @farm_list;
+	return 1 if !@farm_list;
 
-	@farm_list = grep { not /^$farmname$/ } @farm_list if defined $farmname;
-	return 1 if not @farm_list;
+	@farm_list = grep ( !/^$farmname$/, @farm_list ) if defined $farmname;
+	return 1 if !@farm_list;
 
 	# check intervals
 	my $port_list = &getMultiporExpanded( $port );
@@ -185,7 +185,7 @@ sub validatePortKernelSpace
 
 		# check protocol collision
 		my $f_proto = &getProtoTransport( &getL4FarmParam( 'proto', $farm ) );
-		next if ( not &getArrayCollision( $proto, $f_proto ) );
+		next if ( !&getArrayCollision( $proto, $f_proto ) );
 
 		my $f_port = &getFarmVip( 'vipp', $farm );
 
@@ -224,7 +224,7 @@ Returns:
 
 sub getMultiporExpanded
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $port       = shift;
 	my @total_port = ();
@@ -261,7 +261,7 @@ Returns:
 
 sub getMultiportRegex
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $port = shift;
 	my $reg  = $port;
@@ -298,7 +298,7 @@ Returns:
 
 sub validatePortUserSpace
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $ip, $port, $proto, $farmname, $process ) = @_;
 
@@ -353,8 +353,8 @@ sub validatePortUserSpace
 	if ( defined $process )
 	{
 		my $filter = '^\s*(?:[^\s]+\s+){5,6}\d+\/' . $process;
-		@out = grep { not /$filter/ } @out;
-		return 1 if ( not @out );
+		@out = grep ( !/$filter/, @out );
+		return 1 if ( !@out );
 	}
 
 	# This code was modified for a bugfix. There was a issue when a l4 farm
@@ -376,7 +376,7 @@ sub validatePortUserSpace
 	my $port_reg = &getMultiportRegex( $port );
 
 	my $filter = '^\s*(?:[^\s]+\s+){3,3}' . $ip_reg . ':' . $port_reg . '\s';
-	@out = grep { /$filter/ } @out;
+	@out = grep ( /$filter/, @out );
 	if ( @out )
 	{
 		&zenlog( "The ip '$ip' and the port '$port' are being used for some process",
@@ -417,13 +417,13 @@ See Also:
 
 sub validatePort
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $ip, $port, $proto, $farmname, $process ) = @_;
 
 	# validate inputs
 	$ip = '0.0.0.0' if $ip eq '*';
-	if ( not defined $proto and not defined $farmname )
+	if ( !defined $proto and !defined $farmname )
 	{
 		&zenlog(
 			  "Check port needs the protocol to validate the ip '$ip' and the port '$port'",
@@ -431,7 +431,7 @@ sub validatePort
 		return 0;
 	}
 
-	if ( not defined $proto )
+	if ( !defined $proto )
 	{
 		$proto = &getFarmType( $farmname );
 		if ( $proto eq 'l4xnat' )
@@ -443,9 +443,9 @@ sub validatePort
 	$proto = &getProtoTransport( $proto );
 
 	return 0
-	  if ( not &validatePortUserSpace( $ip, $port, $proto, $farmname, $process ) );
+	  if ( !&validatePortUserSpace( $ip, $port, $proto, $farmname, $process ) );
 
-	return 0 if ( not &validatePortKernelSpace( $ip, $port, $proto, $farmname ) );
+	return 0 if ( !&validatePortKernelSpace( $ip, $port, $proto, $farmname ) );
 
 	# TODO: add check for avoiding collision with datalink VIPs
 
@@ -467,7 +467,7 @@ Returns:
 
 sub ipisok    # ($checkip, $version)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $checkip = shift;
 	my $version = shift;
@@ -476,7 +476,7 @@ sub ipisok    # ($checkip, $version)
 	require Data::Validate::IP;
 	Data::Validate::IP->import();
 
-	if ( not $version or $version != 6 )
+	if ( !$version || $version != 6 )
 	{
 		if ( is_ipv4( $checkip ) )
 		{
@@ -484,7 +484,7 @@ sub ipisok    # ($checkip, $version)
 		}
 	}
 
-	if ( not $version or $version != 4 )
+	if ( !$version || $version != 4 )
 	{
 		if ( is_ipv6( $checkip ) )
 		{
@@ -513,7 +513,7 @@ sub validIpAndNet
 	my $ip = shift;
 
 	use NetAddr::IP;
-	my $out = NetAddr::IP->new( $ip );
+	my $out = new NetAddr::IP( $ip );
 
 	return ( defined $out ) ? 1 : 0;
 }
@@ -533,7 +533,7 @@ Returns:
 
 sub ipversion    # ($checkip)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $checkip = shift;
 	my $output  = "-";
@@ -577,7 +577,7 @@ Returns:
 
 sub validateGateway    # ($ip, $mask, $ip2)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $ip, $mask, $ip2 ) = @_;
 
@@ -586,9 +586,9 @@ sub validateGateway    # ($ip, $mask, $ip2)
 	my $addr1 = NetAddr::IP->new( $ip,  $mask );
 	my $addr2 = NetAddr::IP->new( $ip2, $mask );
 
-	return (     defined $addr1
-			 and defined $addr2
-			 and ( $addr1->network() eq $addr2->network() ) ) ? 1 : 0;
+	return (    defined $addr1
+			 && defined $addr2
+			 && ( $addr1->network() eq $addr2->network() ) ) ? 1 : 0;
 }
 
 =begin nd
@@ -612,7 +612,7 @@ Bugs:
 
 sub ifexist    # ($nif)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $nif = shift;
 
@@ -635,7 +635,7 @@ sub ifexist    # ($nif)
 		if   ( $flags & IFF_RUNNING ) { $status = "up"; }
 		else                          { $status = "down"; }
 
-		if ( $status eq "up" or -e "$configdir/if_$nif\_conf" )
+		if ( $status eq "up" || -e "$configdir/if_$nif\_conf" )
 		{
 			return "true";
 		}
@@ -666,7 +666,7 @@ Returns:
 
 sub checkNetworkExists
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $net, $mask, $exception, $duplicated ) = @_;
 
@@ -702,7 +702,7 @@ sub checkNetworkExists
 	{
 		# if it is the same net pass
 		next if defined $exception and $if_ref->{ name } eq $exception;
-		next if not $if_ref->{ addr };
+		next if !$if_ref->{ addr };
 
 		# found
 		my $net2 = NetAddr::IP->new( $if_ref->{ addr }, $if_ref->{ mask } );
@@ -734,7 +734,7 @@ Returns:
 
 sub checkDuplicateNetworkExists
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 
 	#if duplicated network is not allowed then don't check if network exists.
@@ -778,7 +778,7 @@ Returns:
 
 sub validBackendStack
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $be_aref, $ip ) = @_;
 	my $ip_stack     = &ipversion( $ip );
@@ -792,7 +792,7 @@ sub validBackendStack
 		last if $ipv_mismatch;
 	}
 
-	return ( not $ipv_mismatch );
+	return ( !$ipv_mismatch );
 }
 
 =begin nd
@@ -830,8 +830,8 @@ sub validateNetmask
 		else
 		{
 			require Net::Netmask;
-			my $block = Net::Netmask->new2( $ip, $mask );
-			$success = 1 if defined $block;
+			my $block = Net::Netmask->new( $ip, $mask );
+			$success = ( !exists $block->{ 'ERROR' } );
 		}
 	}
 

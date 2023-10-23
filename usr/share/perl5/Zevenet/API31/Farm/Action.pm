@@ -1,10 +1,9 @@
-#!/usr/bin/perl
-################################################################################
+###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -23,13 +22,17 @@
 
 use strict;
 use Zevenet::Farm::Core;
-use warnings;
 
+my $eload;
+if ( eval { require Zevenet::ELoad; } )
+{
+	$eload = 1;
+}
 
 # POST /farms/<farmname>/actions Set an action in a Farm
 sub farm_actions    # ( $json_obj, $farmname )
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $json_obj = shift;
 	my $farmname = shift;
@@ -38,9 +41,10 @@ sub farm_actions    # ( $json_obj, $farmname )
 	require Zevenet::Farm::Base;
 
 	my $desc = "Farm actions";
+	my $action;
 
 	# validate FARM NAME
-	if ( not &getFarmExists( $farmname ) )
+	if ( !&getFarmExists( $farmname ) )
 	{
 		my $msg = "The farmname $farmname does not exist.";
 		&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
@@ -69,7 +73,7 @@ sub farm_actions    # ( $json_obj, $farmname )
 		# check if the ip exists in any interface
 		my $ip = &getFarmVip( "vip", $farmname );
 		require Zevenet::Net::Interface;
-		if ( not &getIpAddressExists( $ip ) )
+		if ( !&getIpAddressExists( $ip ) )
 		{
 			my $msg = "The virtual ip $ip is not defined in any interface.";
 			&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
@@ -97,7 +101,7 @@ sub farm_actions    # ( $json_obj, $farmname )
 		# check if the ip exists in any interface
 		my $ip = &getFarmVip( "vip", $farmname );
 		require Zevenet::Net::Interface;
-		if ( not &getIpAddressExists( $ip ) )
+		if ( !&getIpAddressExists( $ip ) )
 		{
 			my $msg = "The virtual ip $ip is not defined in any interface.";
 			&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
@@ -125,6 +129,12 @@ sub farm_actions    # ( $json_obj, $farmname )
 		"info", "FARMS"
 	);
 
+	&eload(
+			module => 'Zevenet::Cluster',
+			func   => 'runZClusterRemoteManager',
+			args   => ['farm', $json_obj->{ action }, $farmname],
+	) if ( $eload );
+
 	my $body = {
 				 description => "Set a new action in $farmname",
 				 params      => {
@@ -134,14 +144,13 @@ sub farm_actions    # ( $json_obj, $farmname )
 	};
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 # Set an action in a backend of http|https farm
 # PUT /farms/<farmname>/services/<service>/backends/<backend>/maintenance
 sub service_backend_maintenance # ( $json_obj, $farmname, $service, $backend_id )
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $json_obj   = shift;
 	my $farmname   = shift;
@@ -156,7 +165,7 @@ sub service_backend_maintenance # ( $json_obj, $farmname, $service, $backend_id 
 	my $desc = "Set service backend status";
 
 	# validate FARM NAME
-	if ( not &getFarmExists( $farmname ) )
+	if ( !&getFarmExists( $farmname ) )
 	{
 		my $msg = "The farmname $farmname does not exist.";
 		&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
@@ -182,7 +191,7 @@ sub service_backend_maintenance # ( $json_obj, $farmname, $service, $backend_id 
 		}
 	}
 
-	if ( not $found_service )
+	if ( !$found_service )
 	{
 		my $msg = "Could not find the requested service.";
 		&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
@@ -192,7 +201,7 @@ sub service_backend_maintenance # ( $json_obj, $farmname, $service, $backend_id 
 	my $be_aref = &getHTTPFarmBackends( $farmname, $service );
 	my $be = $be_aref->[$backend_id - 1];
 
-	if ( not $be )
+	if ( !$be )
 	{
 		my $msg = "Could not find a service backend with such id.";
 		&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
@@ -214,7 +223,7 @@ sub service_backend_maintenance # ( $json_obj, $farmname, $service, $backend_id 
 
 		if ( defined $json_obj->{ mode } )
 		{
-			if ( not &getValidFormat( 'farm_maintenance_mode', $json_obj->{ mode } ) )
+			if ( !&getValidFormat( 'farm_maintenance_mode', $json_obj->{ mode } ) )
 			{
 				my $msg = "Error, the maintenance mode is not a valid value.";
 				&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
@@ -262,16 +271,20 @@ sub service_backend_maintenance # ( $json_obj, $farmname, $service, $backend_id 
 				 },
 	};
 
+	&eload(
+			module => 'Zevenet::Cluster',
+			func   => 'runZClusterRemoteManager',
+			args   => ['farm', 'restart', $farmname],
+	) if ( $eload && &getFarmStatus( $farmname ) eq 'up' );
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 # PUT backend in maintenance
 # PUT /farms/<farmname>/backends/<backend>/maintenance
 sub backend_maintenance    # ( $json_obj, $farmname, $backend_id )
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $json_obj   = shift;
 	my $farmname   = shift;
@@ -284,7 +297,7 @@ sub backend_maintenance    # ( $json_obj, $farmname, $backend_id )
 	my $desc = "Set backend status";
 
 	# validate FARM NAME
-	if ( not &getFarmExists( $farmname ) )
+	if ( !&getFarmExists( $farmname ) )
 	{
 		my $msg = "The farmname $farmname does not exist.";
 		&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
@@ -303,7 +316,7 @@ sub backend_maintenance    # ( $json_obj, $farmname, $backend_id )
 	my $backends = &getL4FarmServers( $farmname );
 	my $exists = &getFarmServer( $backends, $backend_id );
 
-	if ( not $exists )
+	if ( !$exists )
 	{
 		my $msg = "Could not find a backend with such id.";
 		&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
@@ -323,7 +336,7 @@ sub backend_maintenance    # ( $json_obj, $farmname, $backend_id )
 
 		if ( defined $json_obj->{ mode } )
 		{
-			if ( not &getValidFormat( 'farm_maintenance_mode', $json_obj->{ mode } ) )
+			if ( !&getValidFormat( 'farm_maintenance_mode', $json_obj->{ mode } ) )
 			{
 				my $msg = "Error, the maintenance mode is not a valid value.";
 				&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
@@ -368,9 +381,13 @@ sub backend_maintenance    # ( $json_obj, $farmname, $backend_id )
 				 },
 	};
 
+	&eload(
+			module => 'Zevenet::Cluster',
+			func   => 'runZClusterRemoteManager',
+			args   => ['farm', 'restart', $farmname],
+	) if ( $eload && &getFarmStatus( $farmname ) eq 'up' );
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 1;

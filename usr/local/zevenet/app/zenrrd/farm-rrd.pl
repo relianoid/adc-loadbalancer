@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -28,6 +28,11 @@ use Zevenet::Farm::Base;
 use Zevenet::Farm::Stats;
 use Zevenet::Net::ConnStats;
 
+my $eload;
+if ( eval { require Zevenet::ELoad; } )
+{
+	$eload = 1;
+}
 
 my $rrdap_dir = &getGlobalConfiguration( 'rrdap_dir' );
 my $rrd_dir   = &getGlobalConfiguration( 'rrd_dir' );
@@ -52,6 +57,11 @@ foreach my $farmfile ( &getFarmList() )
 	if ( $ftype eq 'gslb' )
 	{
 		my $stats;
+		$stats = &eload(
+						 module => 'Zevenet::Farm::GSLB::Stats',
+						 func   => 'getGSLBFarmStats',
+						 args   => [$farm],
+		) if $eload;
 
 		$synconns    = $stats->{ syn };
 		$globalconns = $stats->{ est };

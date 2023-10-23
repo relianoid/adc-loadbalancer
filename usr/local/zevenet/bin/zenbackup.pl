@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,10 +22,11 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
 use Zevenet::Log;
 use Zevenet::Config;
-use warnings;
+
 my $name   = $ARGV[0];
 my $action = $ARGV[1];
 
@@ -61,10 +62,10 @@ if ( $action eq "-d" )
 if ( $action eq "-D52to60" )
 {
 	print
-	  "Importing from ZEVENET 5.2 to ZEVENET 6.0, using $backupdir\/backup-$name.tar.gz\n";
+	  "Importing from RELIANOID 5.2 to RELIANOID 6.0, using $backupdir\/backup-$name.tar.gz\n";
 	print
 	  "A snapshot before to continue is recommended for Virtual Load Balancers...\n";
-	if ( not -e "$backupdir\/backup-$name.tar.gz" )
+	if ( !-e "$backupdir\/backup-$name.tar.gz" )
 	{
 		print "The given file doesn't exist...\n";
 		exit;

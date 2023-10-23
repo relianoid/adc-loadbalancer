@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,7 +22,6 @@
 ###############################################################################
 
 use strict;
-use warnings;
 
 =begin nd
 Function: getUser
@@ -39,10 +38,10 @@ Returns:
 
 sub getUser
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 
-	#~ if ( not exists $ENV{ REQ_USER } or not defined $ENV{ REQ_USER } )
+	#~ if ( !exists $ENV{ REQ_USER } || !defined $ENV{ REQ_USER } )
 	#~ {
 	#~ &zenlog( 'User name not defined', 'Warning' );
 	#~ }
@@ -65,11 +64,10 @@ Returns:
 
 sub setUser
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $user = shift;
 	$ENV{ REQ_USER } = $user;
-	return $user;
 }
 
 =begin nd
@@ -87,7 +85,7 @@ Returns:
 
 sub getSysGroupList
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 
 	my @groupSet = ();
@@ -117,7 +115,7 @@ Returns:
 
 sub getSysUserList
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 
 	my @userSet = ();
@@ -148,12 +146,12 @@ Returns:
 
 sub getSysUserExists
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $user = shift;
 
 	my $out = 0;
-	$out = 1 if ( grep { /^$user$/ } &getSysUserList() );
+	$out = 1 if ( grep ( /^$user$/, &getSysUserList() ) );
 
 	return $out;
 }
@@ -174,12 +172,12 @@ Returns:
 
 sub getSysGroupExists
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $group = shift;
 
 	my $out = 0;
-	$out = 1 if ( grep { /^$group$/ } &getSysGroupList() );
+	$out = 1 if ( grep ( /^$group$/, &getSysGroupList() ) );
 
 	return $out;
 }

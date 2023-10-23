@@ -1,10 +1,10 @@
-#!/bin/bash
+#!/usr/bin/bash
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -25,7 +25,7 @@ GLOBALCF="/usr/local/zevenet/config/global.conf"
 GLOBALCFT="/usr/local/zevenet/share/global.conf.template"
 
 [ ! "$1" == "configure" ] && echo "Installation aborted $1 $2" && exit 1
-[   "$1" == "configure" ] && echo "Completing the ZEVENET installation..."
+[   "$1" == "configure" ] && echo "Completing the RELIANOID installation..."
 
 # upgrading global.conf
 /usr/local/zevenet/bin/checkglobalconf
@@ -85,22 +85,22 @@ if [ ! -L ${LIBEXEC_PATH}/check_uplink ]; then
 	ln -s ${ZBIN_PATH}/check_uplink ${LIBEXEC_PATH}/check_uplink
 fi
 
-# Apply all migrating scripts to ZEVENET
+# Apply all migrating scripts to RELIANOID
 MIG_DIR="/usr/local/zevenet/migrating/"
 for SCRIPT in `ls $MIG_DIR`; do ${MIG_DIR}$SCRIPT; done
 
-# Restarting ZEVENET service
-echo "ZEVENET will be unavailable while the service is restarting."
+# Restarting RELIANOID service
+echo "RELIANOID will be unavailable while the service is restarting."
 /etc/init.d/zevenet stop
 /etc/init.d/zevenet start
 
-# Add ZEVENET Load Balancer service to boot process
+# Add RELIANOID Load Balancer service to boot process
 update-rc.d zevenet defaults
 
 # Setup motd.tail
 cp /etc/motd.tail /etc/motd
 if [ "`grep Debian /etc/issue`" != "" -o "`grep -i Zevenet /etc/issue`" != "" ]; then
-	sed  -i "s/.*Debian.*/RELIANOID Community Edition \\\n \\\l/g"  /etc/issue
+ sed -i "s/.*Debian.*/RELIANOID Community Edition \\\n \\\l/g" /etc/issue
 fi
 
 # Set the cron service
@@ -117,4 +117,4 @@ sed -i 's/ oldstable/ buster/g' /etc/apt/sources.list
 ## Run checkupdates to update message
 $checkupdates_bin > /dev/null
 
-echo "RELIANOID ADC installation completed."
+echo "RELIANOID Load Balancer installation completed."

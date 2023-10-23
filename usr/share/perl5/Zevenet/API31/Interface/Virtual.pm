@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,13 +22,17 @@
 ###############################################################################
 
 use strict;
-use warnings;
 
+my $eload;
+if ( eval { require Zevenet::ELoad; } )
+{
+	$eload = 1;
+}
 
 # POST /addvini/<interface> Create a new virtual network interface
 sub new_vini    # ( $json_obj )
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $json_obj = shift;
 
@@ -62,7 +66,7 @@ sub new_vini    # ( $json_obj )
 
 	# validate IP
 	unless ( defined ( $json_obj->{ ip } )
-			 and &getValidFormat( 'IPv4_addr', $json_obj->{ ip } ) )
+			 && &getValidFormat( 'IPv4_addr', $json_obj->{ ip } ) )
 	{
 		my $msg = "IP Address is not valid.";
 		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
@@ -76,7 +80,7 @@ sub new_vini    # ( $json_obj )
 	my $parent_exist = &ifexist( $json_obj->{ parent } );
 	my $if_parent =
 	  &getInterfaceConfig( $json_obj->{ parent }, $json_obj->{ ip_v } );
-	unless ( $parent_exist eq "true" and $if_parent )
+	unless ( $parent_exist eq "true" && $if_parent )
 	{
 		my $msg = "The parent interface $json_obj->{ parent } doesn't exist.";
 		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
@@ -113,7 +117,7 @@ sub new_vini    # ( $json_obj )
 	$if_ref->{ name }    = $json_obj->{ name };
 	$if_ref->{ vini }    = $json_obj->{ vini };
 	$if_ref->{ addr }    = $json_obj->{ ip };
-	$if_ref->{ gateway } = "" if not $if_ref->{ gateway };
+	$if_ref->{ gateway } = "" if !$if_ref->{ gateway };
 	$if_ref->{ type }    = 'virtual';
 
 	unless (
@@ -128,11 +132,7 @@ sub new_vini    # ( $json_obj )
 	require Zevenet::Net::Route;
 
 	eval {
-		if ( &addIp( $if_ref ) )
-		{
-			my $msg = "The $json_obj->{ name } virtual network interface can't be created";
-			&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-		}
+		die if &addIp( $if_ref );
 
 		my $state = &upIf( $if_ref, 'writeconf' );
 
@@ -142,11 +142,7 @@ sub new_vini    # ( $json_obj )
 			&applyRoutes( "local", $if_ref );
 		}
 
-		if ( not &setInterfaceConfig( $if_ref ) )
-		{
-			my $msg = "The $json_obj->{ name } virtual network interface can't be created";
-			&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-		}
+		&setInterfaceConfig( $if_ref ) or die;
 	};
 
 	if ( $@ )
@@ -154,6 +150,13 @@ sub new_vini    # ( $json_obj )
 		my $msg = "The $json_obj->{ name } virtual network interface can't be created";
 		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
 	}
+
+	&eload(
+			module => 'Zevenet::Cluster',
+			func   => 'runZClusterRemoteManager',
+			args   => ['interface', 'start', $if_ref->{ name }],
+	) if ( $eload );
+
 	my $body = {
 				 description => $desc,
 				 params      => {
@@ -164,13 +167,13 @@ sub new_vini    # ( $json_obj )
 							 mac     => $if_ref->{ mac },
 				 },
 	};
+
 	&httpResponse( { code => 201, body => $body } );
-	return;
 }
 
 sub delete_interface_virtual    # ( $virtual )
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $virtual = shift;
 
@@ -180,7 +183,7 @@ sub delete_interface_virtual    # ( $virtual )
 	my $ip_v   = 4;
 	my $if_ref = &getInterfaceConfig( $virtual, $ip_v );
 
-	if ( not $if_ref )
+	if ( !$if_ref )
 	{
 		my $msg = "The virtual interface $virtual doesn't exist.";
 		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
@@ -201,18 +204,10 @@ sub delete_interface_virtual    # ( $virtual )
 	eval {
 		if ( $if_ref->{ status } eq 'up' )
 		{
-			if (    &delRoutes( "local", $if_ref )
-				 or &downIf( $if_ref, 'writeconf' ) )
-			{
-				my $msg = "The virtual interface $virtual can't be deleted";
-				&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-			}
+			die if &delRoutes( "local", $if_ref );
+			die if &downIf( $if_ref, 'writeconf' );
 		}
-		if ( &delIf( $if_ref ) )
-		{
-			my $msg = "The virtual interface $virtual can't de deleted";
-			&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-		}
+		die if &delIf( $if_ref );
 	};
 
 	if ( $@ )
@@ -220,6 +215,19 @@ sub delete_interface_virtual    # ( $virtual )
 		my $msg = "The virtual interface $virtual can't be deleted";
 		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
 	}
+
+	&eload(
+			module => 'Zevenet::Cluster',
+			func   => 'runZClusterRemoteManager',
+			args   => ['interface', 'stop', $if_ref->{ name }],
+	) if ( $eload );
+
+	&eload(
+			module => 'Zevenet::Cluster',
+			func   => 'runZClusterRemoteManager',
+			args   => ['interface', 'delete', $if_ref->{ name }],
+	) if ( $eload );
+
 	my $message = "The virtual interface $virtual has been deleted.";
 	my $body = {
 				 description => $desc,
@@ -228,12 +236,11 @@ sub delete_interface_virtual    # ( $virtual )
 	};
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 sub get_virtual_list    # ()
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	require Zevenet::Net::Interface;
 
@@ -245,12 +252,12 @@ sub get_virtual_list    # ()
 		$if_ref->{ status } = &getInterfaceSystemStatus( $if_ref );
 
 		# Any key must cotain a value or "" but can't be null
-		if ( not defined $if_ref->{ name } )    { $if_ref->{ name }    = ""; }
-		if ( not defined $if_ref->{ addr } )    { $if_ref->{ addr }    = ""; }
-		if ( not defined $if_ref->{ mask } )    { $if_ref->{ mask }    = ""; }
-		if ( not defined $if_ref->{ gateway } ) { $if_ref->{ gateway } = ""; }
-		if ( not defined $if_ref->{ status } )  { $if_ref->{ status }  = ""; }
-		if ( not defined $if_ref->{ mac } )     { $if_ref->{ mac }     = ""; }
+		if ( !defined $if_ref->{ name } )    { $if_ref->{ name }    = ""; }
+		if ( !defined $if_ref->{ addr } )    { $if_ref->{ addr }    = ""; }
+		if ( !defined $if_ref->{ mask } )    { $if_ref->{ mask }    = ""; }
+		if ( !defined $if_ref->{ gateway } ) { $if_ref->{ gateway } = ""; }
+		if ( !defined $if_ref->{ status } )  { $if_ref->{ status }  = ""; }
+		if ( !defined $if_ref->{ mac } )     { $if_ref->{ mac }     = ""; }
 
 		push @output_list,
 		  {
@@ -270,12 +277,11 @@ sub get_virtual_list    # ()
 	};
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 sub get_virtual    # ()
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $virtual = shift;
 
@@ -291,12 +297,12 @@ sub get_virtual    # ()
 		$if_ref->{ status } = &getInterfaceSystemStatus( $if_ref );
 
 		# Any key must cotain a value or "" but can't be null
-		if ( not defined $if_ref->{ name } )    { $if_ref->{ name }    = ""; }
-		if ( not defined $if_ref->{ addr } )    { $if_ref->{ addr }    = ""; }
-		if ( not defined $if_ref->{ mask } )    { $if_ref->{ mask }    = ""; }
-		if ( not defined $if_ref->{ gateway } ) { $if_ref->{ gateway } = ""; }
-		if ( not defined $if_ref->{ status } )  { $if_ref->{ status }  = ""; }
-		if ( not defined $if_ref->{ mac } )     { $if_ref->{ mac }     = ""; }
+		if ( !defined $if_ref->{ name } )    { $if_ref->{ name }    = ""; }
+		if ( !defined $if_ref->{ addr } )    { $if_ref->{ addr }    = ""; }
+		if ( !defined $if_ref->{ mask } )    { $if_ref->{ mask }    = ""; }
+		if ( !defined $if_ref->{ gateway } ) { $if_ref->{ gateway } = ""; }
+		if ( !defined $if_ref->{ status } )  { $if_ref->{ status }  = ""; }
+		if ( !defined $if_ref->{ mac } )     { $if_ref->{ mac }     = ""; }
 
 		$interface = {
 					   name    => $if_ref->{ name },
@@ -320,12 +326,11 @@ sub get_virtual    # ()
 	};
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 sub actions_interface_virtual    # ( $json_obj, $virtual )
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $json_obj = shift;
 	my $virtual  = shift;
@@ -375,7 +380,7 @@ sub actions_interface_virtual    # ( $json_obj, $virtual )
 		}
 
 		my $state = &upIf( $if_ref, 'writeconf' );
-		if ( not $state )
+		if ( !$state )
 		{
 			require Zevenet::Net::Route;
 			&applyRoutes( "local", $if_ref );
@@ -385,6 +390,12 @@ sub actions_interface_virtual    # ( $json_obj, $virtual )
 			my $msg = "The interface could not be set UP";
 			&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
 		}
+
+		&eload(
+				module => 'Zevenet::Cluster',
+				func   => 'runZClusterRemoteManager',
+				args   => ['interface', 'start', $if_ref->{ name }],
+		) if ( $eload );
 	}
 	elsif ( $json_obj->{ action } eq "down" )
 	{
@@ -397,6 +408,12 @@ sub actions_interface_virtual    # ( $json_obj, $virtual )
 			my $msg = "The interface could not be set DOWN";
 			&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
 		}
+
+		&eload(
+				module => 'Zevenet::Cluster',
+				func   => 'runZClusterRemoteManager',
+				args   => ['interface', 'stop', $if_ref->{ name }],
+		) if ( $eload );
 	}
 	else
 	{
@@ -410,12 +427,11 @@ sub actions_interface_virtual    # ( $json_obj, $virtual )
 	};
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 sub modify_interface_virtual    # ( $json_obj, $virtual )
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $json_obj = shift;
 	my $virtual  = shift;
@@ -443,7 +459,7 @@ sub modify_interface_virtual    # ( $json_obj, $virtual )
 
 	# Check address errors
 	unless ( defined ( $json_obj->{ ip } )
-			 and &getValidFormat( 'IPv4_addr', $json_obj->{ ip } ) )
+			 && &getValidFormat( 'IPv4_addr', $json_obj->{ ip } ) )
 	{
 		$msg = "IP Address $json_obj->{ip} structure is not ok.";
 		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
@@ -464,10 +480,10 @@ sub modify_interface_virtual    # ( $json_obj, $virtual )
 		if ( $json_obj->{ ip } ne $if_ref->{ addr } )
 		{
 			require Zevenet::Net::Util;
-			if ( grep { /^$json_obj->{ ip }$/ } &listallips() )
+			if ( grep ( /^$json_obj->{ ip }$/, &listallips() ) )
 			{
 				my $msg = "The IP address is already in use for other interface.";
-				&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
+				return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
 			}
 		}
 	}
@@ -491,6 +507,12 @@ sub modify_interface_virtual    # ( $json_obj, $virtual )
 	my $state = $if_ref->{ 'status' };
 	&downIf( $if_ref ) if $state eq 'up';
 
+	&eload(
+			module => 'Zevenet::Cluster',
+			func   => 'runZClusterRemoteManager',
+			args   => ['interface', 'stop', $if_ref->{ name }],
+	) if ( $eload );
+
 	eval {
 		# Set the new params
 		$if_ref->{ addr } = $json_obj->{ ip };
@@ -498,21 +520,13 @@ sub modify_interface_virtual    # ( $json_obj, $virtual )
 		if ( $state eq 'up' )
 		{
 			require Zevenet::Net::Route;
-			if ( &addIp( $if_ref ) )
-			{
-				my $msg = "Errors found trying to modify interface $virtual";
-				&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-			}
+			die if &addIp( $if_ref );
 			&upIf( $if_ref );
 			&applyRoutes( "local", $if_ref );
 		}
 
 		# Add new IP, netmask and gateway
-		if ( not &setInterfaceConfig( $if_ref ) )
-		{
-			my $msg = "Errors found trying to modify interface $virtual";
-			&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-		}
+		&setInterfaceConfig( $if_ref ) or die;
 	};
 
 	if ( $@ )
@@ -521,13 +535,18 @@ sub modify_interface_virtual    # ( $json_obj, $virtual )
 		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
 	}
 
+	&eload(
+			module => 'Zevenet::Cluster',
+			func   => 'runZClusterRemoteManager',
+			args   => ['interface', 'start', $if_ref->{ name }],
+	) if ( $eload );
+
 	my $body = {
 				 description => $desc,
 				 params      => $json_obj,
 	};
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 1;

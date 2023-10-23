@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,8 +22,12 @@
 ###############################################################################
 
 use strict;
-use warnings;
 
+my $eload;
+if ( eval { require Zevenet::ELoad; } )
+{
+	$eload = 1;
+}
 
 =begin nd
 Function: getHTTPFarmEstConns
@@ -40,33 +44,23 @@ Returns:
 
 sub getHTTPFarmEstConns    # ($farm_name)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name ) = @_;
 	my $count = 0;
 
-	if ( &getGlobalConfiguration( 'proxy_ng' ) eq 'true' )
-	{
-		require Zevenet::Farm::HTTP::Runtime;
-		my $resp = &getHTTPFarmBackendStatusSocket( $farm_name );
+	my $vip      = &getFarmVip( "vip",  $farm_name );
+	my $vip_port = &getFarmVip( "vipp", $farm_name );
 
-		$count = $resp->{ connections } if defined $resp->{ connections };
-	}
-	else
-	{
-		my $vip      = &getFarmVip( "vip",  $farm_name );
-		my $vip_port = &getFarmVip( "vipp", $farm_name );
+	my $filter = {
+				   proto         => 'tcp',
+				   orig_dst      => $vip,
+				   orig_port_dst => $vip_port,
+				   state         => 'ESTABLISHED',
+	};
 
-		my $filter = {
-					   proto         => 'tcp',
-					   orig_dst      => $vip,
-					   orig_port_dst => $vip_port,
-					   state         => 'ESTABLISHED',
-		};
-
-		my $ct_params = &getConntrackParams( $filter );
-		$count = &getConntrackCount( $ct_params );
-	}
+	my $ct_params = &getConntrackParams( $filter );
+	$count = &getConntrackCount( $ct_params );
 
 	#~ &zenlog( "getHTTPFarmEstConns: $farm_name farm -> $count connections." );
 
@@ -88,42 +82,29 @@ Returns:
 
 sub getHTTPFarmSYNConns    # ($farm_name)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name ) = @_;
 
-	my $count = 0;
+	my $vip      = &getFarmVip( "vip",  $farm_name );
+	my $vip_port = &getFarmVip( "vipp", $farm_name );
 
-	if ( &getGlobalConfiguration( 'proxy_ng' ) eq 'true' )
-	{
-		require Zevenet::Farm::HTTP::Runtime;
-		my $resp = &getHTTPFarmBackendStatusSocket( $farm_name );
+	my $filter = {
+				   proto         => 'tcp',
+				   orig_dst      => $vip,
+				   orig_port_dst => $vip_port,
+				   state         => 'SYN_SENT',
+	};
 
-		$count = $resp->{ "pending-connections" }
-		  if defined $resp->{ "pending-connections" };
-	}
-	else
-	{
-		my $vip      = &getFarmVip( "vip",  $farm_name );
-		my $vip_port = &getFarmVip( "vipp", $farm_name );
+	my $ct_params = &getConntrackParams( $filter );
+	my $count     = &getConntrackCount( $ct_params );
 
-		my $filter = {
-					   proto         => 'tcp',
-					   orig_dst      => $vip,
-					   orig_port_dst => $vip_port,
-					   state         => 'SYN_SENT',
-		};
+	$filter->{ state } = 'SYN_RECV';
 
-		my $ct_params = &getConntrackParams( $filter );
-		my $count     = &getConntrackCount( $ct_params );
+	$ct_params = &getConntrackParams( $filter );
+	$count += &getConntrackCount( $ct_params );
 
-		$filter->{ state } = 'SYN_RECV';
-
-		$ct_params = &getConntrackParams( $filter );
-		$count += &getConntrackCount( $ct_params );
-
-		#~ &zenlog( "getHTTPFarmSYNConns: $farm_name farm -> $count connections." );
-	}
+	#~ &zenlog( "getHTTPFarmSYNConns: $farm_name farm -> $count connections." );
 
 	return $count + 0;
 }
@@ -147,61 +128,27 @@ BUG:
 
 sub getHTTPBackendEstConns    # ($farm_name,$backend_ip,$backend_port, $netstat)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
-	my ( $farm_name, $backend_ip, $backend_port ) = @_;
+	my ( $farm_name, $backend_ip, $backend_port, $mark ) = @_;
 
-	my $count = 0;
+	my $filter = {
+				   proto         => 'tcp',
+				   orig_dst      => $backend_ip,
+				   orig_port_dst => $backend_port,
+				   state         => 'ESTABLISHED',
+	};
 
-	if ( &getGlobalConfiguration( 'proxy_ng' ) eq 'true' )
+	if ( $mark )
 	{
-		require JSON;
-
-		# curl --unix-socket /tmp/webfarm_proxy.socket  http://localhost/listener/0
-		my $curl_bin = &getGlobalConfiguration( 'curl_bin' );
-		my $url      = "http://localhost/listener/0";
-		require Zevenet::Farm::HTTP::Config;
-		my $socket = &getHTTPFarmSocket( $farm_name );
-		my $cmd    = "$curl_bin --unix-socket $socket $url";
-		my $resp   = &logAndGet( $cmd, 'string' );
-
-		if ( $resp )
-		{
-			$resp = eval { &JSON::decode_json( $resp ) };
-			if ( $@ )
-			{
-				&zenlog( "Decoding json: $@", "error", "stats" );
-			}
-			my $services = $resp->{ services };
-			foreach my $service ( @$services )
-			{
-				foreach my $bk ( @{ $service->{ backends } } )
-				{
-					if ( $bk->{ ip } eq $backend_ip and $bk->{ port } eq $backend_port )
-					{
-						$count += $bk->{ connections };
-						last;
-					}
-				}
-			}
-		}
+		$filter->{ mark } = $mark;
 	}
-	else
-	{
-		my $filter = {
-					   proto         => 'tcp',
-					   orig_dst      => $backend_ip,
-					   orig_port_dst => $backend_port,
-					   state         => 'ESTABLISHED',
-		};
 
-		require Zevenet::Net::ConnStats;
-		my $ct_params = &getConntrackParams( $filter );
-		$count = &getConntrackCount( $ct_params );
+	require Zevenet::Net::ConnStats;
+	my $ct_params = &getConntrackParams( $filter );
+	my $count     = &getConntrackCount( $ct_params );
 
-	  # &zenlog( "getHTTPBackendEstConns: $farm_name backends -> $count connections." );
-
-	}
+  # &zenlog( "getHTTPBackendEstConns: $farm_name backends -> $count connections." );
 
 	return $count + 0;
 }
@@ -225,65 +172,30 @@ BUG:
 
 sub getHTTPBackendSYNConns    # ($farm_name, $backend_ip, $backend_port)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 
-	my ( $farm_name, $backend_ip, $backend_port ) = @_;
+	my ( $farm_name, $backend_ip, $backend_port, $mark ) = @_;
 
-	my $count = 0;
+	my $filter = {
+				   proto         => 'tcp',
+				   orig_dst      => $backend_ip,
+				   orig_port_dst => $backend_port,
+				   state         => 'SYN_SENT',
+	};
 
-	if ( &getGlobalConfiguration( 'proxy_ng' ) eq 'true' )
+	if ( $mark )
 	{
-		require JSON;
-
-		# curl --unix-socket /tmp/webfarm_proxy.socket  http://localhost/listener/0
-		my $curl_bin = &getGlobalConfiguration( 'curl_bin' );
-		my $url      = "http://localhost/listener/0";
-		require Zevenet::Farm::HTTP::Config;
-		my $socket = &getHTTPFarmSocket( $farm_name );
-		my $cmd    = "$curl_bin --unix-socket $socket $url";
-		my $resp   = &logAndGet( $cmd, 'string' );
-
-		my $count = 0;
-
-		if ( $resp )
-		{
-			$resp = eval { &JSON::decode_json( $resp ) };
-			if ( $@ )
-			{
-				&zenlog( "Decoding json: $@", "error", "stats" );
-			}
-			my $services = $resp->{ services };
-			foreach my $service ( @$services )
-			{
-				foreach my $bk ( @{ $service->{ backends } } )
-				{
-					if ( $bk->{ ip } eq $backend_ip and $bk->{ port } eq $backend_port )
-					{
-						$count += $bk->{ "pending-connections" };
-						last;
-					}
-				}
-			}
-		}
+		$filter->{ mark } = $mark;
 	}
-	else
-	{
-		my $filter = {
-					   proto         => 'tcp',
-					   orig_dst      => $backend_ip,
-					   orig_port_dst => $backend_port,
-					   state         => 'SYN_SENT',
-		};
 
-		my $ct_params = &getConntrackParams( $filter );
-		my $count     = &getConntrackCount( $ct_params );
+	my $ct_params = &getConntrackParams( $filter );
+	my $count     = &getConntrackCount( $ct_params );
 
-		$filter->{ state } = 'SYN_RECV';
+	$filter->{ state } = 'SYN_RECV';
 
-		$ct_params = &getConntrackParams( $filter );
-		$count += &getConntrackCount( $ct_params );
-	}
+	$ct_params = &getConntrackParams( $filter );
+	$count += &getConntrackCount( $ct_params );
 
 	return $count + 0;
 
@@ -306,7 +218,7 @@ Returns:
 
 sub getHTTPFarmBackendsStats    # ($farm_name,$service_name)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name, $service_name ) = @_;
 
@@ -339,6 +251,7 @@ Returns:
 				"port"         = $backend_port
 				"status"       = $backend_status
 				"established"  = $established_connections
+				"pending"      = $pending_connections
 			}
 		]
 
@@ -360,7 +273,7 @@ Returns:
 
 sub getZproxyHTTPFarmBackendsStats    # ($farm_name, $service_name)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name, $service_name ) = @_;
 
@@ -374,33 +287,57 @@ sub getZproxyHTTPFarmBackendsStats    # ($farm_name, $service_name)
 				  backends => []
 	};
 
-	require Zevenet::Farm::HTTP::Runtime;
-	my $resp = &getHTTPFarmBackendStatusSocket( $farm_name );
+	# curl --unix-socket /tmp/webfarm_proxy.socket  http://localhost/listener/0
+	my $curl_bin = &getGlobalConfiguration( 'curl_bin' );
+	my $url      = "http://localhost/listener/0";
+	my $socket   = &getHTTPFarmSocket( $farm_name );
+	my $cmd      = "$curl_bin --unix-socket $socket $url";
+	my $resp     = &logAndGet( $cmd, 'string' );
 
 	if ( $resp )
 	{
+		$resp = eval { &JSON::decode_json( $resp ) };
+		if ( $@ )
+		{
+			&zenlog( "Decoding json: $@", "error", "stats" );
+			return -1;
+		}
 		my $services = $resp->{ services };
 
 		my $alias;
+		$alias = &eload(
+						 module => 'Zevenet::Alias',
+						 func   => 'getAlias',
+						 args   => ['backend']
+		) if $eload;
 		foreach my $service ( @$services )
 		{
-			next if ( defined $service_name and $service_name ne $service->{ name } );
-			my $ttl = &getHTTPServiceStruct( $farm_name, $service->{ name } )->{ ttl };
-			my $index = 0;
+			next if ( defined $service_name && $service_name ne $service->{ name } );
+			my $service_ref = &getHTTPServiceStruct( $farm_name, $service->{ name } );
+			my $ttl         = $service_ref->{ ttl };
+			my $index       = 0;
 			my $backend_info;
 			foreach my $bk ( @{ $service->{ backends } } )
 			{
 				# skip redirect backend
 				next if ( $bk->{ type } eq "2" );
+
+				my $mark =
+				  sprintf ( "0x%x", @{ $service_ref->{ backends } }[$bk->{ id }]->{ tag } );
+				my $backend_established =
+				  &getHTTPBackendEstConns( $farm_name, $bk->{ address }, $bk->{ port }, $mark );
+				my $backend_pending =
+				  &getHTTPBackendSYNConns( $farm_name, $bk->{ address }, $bk->{ port }, $mark );
 				my $backendHash = {
-									id          => $index,
+									id          => $bk->{ id },
 									ip          => $bk->{ address },
-									port        => $bk->{ port },
+									port        => $bk->{ port } + 0,
 									status      => $bk->{ status },
-									pending     => $bk->{ 'pending-connections' },
-									established => $bk->{ connections },
+									pending     => $backend_pending + 0,
+									established => $backend_established + 0,
 									service     => $service->{ name }
 				};
+				$backendHash->{ alias } = $alias->{ $bk->{ address } } if $eload;
 				if ( $backendHash->{ "status" } eq "active" )
 				{
 					$backendHash->{ "status" } = "up";
@@ -411,7 +348,7 @@ sub getZproxyHTTPFarmBackendsStats    # ($farm_name, $service_name)
 
 					#Checkstatusfile
 					$backendHash->{ "status" } =
-					  &getHTTPBackendStatusFromFile( $farm_name, $index, $service->{ name } );
+					  &getHTTPBackendStatusFromFile( $farm_name, $bk->{ id }, $service->{ name } );
 
 					# not show fgDOWN status
 					$backendHash->{ "status" } = "down"
@@ -420,7 +357,6 @@ sub getZproxyHTTPFarmBackendsStats    # ($farm_name, $service_name)
 				push ( @{ $stats->{ backends } }, $backendHash );
 				$backend_info->{ $bk->{ id } }->{ ip }   = $bk->{ address };
 				$backend_info->{ $bk->{ id } }->{ port } = $bk->{ port };
-				$index++;
 			}
 
 			$index = 0;
@@ -450,12 +386,9 @@ sub getZproxyHTTPFarmBackendsStats    # ($farm_name, $service_name)
 
 			last if ( defined $service_name );
 		}
-		return $stats;
 	}
-	else
-	{
-		return -1;
-	}
+
+	return $stats;
 }
 
 =begin nd
@@ -499,7 +432,7 @@ FIXME:
 
 sub getPoundHTTPFarmBackendsStats    # ($farm_name,$service_name)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name, $service_name ) = @_;
 
@@ -514,7 +447,10 @@ sub getPoundHTTPFarmBackendsStats    # ($farm_name,$service_name)
 	my $serviceName;
 	my $service_re = &getValidFormat( 'service' );
 
+	unless ( $eload )
+	{
 		require Zevenet::Net::ConnStats;
+	}
 
 	# Get l7 proxy info
 	#i.e. of proxyctl:
@@ -529,6 +465,12 @@ sub getPoundHTTPFarmBackendsStats    # ($farm_name,$service_name)
 	my @proxyctl = &getHTTPFarmGlobalStatus( $farm_name );
 
 	my $alias;
+	$alias = &eload(
+					 module => 'Zevenet::Alias',
+					 func   => 'getAlias',
+					 args   => ['backend']
+	) if $eload;
+
 	my $backend_info;
 
 	# Parse ly proxy info
@@ -542,7 +484,7 @@ sub getPoundHTTPFarmBackendsStats    # ($farm_name,$service_name)
 			$backend_info = undef;
 		}
 
-		next if ( defined $service_name and $service_name ne $serviceName );
+		next if ( defined $service_name && $service_name ne $serviceName );
 
 		# Parse backend connections
 		# i.e.
@@ -559,6 +501,7 @@ sub getPoundHTTPFarmBackendsStats    # ($farm_name,$service_name)
 								pending => 0,
 								service => $serviceName,
 			};
+			$backendHash->{ alias } = $alias->{ $2 } if $eload;
 			$backend_info->{ $backendHash->{ id } }->{ ip }   = $backendHash->{ ip };
 			$backend_info->{ $backendHash->{ id } }->{ port } = $backendHash->{ port };
 

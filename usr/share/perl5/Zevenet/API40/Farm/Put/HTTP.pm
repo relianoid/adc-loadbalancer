@@ -1,10 +1,9 @@
-#!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,16 +21,20 @@
 ###############################################################################
 
 use strict;
-use warnings;
 use Zevenet::Farm::Base;
 use Zevenet::Farm::Config;
 use Zevenet::Farm::Action;
 
+my $eload;
+if ( eval { require Zevenet::ELoad; } )
+{
+	$eload = 1;
+}
 
 # PUT /farms/<farmname> Modify a http|https Farm
 sub modify_http_farm    # ( $json_obj, $farmname )
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $json_obj = shift;
 	my $farmname = shift;
@@ -51,16 +54,16 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 	$params->{ disable_tlsv1 }->{ listener }   = "https";
 	$params->{ disable_tlsv1_1 }->{ listener } = "https";
 	$params->{ disable_tlsv1_2 }->{ listener } = "https";
-
+	if ( !$eload )
+	{
 		$params->{ "ciphers" }->{ 'values' } =
 		  ["all", "highsecurity", "customsecurity"];
+	}
 
 	# Check allowed parameters
 	my $error_msg = &checkZAPIParams( $json_obj, $params, $desc );
-	if ( $error_msg )
-	{
-		&httpErrorResponse( code => 400, desc => $desc, msg => $error_msg );
-	}
+	return &httpErrorResponse( code => 400, desc => $desc, msg => $error_msg )
+	  if ( $error_msg );
 
 	# Get current conf
 	my $farm_st = &getFarmStruct( $farmname );
@@ -72,7 +75,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 	{
 		require Zevenet::Net::Validate;
 		if ( $farm_st->{ status } ne 'down'
-			 and not &validatePort( $vip, $vport, 'http', $farmname ) )
+			 and !&validatePort( $vip, $vport, 'http', $farmname ) )
 		{
 			my $msg =
 			  "The '$vip' ip and '$vport' port are being used for another farm. This farm should be stopped before modifying it";
@@ -115,6 +118,28 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 
 	# Flags
 	my $reload_ipds = 0;
+
+	if (    exists $json_obj->{ vport }
+		 || exists $json_obj->{ vip }
+		 || exists $json_obj->{ newfarmname } )
+	{
+		if ( $eload )
+		{
+			$reload_ipds = 1;
+
+			&eload(
+					module => 'Zevenet::IPDS::Base',
+					func   => 'runIPDSStopByFarm',
+					args   => [$farmname],
+			);
+
+			&eload(
+					module => 'Zevenet::Cluster',
+					func   => 'runZClusterRemoteManager',
+					args   => ['ipds', 'stop', $farmname],
+			);
+		}
+	}
 
 	######## Functions
 	# Modify Farm's Name
@@ -353,6 +378,11 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 			$ciphers_lib = $c{ $json_obj->{ ciphers } };
 
 			my $ssloff = 1;
+			$ssloff = &eload(
+							  module => 'Zevenet::Farm::HTTP::HTTPS::Ext',
+							  func   => 'getFarmCipherSSLOffLoadingSupport',
+			) if ( $eload );
+
 			unless ( $ssloff )
 			{
 				&zenlog( "The CPU does not support SSL offloading.", "warning", "system" );
@@ -396,13 +426,25 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 			my $status;
 			my $configdir = &getGlobalConfiguration( 'configdir' );
 
-			if ( not -f "$configdir/$json_obj->{ certname }" )
+			if ( !-f "$configdir/$json_obj->{ certname }" )
 			{
 				my $msg =
 				  "The certificate $json_obj->{ certname } has to be uploaded to use it in a farm.";
 				&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
 			}
+
+			if ( $eload )
+			{
+				$status = &eload(
+								  module => 'Zevenet::Farm::HTTP::HTTPS::Ext',
+								  func   => 'setFarmCertificateSNI',
+								  args   => [$json_obj->{ certname }, $farmname],
+				);
+			}
+			else
+			{
 				$status = &setFarmCertificate( $json_obj->{ certname }, $farmname );
+			}
 
 			if ( $status == -1 )
 			{
@@ -430,7 +472,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 		my $ssl_proto;
 		foreach my $key_ssl ( keys %ssl_proto_hash )
 		{
-			next if ( not exists $json_obj->{ $key_ssl } );
+			next if ( !exists $json_obj->{ $key_ssl } );
 			next
 			  if ( $json_obj->{ $key_ssl } eq $farm_st->{ $key_ssl } )
 			  ;    # skip when the farm already has the request value
@@ -463,8 +505,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 		if ( &setFarmVirtualConf( $vip, $vport, $farmname ) )
 		{
 			my $msg = "Could not set the virtual configuration.";
-			&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-
+			return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
 		}
 	}
 
@@ -482,6 +523,20 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 
 	my $out_obj = &getHTTPOutFarm( $farmname );
 
+	if ( $reload_ipds and $eload )
+	{
+		&eload(
+				module => 'Zevenet::IPDS::Base',
+				func   => 'runIPDSStartByFarm',
+				args   => [$farmname],
+		);
+
+		&eload(
+				module => 'Zevenet::Cluster',
+				func   => 'runZClusterRemoteManager',
+				args   => ['ipds', 'start', $farmname],
+		);
+	}
 
 	my $body = {
 				 description => $desc,
@@ -504,20 +559,23 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 		else
 		{
 			my $config_error = &getHTTPFarmConfigErrorMessage( $farmname );
-			if ( $config_error->{ code } )
+			if ( $config_error ne "" )
 			{
-				$body->{ warning } = "Farm '$farmname' config error: $config_error->{ desc }";
+				$body->{ warning } = "Farm '$farmname' config error: $config_error";
 			}
 			else
 			{
 				&runFarmReload( $farmname );
-
+				&eload(
+						module => 'Zevenet::Cluster',
+						func   => 'runZClusterRemoteManager',
+						args   => ['farm', 'reload', $farmname],
+				) if ( $eload );
 			}
 		}
 	}
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 1;

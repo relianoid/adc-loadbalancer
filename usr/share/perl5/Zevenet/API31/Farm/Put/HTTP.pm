@@ -1,10 +1,9 @@
-#!/usr/bin/perl
-################################################################################
+###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,16 +21,20 @@
 ###############################################################################
 
 use strict;
-use warnings;
 use Zevenet::Farm::Base;
 use Zevenet::Farm::Config;
 use Zevenet::Farm::Action;
 
+my $eload;
+if ( eval { require Zevenet::ELoad; } )
+{
+	$eload = 1;
+}
 
 # PUT /farms/<farmname> Modify a http|https Farm
 sub modify_http_farm    # ( $json_obj, $farmname )
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $json_obj = shift;
 	my $farmname = shift;
@@ -39,11 +42,14 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 	my $desc = "Modify HTTP farm $farmname";
 
 	# Flags
+	my $reload_flag  = "false";
 	my $restart_flag = "false";
+	my $error        = "false";
+
 	my $farmname_old;
 
 	# Check that the farm exists
-	if ( not &getFarmExists( $farmname ) )
+	if ( !&getFarmExists( $farmname ) )
 	{
 		my $msg = "The farm '$farmname' does not exist.";
 		&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
@@ -53,11 +59,29 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 	my $vip   = &getFarmVip( "vip",  $farmname );
 	my $vport = &getFarmVip( "vipp", $farmname );
 	my $changedname = "false";
+	my $reload_ipds = 0;
 
 	if (    exists $json_obj->{ vport }
-		 or exists $json_obj->{ vip }
-		 or exists $json_obj->{ newfarmname } )
+		 || exists $json_obj->{ vip }
+		 || exists $json_obj->{ newfarmname } )
 	{
+
+		if ( $eload )
+		{
+			$reload_ipds = 1;
+
+			&eload(
+					module => 'Zevenet::IPDS::Base',
+					func   => 'runIPDSStopByFarm',
+					args   => [$farmname],
+			);
+
+			&eload(
+					module => 'Zevenet::Cluster',
+					func   => 'runZClusterRemoteManager',
+					args   => ['ipds', 'stop', $farmname],
+			);
+		}
 	}
 
 	######## Functions
@@ -222,6 +246,46 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 
 		$restart_flag = "true";
 	}
+
+	if ( $eload )
+	{
+		# Enable or disable ignore 100 continue header
+		if ( exists ( $json_obj->{ ignore_100_continue } ) )
+		{
+			if ( $json_obj->{ ignore_100_continue } !~ /^(?:true|false)$/ )
+			{
+				my $msg = "Invalid ignore_100_continue value.";
+				&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
+			}
+
+			my $action = 0;
+			$action = 1 if ( $json_obj->{ ignore_100_continue } =~ /^true$/ );
+
+			my $newaction = &eload(
+									module => 'Zevenet::Farm::HTTP::Ext',
+									func   => 'getHTTPFarm100Continue',
+									args   => [$farmname],
+			);
+
+			if ( $newaction != $action )
+			{
+				my $status = &eload(
+									 module => 'Zevenet::Farm::HTTP::Ext',
+									 func   => 'setHTTPFarm100Continue',
+									 args   => [$farmname, $action],
+				);
+
+				if ( $status == -1 )
+				{
+					my $msg = "Some errors happened trying to modify the certname.";
+					&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
+				}
+
+				$restart_flag = "true";
+			}
+		}
+	}
+
 	# Modify HTTP Verbs Accepted
 	if ( exists ( $json_obj->{ httpverb } ) )
 	{
@@ -333,12 +397,13 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 		# Modify Ciphers
 		if ( exists ( $json_obj->{ ciphers } ) )
 		{
-			if ( not &getValidFormat( 'ciphers', $json_obj->{ ciphers } ) )
+			if ( !&getValidFormat( 'ciphers', $json_obj->{ ciphers } ) )
 			{
 				my $msg = "Invalid ciphers value.";
 				&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
 			}
 
+			my $ssloffloading_error = 0;
 			my $ciphers;
 
 			if ( $json_obj->{ ciphers } eq "all" )
@@ -352,8 +417,24 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 			elsif ( $json_obj->{ ciphers } eq "highsecurity" ) { $ciphers = "cipherpci"; }
 			elsif ( $json_obj->{ ciphers } eq "ssloffloading" )
 			{
+				if ( $eload )
+				{
+					my $ssloff = &eload( module => 'Zevenet::Farm::HTTP::HTTPS::Ext',
+										 func   => 'getFarmCipherSSLOffLoadingSupport', );
+
+					unless ( $ssloff )
+					{
+						my $msg = "The CPU does not support SSL offloading.";
+						&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
+					}
+
+					$ciphers = "cipherssloffloading";
+				}
+				else
+				{
 					my $msg = "SSL offloading cipher profile not available.";
 					&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
+				}
 			}
 
 			my $status = &setFarmCipherList( $farmname, $ciphers );
@@ -393,7 +474,19 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 		if ( exists ( $json_obj->{ certname } ) )
 		{
 			my $status;
+			if ( $eload )
+			{
+				$status = &eload(
+								  module => 'Zevenet::Farm::HTTP::HTTPS::Ext',
+								  func   => 'setFarmCertificateSNI',
+								  args   => [$json_obj->{ certname }, $farmname],
+				);
+			}
+			else
+			{
 				$status = &setFarmCertificate( $json_obj->{ certname }, $farmname );
+			}
+
 			if ( $status == -1 )
 			{
 				my $msg = "Some errors happened trying to modify the certname.";
@@ -411,7 +504,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 		);
 		foreach my $key_ssl ( @protocols_ssl_keys )
 		{
-			if ( grep { /^$key_ssl$/ } keys %{ $json_obj } )
+			if ( grep ( /^$key_ssl$/, keys %{ $json_obj } ) )
 			{
 				my $ssl_proto;
 				my $action = -1;
@@ -447,8 +540,8 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 	else
 	{
 		if (    exists ( $json_obj->{ ciphers } )
-			 or exists ( $json_obj->{ cipherc } )
-			 or exists ( $json_obj->{ certname } ) )
+			 || exists ( $json_obj->{ cipherc } )
+			 || exists ( $json_obj->{ certname } ) )
 		{
 			my $msg = "To modify ciphers, chiperc or certname, listener must be https.";
 			&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
@@ -468,7 +561,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 
 	if ( exists ( $json_obj->{ vport } ) )
 	{
-		if ( not $json_obj->{ vport } =~ /^\d+$/ )
+		if ( !$json_obj->{ vport } =~ /^\d+$/ )
 		{
 			my $msg = "Invalid port value.";
 			&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
@@ -476,7 +569,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 	}
 
 	# Modify only vip
-	if ( exists ( $json_obj->{ vip } ) and not exists ( $json_obj->{ vport } ) )
+	if ( exists ( $json_obj->{ vip } ) && !exists ( $json_obj->{ vport } ) )
 	{
 		my $status = &setFarmVirtualConf( $json_obj->{ vip }, $vport, $farmname );
 		if ( $status == -1 )
@@ -489,7 +582,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 	}
 
 	# Modify only vport
-	if ( exists ( $json_obj->{ vport } ) and not exists ( $json_obj->{ vip } ) )
+	if ( exists ( $json_obj->{ vport } ) && !exists ( $json_obj->{ vip } ) )
 	{
 		my $status = &setFarmVirtualConf( $vip, $json_obj->{ vport }, $farmname );
 		if ( $status == -1 )
@@ -502,7 +595,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 	}
 
 	# Modify both vip & vport
-	if ( exists ( $json_obj->{ vip } ) and exists ( $json_obj->{ vport } ) )
+	if ( exists ( $json_obj->{ vip } ) && exists ( $json_obj->{ vport } ) )
 	{
 		my $status =
 		  &setFarmVirtualConf( $json_obj->{ vip }, $json_obj->{ vport }, $farmname );
@@ -532,7 +625,20 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 		# certlist
 		my @certlist;
 		my @cnames;
+
+		if ( $eload )
+		{
+			@cnames = &eload(
+							  module => 'Zevenet::Farm::HTTP::HTTPS::Ext',
+							  func   => 'getFarmCertificatesSNI',
+							  args   => [$farmname],
+			);
+		}
+		else
+		{
 			@cnames = ( &getFarmCertificate( $farmname ) );
+		}
+
 		my $elem = scalar @cnames;
 
 		for ( my $i = 0 ; $i < $elem ; $i++ )
@@ -572,13 +678,31 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 		  ( &getHTTPFarmDisableSSL( $farmname, "TLSv1_2" ) ) ? "true" : "false";
 	}
 
+	if ( $reload_ipds )
+	{
+
+		if ( $eload )
+		{
+			&eload(
+					module => 'Zevenet::IPDS::Base',
+					func   => 'runIPDSStartByFarm',
+					args   => [$farmname],
+			);
+
+			&eload(
+					module => 'Zevenet::Cluster',
+					func   => 'runZClusterRemoteManager',
+					args   => ['ipds', 'start', $farmname],
+			);
+		}
+	}
 
 	my $body = {
 				 description => $desc,
 				 params      => $json_obj,
 	};
 
-	if ( $restart_flag eq "true" and &getFarmStatus( $farmname ) eq 'up' )
+	if ( $restart_flag eq "true" && &getFarmStatus( $farmname ) eq 'up' )
 	{
 		if ( &getGlobalConfiguration( 'proxy_ng' ) ne 'true' )
 		{
@@ -588,12 +712,15 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 		else
 		{
 			&runFarmReload( $farmname );
-
+			&eload(
+					module => 'Zevenet::Cluster',
+					func   => 'runZClusterRemoteManager',
+					args   => ['farm', 'reload', $farmname],
+			) if ( $eload );
 		}
 	}
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 1;

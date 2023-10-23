@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,15 +22,19 @@
 ###############################################################################
 
 use strict;
-use warnings;
 
+my $eload;
+if ( eval { require Zevenet::ELoad; } )
+{
+	$eload = 1;
+}
 
 require Zevenet::System;
 
 # show license
 sub get_license
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $format = shift;
 
@@ -54,42 +58,32 @@ sub get_license
 	my $file = &slurpFile( $licenseFile );
 
 	&httpResponse( { code => 200, body => $file, type => 'text/plain' } );
-	return;
 }
 
-# GET /system/supportsave
-# GET /system/supportsave/all
 sub get_supportsave
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
-	my ( $type ) = @_;
+	my $desc = "Get supportsave file";
 
-	$type = undef if ( $type ne "all" );
-	my $desc     = "Get supportsave file";
 	my $req_size = &checkSupportSaveSpace();
 	if ( $req_size )
 	{
 		my $space = &getSpaceFormatHuman( $req_size );
 		my $msg =
 		  "Supportsave cannot be generated because '/tmp' needs '$space' Bytes of free space";
-		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
+		return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
 	}
 
-	my $ss_filename = &getSupportSave( $type );
+	my $ss_filename = &getSupportSave();
 
-	&httpDownloadResponse(
-						   desc => $desc,
-						   dir  => '/tmp',
-						   file => $ss_filename
-	);
-	return;
+	&httpDownloadResponse( desc => $desc, dir => '/tmp', file => $ss_filename );
 }
 
 # GET /system/version
 sub get_version
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	require Zevenet::SystemInfo;
 
@@ -110,13 +104,12 @@ sub get_version
 	my $body = { description => $desc, params => $params };
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 # GET /system/info
 sub get_system_info
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 
 	require Zevenet::SystemInfo;
@@ -133,9 +126,8 @@ sub get_system_info
 	my $applicance    = &getApplianceVersion();
 	my $user          = &getUser();
 	my @zapi_versions = &listZapiVersions();
-	my $edition       = "community";
-
-	my $platform = &getGlobalConfiguration( 'cloud_provider' );
+	my $edition       = ( $eload ) ? "enterprise" : "community";
+	my $platform      = &getGlobalConfiguration( 'cloud_provider' );
 
 	my $params = {
 				   'system_date'             => $date,
@@ -150,15 +142,24 @@ sub get_system_info
 				   'language'                => $lang,
 				   'platform'                => $platform,
 	};
+
+	if ( $eload )
+	{
+		$params = &eload(
+						  module => 'Zevenet::System::Ext',
+						  func   => 'setSystemExtendZapi',
+						  args   => [$params],
+		);
+	}
+
 	my $body = { description => $desc, params => $params };
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 #  POST /system/language
 sub set_language
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $json_obj = shift;
 
@@ -168,11 +169,8 @@ sub set_language
 
 	# Check allowed parameters
 	my $error_msg = &checkZAPIParams( $json_obj, $params, $desc );
-
-	if ( $error_msg )
-	{
-		&httpErrorResponse( code => 400, desc => $desc, msg => $error_msg );
-	}
+	return &httpErrorResponse( code => 400, desc => $desc, msg => $error_msg )
+	  if ( $error_msg );
 
 	# Check allowed parameters
 	&setGlobalConfiguration( 'lang', $json_obj->{ language } );
@@ -187,13 +185,12 @@ sub set_language
 				  }
 				}
 	);
-	return;
 }
 
 #  GET /system/language
 sub get_language
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 
 	my $desc = "List the WebGUI language";
@@ -208,13 +205,12 @@ sub get_language
 					 }
 				   }
 	);
-	return;
 }
 
 # GET /system/packages
 sub get_packages_info
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 
 	require Zevenet::System::Packages;
@@ -225,9 +221,8 @@ sub get_packages_info
 
 	$output->{ number } += 0 if ( defined $output->{ number } );
 
-	&httpResponse(
+	return &httpResponse(
 				 { code => 200, body => { description => $desc, params => $output } } );
-	return;
 }
 
 1;

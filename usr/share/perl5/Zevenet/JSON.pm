@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,7 +22,6 @@
 ###############################################################################
 
 use strict;
-use warnings;
 require JSON::XS;
 require Zevenet::Lock;
 
@@ -36,7 +35,7 @@ sub decodeJSONFile
 
 	my $file_str;
 	my $fh = &openlock( $file, '<' );
-	return if not defined $fh;
+	return undef if !defined $fh;
 
 	{
 		local $/ = undef;

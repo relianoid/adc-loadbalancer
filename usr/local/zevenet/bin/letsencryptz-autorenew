@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -33,13 +33,18 @@
 use strict;
 use warnings;
 use Getopt::Long;
-
+use Switch;
 use Zevenet::Config;
 use Zevenet::Log;
 use Zevenet::LetsencryptZ;
 
 $SIG{ ALRM } = sub { die "timeout" };
 
+my $eload;
+if ( eval { require Zevenet::ELoad; } )
+{
+	$eload = 1;
+}
 
 #local variables
 my $cert_name;
@@ -51,6 +56,7 @@ my $msg;
 my $timeout = getGlobalConfiguration( 'le_renewal_timeout' );
 $timeout //= 120;
 my $output;
+my $retry_to = 10;
 
 GetOptions(
 			'cert=s'  => \$cert_name,
@@ -68,7 +74,7 @@ GetOptions(
 
 # check params
 
-if ( not defined $vip and not defined $farm_name )
+if ( ( not defined $vip && !defined $farm_name ) )
 {
 	$msg = "No 'vip' or 'farm' param found.";
 	&zenlog( $msg, "ERROR", "Letsencryptz-renewal" );
@@ -99,9 +105,9 @@ if ( defined $farm_name )
 {
 	require Zevenet::Farm::Core;
 	my @farm_list = &getFarmsByType( "http" );
+	my $msg;
 
 	# avoid farmname when no HTTP Farm exists
-	my $msg;
 	if ( not @farm_list )
 	{
 		$msg = "There is no HTTP Farms in the system, use 'vip' param instead.";
@@ -258,17 +264,40 @@ if ( defined $restart )
 			$error = &runFarmStop( $farm, "" );
 			if ( $error )
 			{
-				push @farms_restarted_error, $farm;
-				next;
+				&zenlog( "Error Stopping farm '$farm', trying again", "info", "Letsencryptz-renewal" );
+				sleep $retry_to;
+				$error = &runFarmStop( $farm, "" );
+				if ( $error )
+				{
+					push @farms_restarted_error, $farm;
+					next;
+				}
 			}
-
 			$error = &runFarmStart( $farm, "" );
 			if ( $error )
 			{
-				push @farms_restarted_error, $farm;
-				next;
+				&zenlog( "Error Starting farm '$farm', trying again", "info", "Letsencryptz-renewal" );
+				sleep $retry_to;
+				$error = &runFarmStart( $farm, "" );
+				if ( $error )
+				{
+					push @farms_restarted_error, $farm;
+					next;
+				}
 			}
 			push @farms_restarted, $farm;
+		}
+	}
+
+	if ( $eload )
+	{
+		if ( @farms_restarted )
+		{
+			&eload(
+					module => 'Zevenet::Cluster',
+					func   => 'runZClusterRemoteManager',
+					args   => ['farm', 'restart_farms', @farms_restarted],
+			);
 		}
 	}
 

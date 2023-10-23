@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,7 +22,6 @@
 ###############################################################################
 
 use strict;
-use warnings;
 
 =begin nd
 Function: getIfacesFromIf
@@ -43,7 +42,7 @@ See Also:
 # Get List of Vinis or Vlans from an interface
 sub getIfacesFromIf    # ($if_name, $type)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $if_name = shift;    # Interface's Name
 	my $type    = shift;    # Type: vini or vlan
@@ -56,15 +55,15 @@ sub getIfacesFromIf    # ($if_name, $type)
 		next if $$interface{ name } !~ /^$if_name.+/;
 
 		# get vinis
-		if ( $type eq "vini" and $$interface{ vini } ne '' )
+		if ( $type eq "vini" && $$interface{ vini } ne '' )
 		{
 			push @ifaces, $interface;
 		}
 
 		# get vlans (including vlan:vini)
-		elsif (     $type eq "vlan"
-				and $$interface{ vlan } ne ''
-				and $$interface{ vini } eq '' )
+		elsif (    $type eq "vlan"
+				&& $$interface{ vlan } ne ''
+				&& $$interface{ vini } eq '' )
 		{
 			push @ifaces, $interface;
 		}
@@ -83,7 +82,7 @@ Parameters:
 	type - "vini" or "vlan".
 
 Returns:
-	undef or 1 in case of failure
+	undef - .
 
 Bugs:
 	Set VLANs up.
@@ -95,16 +94,13 @@ See Also:
 # Check if there are some Virtual Interfaces or Vlan with IPv6 and previous UP status to get it up.
 sub setIfacesUp    # ($if_name,$type)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $if_name = shift;    # Interface's Name
 	my $type    = shift;    # Type: vini or vlan
 
-	if ( $type !~ /^(?:vlan|vini)$/ )
-	{
-		&zenlog( "setIfacesUp: type variable must be 'vlan' or 'vini'", "error" );
-		return 1;
-	}
+	die ( "setIfacesUp: type variable must be 'vlan' or 'vini'" )
+	  if $type !~ /^(?:vlan|vini)$/;
 
 	my @ifaces = &getIfacesFromIf( $if_name, $type );
 
@@ -154,7 +150,7 @@ See Also:
 # send gratuitous ICMP packets for L3 aware
 sub sendGPing    # ($pif)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $pif ) = @_;
 	my $if_conf = &getInterfaceConfig( $pif );
@@ -170,7 +166,6 @@ sub sendGPing    # ($pif)
 				 "info", "NETWORK" );
 		&logAndRunBG( "$ping_cmd" );
 	}
-	return;
 }
 
 =begin nd
@@ -191,7 +186,7 @@ See Also:
 #get a random available port
 sub getRandomPort    # ()
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	require Zevenet::Net::Validate;
 
@@ -252,7 +247,7 @@ See Also:
 # send gratuitous ARP frames
 sub sendGArp    # ($if,$ip)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $if, $ip ) = @_;
 
@@ -282,7 +277,6 @@ sub sendGArp    # ($if,$ip)
 	}
 
 	&sendGPing( $iface[0] );
-	return;
 }
 
 =begin nd
@@ -311,7 +305,7 @@ sub setArpAnnounce
 	my $cron_service = &getGlobalConfiguration( 'cron_service' );
 	$err = &logAndRun( "$cron_service reload" );
 
-	if ( not $err )
+	if ( !$err )
 	{
 		$err = &setGlobalConfiguration( 'arp_announce', "true" );
 	}
@@ -341,7 +335,7 @@ sub unsetArpAnnounce
 	if ( -f $path )
 	{
 		my $rem = unlink $path;
-		if ( not $rem )
+		if ( !$rem )
 		{
 			&zenlog( "Error deleting the file '$path'", "error", "NETWORK" );
 			return 1;
@@ -350,7 +344,7 @@ sub unsetArpAnnounce
 
 	$err = &logAndRun( "$cron_service reload" );
 
-	if ( not $err )
+	if ( !$err )
 	{
 		$err = &setGlobalConfiguration( 'arp_announce', "false" );
 	}
@@ -378,7 +372,7 @@ See Also:
 #know if and return ip
 sub iponif    # ($if)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $if = shift;
 
@@ -416,7 +410,7 @@ See Also:
 # return the mask of an if
 sub maskonif    # ($if)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $if = shift;
 
@@ -451,7 +445,7 @@ See Also:
 #list ALL IPS UP
 sub listallips    # ()
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	require Zevenet::Net::Interface;
 
@@ -484,7 +478,7 @@ See Also:
 # Enable(true) / Disable(false) IP Forwarding
 sub setIpForward    # ($arg)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $arg = shift;
 
@@ -523,7 +517,7 @@ See Also:
 
 sub getInterfaceOfIp    # ($ip)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $ip = shift;
 
@@ -536,7 +530,7 @@ sub getInterfaceOfIp    # ($ip)
 	{
 		# return interface if found in the listç
 		my $if_ip = &iponif( $iface );
-		next if ( not $if_ip );
+		next if ( !$if_ip );
 
 		my $if_addr = NetAddr::IP->new( $if_ip );
 

@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -38,13 +38,13 @@ Returns:
 
 sub runL4sdDaemon
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 
 	my $l4sdbin = &getGlobalConfiguration( 'l4sd' );
 	my $pidfile = &getGlobalConfiguration( 'l4sdpid' );
 
-	if ( not -f "$pidfile" )
+	if ( !-f "$pidfile" )
 	{
 		return &logAndRunBG( $l4sdbin );
 	}
@@ -66,7 +66,7 @@ Returns:
 
 sub sendL4sdSignal
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 
 	my $output  = -1;
@@ -99,21 +99,21 @@ Returns:
 
 sub getL4sdType
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 
 	my $farm_name = shift;
 	my $output    = "";
 	my $l4sdfile  = &getGlobalConfiguration( 'l4sdcfg' );
 
-	if ( not -f "$l4sdfile" )
+	if ( !-f "$l4sdfile" )
 	{
 		return $output;
 	}
 
 	require Config::Tiny;
 	my $config = Config::Tiny->read( $l4sdfile );
-	if ( defined $config->{ $farm_name } and exists $config->{ $farm_name } )
+	if ( defined $config->{ $farm_name } && exists $config->{ $farm_name } )
 	{
 		$output = $config->{ $farm_name }->{ type };
 	}
@@ -136,17 +136,17 @@ Returns:
 
 sub setL4sdType
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 
 	my $farm_name = shift;
 	my $type      = shift;
 	my $l4sdfile  = &getGlobalConfiguration( 'l4sdcfg' );
 
-	if ( not -f "$l4sdfile" )
+	if ( !-f "$l4sdfile" )
 	{
 		open my $fd, '>', $l4sdfile;
-		if ( not $fd )
+		if ( !$fd )
 		{
 			&zenlog( "Could not create file $l4sdfile: $!", "error", "L4SD" );
 			return -1;

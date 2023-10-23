@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -29,6 +29,12 @@ use Zevenet::Nft;
 
 my $configdir = &getGlobalConfiguration( 'configdir' );
 
+my $eload;
+
+if ( eval { require Zevenet::ELoad; } )
+{
+	$eload = 1;
+}
 
 =begin nd
 Function: setL4FarmServer
@@ -54,7 +60,7 @@ Returns:
 
 sub setL4FarmServer
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name, $ids, $ip, $port, $weight, $priority, $max_conns ) = @_;
 
@@ -81,7 +87,7 @@ sub setL4FarmServer
 	my $rip  = $ip;
 	my $mark = "0x0";
 
-	if ( defined $port and $port ne "" )
+	if ( defined $port && $port ne "" )
 	{
 		if ( &ipversion( $ip ) == 4 )
 		{
@@ -92,32 +98,31 @@ sub setL4FarmServer
 			$rip = "[$ip]\:$port";
 		}
 
-		if ( not defined $exists or ( defined $exists and $exists->{ port } ne $port ) )
+		if ( !defined $exists || ( defined $exists && $exists->{ port } ne $port ) )
 		{
 			$json .= qq(, "port" : "$port");
 			$msg  .= "port:$port ";
 		}
 	}
-	elsif ( defined $port and $port eq "" )
+	elsif ( defined $port && $port eq "" )
 	{
 		$json .= qq(, "port" : "$port");
 		$msg  .= "port:$port ";
 	}
 
-	if (    defined $ip
-		and $ip ne ""
-		and ( not defined $exists or ( defined $exists and $exists->{ rip } ne $rip ) )
-	  )
+	if (   defined $ip
+		&& $ip ne ""
+		&& ( !defined $exists || ( defined $exists && $exists->{ rip } ne $rip ) ) )
 	{
 		my $existrip = &getFarmServer( $f_ref->{ servers }, $rip, "rip" );
-		return -2 if ( defined $existrip and ( $existrip->{ id } ne $ids ) );
+		return -2 if ( defined $existrip && ( $existrip->{ id } ne $ids ) );
 		$json = qq(, "ip-addr" : "$ip") . $json;
 		$msg .= "ip:$ip ";
 
-		if ( not defined $exists )
+		if ( !defined $exists )
 		{
 			$mark = &getNewMark( $farm_name );
-			return -1 if ( not defined $mark or $mark eq "" );
+			return -1 if ( !defined $mark || $mark eq "" );
 			$json .= qq(, "mark" : "$mark");
 			$msg  .= "mark:$mark ";
 		}
@@ -130,11 +135,9 @@ sub setL4FarmServer
 
 	}
 
-	if (
-		     defined $weight
-		 and $weight ne ""
-		 and ( not defined $exists
-			   or ( defined $exists and $exists->{ weight } ne $weight ) )
+	if (   defined $weight
+		&& $weight ne ""
+		&& ( !defined $exists || ( defined $exists && $exists->{ weight } ne $weight ) )
 	  )
 	{
 		$weight = 1 if ( $weight == 0 );
@@ -143,10 +146,10 @@ sub setL4FarmServer
 	}
 
 	if (
-		     defined $priority
-		 and $priority ne ""
-		 and ( not defined $exists
-			   or ( defined $exists and $exists->{ priority } ne $priority ) )
+		    defined $priority
+		 && $priority ne ""
+		 && ( !defined $exists
+			  || ( defined $exists && $exists->{ priority } ne $priority ) )
 	  )
 	{
 		$priority = 1 if ( $priority == 0 );
@@ -155,10 +158,10 @@ sub setL4FarmServer
 	}
 
 	if (
-		     defined $max_conns
-		 and $max_conns ne ""
-		 and ( not defined $exists
-			   or ( defined $exists and $exists->{ max_conns } ne $max_conns ) )
+		    defined $max_conns
+		 && $max_conns ne ""
+		 && ( !defined $exists
+			  || ( defined $exists && $exists->{ max_conns } ne $max_conns ) )
 	  )
 	{
 		$max_conns = 0 if ( $max_conns < 0 );
@@ -166,7 +169,7 @@ sub setL4FarmServer
 		$msg  .= "maxconns:$max_conns ";
 	}
 
-	if ( not defined $exists )
+	if ( !defined $exists )
 	{
 		$json .= qq(, "state" : "up");
 		$msg  .= "state:up ";
@@ -185,6 +188,15 @@ sub setL4FarmServer
 	);
 
 	# take care of floating interfaces without masquerading
+	if ( $json =~ /ip-addr/ && $eload )
+	{
+		my $farm_ref = &getL4FarmStruct( $farm_name );
+		&eload(
+				module => 'Zevenet::Net::Floating',
+				func   => 'setFloatingSourceAddr',
+				args   => [$farm_ref, { ip => $ip, id => $ids, tag => $mark }],
+		);
+	}
 
 	return $output;
 }
@@ -205,7 +217,7 @@ Returns:
 
 sub runL4FarmServerDelete
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $ids, $farm_name ) = @_;
 
@@ -266,7 +278,7 @@ Returns:
 
 sub setL4FarmBackendsSessionsRemove
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name, $backend_ref, $farm_mode ) = @_;
 
@@ -316,7 +328,7 @@ sub setL4FarmBackendsSessionsRemove
 	{
 
 		$data = 1 if ( $line =~ /elements = / );
-		next if ( not $data );
+		next if ( !$data );
 
 		my ( $key, $value ) =
 		  ( $line =~ /,?\s+([\w\.\s\:]+) expires \w+ : $value_regex[\s,]/ );
@@ -381,7 +393,7 @@ Returns:
 
 sub setL4FarmBackendStatus
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farm_name, $backend, $status, $cutmode ) = @_;
 
@@ -591,9 +603,9 @@ sub setL4FarmBackendStatus
 
 	#~ TODO
 	#~ my $stopping_fg = ( $caller =~ /runFarmGuardianStop/ );
-	#~ if ( $fg_enabled eq 'true' and not $stopping_fg )
+	#~ if ( $fg_enabled eq 'true' && !$stopping_fg )
 	#~ {
-	#~ if ( $0 !~ /farmguardian/ and $fg_pid > 0 )
+	#~ if ( $0 !~ /farmguardian/ && $fg_pid > 0 )
 	#~ {
 	#~ kill 'CONT' => $fg_pid;
 	#~ }
@@ -617,7 +629,7 @@ Returns:
 
 sub getL4FarmServers
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $farm_name = shift;
 
@@ -646,7 +658,7 @@ Returns:
 
 sub _getL4FarmParseServers
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $config = shift;
 	my $stage  = 0;
@@ -664,29 +676,29 @@ sub _getL4FarmParseServers
 		}
 
 		# do not go to the next level if empty
-		if ( $line =~ /\"backends\"/ and $line !~ /\[\],/ )
+		if ( $line =~ /\"backends\"/ && $line !~ /\[\],/ )
 		{
 			$stage = 2;
 		}
 
-		if ( $stage == 2 and $line =~ /\{/ )
+		if ( $stage == 2 && $line =~ /\{/ )
 		{
 			$stage = 3;
 			undef $server;
 		}
 
-		if ( $stage == 3 and $line =~ /\}/ )
+		if ( $stage == 3 && $line =~ /\}/ )
 		{
 			$stage = 2;
 			push ( @servers, $server );
 		}
 
-		if ( $stage == 2 and $line =~ /\]/ )
+		if ( $stage == 2 && $line =~ /\]/ )
 		{
 			last;
 		}
 
-		if ( $stage == 3 and $line =~ /\"name\"/ )
+		if ( $stage == 3 && $line =~ /\"name\"/ )
 		{
 			my @l = split /"/, $line;
 			my $index = $l[3];
@@ -697,26 +709,26 @@ sub _getL4FarmParseServers
 			$server->{ max_conns } = 0;
 		}
 
-		if ( $stage == 3 and $line =~ /\"ip-addr\"/ )
+		if ( $stage == 3 && $line =~ /\"ip-addr\"/ )
 		{
 			my @l = split /"/, $line;
 			$server->{ ip }  = $l[3];
 			$server->{ rip } = $l[3];
 		}
 
-		if ( $stage == 3 and $line =~ /\"source-addr\"/ )
+		if ( $stage == 3 && $line =~ /\"source-addr\"/ )
 		{
 			my @l = split /"/, $line;
 			$server->{ sourceip } = $l[3];
 		}
 
-		if ( $stage == 3 and $line =~ /\"port\"/ )
+		if ( $stage == 3 && $line =~ /\"port\"/ )
 		{
 			my @l = split /"/, $line;
 			$server->{ port } = $l[3];
 
 			require Zevenet::Net::Validate;
-			if ( $server->{ port } ne '' and $fproto ne 'all' )
+			if ( $server->{ port } ne '' && $fproto ne 'all' )
 			{
 				if ( &ipversion( $server->{ rip } ) == 4 )
 				{
@@ -729,31 +741,31 @@ sub _getL4FarmParseServers
 			}
 		}
 
-		if ( $stage == 3 and $line =~ /\"weight\"/ )
+		if ( $stage == 3 && $line =~ /\"weight\"/ )
 		{
 			my @l = split /"/, $line;
 			$server->{ weight } = $l[3] + 0;
 		}
 
-		if ( $stage == 3 and $line =~ /\"priority\"/ )
+		if ( $stage == 3 && $line =~ /\"priority\"/ )
 		{
 			my @l = split /"/, $line;
 			$server->{ priority } = $l[3] + 0;
 		}
 
-		if ( $stage == 3 and $line =~ /\"mark\"/ )
+		if ( $stage == 3 && $line =~ /\"mark\"/ )
 		{
 			my @l = split /"/, $line;
 			$server->{ tag } = $l[3];
 		}
 
-		if ( $stage == 3 and $line =~ /\"est-connlimit\"/ )
+		if ( $stage == 3 && $line =~ /\"est-connlimit\"/ )
 		{
 			my @l = split /"/, $line;
 			$server->{ max_conns } = $l[3] + 0;
 		}
 
-		if ( $stage == 3 and $line =~ /\"state\"/ )
+		if ( $stage == 3 && $line =~ /\"state\"/ )
 		{
 			my @l = split /"/, $line;
 			$server->{ status } = $l[3];
@@ -782,7 +794,7 @@ Returns:
 
 sub getL4ServerWithLowestPriority
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $farm = shift;
 
@@ -816,7 +828,7 @@ Returns:
 
 sub getL4BackendsWeightProbability
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $farm = shift;
 
@@ -837,7 +849,6 @@ sub getL4BackendsWeightProbability
 			$$server{ prob } = 0;
 		}
 	}
-	return;
 }
 
 =begin nd
@@ -855,7 +866,7 @@ Returns:
 
 sub resetL4FarmBackendConntrackMark
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $server = shift;
 
@@ -872,7 +883,11 @@ sub resetL4FarmBackendConntrackMark
 	if ( $return_code )
 	{
 		require Zevenet::Net::ConnStats;
-		my $params           = { mark => "$server->{ tag }/0x7fffffff" };
+		my $params = {
+					   proto => 'tcp sctp',
+					   mark  => "$server->{ tag }/0x7fffffff",
+					   state => "ESTABLISHED"
+		};
 		my $conntrack_params = &getConntrackParams( $params );
 		my $conns            = &getConntrackCount( $conntrack_params );
 
@@ -910,7 +925,7 @@ Returns:
 
 sub getL4FarmBackendAvailableID
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $farmname = shift;
 
@@ -922,7 +937,7 @@ sub getL4FarmBackendAvailableID
 	for ( my $id = 0 ; $id < $nbackends ; $id++ )
 	{
 		my $exists = &getFarmServer( $backends, $id );
-		return $id if ( not $exists );
+		return $id if ( !$exists );
 	}
 
 	return $nbackends;
@@ -944,7 +959,7 @@ Returns:
 
 sub getL4ServerByMark
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $servers_ref = shift;
 	my $mark        = shift;
@@ -977,7 +992,7 @@ Returns:
 
 sub getL4FarmPriorities    # ( $farmname )
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $farmname ) = shift;
 	my @priorities;

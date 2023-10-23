@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,7 +22,7 @@
 ###############################################################################
 
 use strict;
-use warnings;
+
 use File::stat;
 use Time::localtime;
 
@@ -49,17 +49,17 @@ See Also:
 
 sub getCertFiles    # ()
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $configdir = &getGlobalConfiguration( 'certdir' );
 
 	opendir ( DIR, $configdir );
-	my @files = grep { /.*\.pem$/ } readdir ( DIR );
-	@files = grep { not /_dh\d+\.pem$/ } @files;
+	my @files = grep ( /.*\.pem$/, readdir ( DIR ) );
+	@files = grep ( !/_dh\d+\.pem$/, @files );
 	closedir ( DIR );
 
 	opendir ( DIR, $configdir );
-	push ( @files, grep { /.*\.csr$/ } readdir ( DIR ) );
+	push ( @files, grep ( /.*\.csr$/, readdir ( DIR ) ) );
 	closedir ( DIR );
 
 	return @files;
@@ -80,13 +80,13 @@ Returns:
 
 sub getPemCertFiles    # ()
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $configdir = &getGlobalConfiguration( 'certdir' );
 
 	opendir ( DIR, $configdir );
-	my @files = grep { /.*\.pem$/ } readdir ( DIR );
-	@files = grep { not /_dh\d+\.pem$/ } @files;
+	my @files = grep ( /.*\.pem$/, readdir ( DIR ) );
+	@files = grep ( !/_dh\d+\.pem$/, @files );
 	closedir ( DIR );
 
 	return @files;
@@ -111,7 +111,7 @@ See Also:
 
 sub getCleanBlanc    # ($vartoclean)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $vartoclean ) = @_;
 
@@ -145,12 +145,12 @@ See Also:
 
 sub getCertType    # ($certfile)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $certfile ) = @_;
 	my $certtype = "none";
 
-	if ( $certfile =~ /\.pem/ or $certfile =~ /\.crt/ )
+	if ( $certfile =~ /\.pem/ || $certfile =~ /\.crt/ )
 	{
 		$certtype = "Certificate";
 	}
@@ -181,7 +181,7 @@ See Also:
 
 sub getCertCN    # ($certfile)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $certfile ) = @_;
 	my $certcn = "";
@@ -226,7 +226,7 @@ See Also:
 
 sub getCertIssuer    # ($certfile)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $certfile ) = @_;
 	my $certissu = "";
@@ -272,7 +272,7 @@ See Also:
 
 sub getCertCreation    # ($certfile)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $certfile ) = @_;
 
@@ -315,7 +315,7 @@ See Also:
 
 sub getCertExpiration    # ($certfile)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $certfile ) = @_;
 	my $dateexpiration = "";
@@ -354,7 +354,7 @@ See Also:
 
 sub getFarmCertUsed    #($cfile)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $cfile ) = @_;
 
@@ -396,7 +396,7 @@ Returns:
 
 sub getCertFarmsUsed    #($cfile)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $cfile ) = @_;
 
@@ -441,7 +441,7 @@ See Also:
 
 sub checkFQDN    # ($certfqdn)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $certfqdn ) = @_;
 	my $valid = "true";
@@ -486,7 +486,7 @@ See Also:
 
 sub delCert    # ($certname)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $certname ) = @_;
 
@@ -528,7 +528,7 @@ sub delCert    # ($certname)
 	}
 
 	&zenlog( "Error removing certificate '$certdir/$certname'", "error", "LSLB" )
-	  if not $files_removed;
+	  if !$files_removed;
 
 	return $files_removed;
 }
@@ -564,7 +564,7 @@ See Also:
 
 sub createCSR # ($certname, $certfqdn, $certcountry, $certstate, $certlocality, $certorganization, $certdivision, $certmail, $certkey, $certpassword)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my (
 		 $certname,     $certfqdn,         $certcountry,  $certstate,
@@ -642,7 +642,7 @@ See Also:
 
 sub getCertData    # ($certfile)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $filepath, $check ) = @_;
 
@@ -690,7 +690,7 @@ Returns:
 
 sub getCertIsValid    # ($cert_filepath)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $cert_filepath ) = shift;
 	my $rc = 1;
@@ -797,7 +797,7 @@ sub getCertInfo
 		  @{ &logAndGet( "$openssl req -in $filepath -text -noout", "array" ) };
 
 		my $cn = "";
-		my ( $string ) = grep { /\sSubject: / } @cert_data;
+		my ( $string ) = grep ( /\sSubject: /, @cert_data );
 		if ( $string =~ /CN ?= ?([^,]+)/ )
 		{
 			$cn = $1;
@@ -831,7 +831,7 @@ Returns:
 
 sub getDateEpoc
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $date_string = shift @_;
 
@@ -858,14 +858,14 @@ Returns:
 
 sub getCertDaysToExpire
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $cert_ends ) = @_;
 
 	use Time::Local;
 
 	my $end       = &getDateEpoc( $cert_ends );
-	my $days_left = ( $end - time () ) / 86_400;
+	my $days_left = ( $end - time () ) / 86400;
 
 	# leave only two decimals
 	if ( $days_left < 1 )
@@ -897,7 +897,7 @@ Returns:
 
 sub checkCertPEMFormat    # ( $cert_path )
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $cert_path ) = @_;
 
@@ -940,7 +940,7 @@ Returns:
 
 sub getCertPEM    # ( $cert_path )
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $cert_path ) = @_;
 	my $pem_config;
@@ -1005,7 +1005,7 @@ Returns:
 
 sub checkCertPEMKeyEncrypted    # ( $cert_path )
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $cert_path ) = @_;
 	my $rc            = -1;
@@ -1063,14 +1063,14 @@ Variable: $error_ref.
 
 sub checkCertPEMValid    # ( $cert_path )
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $cert_path ) = @_;
 	my $error_ref->{ code } = 0;
 	use Net::SSLeay;
 	$Net::SSLeay::trace = 1;
 	my $ctx = Net::SSLeay::CTX_new_with_method( Net::SSLeay::SSLv23_method() );
-	if ( not $ctx )
+	if ( !$ctx )
 	{
 		my $error_msg = "Error check PEM certificate";
 		$error_ref->{ code } = -1;
@@ -1200,13 +1200,13 @@ Variable: $error_ref.
 
 sub createPEM    # ( $cert_name, $cert_key, $cert_ca, $cert_intermediates )
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 
 	my ( $cert_name, $cert_key, $cert_ca, $cert_intermediates ) = @_;
 	my $error_ref->{ code } = 0;
 
-	if ( not $cert_name or not $cert_key or not $cert_ca )
+	if ( !$cert_name or !$cert_key or !$cert_ca )
 	{
 		my $error_msg = "A required parameter is missing";
 		$error_ref->{ code } = 1;
@@ -1247,7 +1247,7 @@ sub createPEM    # ( $cert_name, $cert_key, $cert_ca, $cert_intermediates )
 
 	# check temp certificate
 	my $cert_conf = &getCertPEM( $tmp_cert );
-	if ( not $cert_conf->{ key } )
+	if ( !$cert_conf->{ key } )
 	{
 		unlink $tmp_cert;
 		close $lock_fh;
@@ -1256,7 +1256,7 @@ sub createPEM    # ( $cert_name, $cert_key, $cert_ca, $cert_intermediates )
 		$error_ref->{ desc } = $error_msg;
 		return $error_ref;
 	}
-	if ( not $cert_conf->{ fullchain } )
+	if ( !$cert_conf->{ fullchain } )
 	{
 		unlink $tmp_cert;
 		close $lock_fh;

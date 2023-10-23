@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,11 +22,15 @@
 ###############################################################################
 
 use strict;
-use warnings;
+
 require Zevenet::Core;
 
 my $ip_bin = &getGlobalConfiguration( 'ip_bin' );
-
+my $eload;
+if ( eval { require Zevenet::ELoad; } )
+{
+	$eload = 1;
+}
 
 =begin nd
 Function: createIf
@@ -46,13 +50,13 @@ See Also:
 # create network interface
 sub createIf    # ($if_ref)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $if_ref = shift;
 
 	my $status = 1;
 
-	if ( defined $$if_ref{ vlan } and $$if_ref{ vlan } ne '' )
+	if ( defined $$if_ref{ vlan } && $$if_ref{ vlan } ne '' )
 	{
 		&zenlog( "Creating vlan $$if_ref{name}", "info", "NETWORK" );
 
@@ -83,7 +87,7 @@ See Also:
 # up network interface
 sub upIf    # ($if_ref, $writeconf)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $if_ref    = shift;
 	my $writeconf = shift;
@@ -120,15 +124,13 @@ sub upIf    # ($if_ref, $writeconf)
 				$retry++;
 				usleep 100_000;
 			}
-			$retry++;
-			usleep 100_000;
-		}
 
-		if ( $status_if =~ /down/ )
-		{
-			$status = 1;
-			&zenlog( "No link up for $$if_ref{name}", "warning", "NETWORK" );
-			&downIf( { name => $if_ref->{ name } }, '' );
+			if ( $status_if =~ /down/ )
+			{
+				$status = 1;
+				&zenlog( "No link up for $$if_ref{name}", "warning", "NETWORK" );
+				&downIf( { name => $if_ref->{ name } }, '' );
+			}
 		}
 	}
 
@@ -144,6 +146,14 @@ sub upIf    # ($if_ref, $writeconf)
 		$fileHandler->write( $file );
 	}
 
+	if ( !$status and $eload and $if_ref->{ dhcp } eq 'true' )
+	{
+		$status = &eload(
+						  'module' => 'Zevenet::Net::DHCP',
+						  'func'   => 'startDHCP',
+						  'args'   => [$if_ref->{ name }],
+		);
+	}
 
 	# calculate new backend masquerade IPs
 	require Zevenet::Farm::Config;
@@ -171,7 +181,7 @@ See Also:
 # down network interface in system and configuration file
 sub downIf    # ($if_ref, $writeconf)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $if_ref    = shift;
 	my $writeconf = shift;
@@ -181,6 +191,16 @@ sub downIf    # ($if_ref, $writeconf)
 		&zenlog( "Wrong argument putting down the interface", "error", "NETWORK" );
 		return -1;
 	}
+
+	if ( $eload and $if_ref->{ dhcp } eq 'true' )
+	{
+		$status = &eload(
+						  'module' => 'Zevenet::Net::DHCP',
+						  'func'   => 'stopDHCP',
+						  'args'   => [$if_ref->{ name }],
+		);
+	}
+
 	my $ip_cmd;
 
 	# For Eth and Vlan
@@ -192,9 +212,15 @@ sub downIf    # ($if_ref, $writeconf)
 	# For Vini
 	else
 	{
-		my ( $routed_iface ) = split ( q{:}, $$if_ref{ name } );
+		my ( $routed_iface ) = split ( ":", $$if_ref{ name } );
 
 		$ip_cmd = "$ip_bin addr del $$if_ref{addr}/$$if_ref{mask} dev $routed_iface";
+
+		&eload(
+				module => 'Zevenet::Net::Routing',
+				func   => 'applyRoutingDependIfaceVirt',
+				args   => ['del', $if_ref]
+		) if $eload;
 	}
 
 	&setRuleIPtoTable( $$if_ref{ name }, $$if_ref{ addr }, "del" );
@@ -248,7 +274,7 @@ See Also:
 # stop network interface
 sub stopIf    # ($if_ref)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $if_ref = shift;
 
@@ -258,7 +284,7 @@ sub stopIf    # ($if_ref)
 	my $if     = $$if_ref{ name };
 
 	# If $if is Vini do nothing
-	if ( not $$if_ref{ vini } )
+	if ( !$$if_ref{ vini } )
 	{
 		# If $if is a Interface, delete that IP
 		my $ip_cmd = "$ip_bin address flush dev $$if_ref{name}";
@@ -285,11 +311,11 @@ sub stopIf    # ($if_ref)
 		my @contents = <$rt_fd>;
 		close $rt_fd;
 
-		@contents = grep { not /^...\ttable_$if$/ } @contents;
+		@contents = grep !/^...\ttable_$if$/, @contents;
 
-		open my $rt_fd2, '>', $rttables;
-		print $rt_fd2 @contents;
-		close $rt_fd2;
+		open $rt_fd, '>', $rttables;
+		print $rt_fd @contents;
+		close $rt_fd;
 	}
 
 	#if virtual interface
@@ -305,6 +331,12 @@ sub stopIf    # ($if_ref)
 			my $cmd = "$ip_bin addr del $ip/$mask brd + dev $ifphysic[0] label $if";
 
 			&logAndRun( "$cmd" );
+
+			&eload(
+					module => 'Zevenet::Net::Routing',
+					func   => 'applyRoutingDependIfaceVirt',
+					args   => ['del', $if_ref]
+			) if $eload;
 		}
 	}
 
@@ -329,12 +361,21 @@ See Also:
 # delete network interface configuration and from the system
 sub delIf    # ($if_ref)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $if_ref ) = @_;
 
 	my $status;
 
+	# remove dhcp configuration
+	if ( exists $if_ref->{ dhcp } and $if_ref->{ dhcp } eq 'true' )
+	{
+		&eload(
+				module => 'Zevenet::Net::DHCP',
+				func   => 'disableDHCP',
+				args   => [$if_ref],
+		);
+	}
 
 	require Zevenet::Net::Interface;
 	$status = &cleanInterfaceConfig( $if_ref );
@@ -346,7 +387,7 @@ sub delIf    # ($if_ref)
 	&setRuleIPtoTable( $$if_ref{ name }, $$if_ref{ addr }, "del" );
 
 	# If $if is Vini do nothing
-	if ( $$if_ref{ vini } eq '' or not defined ( $$if_ref{ vini } ) )
+	if ( $$if_ref{ vini } eq '' or !defined ( $$if_ref{ vini } ) )
 	{
 		my $ip_cmd;
 
@@ -363,7 +404,7 @@ sub delIf    # ($if_ref)
 				# If $if is a Interface, delete that IP
 				$ip_cmd = "$ip_bin addr del $$if_ref{addr}/$$if_ref{mask} dev $$if_ref{name}";
 				$status = &logAndRun( $ip_cmd )
-				  if ( length $if_ref->{ addr } and length $if_ref->{ mask } );
+				  if ( length $if_ref->{ addr } && length $if_ref->{ mask } );
 			}
 
 			# If $if is a Vlan, delete Vlan
@@ -375,12 +416,18 @@ sub delIf    # ($if_ref)
 		}
 
 		#delete custom routes
+		&eload(
+				module => 'Zevenet::Net::Routing',
+				func   => 'delRoutingDependIface',
+				args   => [$$if_ref{ name }],
+		) if ( $eload );
+
 		# check if alternative stack is in use
 		my $ip_v_to_check = ( $$if_ref{ ip_v } == 4 ) ? 6 : 4;
 		my $interface = &getInterfaceConfig( $$if_ref{ name }, $ip_v_to_check );
 
-		if ( not $interface
-			 or ( $interface->{ type } eq "bond" and not exists $interface->{ addr } ) )
+		if ( !$interface
+			 or ( $interface->{ type } eq "bond" and !exists $interface->{ addr } ) )
 		{
 			&deleteRoutesTable( $$if_ref{ name } );
 		}
@@ -389,6 +436,32 @@ sub delIf    # ($if_ref)
 	# delete graphs
 	require Zevenet::RRD;
 	&delGraph( $$if_ref{ name }, "iface" );
+
+	if ( $eload )
+	{
+		# delete alias
+		&eload(
+				module => 'Zevenet::Alias',
+				func   => 'delAlias',
+				args   => ['interface', $$if_ref{ name }]
+		);
+
+		#delete from RBAC
+		&eload(
+				module => 'Zevenet::RBAC::Group::Config',
+				func   => 'delRBACResource',
+				args   => [$$if_ref{ name }, 'interfaces'],
+		);
+
+		#reload netplug
+		if ( !defined ( $$if_ref{ vini } ) or $$if_ref{ vini } eq '' )
+		{
+			&eload( module => 'Zevenet::Net::Ext',
+					func   => 'reloadNetplug', );
+		}
+
+	}
+
 	return $status;
 }
 
@@ -412,11 +485,11 @@ See Also:
 # Execute command line to delete an IP from an interface
 sub delIp    # 	($if, $ip ,$netmask)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $if, $ip, $netmask ) = @_;
 
-	return 0 if ( not defined $ip or $ip eq '' );
+	return 0 if ( !defined $ip or $ip eq '' );
 
 	&zenlog( "Deleting ip $ip/$netmask from interface $if", "info", "NETWORK" );
 
@@ -455,13 +528,13 @@ sub isIp
 	# finish if the address is already assigned
 	my $routed_iface = $$if_ref{ dev };
 	$routed_iface .= ".$$if_ref{vlan}"
-	  if defined $$if_ref{ vlan } and $$if_ref{ vlan } ne '';
+	  if defined $$if_ref{ vlan } && $$if_ref{ vlan } ne '';
 
 	my @ip_output =
 	  @{ &logAndGet( "$ip_bin -$$if_ref{ip_v} addr show dev $routed_iface",
 					 "array" ) };
 
-	if ( grep { /$$if_ref{addr}\// } @ip_output )
+	if ( grep /$$if_ref{addr}\//, @ip_output )
 	{
 		&zenlog( "The IP '$$if_ref{addr}' already is applied in '$routed_iface'",
 				 "debug2", "NETWORK" );
@@ -489,7 +562,7 @@ See Also:
 # Execute command line to add an IPv4 to an Interface, Vlan or Vini
 sub addIp    # ($if_ref)
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my ( $if_ref ) = @_;
 	my $if_announce = "";
@@ -518,7 +591,7 @@ sub addIp    # ($if_ref)
 	my $broadcast_opt = ( $$if_ref{ ip_v } == 4 ) ? 'broadcast +' : '';
 
 	# $if is a Virtual Network Interface
-	if ( defined $$if_ref{ vini } and $$if_ref{ vini } ne '' )
+	if ( defined $$if_ref{ vini } && $$if_ref{ vini } ne '' )
 	{
 		my ( $toif ) = split ( ':', $$if_ref{ name } );
 
@@ -539,6 +612,25 @@ sub addIp    # ($if_ref)
 
 	#if arp_announce is enabled then send garps to network
 	eval {
+		if ( $eload )
+		{
+			my $cl_status = &eload(
+									module => 'Zevenet::Cluster',
+									func   => 'getZClusterNodeStatus',
+									args   => [],
+			);
+
+			if (    &getGlobalConfiguration( 'arp_announce' ) eq "true"
+				 && $cl_status ne "backup" )
+			{
+
+				require Zevenet::Net::Util;
+
+				#&sendGArp($$if_ref{parent},$$if_ref{addr})
+				&zenlog( "Announcing garp $if_announce and $$if_ref{addr} " );
+				&sendGArp( $if_announce, $$if_ref{ addr } );
+			}
+		}
 	};
 
 	&setRuleIPtoTable( $$if_ref{ name }, $$if_ref{ addr }, "add" );
@@ -564,12 +656,12 @@ Returns:
 
 sub setRuleIPtoTable
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 
 	my ( $iface, $ip, $action ) = @_;
 
-	return 0 if ( $ip eq '' or not defined ( $ip ) );
+	return 0 if ( $ip eq '' or !defined ( $ip ) );
 
 	my $prio = &getGlobalConfiguration( 'routingRulePrioIfacesDuplicated' );
 

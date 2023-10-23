@@ -42,24 +42,24 @@ Please, take into account these **requirements** before installing the load bala
 4. Configure the *apt* repositories in order to be able to install some dependencies.
 
 
-This git repository only contains the source code, the installable packages based in this code are updated in our RELIANOID APT repos, you can use them configuring your Debian Buster system as follows: 
+This git repository only contains the source code, the installable packages based in this code are updated in our RELIANOID APT repos, you can use them configuring your Debian Buster system as follows:
 
 ```
-root@noid-ce-01#> echo "deb http://repo.relianoid.com/ce/v5 buster main" >> /etc/apt/sources.list.d/zevenet.list
-root@noid-ce-01#> wget -O - http://repo.relianoid.com/zevenet.com.gpg.key | apt-key add -
+root@noid-ce-01# echo "deb http://repo.relianoid.com/ce/v5 buster main" >> /etc/apt/sources.list.d/zevenet.list
+root@noid-ce-01# wget -O - http://repo.relianoid.com/zevenet.com.gpg.key | apt-key add -
 ```
 Now, update the local APT database
 ```
-root@noid-ce-01#> apt-get update
+root@noid-ce-01# apt-get update
 ```
 And finally, install the RELIANOID CE
 ```
-root@noid-ce-01#> apt-get install zevenet
+root@noid-ce-01# apt-get install zevenet
 ```
 
 ## Updates
 
-Please use the RELIANOID APT repo in order to check if updates are available. 
+Please use the RELIANOID APT repo in order to check if updates are available.
 
 
 ## How to Contribute
@@ -103,16 +103,7 @@ Finally, just execute a `git push` and request a pull of your changes. In additi
 ### Creating & Updating Documentation or Translations
 In the official [GitHub wiki](https://github.com/relianoid) there is available a list of pages and it's translations. Please clone the wiki, apply your changes and request a pull in order to be applied.
 
-### Helping another Users
-The official distribution list could be accessed through the [zevenet-ce-users google group](https://groups.google.com/a/zevenet.com/group/zevenet-ce-users/).
-
-To post in this group, send email to [zevenet-ce-users@zevenet.com](mailto:zevenet-ce-users@zevenet.com).
-
-But **you need to request a join** first into the group by sending an email to [zevenet-ce-users+subscribe@zevenet.com](mailto:zevenet-ce-users+subscribe@zevenet.com).
-
-To unsubscribe from this group, send email to zevenet-ce-users+unsubscribe@zevenet.com
-
-For more options, visit https://groups.google.com/a/zevenet.com/d/optout
-
+### Community forum and support
+For RELIANOID community discussions, announcements and support there is a forum at [RELIANOID Community Support](https://www.relianoid.com/community/support/).
 
 ## [www.relianoid.com](https://www.relianoid.com)

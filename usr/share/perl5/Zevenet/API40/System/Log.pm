@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,26 +22,24 @@
 ###############################################################################
 
 use strict;
-use warnings;
 use Zevenet::System::Log;
 
 #	GET	/system/logs
 sub get_logs
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $desc = "Get logs";
 	my $logs = &getLogs();
 
 	&httpResponse(
 				   { code => 200, body => { description => $desc, params => $logs } } );
-	return;
 }
 
 #	GET	/system/logs/LOG
 sub download_logs
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $logFile = shift;
 
@@ -69,13 +67,12 @@ sub download_logs
 	my $logdir = &getGlobalConfiguration( 'logdir' );
 
 	&httpDownloadResponse( desc => $desc, dir => $logdir, file => $logFile );
-	return;
 }
 
 #	GET	/system/logs/LOG/lines/LINES
 sub show_logs
 {
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
+	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
 			 "debug", "PROFILING" );
 	my $logFile      = shift;
 	my $lines_number = shift;    # number of lines to show
@@ -104,7 +101,6 @@ sub show_logs
 	my $body = { description => $desc, log => $lines };
 
 	&httpResponse( { code => 200, body => $body } );
-	return;
 }
 
 1;

@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 ###############################################################################
 #
-#    ZEVENET Software License
-#    This file is part of the ZEVENET Load Balancer software package.
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
 #
-#    Copyright (C) 2014-today ZEVENET SL, Sevilla (Spain)
+#    Copyright (C) 2014-today RELIANOID
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,8 +22,8 @@
 ###############################################################################
 
 ##farmguardian 4.1
-#this script is a service that check all Backends or servers in a farm
-#using a script to monitor the status of backends.  If the execution script returns
+#this script is a service that check all Bakends or servers in a farm
+#using a script to monitorice the status of backends.  If the execution script return
 # <> 0 this script put in blacklist the backendserver. This script check
 #the timeout execution of a script
 #parameters:
@@ -50,6 +50,11 @@ my $configdir            = &getGlobalConfiguration( 'configdir' );
 my $libexec_dir          = &getGlobalConfiguration( 'libexec_dir' );
 my $fgmarkbin            = &getGlobalConfiguration( 'fgmark' );
 
+my $eload;
+if ( eval { require Zevenet::ELoad; } )
+{
+	$eload = 1;
+}
 
 # print usage help if no argument was given
 if ( not defined $ARGV[0] )
@@ -97,6 +102,10 @@ for ( my $it = 0 ; $it <= $#ARGV ; $it++ )
 	elsif ( $arg eq "-l" )
 	{
 		$logging = 'enabled';
+	}
+	elsif ( $arg eq "-a" and $eload )
+	{
+		$useAlias = 'true';
 	}
 	else
 	{
@@ -178,7 +187,6 @@ $type = 'http' if $type eq 'https';
 my $proxyctl;
 my $portadmin;
 my $usemark = 0;
-my $proxy_ng;
 
 if ( $type eq 'l4xnat' )
 {
@@ -194,7 +202,7 @@ elsif ( $type eq 'http' )
 	$proxyctl  = &getGlobalConfiguration( 'proxyctl' );
 	$portadmin = &getHTTPFarmSocket( $farmname );
 
-	$proxy_ng = &getGlobalConfiguration( 'proxy_ng' );
+	my $proxy_ng = &getGlobalConfiguration( 'proxy_ng' );
 	$usemark = $proxy_ng eq "true" ? 1 : 0;
 
 }
@@ -207,8 +215,8 @@ while ( 1 )
 {
 	my @backendid;
 	my @backendserv;
-	my @backendport;
 	my @backendip;
+	my @backendport;
 	my @backendstatus;
 	my @backendprio;
 	my @backendmark;
@@ -235,6 +243,7 @@ while ( 1 )
 			{
 				print "$msg\n";
 			}
+
 			exit 1;
 		}
 
@@ -535,11 +544,11 @@ while ( 1 )
 		}
 		### Disable backend
 		elsif (
-			 (
-			   ( ( $timedout == 1 or $errorcode != 0 ) and $backendstatus[$j] ne 'fgDOWN' )
-			   or $first_exec
-			 )
-			 or $http_prio_disable
+			  (
+				( ( $timedout == 1 or $errorcode != 0 ) and $backendstatus[$j] ne 'fgDOWN' )
+				or $first_exec
+			  )
+			  or $http_prio_disable
 		  )
 		{
 			if ( $logging eq 'enabled' )
@@ -614,11 +623,14 @@ sub printHelp
 	print
 	  "FarmGuardian v4.1. Check Backends Servers in a Farm and enable or disable the load balancing\n";
 	print "\thelp: farmguardian <farmname> [-s <service>] [-l]";
+	print " [-a]" if ( $eload );
 	print "\n";
 	print
 	  "\t\t-s <service>\t: Launch FarmGuardian for a certain HTTP/S farm service\n";
 	print "\t\t-l\t\t: Enable logs\n";
-	return;
+	print
+	  "\t\t-a\t\t: Use the backend alias to do the farmguardian check, the alias has to be resolved\n"
+	  if ( $eload );
 }
 
 sub getFGAlias
