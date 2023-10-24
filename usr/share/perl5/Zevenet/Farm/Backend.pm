@@ -26,9 +26,8 @@ use strict;
 use Zevenet::Farm::Backend::Maintenance;
 
 my $eload;
-if ( eval { require Zevenet::ELoad; } )
-{
-	$eload = 1;
+if (eval { require Zevenet::ELoad; }) {
+    $eload = 1;
 }
 
 =begin nd
@@ -47,66 +46,59 @@ Returns:
 
 =cut
 
-sub getFarmServerIds
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name, $service ) = @_;
-	my @servers   = ();
-	my $farm_type = &getFarmType( $farm_name );
+sub getFarmServerIds {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name, $service) = @_;
+    my @servers   = ();
+    my $farm_type = &getFarmType($farm_name);
 
-	if ( $farm_type =~ /http/ )
-	{
-		require Zevenet::Farm::HTTP::Service;
-		my $backendsvs = &getHTTPFarmVS( $farm_name, $service, "backends" );
-		@servers = split ( "\n", $backendsvs );
-		@servers = 0 .. $#servers if ( @servers );
-	}
-	elsif ( $farm_type eq "l4xnat" )
-	{
-		require Zevenet::Farm::L4xNAT::Backend;
-		@servers = @{ &getL4FarmServers( $farm_name ) };
-		@servers = 0 .. $#servers if ( @servers );
-	}
-	elsif ( $farm_type eq "datalink" )
-	{
-		my $configdir     = &getGlobalConfiguration( 'configdir' );
-		my $farm_filename = &getFarmFile( $farm_name );
-		open my $fh, '<', "$configdir/$farm_filename";
-		{
-			foreach my $line ( <$fh> )
-			{
-				push @servers, $line if ( $line =~ /^;server;/ );
-			}
-		}
-		close $fh;
-		@servers = 0 .. $#servers if ( @servers );
-	}
-	elsif ( $farm_type eq "gslb" && $eload )
-	{
-		my $backendsvs = &eload(
-								 module => 'Zevenet::Farm::GSLB::Service',
-								 func   => 'getGSLBFarmVS',
-								 args   => [$farm_name, $service, "backends"],
-		);
-		my @be = split ( "\n", $backendsvs );
-		my $id;
-		foreach my $b ( @be )
-		{
-			$b =~ s/^\s+//;
-			next if ( $b =~ /^$/ );
+    if ($farm_type =~ /http/) {
+        require Zevenet::Farm::HTTP::Service;
+        my $backendsvs = &getHTTPFarmVS($farm_name, $service, "backends");
+        @servers = split("\n", $backendsvs);
+        @servers = 0 .. $#servers if (@servers);
+    }
+    elsif ($farm_type eq "l4xnat") {
+        require Zevenet::Farm::L4xNAT::Backend;
+        @servers = @{ &getL4FarmServers($farm_name) };
+        @servers = 0 .. $#servers if (@servers);
+    }
+    elsif ($farm_type eq "datalink") {
+        my $configdir     = &getGlobalConfiguration('configdir');
+        my $farm_filename = &getFarmFile($farm_name);
+        open my $fh, '<', "$configdir/$farm_filename";
+        {
+            foreach my $line (<$fh>) {
+                push @servers, $line if ($line =~ /^;server;/);
+            }
+        }
+        close $fh;
+        @servers = 0 .. $#servers if (@servers);
+    }
+    elsif ($farm_type eq "gslb" && $eload) {
+        my $backendsvs = &eload(
+            module => 'Zevenet::Farm::GSLB::Service',
+            func   => 'getGSLBFarmVS',
+            args   => [ $farm_name, $service, "backends" ],
+        );
+        my @be = split("\n", $backendsvs);
+        my $id;
+        foreach my $b (@be) {
+            $b =~ s/^\s+//;
+            next if ($b =~ /^$/);
 
-			# ID and IP
-			my @subbe = split ( " => ", $b );
-			$id = $subbe[0];
-			$id =~ s/^primary$/1/;
-			$id =~ s/^secondary$/2/;
-			$id += 0;
-			push @servers, $id;
-		}
-	}
+            # ID and IP
+            my @subbe = split(" => ", $b);
+            $id = $subbe[0];
+            $id =~ s/^primary$/1/;
+            $id =~ s/^secondary$/2/;
+            $id += 0;
+            push @servers, $id;
+        }
+    }
 
-	return \@servers;
+    return \@servers;
 }
 
 =begin nd
@@ -128,38 +120,34 @@ FIXME:
 
 sub getFarmServers    # ($farm_name, $service)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name, $service ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name, $service) = @_;
 
-	my $farm_type = &getFarmType( $farm_name );
-	my $servers;
+    my $farm_type = &getFarmType($farm_name);
+    my $servers;
 
-	if ( $farm_type =~ /http/ )
-	{
-		require Zevenet::Farm::HTTP::Backend;
-		$servers = &getHTTPFarmBackends( $farm_name, $service );
-	}
-	elsif ( $farm_type eq "l4xnat" )
-	{
-		require Zevenet::Farm::L4xNAT::Backend;
-		$servers = &getL4FarmServers( $farm_name );
-	}
-	elsif ( $farm_type eq "datalink" )
-	{
-		require Zevenet::Farm::Datalink::Backend;
-		$servers = &getDatalinkFarmBackends( $farm_name );
-	}
-	elsif ( $farm_type eq "gslb" && $eload )
-	{
-		$servers = &eload(
-						   module => 'Zevenet::Farm::GSLB::Backend',
-						   func   => 'getGSLBFarmBackends',
-						   args   => [$farm_name, $service],
-		);
-	}
+    if ($farm_type =~ /http/) {
+        require Zevenet::Farm::HTTP::Backend;
+        $servers = &getHTTPFarmBackends($farm_name, $service);
+    }
+    elsif ($farm_type eq "l4xnat") {
+        require Zevenet::Farm::L4xNAT::Backend;
+        $servers = &getL4FarmServers($farm_name);
+    }
+    elsif ($farm_type eq "datalink") {
+        require Zevenet::Farm::Datalink::Backend;
+        $servers = &getDatalinkFarmBackends($farm_name);
+    }
+    elsif ($farm_type eq "gslb" && $eload) {
+        $servers = &eload(
+            module => 'Zevenet::Farm::GSLB::Backend',
+            func   => 'getGSLBFarmBackends',
+            args   => [ $farm_name, $service ],
+        );
+    }
 
-	return $servers;
+    return $servers;
 }
 
 =begin nd
@@ -179,27 +167,25 @@ Returns:
 
 sub getFarmServer    # ( $bcks_ref, $value, $param )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $bcks_ref = shift;
-	my $value    = shift;
-	my $param    = shift // "id";
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $bcks_ref = shift;
+    my $value    = shift;
+    my $param    = shift // "id";
 
-	foreach my $server ( @{ $bcks_ref } )
-	{
-		# preserve type param number
-		if ( $param eq "id" )
-		{
-			return $server if ( $server->{ $param } == $value );
-		}
-		else
-		{
-			return $server if ( $server->{ $param } eq "$value" );
-		}
-	}
+    foreach my $server (@{$bcks_ref}) {
 
-	# Error, not found so return undef
-	return undef;
+        # preserve type param number
+        if ($param eq "id") {
+            return $server if ($server->{$param} == $value);
+        }
+        else {
+            return $server if ($server->{$param} eq "$value");
+        }
+    }
+
+    # Error, not found so return undef
+    return undef;
 }
 
 =begin nd
@@ -221,59 +207,46 @@ Returns:
 
 sub setFarmServer    # $output ($farm_name,$service,$bk_id,$bk_params)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name, $service, $ids, $bk ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name, $service, $ids, $bk) = @_;
 
-	my $farm_type = &getFarmType( $farm_name );
-	my $output    = -1;
+    my $farm_type = &getFarmType($farm_name);
+    my $output    = -1;
 
-	&zenlog(
-		"setting 'Server $ids ip:$bk->{ip} port:$bk->{port} max:$bk->{max_conns} weight:$bk->{weight} prio:$bk->{priority} timeout:$bk->{timeout}' for $farm_name farm, $service service of type $farm_type",
-		"info", "FARMS"
-	);
+    &zenlog(
+"setting 'Server $ids ip:$bk->{ip} port:$bk->{port} max:$bk->{max_conns} weight:$bk->{weight} prio:$bk->{priority} timeout:$bk->{timeout}' for $farm_name farm, $service service of type $farm_type",
+        "info", "FARMS"
+    );
 
-	if ( $farm_type eq "datalink" )
-	{
-		require Zevenet::Farm::Datalink::Backend;
-		$output =
-		  &setDatalinkFarmServer( $ids,
-								  $bk->{ ip },
-								  $bk->{ interface },
-								  $bk->{ weight },
-								  $bk->{ priority }, $farm_name );
-	}
-	elsif ( $farm_type eq "l4xnat" )
-	{
-		require Zevenet::Farm::L4xNAT::Backend;
-		$output =
-		  &setL4FarmServer( $farm_name, $ids,
-							$bk->{ ip },
-							$bk->{ port }      // "",
-							$bk->{ weight }    // 1,
-							$bk->{ priority }  // 1,
-							$bk->{ max_conns } // 0 );
-	}
-	elsif ( $farm_type eq "http" || $farm_type eq "https" )
-	{
-		require Zevenet::Farm::HTTP::Backend;
-		$output =
-		  &setHTTPFarmServer(
-							  $ids,
-							  $bk->{ ip },
-							  $bk->{ port },
-							  $bk->{ weight },
-							  $bk->{ timeout },
-							  $farm_name,
-							  $service,
-							  $bk->{ priority },
-							  $bk->{ connection_limit }
-		  );
-	}
+    if ($farm_type eq "datalink") {
+        require Zevenet::Farm::Datalink::Backend;
+        $output =
+          &setDatalinkFarmServer($ids, $bk->{ip}, $bk->{interface},
+            $bk->{weight}, $bk->{priority}, $farm_name);
+    }
+    elsif ($farm_type eq "l4xnat") {
+        require Zevenet::Farm::L4xNAT::Backend;
+        $output = &setL4FarmServer(
+            $farm_name, $ids, $bk->{ip},
+            $bk->{port}      // "",
+            $bk->{weight}    // 1,
+            $bk->{priority}  // 1,
+            $bk->{max_conns} // 0
+        );
+    }
+    elsif ($farm_type eq "http" || $farm_type eq "https") {
+        require Zevenet::Farm::HTTP::Backend;
+        $output = &setHTTPFarmServer(
+            $ids,          $bk->{ip},       $bk->{port},
+            $bk->{weight}, $bk->{timeout},  $farm_name,
+            $service,      $bk->{priority}, $bk->{connection_limit}
+        );
+    }
 
-	# FIXME: include setGSLBFarmNewBackend
+    # FIXME: include setGSLBFarmNewBackend
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -293,41 +266,37 @@ Returns:
 
 sub runFarmServerDelete    # ($ids,$farm_name,$service)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $ids, $farm_name, $service ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($ids, $farm_name, $service) = @_;
 
-	my $farm_type = &getFarmType( $farm_name );
-	my $output    = -1;
+    my $farm_type = &getFarmType($farm_name);
+    my $output    = -1;
 
-	&zenlog( "running 'ServerDelete $ids' for $farm_name farm $farm_type",
-			 "info", "FARMS" );
+    &zenlog("running 'ServerDelete $ids' for $farm_name farm $farm_type",
+        "info", "FARMS");
 
-	if ( $farm_type eq "datalink" )
-	{
-		require Zevenet::Farm::Datalink::Backend;
-		$output = &runDatalinkFarmServerDelete( $ids, $farm_name );
-	}
-	elsif ( $farm_type eq "l4xnat" )
-	{
-		require Zevenet::Farm::L4xNAT::Backend;
-		$output = &runL4FarmServerDelete( $ids, $farm_name );
-	}
-	elsif ( $farm_type eq "http" || $farm_type eq "https" )
-	{
-		require Zevenet::Farm::HTTP::Backend;
-		$output = &runHTTPFarmServerDelete( $ids, $farm_name, $service );
-	}
-	elsif ( $farm_type eq "gslb" && $eload )
-	{
-		$output = &eload(
-						  module => 'Zevenet::Farm::GSLB::Backend',
-						  func   => 'runGSLBFarmServerDelete',
-						  args   => [$ids, $farm_name, $service],
-		);
-	}
+    if ($farm_type eq "datalink") {
+        require Zevenet::Farm::Datalink::Backend;
+        $output = &runDatalinkFarmServerDelete($ids, $farm_name);
+    }
+    elsif ($farm_type eq "l4xnat") {
+        require Zevenet::Farm::L4xNAT::Backend;
+        $output = &runL4FarmServerDelete($ids, $farm_name);
+    }
+    elsif ($farm_type eq "http" || $farm_type eq "https") {
+        require Zevenet::Farm::HTTP::Backend;
+        $output = &runHTTPFarmServerDelete($ids, $farm_name, $service);
+    }
+    elsif ($farm_type eq "gslb" && $eload) {
+        $output = &eload(
+            module => 'Zevenet::Farm::GSLB::Backend',
+            func   => 'runGSLBFarmServerDelete',
+            args   => [ $ids, $farm_name, $service ],
+        );
+    }
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -343,25 +312,22 @@ Returns:
 
 =cut
 
-sub getFarmBackendAvailableID
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $farmname = shift;
-	my $nbackends;
+sub getFarmBackendAvailableID {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $farmname = shift;
+    my $nbackends;
 
-	if ( &getFarmType( $farmname ) eq 'l4xnat' )
-	{
-		require Zevenet::Farm::L4xNAT::Backend;
-		$nbackends = &getL4FarmBackendAvailableID( $farmname );
-	}
-	else
-	{
-		my $backends = &getFarmServers( $farmname );
-		$nbackends = $#{ $backends } + 1;
-	}
+    if (&getFarmType($farmname) eq 'l4xnat') {
+        require Zevenet::Farm::L4xNAT::Backend;
+        $nbackends = &getL4FarmBackendAvailableID($farmname);
+    }
+    else {
+        my $backends = &getFarmServers($farmname);
+        $nbackends = $#{$backends} + 1;
+    }
 
-	return $nbackends;
+    return $nbackends;
 }
 
 =begin nd
@@ -380,36 +346,35 @@ Returns:
 
 =cut
 
-sub setBackendRule
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $action    = shift;
-	my $farm_ref  = shift;
-	my $mark      = shift;
-	my $farm_type = shift // getFarmType( $farm_ref->{ name } );
+sub setBackendRule {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $action    = shift;
+    my $farm_ref  = shift;
+    my $mark      = shift;
+    my $farm_type = shift // getFarmType($farm_ref->{name});
 
-	return -1
-	  if (    $action !~ /add|del/
-		   || !defined $farm_ref
-		   || $mark eq ""
-		   || $mark eq "0x0" );
+    return -1
+      if ( $action !~ /add|del/
+        || !defined $farm_ref
+        || $mark eq ""
+        || $mark eq "0x0");
 
-	require Zevenet::Net::Util;
-	require Zevenet::Net::Route;
+    require Zevenet::Net::Util;
+    require Zevenet::Net::Route;
 
-	my $vip_if_name = &getInterfaceOfIp( $farm_ref->{ vip } );
-	my $vip_if      = &getInterfaceConfig( $vip_if_name );
-	my $table_if =
-	  ( $vip_if->{ type } eq 'virtual' ) ? $vip_if->{ parent } : $vip_if->{ name };
+    my $vip_if_name = &getInterfaceOfIp($farm_ref->{vip});
+    my $vip_if      = &getInterfaceConfig($vip_if_name);
+    my $table_if =
+      ($vip_if->{type} eq 'virtual') ? $vip_if->{parent} : $vip_if->{name};
 
-	my $rule = {
-				 table  => "table_$table_if",
-				 type   => $farm_type,
-				 from   => 'all',
-				 fwmark => "$mark/0x7fffffff",
-	};
-	return &setRule( $action, $rule );
+    my $rule = {
+        table  => "table_$table_if",
+        type   => $farm_type,
+        from   => 'all',
+        fwmark => "$mark/0x7fffffff",
+    };
+    return &setRule($action, $rule);
 }
 
 =begin nd
@@ -436,68 +401,58 @@ Variable:
 		If not defined parameter $backend_ref->{ status} , "true" if the backend is used or available to be used, "false" if the backend will never be used.	
 =cut
 
-sub getPriorityAlgorithmStatus
-{
-	&zenlog( __FILE__ . q{:} . __LINE__ . q{:} . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $backends_ref, $bk_index ) = @_;
+sub getPriorityAlgorithmStatus {
+    &zenlog(__FILE__ . q{:} . __LINE__ . q{:} . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($backends_ref, $bk_index) = @_;
 
-	my $alg_status_ref;
-	my $sum_prio_ref;
-	foreach my $bk ( @{ $backends_ref } )
-	{
-		#determine number of backends down for each level of priority
-		if ( not defined $bk->{ status } or $bk->{ status } eq "down" )
-		{
-			$sum_prio_ref->{ $bk->{ priority } }++;
-		}
-	}
+    my $alg_status_ref;
+    my $sum_prio_ref;
+    foreach my $bk (@{$backends_ref}) {
 
-	#determine the lowest priority level where backends are being used
-	my $current_alg_prio = 1;
-	my $alg_prio         = 1;
-	while ( $current_alg_prio <= $alg_prio )
-	{
-		#when the level of priority matches the number of down backends, loop stops
-		#and $alg_prio indicates the lowest level of prio being used.
-		#else, keep increasing the level of priority checked in the next iteration.
-		if ( defined $sum_prio_ref->{ $current_alg_prio } )
-		{
-			$alg_prio += $sum_prio_ref->{ $current_alg_prio };
-		}
-		last if $alg_prio == $current_alg_prio;
-		$current_alg_prio++;
-	}
+        #determine number of backends down for each level of priority
+        if (not defined $bk->{status} or $bk->{status} eq "down") {
+            $sum_prio_ref->{ $bk->{priority} }++;
+        }
+    }
 
-	$alg_status_ref->{ priority } = $alg_prio;
-	$alg_status_ref->{ status }   = [];
+    #determine the lowest priority level where backends are being used
+    my $current_alg_prio = 1;
+    my $alg_prio         = 1;
+    while ($current_alg_prio <= $alg_prio) {
 
-	if ( defined $bk_index )
-	{
-		if ( @{ $backends_ref }[$bk_index]->{ priority } <= $alg_prio )
-		{
-			push @{ $alg_status_ref->{ status } }, "true";
-		}
-		else
-		{
-			push @{ $alg_status_ref->{ status } }, "false";
-		}
-	}
-	else
-	{
-		foreach my $bk ( @{ $backends_ref } )
-		{
-			if ( $bk->{ priority } <= $alg_prio )
-			{
-				push @{ $alg_status_ref->{ status } }, "true";
-			}
-			else
-			{
-				push @{ $alg_status_ref->{ status } }, "false";
-			}
-		}
-	}
-	return $alg_status_ref;
+     #when the level of priority matches the number of down backends, loop stops
+     #and $alg_prio indicates the lowest level of prio being used.
+     #else, keep increasing the level of priority checked in the next iteration.
+        if (defined $sum_prio_ref->{$current_alg_prio}) {
+            $alg_prio += $sum_prio_ref->{$current_alg_prio};
+        }
+        last if $alg_prio == $current_alg_prio;
+        $current_alg_prio++;
+    }
+
+    $alg_status_ref->{priority} = $alg_prio;
+    $alg_status_ref->{status}   = [];
+
+    if (defined $bk_index) {
+        if (@{$backends_ref}[$bk_index]->{priority} <= $alg_prio) {
+            push @{ $alg_status_ref->{status} }, "true";
+        }
+        else {
+            push @{ $alg_status_ref->{status} }, "false";
+        }
+    }
+    else {
+        foreach my $bk (@{$backends_ref}) {
+            if ($bk->{priority} <= $alg_prio) {
+                push @{ $alg_status_ref->{status} }, "true";
+            }
+            else {
+                push @{ $alg_status_ref->{status} }, "false";
+            }
+        }
+    }
+    return $alg_status_ref;
 }
 
 1;

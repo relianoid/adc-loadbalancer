@@ -30,7 +30,7 @@ use Zevenet::CGI;
 use Zevenet::API40::HTTP;
 use Zevenet::Zapi;
 
-&setZapiVersion( "4.0" );
+&setZapiVersion("4.0");
 
 my $q = &getCGI();
 
@@ -41,7 +41,7 @@ my $q = &getCGI();
 #
 #~ if ( debug() )
 #~ {
-&zenlog( "REQUEST: $ENV{REQUEST_METHOD} $ENV{SCRIPT_URL}" ) if &debug;
+&zenlog("REQUEST: $ENV{REQUEST_METHOD} $ENV{SCRIPT_URL}") if &debug;
 
 #~ &zenlog( ">>>>>> CGI REQUEST: <$ENV{REQUEST_METHOD} $ENV{SCRIPT_URL}> <<<<<<" ) if &debug;
 #~ &zenlog( "HTTP HEADERS: " . join ( ', ', $q->http() ) );
@@ -76,21 +76,21 @@ require Zevenet::Config;
 require Zevenet::Validate;
 
 #### OPTIONS requests ################################################
-require Zevenet::API40::Options if ( $ENV{ REQUEST_METHOD } eq 'OPTIONS' );
+require Zevenet::API40::Options if ($ENV{REQUEST_METHOD} eq 'OPTIONS');
 
 ##### Authentication #################################################
 require Zevenet::API40::Auth;
 require Zevenet::Zapi;
 
 # Session request
-require Zevenet::API40::Session if ( $q->path_info eq '/session' );
+require Zevenet::API40::Session if ($q->path_info eq '/session');
 
 # Verify authentication
-unless (    ( exists $ENV{ HTTP_ZAPI_KEY } && &validZapiKey() )
-		 or ( exists $ENV{ HTTP_COOKIE } && &validCGISession() ) )
+unless ((exists $ENV{HTTP_ZAPI_KEY} && &validZapiKey())
+    or (exists $ENV{HTTP_COOKIE} && &validCGISession()))
 {
-	&httpResponse(
-				   { code => 401, body => { message => 'Authorization required' } } );
+    &httpResponse(
+        { code => 401, body => { message => 'Authorization required' } });
 }
 
 ##### Load API routes ################################################
@@ -98,6 +98,6 @@ unless (    ( exists $ENV{ HTTP_ZAPI_KEY } && &validZapiKey() )
 require Zevenet::API40::Routes;
 
 my $desc = 'Request not found';
-my $req  = $ENV{ PATH_INFO };
+my $req  = $ENV{PATH_INFO};
 
-&httpErrorResponse( code => 404, desc => $desc, msg => "$desc: $req" );
+&httpErrorResponse(code => 404, desc => $desc, msg => "$desc: $req");

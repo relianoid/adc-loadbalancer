@@ -40,26 +40,24 @@ Returns:
 
 =cut
 
-sub getNetIpFormat
-{
-	my $ip  = shift;
-	my $bin = shift;
+sub getNetIpFormat {
+    my $ip  = shift;
+    my $bin = shift;
 
-	require Net::IPv6Addr;
-	my $x = Net::IPv6Addr->new( $ip );
+    require Net::IPv6Addr;
+    my $x = Net::IPv6Addr->new($ip);
 
-	if ( $bin eq 'netstat' )
-	{
-		return $x->to_string_compressed();
-	}
-	else
-	{
-		&zenlog(
-				 "The bin '$bin' is not recoignized. The ip '$ip' couldn't be converted",
-				 "error", "networking" );
-	}
+    if ($bin eq 'netstat') {
+        return $x->to_string_compressed();
+    }
+    else {
+        &zenlog(
+"The bin '$bin' is not recoignized. The ip '$ip' couldn't be converted",
+            "error", "networking"
+        );
+    }
 
-	return $ip;
+    return $ip;
 }
 
 =begin nd
@@ -78,64 +76,55 @@ Returns:
 		possible values are "udp", "tcp" or "sctp"
 =cut
 
-sub getProtoTransport
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $profile = shift;
+sub getProtoTransport {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $profile = shift;
 
-	my $proto = [];
-	my $all = ["tcp", "udp", "sctp"];
+    my $proto = [];
+    my $all   = [ "tcp", "udp", "sctp" ];
 
-	# profiles
-	if ( $profile eq "gslb" )
-	{
-		$proto = ["tcp", "udp"];
-	}
-	elsif ( $profile eq "l4xnat" )
-	{
-		$proto = ["tcp"];    # default protocol when a l4xnat farm is created
-	}
+    # profiles
+    if ($profile eq "gslb") {
+        $proto = [ "tcp", "udp" ];
+    }
+    elsif ($profile eq "l4xnat") {
+        $proto = ["tcp"];    # default protocol when a l4xnat farm is created
+    }
 
-	# protocols
-	elsif ( $profile =~ /^(?:tcp|udp|sctp)$/ )
-	{
-		$proto = [$profile];
-	}
+    # protocols
+    elsif ($profile =~ /^(?:tcp|udp|sctp)$/) {
+        $proto = [$profile];
+    }
 
-	# udp
-	elsif ( $profile =~ /^(?:amanda|tftp|netbios-ns|snmp)$/ )
-	{
-		$proto = ["udp"];
-	}
+    # udp
+    elsif ($profile =~ /^(?:amanda|tftp|netbios-ns|snmp)$/) {
+        $proto = ["udp"];
+    }
 
-	# tcp
-	elsif ( $profile =~ /^(?:ftp|irc|pptp|sane|https?)$/ )
-	{
-		$proto = ["tcp"];
-	}
+    # tcp
+    elsif ($profile =~ /^(?:ftp|irc|pptp|sane|https?)$/) {
+        $proto = ["tcp"];
+    }
 
-	# mix
-	elsif ( $profile eq "all" )
-	{
-		$proto = $all;
-	}
-	elsif ( $profile eq "sip" )
-	{
-		$proto = ["tcp", "udp"];
-	}
-	elsif ( $profile eq "h323" )
-	{
-		$proto = ["tcp", "udp"];
-	}
-	else
-	{
-		&zenlog(
-				 "The funct 'getProfileProto' does not understand the parameter '$profile'",
-				 "error", "networking" );
-	}
+    # mix
+    elsif ($profile eq "all") {
+        $proto = $all;
+    }
+    elsif ($profile eq "sip") {
+        $proto = [ "tcp", "udp" ];
+    }
+    elsif ($profile eq "h323") {
+        $proto = [ "tcp", "udp" ];
+    }
+    else {
+        &zenlog(
+"The funct 'getProfileProto' does not understand the parameter '$profile'",
+            "error", "networking"
+        );
+    }
 
-	return $proto;
+    return $proto;
 }
 
 =begin nd
@@ -160,54 +149,51 @@ Returns:
 	Integer - It returns 1 if the incoming info is valid, or 0 if there is another farm with that networking information
 =cut
 
-sub validatePortKernelSpace
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $ip, $port, $proto, $farmname ) = @_;
+sub validatePortKernelSpace {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($ip, $port, $proto, $farmname) = @_;
 
-	# get l4 farms
-	require Zevenet::Farm::Base;
-	require Zevenet::Arrays;
-	my @farm_list = &getFarmListByVip( $ip );
-	return 1 if !@farm_list;
+    # get l4 farms
+    require Zevenet::Farm::Base;
+    require Zevenet::Arrays;
+    my @farm_list = &getFarmListByVip($ip);
+    return 1 if !@farm_list;
 
-	@farm_list = grep ( !/^$farmname$/, @farm_list ) if defined $farmname;
-	return 1 if !@farm_list;
+    @farm_list = grep (!/^$farmname$/, @farm_list) if defined $farmname;
+    return 1                                       if !@farm_list;
 
-	# check intervals
-	my $port_list = &getMultiporExpanded( $port );
+    # check intervals
+    my $port_list = &getMultiporExpanded($port);
 
-	foreach my $farm ( @farm_list )
-	{
-		next if ( &getFarmType( $farm ) ne 'l4xnat' );
-		next if ( &getFarmStatus( $farm ) ne 'up' );
+    foreach my $farm (@farm_list) {
+        next if (&getFarmType($farm) ne 'l4xnat');
+        next if (&getFarmStatus($farm) ne 'up');
 
-		# check protocol collision
-		my $f_proto = &getProtoTransport( &getL4FarmParam( 'proto', $farm ) );
-		next if ( !&getArrayCollision( $proto, $f_proto ) );
+        # check protocol collision
+        my $f_proto = &getProtoTransport(&getL4FarmParam('proto', $farm));
+        next if (!&getArrayCollision($proto, $f_proto));
 
-		my $f_port = &getFarmVip( 'vipp', $farm );
+        my $f_port = &getFarmVip('vipp', $farm);
 
-		# check if farm is all ports
-		if ( $port eq '*' or $f_port eq '*' )
-		{
-			&zenlog( "Port collision with farm '$farm' for using all ports",
-					 "warning", "net" );
-			return 0;
-		}
+        # check if farm is all ports
+        if ($port eq '*' or $f_port eq '*') {
+            &zenlog("Port collision with farm '$farm' for using all ports",
+                "warning", "net");
+            return 0;
+        }
 
-		# check port collision
-		my $f_port_list = &getMultiporExpanded( $f_port );
-		my $col = &getArrayCollision( $f_port_list, $port_list );
-		if ( defined $col )
-		{
-			&zenlog( "Port collision ($col) with farm '$farm'", "warning", "net" );
-			return 0;
-		}
-	}
+        # check port collision
+        my $f_port_list = &getMultiporExpanded($f_port);
+        my $col         = &getArrayCollision($f_port_list, $port_list);
+        if (defined $col) {
+            &zenlog("Port collision ($col) with farm '$farm'", "warning",
+                "net");
+            return 0;
+        }
+    }
 
-	return 1;
+    return 1;
 }
 
 =begin nd
@@ -222,28 +208,23 @@ Returns:
 	Array ref - It is the list of ports used by the farm
 =cut
 
-sub getMultiporExpanded
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $port       = shift;
-	my @total_port = ();
-	if ( $port ne '*' )
-	{
-		foreach my $p ( split ( ',', $port ) )
-		{
-			my ( $init, $end ) = split ( ':', $p );
-			if ( defined $end )
-			{
-				push @total_port, ( $init .. $end );
-			}
-			else
-			{
-				push @total_port, $init;
-			}
-		}
-	}
-	return \@total_port;
+sub getMultiporExpanded {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $port       = shift;
+    my @total_port = ();
+    if ($port ne '*') {
+        foreach my $p (split(',', $port)) {
+            my ($init, $end) = split(':', $p);
+            if (defined $end) {
+                push @total_port, ($init .. $end);
+            }
+            else {
+                push @total_port, $init;
+            }
+        }
+    }
+    return \@total_port;
 }
 
 =begin nd
@@ -259,24 +240,21 @@ Returns:
 	String - Regular expression
 =cut
 
-sub getMultiportRegex
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $port = shift;
-	my $reg  = $port;
+sub getMultiportRegex {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $port = shift;
+    my $reg  = $port;
 
-	if ( $port eq '*' )
-	{
-		$reg = '\d+';
-	}
-	elsif ( $port =~ /[:,]/ )
-	{
-		my $total_port = &getMultiporExpanded( $port );
-		$reg = '(?:' . join ( '|', @{ $total_port } ) . ')';
-	}
+    if ($port eq '*') {
+        $reg = '\d+';
+    }
+    elsif ($port =~ /[:,]/) {
+        my $total_port = &getMultiporExpanded($port);
+        $reg = '(?:' . join('|', @{$total_port}) . ')';
+    }
 
-	return $reg;
+    return $reg;
 }
 
 =begin nd
@@ -296,95 +274,92 @@ Returns:
 
 =cut
 
-sub validatePortUserSpace
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $ip, $port, $proto, $farmname, $process ) = @_;
+sub validatePortUserSpace {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($ip, $port, $proto, $farmname, $process) = @_;
 
-	my $override;
+    my $override;
 
-	# skip if the running farm is itself
-	if ( defined $farmname )
-	{
-		require Zevenet::Farm::Base;
+    # skip if the running farm is itself
+    if (defined $farmname) {
+        require Zevenet::Farm::Base;
 
-		my $type = &getFarmType( $farmname );
-		if ( $type =~ /http|gslb/ )
-		{
-			my $cur_vip  = &getFarmVip( 'vip',  $farmname );
-			my $cur_port = &getFarmVip( 'vipp', $farmname );
+        my $type = &getFarmType($farmname);
+        if ($type =~ /http|gslb/) {
+            my $cur_vip  = &getFarmVip('vip',  $farmname);
+            my $cur_port = &getFarmVip('vipp', $farmname);
 
-			if (     &getFarmStatus( $farmname ) eq 'up'
-				 and $cur_vip eq $ip
-				 and $cur_port eq $port )
-			{
-				&zenlog( "The networking configuration matches with the own farm",
-						 "debug", "networking" );
-				return 1;
-			}
-		}
-		elsif ( $type eq "l4xnat" )
-		{
-			$override = 1;
-		}
-	}
+            if (    &getFarmStatus($farmname) eq 'up'
+                and $cur_vip eq $ip
+                and $cur_port eq $port)
+            {
+                &zenlog(
+                    "The networking configuration matches with the own farm",
+                    "debug", "networking");
+                return 1;
+            }
+        }
+        elsif ($type eq "l4xnat") {
+            $override = 1;
+        }
+    }
 
-	my $netstat = &getGlobalConfiguration( 'netstat_bin' );
+    my $netstat = &getGlobalConfiguration('netstat_bin');
 
-	my $f_ipversion = ( &ipversion( $ip ) == 6 ) ? "6" : "4";
-	$ip = &getNetIpFormat( $ip, 'netstat' ) if ( $f_ipversion eq '6' );
+    my $f_ipversion = (&ipversion($ip) == 6) ? "6" : "4";
+    $ip = &getNetIpFormat($ip, 'netstat') if ($f_ipversion eq '6');
 
-	my $f       = "lpnW";
-	my $f_proto = "";
+    my $f       = "lpnW";
+    my $f_proto = "";
 
-	foreach my $p ( @{ $proto } )
-	{
-		# it is not supported in the system
-		if   ( $p eq 'sctp' ) { next; }
-		else                  { $f_proto .= "--$p "; }
-	}
+    foreach my $p (@{$proto}) {
 
-	my $cmd = "$netstat -$f_ipversion -${f} ${f_proto} ";
-	my @out = @{ &logAndGet( $cmd, 'array' ) };
-	shift @out;
-	shift @out;
+        # it is not supported in the system
+        if   ($p eq 'sctp') { next; }
+        else                { $f_proto .= "--$p "; }
+    }
 
-	if ( defined $process )
-	{
-		my $filter = '^\s*(?:[^\s]+\s+){5,6}\d+\/' . $process;
-		@out = grep ( !/$filter/, @out );
-		return 1 if ( !@out );
-	}
+    my $cmd = "$netstat -$f_ipversion -${f} ${f_proto} ";
+    my @out = @{ &logAndGet($cmd, 'array') };
+    shift @out;
+    shift @out;
 
-	# This code was modified for a bugfix. There was a issue when a l4 farm
-	# is set and some management interface is set to use all the interfaces
-	# my $ip_reg = ( $ip eq '0.0.0.0' ) ? '[^\s]+' : "(?:0.0.0.0|::1|$ip)";
+    if (defined $process) {
+        my $filter = '^\s*(?:[^\s]+\s+){5,6}\d+\/' . $process;
+        @out = grep (!/$filter/, @out);
+        return 1 if (!@out);
+    }
 
-	my $ip_reg;
-	if ( defined $override and $override )
-	{
-		# L4xnat overrides the user space daemons that are listening on all interfaces
-		$ip_reg = ( $ip eq '0.0.0.0' ) ? '[^\s]+' : "(?:$ip)";
-	}
-	else
-	{
-		# L4xnat farms does not override the user space daemons
-		$ip_reg = ( $ip eq '0.0.0.0' ) ? '[^\s]+' : "(?:0.0.0.0|::1|$ip)";
-	}
+    # This code was modified for a bugfix. There was a issue when a l4 farm
+    # is set and some management interface is set to use all the interfaces
+    # my $ip_reg = ( $ip eq '0.0.0.0' ) ? '[^\s]+' : "(?:0.0.0.0|::1|$ip)";
 
-	my $port_reg = &getMultiportRegex( $port );
+    my $ip_reg;
+    if (defined $override and $override) {
 
-	my $filter = '^\s*(?:[^\s]+\s+){3,3}' . $ip_reg . ':' . $port_reg . '\s';
-	@out = grep ( /$filter/, @out );
-	if ( @out )
-	{
-		&zenlog( "The ip '$ip' and the port '$port' are being used for some process",
-				 "warning", "networking" );
-		return 0;
-	}
+  # L4xnat overrides the user space daemons that are listening on all interfaces
+        $ip_reg = ($ip eq '0.0.0.0') ? '[^\s]+' : "(?:$ip)";
+    }
+    else {
 
-	return 1;
+        # L4xnat farms does not override the user space daemons
+        $ip_reg = ($ip eq '0.0.0.0') ? '[^\s]+' : "(?:0.0.0.0|::1|$ip)";
+    }
+
+    my $port_reg = &getMultiportRegex($port);
+
+    my $filter = '^\s*(?:[^\s]+\s+){3,3}' . $ip_reg . ':' . $port_reg . '\s';
+    @out = grep (/$filter/, @out);
+    if (@out) {
+        &zenlog(
+            "The ip '$ip' and the port '$port' are being used for some process",
+            "warning", "networking"
+        );
+        return 0;
+    }
+
+    return 1;
 }
 
 =begin nd
@@ -415,41 +390,38 @@ See Also:
 
 =cut
 
-sub validatePort
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $ip, $port, $proto, $farmname, $process ) = @_;
+sub validatePort {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($ip, $port, $proto, $farmname, $process) = @_;
 
-	# validate inputs
-	$ip = '0.0.0.0' if $ip eq '*';
-	if ( !defined $proto and !defined $farmname )
-	{
-		&zenlog(
-			  "Check port needs the protocol to validate the ip '$ip' and the port '$port'",
-			  "error", "networking" );
-		return 0;
-	}
+    # validate inputs
+    $ip = '0.0.0.0' if $ip eq '*';
+    if (!defined $proto and !defined $farmname) {
+        &zenlog(
+"Check port needs the protocol to validate the ip '$ip' and the port '$port'",
+            "error", "networking"
+        );
+        return 0;
+    }
 
-	if ( !defined $proto )
-	{
-		$proto = &getFarmType( $farmname );
-		if ( $proto eq 'l4xnat' )
-		{
-			require Zevenet::Farm::L4xNAT::Config;
-			$proto = &getL4FarmParam( 'proto', $farmname );
-		}
-	}
-	$proto = &getProtoTransport( $proto );
+    if (!defined $proto) {
+        $proto = &getFarmType($farmname);
+        if ($proto eq 'l4xnat') {
+            require Zevenet::Farm::L4xNAT::Config;
+            $proto = &getL4FarmParam('proto', $farmname);
+        }
+    }
+    $proto = &getProtoTransport($proto);
 
-	return 0
-	  if ( !&validatePortUserSpace( $ip, $port, $proto, $farmname, $process ) );
+    return 0
+      if (!&validatePortUserSpace($ip, $port, $proto, $farmname, $process));
 
-	return 0 if ( !&validatePortKernelSpace( $ip, $port, $proto, $farmname ) );
+    return 0 if (!&validatePortKernelSpace($ip, $port, $proto, $farmname));
 
-	# TODO: add check for avoiding collision with datalink VIPs
+    # TODO: add check for avoiding collision with datalink VIPs
 
-	return 1;
+    return 1;
 }
 
 =begin nd
@@ -467,32 +439,28 @@ Returns:
 
 sub ipisok    # ($checkip, $version)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $checkip = shift;
-	my $version = shift;
-	my $return  = "false";
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $checkip = shift;
+    my $version = shift;
+    my $return  = "false";
 
-	require Data::Validate::IP;
-	Data::Validate::IP->import();
+    require Data::Validate::IP;
+    Data::Validate::IP->import();
 
-	if ( !$version || $version != 6 )
-	{
-		if ( is_ipv4( $checkip ) )
-		{
-			$return = "true";
-		}
-	}
+    if (!$version || $version != 6) {
+        if (is_ipv4($checkip)) {
+            $return = "true";
+        }
+    }
 
-	if ( !$version || $version != 4 )
-	{
-		if ( is_ipv6( $checkip ) )
-		{
-			$return = "true";
-		}
-	}
+    if (!$version || $version != 4) {
+        if (is_ipv6($checkip)) {
+            $return = "true";
+        }
+    }
 
-	return $return;
+    return $return;
 }
 
 =begin nd
@@ -508,14 +476,13 @@ Returns:
 
 =cut
 
-sub validIpAndNet
-{
-	my $ip = shift;
+sub validIpAndNet {
+    my $ip = shift;
 
-	use NetAddr::IP;
-	my $out = new NetAddr::IP( $ip );
+    use NetAddr::IP;
+    my $out = new NetAddr::IP($ip);
 
-	return ( defined $out ) ? 1 : 0;
+    return (defined $out) ? 1 : 0;
 }
 
 =begin nd
@@ -533,28 +500,25 @@ Returns:
 
 sub ipversion    # ($checkip)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $checkip = shift;
-	my $output  = "-";
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $checkip = shift;
+    my $output  = "-";
 
-	require Data::Validate::IP;
-	Data::Validate::IP->import();
+    require Data::Validate::IP;
+    Data::Validate::IP->import();
 
-	if ( is_ipv4( $checkip ) )
-	{
-		$output = 4;
-	}
-	elsif ( is_ipv6( $checkip ) )
-	{
-		$output = 6;
-	}
-	else
-	{
-		$output = 0;
-	}
+    if (is_ipv4($checkip)) {
+        $output = 4;
+    }
+    elsif (is_ipv6($checkip)) {
+        $output = 6;
+    }
+    else {
+        $output = 0;
+    }
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -577,18 +541,18 @@ Returns:
 
 sub validateGateway    # ($ip, $mask, $ip2)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $ip, $mask, $ip2 ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($ip, $mask, $ip2) = @_;
 
-	require NetAddr::IP;
+    require NetAddr::IP;
 
-	my $addr1 = NetAddr::IP->new( $ip,  $mask );
-	my $addr2 = NetAddr::IP->new( $ip2, $mask );
+    my $addr1 = NetAddr::IP->new($ip,  $mask);
+    my $addr2 = NetAddr::IP->new($ip2, $mask);
 
-	return (    defined $addr1
-			 && defined $addr2
-			 && ( $addr1->network() eq $addr2->network() ) ) ? 1 : 0;
+    return ( defined $addr1
+          && defined $addr2
+          && ($addr1->network() eq $addr2->network())) ? 1 : 0;
 }
 
 =begin nd
@@ -612,38 +576,36 @@ Bugs:
 
 sub ifexist    # ($nif)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $nif = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $nif = shift;
 
-	use IO::Interface qw(:flags);    # Needs to load with 'use'
+    use IO::Interface qw(:flags);    # Needs to load with 'use'
 
-	require IO::Socket;
-	require Zevenet::Net::Interface;
+    require IO::Socket;
+    require Zevenet::Net::Interface;
 
-	my $s          = IO::Socket::INET->new( Proto => 'udp' );
-	my @interfaces = &getInterfaceList();
-	my $configdir  = &getGlobalConfiguration( 'configdir' );
-	my $status;
+    my $s          = IO::Socket::INET->new(Proto => 'udp');
+    my @interfaces = &getInterfaceList();
+    my $configdir  = &getGlobalConfiguration('configdir');
+    my $status;
 
-	for my $if ( @interfaces )
-	{
-		next if $if ne $nif;
+    for my $if (@interfaces) {
+        next if $if ne $nif;
 
-		my $flags = $s->if_flags( $if );
+        my $flags = $s->if_flags($if);
 
-		if   ( $flags & IFF_RUNNING ) { $status = "up"; }
-		else                          { $status = "down"; }
+        if   ($flags & IFF_RUNNING) { $status = "up"; }
+        else                        { $status = "down"; }
 
-		if ( $status eq "up" || -e "$configdir/if_$nif\_conf" )
-		{
-			return "true";
-		}
+        if ($status eq "up" || -e "$configdir/if_$nif\_conf") {
+            return "true";
+        }
 
-		return "created";
-	}
+        return "created";
+    }
 
-	return "false";
+    return "false";
 }
 
 =begin nd
@@ -664,59 +626,54 @@ Returns:
 	v3.2/interface/vlan, v3.2/interface/nic, v3.2/interface/bonding
 =cut
 
-sub checkNetworkExists
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $net, $mask, $exception, $duplicated ) = @_;
+sub checkNetworkExists {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($net, $mask, $exception, $duplicated) = @_;
 
-	#if duplicated network is allowed then don't check if network exists.
-	if ( defined $duplicated )
-	{
-		return "" if $duplicated eq "true";
-	}
-	else
-	{
-		require Zevenet::Config;
-		return "" if ( &getGlobalConfiguration( "duplicated_net" ) eq "true" );
-	}
+    #if duplicated network is allowed then don't check if network exists.
+    if (defined $duplicated) {
+        return "" if $duplicated eq "true";
+    }
+    else {
+        require Zevenet::Config;
+        return "" if (&getGlobalConfiguration("duplicated_net") eq "true");
+    }
 
-	require Zevenet::Net::Interface;
-	require NetAddr::IP;
+    require Zevenet::Net::Interface;
+    require NetAddr::IP;
 
-	my $net1 = NetAddr::IP->new( $net, $mask );
-	my @interfaces;
+    my $net1 = NetAddr::IP->new($net, $mask);
+    my @interfaces;
 
-	my @system_interfaces = &getInterfaceList();
-	my $params = ["name", "addr", "mask"];
-	foreach my $if_name ( @system_interfaces )
-	{
-		next if ( &getInterfaceType( $if_name ) !~ /^(?:nic|bond|vlan|gre)$/ );
-		my $output_if = &getInterfaceConfigParam( $if_name, $params );
-		$output_if = &getSystemInterface( $if_name ) if ( !$output_if );
-		push ( @interfaces, $output_if );
-	}
+    my @system_interfaces = &getInterfaceList();
+    my $params            = [ "name", "addr", "mask" ];
+    foreach my $if_name (@system_interfaces) {
+        next if (&getInterfaceType($if_name) !~ /^(?:nic|bond|vlan|gre)$/);
+        my $output_if = &getInterfaceConfigParam($if_name, $params);
+        $output_if = &getSystemInterface($if_name) if (!$output_if);
+        push(@interfaces, $output_if);
+    }
 
-	my $found = 0;
-	foreach my $if_ref ( @interfaces )
-	{
-		# if it is the same net pass
-		next if defined $exception and $if_ref->{ name } eq $exception;
-		next if !$if_ref->{ addr };
+    my $found = 0;
+    foreach my $if_ref (@interfaces) {
 
-		# found
-		my $net2 = NetAddr::IP->new( $if_ref->{ addr }, $if_ref->{ mask } );
+        # if it is the same net pass
+        next if defined $exception and $if_ref->{name} eq $exception;
+        next if !$if_ref->{addr};
 
-		eval {
-			if ( $net1->contains( $net2 ) or $net2->contains( $net1 ) )
-			{
-				$found = 1;
-			}
-		};
-		return $if_ref->{ name } if ( $found );
-	}
+        # found
+        my $net2 = NetAddr::IP->new($if_ref->{addr}, $if_ref->{mask});
 
-	return "";
+        eval {
+            if ($net1->contains($net2) or $net2->contains($net1)) {
+                $found = 1;
+            }
+        };
+        return $if_ref->{name} if ($found);
+    }
+
+    return "";
 }
 
 =begin nd
@@ -732,34 +689,29 @@ Returns:
 	v3.2/interface/vlan, v3.2/interface/nic, v3.2/interface/bonding
 =cut
 
-sub checkDuplicateNetworkExists
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+sub checkDuplicateNetworkExists {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	#if duplicated network is not allowed then don't check if network exists.
-	require Zevenet::Config;
-	return "" if ( &getGlobalConfiguration( "duplicated_net" ) eq "false" );
+    #if duplicated network is not allowed then don't check if network exists.
+    require Zevenet::Config;
+    return "" if (&getGlobalConfiguration("duplicated_net") eq "false");
 
-	require Zevenet::Net::Interface;
-	require NetAddr::IP;
+    require Zevenet::Net::Interface;
+    require NetAddr::IP;
 
-	my @interfaces = &getInterfaceTypeList( 'nic' );
-	push @interfaces, &getInterfaceTypeList( 'bond' );
-	push @interfaces, &getInterfaceTypeList( 'vlan' );
+    my @interfaces = &getInterfaceTypeList('nic');
+    push @interfaces, &getInterfaceTypeList('bond');
+    push @interfaces, &getInterfaceTypeList('vlan');
 
-	foreach my $if_ref ( @interfaces )
-	{
-		my $iface = &checkNetworkExists(
-										 $if_ref->{ addr },
-										 $if_ref->{ mask },
-										 $if_ref->{ name },
-										 "false"
-		);
-		return $iface if ( $iface ne "" );
-	}
+    foreach my $if_ref (@interfaces) {
+        my $iface =
+          &checkNetworkExists($if_ref->{addr}, $if_ref->{mask}, $if_ref->{name},
+            "false");
+        return $iface if ($iface ne "");
+    }
 
-	return "";
+    return "";
 }
 
 =begin nd
@@ -776,23 +728,21 @@ Returns:
 
 =cut
 
-sub validBackendStack
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $be_aref, $ip ) = @_;
-	my $ip_stack     = &ipversion( $ip );
-	my $ipv_mismatch = 0;
+sub validBackendStack {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($be_aref, $ip) = @_;
+    my $ip_stack     = &ipversion($ip);
+    my $ipv_mismatch = 0;
 
-	# check every backend ip version
-	foreach my $be ( @{ $be_aref } )
-	{
-		my $current_stack = &ipversion( $be->{ ip } );
-		$ipv_mismatch = $current_stack ne $ip_stack;
-		last if $ipv_mismatch;
-	}
+    # check every backend ip version
+    foreach my $be (@{$be_aref}) {
+        my $current_stack = &ipversion($be->{ip});
+        $ipv_mismatch = $current_stack ne $ip_stack;
+        last if $ipv_mismatch;
+    }
 
-	return ( !$ipv_mismatch );
+    return (!$ipv_mismatch);
 }
 
 =begin nd
@@ -810,32 +760,27 @@ Returns:
 
 =cut
 
-sub validateNetmask
-{
-	my $mask      = shift;
-	my $ipversion = shift // 0;
-	my $success   = 0;
-	my $ip        = "127.0.0.1";
+sub validateNetmask {
+    my $mask      = shift;
+    my $ipversion = shift // 0;
+    my $success   = 0;
+    my $ip        = "127.0.0.1";
 
-	if ( $ipversion == 0 or $ipversion == 6 )
-	{
-		return 1 if ( $mask =~ /^\d+$/ and $mask <= 64 );
-	}
-	if ( $ipversion == 0 or $ipversion == 4 )
-	{
-		if ( $mask =~ /^\d+$/ )
-		{
-			$success = 1 if $mask <= 32;
-		}
-		else
-		{
-			require Net::Netmask;
-			my $block = Net::Netmask->new( $ip, $mask );
-			$success = ( !exists $block->{ 'ERROR' } );
-		}
-	}
+    if ($ipversion == 0 or $ipversion == 6) {
+        return 1 if ($mask =~ /^\d+$/ and $mask <= 64);
+    }
+    if ($ipversion == 0 or $ipversion == 4) {
+        if ($mask =~ /^\d+$/) {
+            $success = 1 if $mask <= 32;
+        }
+        else {
+            require Net::Netmask;
+            my $block = Net::Netmask->new($ip, $mask);
+            $success = (!exists $block->{'ERROR'});
+        }
+    }
 
-	return $success;
+    return $success;
 }
 
 1;

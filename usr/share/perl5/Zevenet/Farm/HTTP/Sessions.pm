@@ -58,82 +58,78 @@ Returns:
 
 =cut
 
-sub listL7FarmSessions
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+sub listL7FarmSessions {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my $farmname = shift;
-	my $service  = shift;
+    my $farmname = shift;
+    my $service  = shift;
 
-	require Zevenet::Farm::HTTP::Action;
-	require Zevenet::Farm::HTTP::Service;
-	require Zevenet::Farm::Core;
-	require Zevenet::Farm::Config;
-	use POSIX 'floor';
+    require Zevenet::Farm::HTTP::Action;
+    require Zevenet::Farm::HTTP::Service;
+    require Zevenet::Farm::Core;
+    require Zevenet::Farm::Config;
+    use POSIX 'floor';
 
-	my $service_id = &getHTTPServiceId( $farmname, $service );
+    my $service_id = &getHTTPServiceId($farmname, $service);
 
-	my $output;
+    my $output;
 
-	my $farm_st = &getFarmStruct( $farmname );
+    my $farm_st = &getFarmStruct($farmname);
 
-	if ( $farm_st->{ status } eq 'down' )
-	{
-		my $static_sessions = &listConfL7FarmSessions( $farmname, $service );
-		return 1 if ( $static_sessions eq 1 );
+    if ($farm_st->{status} eq 'down') {
+        my $static_sessions = &listConfL7FarmSessions($farmname, $service);
+        return 1 if ($static_sessions eq 1);
 
-		my @array;
-		foreach my $session ( @$static_sessions )
-		{
-			push (
-				   @array,
-				   {
-					  id           => $session->{ client },
-					  'backend-id' => $session->{ backend },
-					  'last-seen'  => 0
-				   }
-			);
-		}
-		$output->{ sessions } = \@array;
-	}
-	else
-	{
-		$output = &sendL7ZproxyCmd(
-									{
-									  farm   => $farmname,
-									  uri    => "listener/0/services/$service_id/sessions",
-									  method => "GET",
-									}
-		);
-	}
+        my @array;
+        foreach my $session (@$static_sessions) {
+            push(
+                @array,
+                {
+                    id           => $session->{client},
+                    'backend-id' => $session->{backend},
+                    'last-seen'  => 0
+                }
+            );
+        }
+        $output->{sessions} = \@array;
+    }
+    else {
+        $output = &sendL7ZproxyCmd(
+            {
+                farm   => $farmname,
+                uri    => "listener/0/services/$service_id/sessions",
+                method => "GET",
+            }
+        );
+    }
 
-	return $output if ( $output eq 1 );
+    return $output if ($output eq 1);
 
-	my @result;
+    my @result;
 
-	my $ttl = &getHTTPServiceStruct( $farmname, $service )->{ ttl };
-	my $time = time ();
-	foreach my $ss ( @{ $output->{ sessions } } )
-	{
-		my $min_rem =
-		  floor( ( $ttl - ( $time - $ss->{ 'last-seen' } ) ) / 60 );
-		my $sec_rem =
-		  floor( ( $ttl - ( $time - $ss->{ 'last-seen' } ) ) % 60 );
+    my $ttl  = &getHTTPServiceStruct($farmname, $service)->{ttl};
+    my $time = time();
+    foreach my $ss (@{ $output->{sessions} }) {
+        my $min_rem =
+          floor(($ttl - ($time - $ss->{'last-seen'})) / 60);
+        my $sec_rem =
+          floor(($ttl - ($time - $ss->{'last-seen'})) % 60);
 
-		my $type = $ss->{ 'last-seen' } eq 0 ? 'static' : 'dynamic';
-		my $ttl = $type eq 'static' ? undef : $min_rem . 'm' . $sec_rem . 's' . '0ms';
+        my $type = $ss->{'last-seen'} eq 0 ? 'static' : 'dynamic';
+        my $ttl =
+          $type eq 'static' ? undef : $min_rem . 'm' . $sec_rem . 's' . '0ms';
 
-		my $sessionHash = {
-							session => $ss->{ id },
-							id      => $ss->{ 'backend-id' },
-							type    => $type,
-							service => $service,
-							ttl     => $ttl,
-		};
-		push ( @result, $sessionHash );
-	}
-	return \@result;
+        my $sessionHash = {
+            session => $ss->{id},
+            id      => $ss->{'backend-id'},
+            type    => $type,
+            service => $service,
+            ttl     => $ttl,
+        };
+        push(@result, $sessionHash);
+    }
+    return \@result;
 
 }
 
@@ -150,15 +146,14 @@ Returns:
 
 =cut
 
-sub getSessionsFileName
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $farm = shift;
+sub getSessionsFileName {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $farm = shift;
 
-	my $configdir = &getGlobalConfiguration( "configdir" );
+    my $configdir = &getGlobalConfiguration("configdir");
 
-	return "$configdir\/$farm\_sessions.cfg";
+    return "$configdir\/$farm\_sessions.cfg";
 }
 
 =begin nd
@@ -185,38 +180,36 @@ Returns:
 		]
 =cut
 
-sub listConfL7FarmSessions
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+sub listConfL7FarmSessions {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my ( $farmname, $servicename, $backendId ) = @_;
+    my ($farmname, $servicename, $backendId) = @_;
 
-	my $filepath = &getSessionsFileName( $farmname );
+    my $filepath = &getSessionsFileName($farmname);
 
-	unless ( $filepath && -e $filepath )
-	{
-		&zenlog( "$farmname" . "_sessions.cfg configuration file not found",
-				 "error", "HTTP" );
-		return 1;
-	}
+    unless ($filepath && -e $filepath) {
+        &zenlog("$farmname" . "_sessions.cfg configuration file not found",
+            "error", "HTTP");
+        return 1;
+    }
 
-	tie my @file, 'Tie::File', $filepath;
+    tie my @file, 'Tie::File', $filepath;
 
-	my @output = ();
+    my @output = ();
 
-	foreach my $line ( @file )
-	{
-		my ( $service, $backend, $client ) = split ( /\s+/, $line );
-		next if ( $servicename && $servicename ne "" && $service ne $servicename );
-		next if ( $backendId   && $backendId ne ""   && $backendId ne $backend );
-		push ( @output,
-			   { service => $service, backend => $backend, client => $client } );
-	}
+    foreach my $line (@file) {
+        my ($service, $backend, $client) = split(/\s+/, $line);
+        next
+          if ($servicename && $servicename ne "" && $service ne $servicename);
+        next if ($backendId && $backendId ne "" && $backendId ne $backend);
+        push(@output,
+            { service => $service, backend => $backend, client => $client });
+    }
 
-	untie @file;
+    untie @file;
 
-	return \@output;
+    return \@output;
 }
 
 =begin nd
@@ -234,42 +227,38 @@ Returns:
 
 =cut
 
-sub addConfL7FarmSession
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+sub addConfL7FarmSession {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my $farmname = shift;
-	my $service  = shift;
-	my $backend  = shift;
-	my $client   = shift;
+    my $farmname = shift;
+    my $service  = shift;
+    my $backend  = shift;
+    my $client   = shift;
 
-	my $filepath = &getSessionsFileName( $farmname );
+    my $filepath = &getSessionsFileName($farmname);
 
-	unless ( $filepath && -e $filepath )
-	{
-		open my $fh, ">", $filepath;
-		close $fh;
-	}
+    unless ($filepath && -e $filepath) {
+        open my $fh, ">", $filepath;
+        close $fh;
+    }
 
-	tie my @file, 'Tie::File', $filepath;
-	foreach my $line ( @file )
-	{
-		if ( $line =~ /$service\s+$backend\s+$client/ )
-		{
-			&zenlog(
-				"A configuration line for the session $service $backend $client already exists in $filepath.",
-				"error", "HTTP"
-			);
-			untie @file;
-			return 1;
-		}
-	}
+    tie my @file, 'Tie::File', $filepath;
+    foreach my $line (@file) {
+        if ($line =~ /$service\s+$backend\s+$client/) {
+            &zenlog(
+"A configuration line for the session $service $backend $client already exists in $filepath.",
+                "error", "HTTP"
+            );
+            untie @file;
+            return 1;
+        }
+    }
 
-	push ( @file, "$service $backend $client" );
-	untie @file;
+    push(@file, "$service $backend $client");
+    untie @file;
 
-	return 0;
+    return 0;
 }
 
 =begin nd
@@ -287,35 +276,32 @@ Returns:
 
 =cut
 
-sub deleteConfL7FarmSession
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+sub deleteConfL7FarmSession {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my $farmname = shift;
-	my $service  = shift;
-	my $client   = shift;
+    my $farmname = shift;
+    my $service  = shift;
+    my $client   = shift;
 
-	my $filepath = &getSessionsFileName( $farmname );
+    my $filepath = &getSessionsFileName($farmname);
 
-	unless ( $filepath && -e $filepath )
-	{
-		&zenlog( "$farmname" . "_sessions.cfg configuration file not found",
-				 "error", "HTTP" );
-		return 1;
-	}
+    unless ($filepath && -e $filepath) {
+        &zenlog("$farmname" . "_sessions.cfg configuration file not found",
+            "error", "HTTP");
+        return 1;
+    }
 
-	tie my @file, 'Tie::File', $filepath;
+    tie my @file, 'Tie::File', $filepath;
 
-	my $index = 0;
-	foreach my $line ( @file )
-	{
-		splice ( @file, $index, 1 ) if ( $line =~ /$service(.*)$client/ );
-		$index++;
-	}
-	untie @file;
+    my $index = 0;
+    foreach my $line (@file) {
+        splice(@file, $index, 1) if ($line =~ /$service(.*)$client/);
+        $index++;
+    }
+    untie @file;
 
-	return 0;
+    return 0;
 }
 
 =begin nd
@@ -331,55 +317,47 @@ Returns:
 
 =cut
 
-sub deleteConfL7FarmAllSession
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+sub deleteConfL7FarmAllSession {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my $farmname = shift;
-	my $service  = shift;
-	my $id       = shift;
+    my $farmname = shift;
+    my $service  = shift;
+    my $id       = shift;
 
-	my $filepath = &getSessionsFileName( $farmname );
+    my $filepath = &getSessionsFileName($farmname);
 
-	unless ( $filepath && -e $filepath )
-	{
-		&zenlog( "$farmname" . "_sessions.cfg configuration file not found",
-				 "error", "HTTP" );
-		return 1;
-	}
+    unless ($filepath && -e $filepath) {
+        &zenlog("$farmname" . "_sessions.cfg configuration file not found",
+            "error", "HTTP");
+        return 1;
+    }
 
-	if ( defined $service )
-	{
-		tie my @file, 'Tie::File', $filepath;
+    if (defined $service) {
+        tie my @file, 'Tie::File', $filepath;
 
-		my $index = 0;
-		if ( defined $id )
-		{
-			@file = grep ( !/^$service\s+$id\s+/, @file );
-			foreach my $line ( @file )
-			{
-				if ( $line =~ /^$service\s+(\d+)\s+([^\s]+)/ && $id < $1 )
-				{
-					my $newid = $1 - 1;
-					splice ( @file, $index, 1, "$service $newid $2" );
-				}
-				$index++;
-			}
-		}
-		else
-		{
-			@file = grep ( !/^$service\s+/, @file );
-		}
+        my $index = 0;
+        if (defined $id) {
+            @file = grep (!/^$service\s+$id\s+/, @file);
+            foreach my $line (@file) {
+                if ($line =~ /^$service\s+(\d+)\s+([^\s]+)/ && $id < $1) {
+                    my $newid = $1 - 1;
+                    splice(@file, $index, 1, "$service $newid $2");
+                }
+                $index++;
+            }
+        }
+        else {
+            @file = grep (!/^$service\s+/, @file);
+        }
 
-		untie @file;
-	}
-	else
-	{
-		truncate $filepath, 0;
-	}
+        untie @file;
+    }
+    else {
+        truncate $filepath, 0;
+    }
 
-	return 0;
+    return 0;
 }
 
 1;

@@ -25,9 +25,8 @@ use strict;
 use Regexp::IPv6 qw($IPv6_re);
 require Zevenet::Net::Validate;
 my $eload;
-if ( eval { require Zevenet::ELoad; } )
-{
-	$eload = 1;
+if (eval { require Zevenet::ELoad; }) {
+    $eload = 1;
 }
 
 # Notes about regular expressions:
@@ -46,7 +45,7 @@ my $ipv4v6        = qr/(?:$ipv4_addr|$ipv6_addr)/;
 my $boolean       = qr/(?:true|false)/;
 my $enable        = qr/(?:enable|disable)/;
 my $integer       = qr/\d+/;
-my $natural = qr/[1-9]\d*/;    # natural number = {1, 2, 3, ...}
+my $natural       = qr/[1-9]\d*/;    # natural number = {1, 2, 3, ...}
 my $weekdays = qr/(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)/;
 my $minutes  = qr/(?:\d|[0-5]\d)/;
 my $hours    = qr/(?:\d|[0-1]\d|2[0-3])/;
@@ -68,7 +67,7 @@ my $bond_if     = qr/[a-zA-Z0-9\-]{1,15}/;
 my $vlan_if     = qr/[a-zA-Z0-9\-]{1,13}\.$vlan_tag/;
 my $interface   = qr/$nic_if(?:\.$vlan_tag)?(?:\:$virtual_tag)?/;
 my $port_range =
-  qr/(?:[1-9]\d{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])/;
+qr/(?:[1-9]\d{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])/;
 my $graphsFrequency = qr/(?:daily|weekly|monthly|yearly)/;
 
 my $blacklists_source = qr{(?:\d{1,3}\.){3}\d{1,3}(?:\/\d{1,2})?};
@@ -83,250 +82,255 @@ my $email = qr/(?:[a-zA-Z][\w\_\.]+)\@(?:[a-zA-Z0-9.-]+)\.(?:[a-zA-Z]{2,4})/;
 
 my %format_re = (
 
-	# generic types
-	'integer'     => $integer,
-	'natural_num' => $natural,
-	'boolean'     => $boolean,
-	'ipv4v6'      => $ipv4v6,
-	'rrd_time'    => $rrdTime,
+    # generic types
+    'integer'     => $integer,
+    'natural_num' => $natural,
+    'boolean'     => $boolean,
+    'ipv4v6'      => $ipv4v6,
+    'rrd_time'    => $rrdTime,
 
-	# hostname
-	'hostname' => $hostname,
+    # hostname
+    'hostname' => $hostname,
 
-	# license
-	'license_format' => qr/(?:txt|html)/,
+    # license
+    'license_format' => qr/(?:txt|html)/,
 
-	# log
-	'log' => qr/[\.\-\w]+/,
+    # log
+    'log' => qr/[\.\-\w]+/,
 
-	#zapi
-	'zapi_key'      => qr/[a-zA-Z0-9]+/,
-	'zapi_status'   => $enable,
-	'zapi_password' => qr/.+/,
+    #zapi
+    'zapi_key'      => qr/[a-zA-Z0-9]+/,
+    'zapi_status'   => $enable,
+    'zapi_password' => qr/.+/,
 
-	# common
-	'port' => $port_range,
-	'multiport' =>
-	  qr/(?:\*|(?:$port_range|$port_range\:$port_range)(?:,$port_range|,$port_range\:$port_range)*)/,
+    # common
+    'port'      => $port_range,
+    'multiport' =>
+qr/(?:\*|(?:$port_range|$port_range\:$port_range)(?:,$port_range|,$port_range\:$port_range)*)/,
 
-	'user'     => qr/[\w]+/,
-	'password' => qr/.+/,
+    'user'     => qr/[\w]+/,
+    'password' => qr/.+/,
 
-	# system
-	'dns_nameserver' => $ipv4v6,
-	'dns'            => qr/(?:primary|secondary)/,
-	'ssh_port'       => $port_range,
-	'ssh_listen'     => qr/(?:$ipv4v6|\*)/,
-	'snmp_status'    => $boolean,
-	'snmp_ip'        => qr/(?:$ipv4v6|\*)/,
-	'snmp_community' => qr{.+},
-	'snmp_port'      => $port_range,
-	'snmp_scope'     => qr{(?:\d{1,3}\.){3}\d{1,3}\/\d{1,2}},    # ip/mask
-	'ntp'            => qr{[\w\.\-]+},
-	'http_proxy' => qr{\S*},    # use any character except the spaces
+    # system
+    'dns_nameserver' => $ipv4v6,
+    'dns'            => qr/(?:primary|secondary)/,
+    'ssh_port'       => $port_range,
+    'ssh_listen'     => qr/(?:$ipv4v6|\*)/,
+    'snmp_status'    => $boolean,
+    'snmp_ip'        => qr/(?:$ipv4v6|\*)/,
+    'snmp_community' => qr{.+},
+    'snmp_port'      => $port_range,
+    'snmp_scope'     => qr{(?:\d{1,3}\.){3}\d{1,3}\/\d{1,2}},    # ip/mask
+    'ntp'            => qr{[\w\.\-]+},
+    'http_proxy'     => qr{\S*},    # use any character except the spaces
 
-	# farms
-	'farm_name'             => qr/[a-zA-Z0-9\-]+/,
-	'farm_profile'          => qr/HTTP|GSLB|L4XNAT|DATALINK/,
-	'backend'               => qr/\d+/,
-	'service'               => $service,
-	'http_service'          => qr/[a-zA-Z0-9\-]+/,
-	'gslb_service'          => qr/[a-zA-Z0-9][\w\-]*/,
-	'farm_modules'          => qr/(?:gslb|dslb|lslb)/,
-	'service_position'      => qr/\d+/,
-	'l4_session'            => qr/[ \._\:\w]+/,
-	'l7_session'            => qr/[ \._\:\w]+/,
-	'farm_maintenance_mode' => qr/(?:drain|cut)/,              # not used from API 4
+    # farms
+    'farm_name'             => qr/[a-zA-Z0-9\-]+/,
+    'farm_profile'          => qr/HTTP|GSLB|L4XNAT|DATALINK/,
+    'backend'               => qr/\d+/,
+    'service'               => $service,
+    'http_service'          => qr/[a-zA-Z0-9\-]+/,
+    'gslb_service'          => qr/[a-zA-Z0-9][\w\-]*/,
+    'farm_modules'          => qr/(?:gslb|dslb|lslb)/,
+    'service_position'      => qr/\d+/,
+    'l4_session'            => qr/[ \._\:\w]+/,
+    'l7_session'            => qr/[ \._\:\w]+/,
+    'farm_maintenance_mode' => qr/(?:drain|cut)/,    # not used from API 4
 
-	# cipher
-	'ciphers' =>
-	  qr/(?:all|highsecurity|customsecurity|ssloffloading)/,   # not used from API 4
+    # cipher
+    'ciphers' => qr/(?:all|highsecurity|customsecurity|ssloffloading)/
+    ,                                                # not used from API 4
 
-	# backup
-	'backup'        => qr/[\w-]+/,
-	'backup_action' => qr/apply/,
+    # backup
+    'backup'        => qr/[\w-]+/,
+    'backup_action' => qr/apply/,
 
-	# graphs
-	'graphs_frequency' => $graphsFrequency,
-	'graphs_system_id' => qr/(?:cpu|load|ram|swap)/,
-	'mount_point'      => qr/root[\w\-\.\/]*/,
+    # graphs
+    'graphs_frequency' => $graphsFrequency,
+    'graphs_system_id' => qr/(?:cpu|load|ram|swap)/,
+    'mount_point'      => qr/root[\w\-\.\/]*/,
 
-	# http
-	'redirect_code'    => qr/(?:301|302|307)/,                 # not used from API 4
-	'http_sts_status'  => qr/(?:true|false)/,                  # not used from API 4
-	'http_sts_timeout' => qr/(?:\d+)/,
+    # http
+    'redirect_code'    => qr/(?:301|302|307)/,       # not used from API 4
+    'http_sts_status'  => qr/(?:true|false)/,        # not used from API 4
+    'http_sts_timeout' => qr/(?:\d+)/,
 
-	# GSLB
-	'zone'          => qr/(?:$hostname\.)+[a-z]{2,}/,
-	'resource_id'   => qr/\d+/,
-	'resource_name' => qr/(?:[\w\-\.]+|\@)/,
-	'resource_ttl'  => qr/$natural/,                           # except zero
-	'resource_type' =>
-	  qr/(?:NS|A|AAAA|CNAME|DYNA|MX|SRV|TXT|PTR|NAPTR)/,       # not used from API 4
-	'resource_data'       => qr/.+/,            # allow anything (TXT type needs it)
-	'resource_data_A'     => $ipv4_addr,
-	'resource_data_AAAA'  => $ipv6_addr,
-	'resource_data_DYNA'  => $service,
-	'resource_data_NS'    => qr/[a-zA-Z0-9\-]+/,
-	'resource_data_CNAME' => qr/[a-z\.]+/,
-	'resource_data_MX'    => qr/[a-z\.\ 0-9]+/,
-	'resource_data_TXT'   => qr/.+/,            # all characters allow
-	'resource_data_SRV' =>
-	  qr/[0-9]+ [0-9]+ [0-9]+ .+/,              # https://www.ietf.org/rfc/rfc2782
-	'resource_data_PTR'   => qr/[a-z\.]+/,
-	'resource_data_NAPTR' => qr/[0-9]+ [0-9]+\|[a-zA-Z]?\|[a-zA-Z0-9\+]*\|.*\|.+/
-	,                                           # https://www.ietf.org/rfc/rfc2915
+    # GSLB
+    'zone'          => qr/(?:$hostname\.)+[a-z]{2,}/,
+    'resource_id'   => qr/\d+/,
+    'resource_name' => qr/(?:[\w\-\.]+|\@)/,
+    'resource_ttl'  => qr/$natural/,                       # except zero
+    'resource_type' =>
+      qr/(?:NS|A|AAAA|CNAME|DYNA|MX|SRV|TXT|PTR|NAPTR)/,   # not used from API 4
+    'resource_data'       => qr/.+/,       # allow anything (TXT type needs it)
+    'resource_data_A'     => $ipv4_addr,
+    'resource_data_AAAA'  => $ipv6_addr,
+    'resource_data_DYNA'  => $service,
+    'resource_data_NS'    => qr/[a-zA-Z0-9\-]+/,
+    'resource_data_CNAME' => qr/[a-z\.]+/,
+    'resource_data_MX'    => qr/[a-z\.\ 0-9]+/,
+    'resource_data_TXT'   => qr/.+/,               # all characters allow
+    'resource_data_SRV'   =>
+      qr/[0-9]+ [0-9]+ [0-9]+ .+/,    # https://www.ietf.org/rfc/rfc2782
+    'resource_data_PTR'   => qr/[a-z\.]+/,
+    'resource_data_NAPTR' =>
+      qr/[0-9]+ [0-9]+\|[a-zA-Z]?\|[a-zA-Z0-9\+]*\|.*\|.+/
+    ,                                 # https://www.ietf.org/rfc/rfc2915
 
-	# interfaces ( WARNING: length in characters < 16  )
-	'mac_addr'         => $mac_addr,
-	'interface'        => $interface,
-	'nic_interface'    => $nic_if,
-	'bond_interface'   => $bond_if,
-	'vlan_interface'   => $vlan_if,
-	'virt_interface'   => qr/(?:$bond_if|$nic_if)(?:\.$vlan_tag)?:$virtual_tag/,
-	'routed_interface' => qr/(?:$nic_if|$bond_if|$vlan_if)/,
-	'interface_type'   => qr/(?:nic|vlan|virtual|bond)/,
-	'vlan_tag'         => qr/$vlan_tag/,
-	'virtual_tag'      => qr/$virtual_tag/,
-	'bond_mode_num'    => qr/[0-6]/,
-	'bond_mode_short' =>
-	  qr/(?:balance-rr|active-backup|balance-xor|broadcast|802.3ad|balance-tlb|balance-alb)/
-	,    # not used from API 4
+    # interfaces ( WARNING: length in characters < 16  )
+    'mac_addr'         => $mac_addr,
+    'interface'        => $interface,
+    'nic_interface'    => $nic_if,
+    'bond_interface'   => $bond_if,
+    'vlan_interface'   => $vlan_if,
+    'virt_interface'   => qr/(?:$bond_if|$nic_if)(?:\.$vlan_tag)?:$virtual_tag/,
+    'routed_interface' => qr/(?:$nic_if|$bond_if|$vlan_if)/,
+    'interface_type'   => qr/(?:nic|vlan|virtual|bond)/,
+    'vlan_tag'         => qr/$vlan_tag/,
+    'virtual_tag'      => qr/$virtual_tag/,
+    'bond_mode_num'    => qr/[0-6]/,
+    'bond_mode_short'  =>
+qr/(?:balance-rr|active-backup|balance-xor|broadcast|802.3ad|balance-tlb|balance-alb)/
+    ,    # not used from API 4
 
-	# notifications
-	'notif_alert' => qr/(?:backends|cluster|license|interface|package|certificate)/,
-	'notif_method' => qr/(?:email)/,
-	'notif_tls'    => $boolean,
-	'notif_action' => $enable,
-	'notif_time'   => $natural,        # this value can't be 0
+    # notifications
+    'notif_alert' =>
+      qr/(?:backends|cluster|license|interface|package|certificate)/,
+    'notif_method' => qr/(?:email)/,
+    'notif_tls'    => $boolean,
+    'notif_action' => $enable,
+    'notif_time'   => $natural,        # this value can't be 0
 
-	# IPDS
-	# blacklists
-	'day_of_month'         => qr{$dayofmonth},
-	'weekdays'             => qr{$weekdays},
-	'blacklists_name'      => qr{\w+},
-	'blacklists_source'    => qr{$blacklists_source},
-	'blacklists_source_id' => qr{(?:\d+|$blacklists_source(,$blacklists_source)*)},
+    # IPDS
+    # blacklists
+    'day_of_month'         => qr{$dayofmonth},
+    'weekdays'             => qr{$weekdays},
+    'blacklists_name'      => qr{\w+},
+    'blacklists_source'    => qr{$blacklists_source},
+    'blacklists_source_id' =>
+      qr{(?:\d+|$blacklists_source(,$blacklists_source)*)},
 
-	'blacklists_url'       => qr{.+},
-	'blacklists_hour'      => $hours,
-	'blacklists_minutes'   => $minutes,
-	'blacklists_period'    => $natural,
-	'blacklists_day'       => qr{(:?$dayofmonth|$weekdays)},
-	'blacklists_policy'    => qr{(:?allow|deny)},              # not used from API 4
-	'blacklists_type'      => qr{(:?local|remote)},            # not used from API 4
-	'blacklists_unit'      => qr{(:?hours|minutes)},           # not used from API 4
-	'blacklists_frequency' => qr{(:?daily|weekly|monthly)},    # not used from API 4
-	'blacklists_frequency_type' => qr{(:?period|exact)},       # not used from API 4
+    'blacklists_url'     => qr{.+},
+    'blacklists_hour'    => $hours,
+    'blacklists_minutes' => $minutes,
+    'blacklists_period'  => $natural,
+    'blacklists_day'     => qr{(:?$dayofmonth|$weekdays)},
+    'blacklists_policy'  => qr{(:?allow|deny)},            # not used from API 4
+    'blacklists_type'    => qr{(:?local|remote)},          # not used from API 4
+    'blacklists_unit'    => qr{(:?hours|minutes)},         # not used from API 4
+    'blacklists_frequency' =>
+      qr{(:?daily|weekly|monthly)},                        # not used from API 4
+    'blacklists_frequency_type' => qr{(:?period|exact)},   # not used from API 4
 
-	# DoS
-	'dos_name'        => qr/[\w]+/,
-	'dos_rule'        => qr/(?:$dos_global|$dos_all|$dos_tcp)/,
-	'dos_rule_farm'   => qr/(?:$dos_all|$dos_tcp)/,
-	'dos_rule_global' => $dos_global,
-	'dos_rule_all'    => $dos_all,
-	'dos_rule_tcp'    => $dos_tcp,
-	'dos_time'        => $natural,
-	'dos_limit_conns' => $natural,
-	'dos_limit'       => $natural,
-	'dos_limit_burst' => $natural,
-	'dos_port'        => $port_range,
-	'dos_hits'        => $natural,
+    # DoS
+    'dos_name'        => qr/[\w]+/,
+    'dos_rule'        => qr/(?:$dos_global|$dos_all|$dos_tcp)/,
+    'dos_rule_farm'   => qr/(?:$dos_all|$dos_tcp)/,
+    'dos_rule_global' => $dos_global,
+    'dos_rule_all'    => $dos_all,
+    'dos_rule_tcp'    => $dos_tcp,
+    'dos_time'        => $natural,
+    'dos_limit_conns' => $natural,
+    'dos_limit'       => $natural,
+    'dos_limit_burst' => $natural,
+    'dos_port'        => $port_range,
+    'dos_hits'        => $natural,
 
-	# RBL
-	'rbl_name'          => qr/[\w]+/,
-	'rbl_domain'        => qr/[\w\.\-]+/,
-	'rbl_log_level'     => qr/[0-7]/,
-	'rbl_only_logging'  => $boolean,
-	'rbl_cache_size'    => $natural,
-	'rbl_cache_time'    => $natural,
-	'rbl_queue_size'    => $natural,
-	'rbl_thread_max'    => $natural,
-	'rbl_local_traffic' => $boolean,
-	'rbl_actions'       => $run_actions,    # not used from API 4
+    # RBL
+    'rbl_name'          => qr/[\w]+/,
+    'rbl_domain'        => qr/[\w\.\-]+/,
+    'rbl_log_level'     => qr/[0-7]/,
+    'rbl_only_logging'  => $boolean,
+    'rbl_cache_size'    => $natural,
+    'rbl_cache_time'    => $natural,
+    'rbl_queue_size'    => $natural,
+    'rbl_thread_max'    => $natural,
+    'rbl_local_traffic' => $boolean,
+    'rbl_actions'       => $run_actions,    # not used from API 4
 
-	# WAF
-	'http_code'      => qr/[0-9]{3}/,
-	'waf_set_name'   => qr/[\.\w-]+/,
-	'waf_rule_id'    => qr/\d+/,
-	'waf_chain_id'   => qr/\d+/,
-	'waf_severity'   => qr/[0-9]/,
-	'waf_phase'      => qr/(?:[1-5]|request|response|logging)/,
-	'waf_log'        => qr/(?:$boolean|)/,
-	'waf_audit_log'  => qr/(?:$boolean|)/,
-	'waf_skip'       => qr/[0-9]+/,
-	'waf_skip_after' => qr/\w+/,
-	'waf_set_status' => qr/(?:$boolean|detection)/,
-	'waf_file'       => qr/(?:[\s+\w-]+)/,
+    # WAF
+    'http_code'      => qr/[0-9]{3}/,
+    'waf_set_name'   => qr/[\.\w-]+/,
+    'waf_rule_id'    => qr/\d+/,
+    'waf_chain_id'   => qr/\d+/,
+    'waf_severity'   => qr/[0-9]/,
+    'waf_phase'      => qr/(?:[1-5]|request|response|logging)/,
+    'waf_log'        => qr/(?:$boolean|)/,
+    'waf_audit_log'  => qr/(?:$boolean|)/,
+    'waf_skip'       => qr/[0-9]+/,
+    'waf_skip_after' => qr/\w+/,
+    'waf_set_status' => qr/(?:$boolean|detection)/,
+    'waf_file'       => qr/(?:[\s+\w-]+)/,
 
-	# certificates filenames
-	'certificate_name'    => $cert_name,
-	'certificate'         => qr/$cert_name\.(?:pem|csr)/,
-	'cert_pem'            => qr/$cert_name\.pem/,
-	'cert_name'           => qr/[a-zA-Z0-9\-]+/,
-	'cert_csr'            => qr/\w[\w\.\-]*\.csr/,
-	'cert_dh2048'         => qr/\w[\w\.\-]*_dh2048\.pem/,
-	'le_certificate_name' => $cert_name,
-	'le_mail'             => $email,
+    # certificates filenames
+    'certificate_name'    => $cert_name,
+    'certificate'         => qr/$cert_name\.(?:pem|csr)/,
+    'cert_pem'            => qr/$cert_name\.pem/,
+    'cert_name'           => qr/[a-zA-Z0-9\-]+/,
+    'cert_csr'            => qr/\w[\w\.\-]*\.csr/,
+    'cert_dh2048'         => qr/\w[\w\.\-]*_dh2048\.pem/,
+    'le_certificate_name' => $cert_name,
+    'le_mail'             => $email,
 
-	# IPS
-	'IPv4_addr' => qr/$ipv4_addr/,
-	'IPv4_mask' => qr/(?:$ipv4_addr|3[0-2]|[1-2][0-9]|[0-9])/,
+    # IPS
+    'IPv4_addr' => qr/$ipv4_addr/,
+    'IPv4_mask' => qr/(?:$ipv4_addr|3[0-2]|[1-2][0-9]|[0-9])/,
 
-	'IPv6_addr' => qr/$ipv6_addr/,
-	'IPv6_mask' => $UNSIGNED7BITS,
+    'IPv6_addr' => qr/$ipv6_addr/,
+    'IPv6_mask' => $UNSIGNED7BITS,
 
-	'ip_addr'       => $ipv4v6,
-	'ip_mask'       => qr/(?:$ipv4_addr|$UNSIGNED7BITS)/,
-	'ip_addr_range' => qr/$ipv4_addr-$ipv4_addr/,
+    'ip_addr'       => $ipv4v6,
+    'ip_mask'       => qr/(?:$ipv4_addr|$UNSIGNED7BITS)/,
+    'ip_addr_range' => qr/$ipv4_addr-$ipv4_addr/,
 
-	# farm guardian
-	'fg_name'    => qr/[\w-]+/,
-	'fg_type'    => qr/(?:http|https|l4xnat|gslb)/,    # not used from API 4
-	'fg_enabled' => $boolean,
-	'fg_log'     => $boolean,
-	'fg_time'    => qr/$natural/,                      # this value can't be 0
+    # farm guardian
+    'fg_name'    => qr/[\w-]+/,
+    'fg_type'    => qr/(?:http|https|l4xnat|gslb)/,    # not used from API 4
+    'fg_enabled' => $boolean,
+    'fg_log'     => $boolean,
+    'fg_time'    => qr/$natural/,                      # this value can't be 0
 
-	# RBAC
-	'user_name'     => qr/[a-z0-9][-a-z0-9_.]+/,
-	'rbac_password' => qr/(?=.*[0-9])(?=.*[a-zA-Z]).{8,512}/,
-	'group_name'    => qr/[\w-]+/,
-	'role_name'     => qr/[\w-]+/,
+    # RBAC
+    'user_name'     => qr/[a-z0-9][-a-z0-9_.]+/,
+    'rbac_password' => qr/(?=.*[0-9])(?=.*[a-zA-Z]).{8,512}/,
+    'group_name'    => qr/[\w-]+/,
+    'role_name'     => qr/[\w-]+/,
 
-	# alias
-	'alias_id'        => qr/(?:$ipv4v6|$interface)/,
-	'alias_backend'   => qr/$ipv4v6/,
-	'alias_interface' => qr/$interface/,
-	'alias_name'      => qr/(?:$zone|[\w-]+)/,
-	'alias_type'      => qr/(?:backend|interface)/,
+    # alias
+    'alias_id'        => qr/(?:$ipv4v6|$interface)/,
+    'alias_backend'   => qr/$ipv4v6/,
+    'alias_interface' => qr/$interface/,
+    'alias_name'      => qr/(?:$zone|[\w-]+)/,
+    'alias_type'      => qr/(?:backend|interface)/,
 
-	# routing
-	'route_rule_id'  => qr/$natural/,
-	'route_table_id' => qr/[\w\.\-]+/,
-	'route_entry_id' => qr/$natural/,
+    # routing
+    'route_rule_id'  => qr/$natural/,
+    'route_table_id' => qr/[\w\.\-]+/,
+    'route_entry_id' => qr/$natural/,
 
-	# vpn
-	'vpn_name' => qr/[a-zA-Z][a-zA-Z0-9\-]*/,
-	'vpn_user' => qr/[a-zA-Z][a-zA-Z0-9\-]*/,
+    # vpn
+    'vpn_name' => qr/[a-zA-Z][a-zA-Z0-9\-]*/,
+    'vpn_user' => qr/[a-zA-Z][a-zA-Z0-9\-]*/,
 
 );
 
-sub getZAPIModel
-{
-	my $file = shift;
-	require Zevenet::Zapi;
-	my $api_version = &getZapiVersion();
-	my $dir = &getGlobalConfiguration( "zapi_model_path" ) . "/v$api_version/json";
+sub getZAPIModel {
+    my $file = shift;
+    require Zevenet::Zapi;
+    my $api_version = &getZapiVersion();
+    my $dir =
+      &getGlobalConfiguration("zapi_model_path") . "/v$api_version/json";
 
-	require JSON;
-	my $content;
-	{
-		open ( my $fh, '<', "$dir/$file" ) or die "The file '$dir/$file' was not found";
-		local $/ = undef;
-		$content = <$fh>;
-		close $fh;
-	}
-	return JSON::decode_json( $content )->{ params } if ( $content ne "" );
+    require JSON;
+    my $content;
+    {
+        open(my $fh, '<', "$dir/$file")
+          or die "The file '$dir/$file' was not found";
+        local $/ = undef;
+        $content = <$fh>;
+        close $fh;
+    }
+    return JSON::decode_json($content)->{params} if ($content ne "");
 }
 
 =begin nd
@@ -361,42 +365,37 @@ See also:
 =cut
 
 # &getValidFormat ( $format_name, $value );
-sub getValidFormat
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $format_name, $value, %new_format_re ) = @_;
+sub getValidFormat {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($format_name, $value, %new_format_re) = @_;
 
-	# Checks if it should use the formats passed by parameters.
-	%format_re = %new_format_re if ( %new_format_re );
+    # Checks if it should use the formats passed by parameters.
+    %format_re = %new_format_re if (%new_format_re);
 
-	#~ print "getValidFormat type:$format_name value:$value\n"; # DEBUG
-	if ( exists $format_re{ $format_name } )
-	{
-		if ( defined $value )
-		{
-			#~ print "$format_re{ $format_name }\n"; # DEBUG
-			if ( ref ( $value ) eq "ARRAY" )
-			{
-				return !grep ( !/^$format_re{ $format_name }$/, @{ $value } ) > 0;
-			}
-			else
-			{
-				return $value =~ /^$format_re{ $format_name }$/;
-			}
-		}
-		else
-		{
-			#~ print "$format_re{ $format_name }\n"; # DEBUG
-			return $format_re{ $format_name };
-		}
-	}
-	else
-	{
-		my $message = "getValidFormat: format $format_name not found.";
-		&zenlog( $message );
-		die ( $message );
-	}
+    #~ print "getValidFormat type:$format_name value:$value\n"; # DEBUG
+    if (exists $format_re{$format_name}) {
+        if (defined $value) {
+
+            #~ print "$format_re{ $format_name }\n"; # DEBUG
+            if (ref($value) eq "ARRAY") {
+                return !grep (!/^$format_re{ $format_name }$/, @{$value}) > 0;
+            }
+            else {
+                return $value =~ /^$format_re{ $format_name }$/;
+            }
+        }
+        else {
+
+            #~ print "$format_re{ $format_name }\n"; # DEBUG
+            return $format_re{$format_name};
+        }
+    }
+    else {
+        my $message = "getValidFormat: format $format_name not found.";
+        &zenlog($message);
+        die($message);
+    }
 }
 
 =begin nd
@@ -419,31 +418,27 @@ See Also:
 
 sub getValidPort    # ( $ip, $port, $profile )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $port    = shift;
-	my $profile = shift;    # farm profile, optional
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $port    = shift;
+    my $profile = shift;    # farm profile, optional
 
-	if ( $profile =~ /^(?:HTTP|GSLB)$/i )
-	{
-		return &getValidFormat( 'port', $port );
-	}
-	elsif ( $profile =~ /^(?:L4XNAT)$/i )
-	{
-		return &getValidFormat( 'multiport', $port );
-	}
-	elsif ( $profile =~ /^(?:DATALINK)$/i )
-	{
-		return $port eq undef;
-	}
-	elsif ( !defined $profile )
-	{
-		return &getValidFormat( 'port', $port );
-	}
-	else    # profile not supported
-	{
-		return 0;
-	}
+    if ($profile =~ /^(?:HTTP|GSLB)$/i) {
+        return &getValidFormat('port', $port);
+    }
+    elsif ($profile =~ /^(?:L4XNAT)$/i) {
+        return &getValidFormat('multiport', $port);
+    }
+    elsif ($profile =~ /^(?:DATALINK)$/i) {
+        return $port eq undef;
+    }
+    elsif (!defined $profile) {
+        return &getValidFormat('port', $port);
+    }
+    else    # profile not supported
+    {
+        return 0;
+    }
 }
 
 =begin nd
@@ -470,32 +465,30 @@ See Also:
 
 sub getValidOptParams    # ( \%json_obj, \@allowParams )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $params         = shift;
-	my $allowParamsRef = shift;
-	my @allowParams    = @{ $allowParamsRef };
-	my $output;
-	my $pattern;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $params         = shift;
+    my $allowParamsRef = shift;
+    my @allowParams    = @{$allowParamsRef};
+    my $output;
+    my $pattern;
 
-	if ( !keys %{ $params } )
-	{
-		return "Not found any param.";
-	}
+    if (!keys %{$params}) {
+        return "Not found any param.";
+    }
 
-	# Check if any param isn't for this call
-	$pattern .= "$_|" for ( @allowParams );
-	chop ( $pattern );
-	my @errorParams = grep { !/^(?:$pattern)$/ } keys %{ $params };
-	if ( @errorParams )
-	{
-		$output .= "$_, " for ( @errorParams );
-		chop ( $output );
-		chop ( $output );
-		$output = "Illegal params: $output";
-	}
+    # Check if any param isn't for this call
+    $pattern .= "$_|" for (@allowParams);
+    chop($pattern);
+    my @errorParams = grep { !/^(?:$pattern)$/ } keys %{$params};
+    if (@errorParams) {
+        $output .= "$_, " for (@errorParams);
+        chop($output);
+        chop($output);
+        $output = "Illegal params: $output";
+    }
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -523,47 +516,44 @@ See Also:
 
 sub getValidReqParams    # ( \%json_obj, \@requiredParams, \@optionalParams )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $params            = shift;
-	my $requiredParamsRef = shift;
-	my $allowParamsRef    = shift || [];
-	my @requiredParams    = @{ $requiredParamsRef };
-	my @allowParams;
-	@allowParams = @{ $allowParamsRef } if ( $allowParamsRef );
-	push @allowParams, @requiredParams;
-	my $output;
-	my $pattern;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $params            = shift;
+    my $requiredParamsRef = shift;
+    my $allowParamsRef    = shift || [];
+    my @requiredParams    = @{$requiredParamsRef};
+    my @allowParams;
+    @allowParams = @{$allowParamsRef} if ($allowParamsRef);
+    push @allowParams, @requiredParams;
+    my $output;
+    my $pattern;
 
-	# Check all required params are in called
-	$pattern .= "$_|" for ( @requiredParams );
+    # Check all required params are in called
+    $pattern .= "$_|" for (@requiredParams);
 
-	chop ( $pattern );
-	my $aux = grep { /^(?:$pattern)$/ } keys %{ $params };
-	if ( $aux != scalar @requiredParams )
-	{
-		$aux    = scalar @requiredParams - $aux;
-		$output = "Missing required parameters. Parameters missed: $aux.";
-	}
+    chop($pattern);
+    my $aux = grep { /^(?:$pattern)$/ } keys %{$params};
+    if ($aux != scalar @requiredParams) {
+        $aux    = scalar @requiredParams - $aux;
+        $output = "Missing required parameters. Parameters missed: $aux.";
+    }
 
-	# Check if any param isn't for this call
-	if ( !$output )
-	{
-		$output  = "";
-		$pattern = "";
-		$pattern .= "$_|" for ( @allowParams );
-		chop ( $pattern );
-		my @errorParams = grep { !/^(?:$pattern)$/ } keys %{ $params };
-		if ( @errorParams )
-		{
-			$output .= "$_, " for ( @errorParams );
-			chop ( $output );
-			chop ( $output );
-			$output = "Illegal params: $output";
-		}
-	}
+    # Check if any param isn't for this call
+    if (!$output) {
+        $output  = "";
+        $pattern = "";
+        $pattern .= "$_|" for (@allowParams);
+        chop($pattern);
+        my @errorParams = grep { !/^(?:$pattern)$/ } keys %{$params};
+        if (@errorParams) {
+            $output .= "$_, " for (@errorParams);
+            chop($output);
+            chop($output);
+            $output = "Illegal params: $output";
+        }
+    }
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -616,229 +606,222 @@ Returns:
 
 =cut
 
-sub checkZAPIParams
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $json_obj    = shift;
-	my $param_obj   = shift;
-	my $description = shift;
-	my $err_msg;
+sub checkZAPIParams {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $json_obj    = shift;
+    my $param_obj   = shift;
+    my $description = shift;
+    my $err_msg;
 
-	## Remove parameters do not according to the edition
-	foreach my $p ( keys %$param_obj )
-	{
-		if (
-			 exists $param_obj->{ $p }->{ edition }
-			 && (    ( $param_obj->{ $p }->{ edition } eq 'ee' && !$eload )
-				  || ( $param_obj->{ $p }->{ edition } eq 'ce' && $eload ) )
-		  )
-		{
-			delete $param_obj->{ $p };
-		}
-	}
+    ## Remove parameters do not according to the edition
+    foreach my $p (keys %$param_obj) {
+        if (
+            exists $param_obj->{$p}->{edition}
+            && (   ($param_obj->{$p}->{edition} eq 'ee' && !$eload)
+                || ($param_obj->{$p}->{edition} eq 'ce' && $eload))
+          )
+        {
+            delete $param_obj->{$p};
+        }
+    }
 
-	my @rec_keys = keys %{ $json_obj };
+    my @rec_keys = keys %{$json_obj};
 
-	# Returns a help with the expected input parameters
-	if ( !@rec_keys )
-	{
-		&httpResponseHelp( $param_obj, $description );
-	}
+    # Returns a help with the expected input parameters
+    if (!@rec_keys) {
+        &httpResponseHelp($param_obj, $description);
+    }
 
-	# All required parameters must exist
-	my @expect_params = keys %{ $param_obj };
+    # All required parameters must exist
+    my @expect_params = keys %{$param_obj};
 
-	$err_msg = &checkParamsRequired( \@rec_keys, \@expect_params, $param_obj );
-	return $err_msg if ( $err_msg );
+    $err_msg = &checkParamsRequired(\@rec_keys, \@expect_params, $param_obj);
+    return $err_msg if ($err_msg);
 
-	# All sent parameters are correct
-	$err_msg = &checkParamsInvalid( \@rec_keys, \@expect_params );
-	return $err_msg if ( $err_msg );
+    # All sent parameters are correct
+    $err_msg = &checkParamsInvalid(\@rec_keys, \@expect_params);
+    return $err_msg if ($err_msg);
 
-	# check for each parameter
-	foreach my $param ( @rec_keys )
-	{
-		my $custom_msg =
-		  ( exists $param_obj->{ $param }->{ format_msg } )
-		  ? "$param $param_obj->{ $param }->{ format_msg }"
-		  : "The parameter '$param' has not a valid value.";
+    # check for each parameter
+    foreach my $param (@rec_keys) {
+        my $custom_msg =
+          (exists $param_obj->{$param}->{format_msg})
+          ? "$param $param_obj->{ $param }->{ format_msg }"
+          : "The parameter '$param' has not a valid value.";
 
-		if (   $json_obj->{ $param } eq ''
-			or not defined $json_obj->{ $param }
-			or ( ref $json_obj->{ $param } eq 'ARRAY' and @{ $json_obj->{ $param } } == 0 )
-		  )
-		{
-			# if blank value is allowed
-			if ( $param_obj->{ $param }->{ 'non_blank' } eq 'true' )
-			{
-				return "The parameter '$param' can't be in blank.";
-			}
+        if (
+               $json_obj->{$param} eq ''
+            or not defined $json_obj->{$param}
+            or (ref $json_obj->{$param} eq 'ARRAY'
+                and @{ $json_obj->{$param} } == 0)
+          )
+        {
 
-			# parameter validated, pass to next one
-			next;
-		}
+            # if blank value is allowed
+            if ($param_obj->{$param}->{'non_blank'} eq 'true') {
+                return "The parameter '$param' can't be in blank.";
+            }
 
-		# the input has to be a ref
-		my $r = ref $json_obj->{ $param } // '';
-		if ( exists $param_obj->{ $param }->{ 'ref' } )
-		{
-			if ( $r eq '' )
-			{
-				if ( 'none' !~ /$param_obj->{ $param }->{ 'ref' }/ )
-				{
-					return
-					  "The parameter '$param' expects a '$param_obj->{ $param }->{ref}' reference as input";
-				}
-			}
-			elsif ( $r !~ /^$param_obj->{ $param }->{ 'ref' }$/i )
-			{
-				return
-				  "The parameter '$param' expects a '$param_obj->{ $param }->{ref}' reference as input";
-			}
-		}
-		elsif ( $r eq 'ARRAY' or $r eq 'HASH' )
-		{
-			return "The parameter '$param' does not expect a $r as input";
-		}
+            # parameter validated, pass to next one
+            next;
+        }
 
-		if ( ( exists $param_obj->{ $param }->{ 'values' } ) )
-		{
-			if ( $r eq 'ARRAY' )
-			{
-				foreach my $value ( @{ $json_obj->{ $param } } )
-				{
-					if ( !grep ( /^$value$/, @{ $param_obj->{ $param }->{ 'values' } } ) )
-					{
-						return
-						  "The parameter '$param' expects some of the following values: '"
-						  . join ( "', '", @{ $param_obj->{ $param }->{ 'values' } } ) . "'";
-					}
-				}
-			}
-			else
-			{
-				if (
-					!grep ( /^$json_obj->{ $param }$/, @{ $param_obj->{ $param }->{ 'values' } } ) )
-				{
-					return
-					  "The parameter '$param' expects one of the following values: '"
-					  . join ( "', '", @{ $param_obj->{ $param }->{ 'values' } } ) . "'";
-				}
-			}
-		}
+        # the input has to be a ref
+        my $r = ref $json_obj->{$param} // '';
+        if (exists $param_obj->{$param}->{'ref'}) {
+            if ($r eq '') {
+                if ('none' !~ /$param_obj->{ $param }->{ 'ref' }/) {
+                    return
+"The parameter '$param' expects a '$param_obj->{ $param }->{ref}' reference as input";
+                }
+            }
+            elsif ($r !~ /^$param_obj->{ $param }->{ 'ref' }$/i) {
+                return
+"The parameter '$param' expects a '$param_obj->{ $param }->{ref}' reference as input";
+            }
+        }
+        elsif ($r eq 'ARRAY' or $r eq 'HASH') {
+            return "The parameter '$param' does not expect a $r as input";
+        }
 
-		# getValidFormat funcion:
-		if (
-			 ( exists $param_obj->{ $param }->{ 'valid_format' } )
-			 and (
-				   !&getValidFormat(
-									 $param_obj->{ $param }->{ 'valid_format' },
-									 $json_obj->{ $param }
-				   )
-			 )
-		  )
-		{
-			return $custom_msg;
-		}
+        if ((exists $param_obj->{$param}->{'values'})) {
+            if ($r eq 'ARRAY') {
+                foreach my $value (@{ $json_obj->{$param} }) {
+                    if (
+                        !grep (/^$value$/,
+                            @{ $param_obj->{$param}->{'values'} })
+                      )
+                    {
+                        return
+"The parameter '$param' expects some of the following values: '"
+                          . join("', '", @{ $param_obj->{$param}->{'values'} })
+                          . "'";
+                    }
+                }
+            }
+            else {
+                if (
+                    !grep (/^$json_obj->{ $param }$/,
+                        @{ $param_obj->{$param}->{'values'} })
+                  )
+                {
+                    return
+"The parameter '$param' expects one of the following values: '"
+                      . join("', '", @{ $param_obj->{$param}->{'values'} })
+                      . "'";
+                }
+            }
+        }
 
-		# length
-		if ( exists $param_obj->{ $param }->{ 'length' } )
-		{
-			my $data_length = length ( $json_obj->{ $param } );
-			if ( $data_length > $param_obj->{ $param }->{ 'length' } )
-			{
-				return
-				  "The maximum length for '$param' is '$param_obj->{ $param }->{ 'length' }'";
-			}
-		}
+        # getValidFormat funcion:
+        if (
+            (exists $param_obj->{$param}->{'valid_format'})
+            and (
+                !&getValidFormat(
+                    $param_obj->{$param}->{'valid_format'},
+                    $json_obj->{$param}
+                )
+            )
+          )
+        {
+            return $custom_msg;
+        }
 
-		# intervals
-		if ( exists $param_obj->{ $param }->{ 'interval' } )
-		{
-			$err_msg = &checkParamsInterval( $param_obj->{ $param }->{ 'interval' },
-											 $param, $json_obj->{ $param } );
-			return $err_msg if $err_msg;
-		}
+        # length
+        if (exists $param_obj->{$param}->{'length'}) {
+            my $data_length = length($json_obj->{$param});
+            if ($data_length > $param_obj->{$param}->{'length'}) {
+                return
+"The maximum length for '$param' is '$param_obj->{ $param }->{ 'length' }'";
+            }
+        }
 
-		# exceptions
-		if (
-			 ( exists $param_obj->{ $param }->{ 'exceptions' } )
-			 and (
-				   grep ( /^$json_obj->{ $param }$/,
-						  @{ $param_obj->{ $param }->{ 'exceptions' } } ) )
-		  )
-		{
-			return
-			  "The value '$json_obj->{ $param }' is a reserved word of the parameter '$param'.";
-		}
+        # intervals
+        if (exists $param_obj->{$param}->{'interval'}) {
+            $err_msg = &checkParamsInterval($param_obj->{$param}->{'interval'},
+                $param, $json_obj->{$param});
+            return $err_msg if $err_msg;
+        }
 
-		# regex
-		if ( ( exists $param_obj->{ $param }->{ 'regex' } ) )
-		{
-			if ( defined $json_obj->{ $param } )
-			{
-				# If ARRAY, evaluate all in values.
-				if ( ref ( $json_obj->{ $param } ) eq "ARRAY" )
-				{
-					foreach my $value ( @{ $json_obj->{ $param } } )
-					{
-						return "The value '$value' is not valid for the parameter '$param'."
-						  if ( grep ( !/^$param_obj->{ $param }->{ 'regex' }$/, $value ) );
-					}
-				}
-				else
-				{
-					return
-					  "The value '$json_obj->{ $param }' is not valid for the parameter '$param'."
-					  if ( $json_obj->{ $param } !~ /^$param_obj->{ $param }->{ 'regex' }$/ );
-				}
-			}
-		}
+        # exceptions
+        if (
+            (exists $param_obj->{$param}->{'exceptions'})
+            and (
+                grep (/^$json_obj->{ $param }$/,
+                    @{ $param_obj->{$param}->{'exceptions'} })
+            )
+          )
+        {
+            return
+"The value '$json_obj->{ $param }' is a reserved word of the parameter '$param'.";
+        }
 
-		# negated_regex
-		if ( ( exists $param_obj->{ $param }->{ 'negated_regex' } ) )
-		{
-			if ( defined $json_obj->{ $param } )
-			{
-				# If ARRAY, evaluate all in values.
-				if ( ref ( $json_obj->{ $param } ) eq "ARRAY" )
-				{
-					foreach my $value ( @{ $json_obj->{ $param } } )
-					{
-						return "The value '$value' is not valid for the parameter '$param'."
-						  if ( grep ( /^$param_obj->{ $param }->{ 'regex' }$/, $value ) );
-					}
-				}
-				else
-				{
-					return
-					  "The value '$json_obj->{ $param }' is not valid for the parameter '$param'."
-					  if ( $json_obj->{ $param } =~ /$param_obj->{ $param }->{ 'negated_regex' }/ );
-				}
-			}
-		}
+        # regex
+        if ((exists $param_obj->{$param}->{'regex'})) {
+            if (defined $json_obj->{$param}) {
 
-		# is_regex
-		if ( $param_obj->{ $param }->{ 'is_regex' } eq 'true' )
-		{
-			if ( defined $json_obj->{ $param } )
-			{
-				my $regex = eval { qr/$json_obj->{ $param }/ };
-				return "The value of field $param is an invalid regex" if $@;
-			}
-		}
+                # If ARRAY, evaluate all in values.
+                if (ref($json_obj->{$param}) eq "ARRAY") {
+                    foreach my $value (@{ $json_obj->{$param} }) {
+                        return
+"The value '$value' is not valid for the parameter '$param'."
+                          if (
+                            grep (!/^$param_obj->{ $param }->{ 'regex' }$/,
+                                $value)
+                          );
+                    }
+                }
+                else {
+                    return
+"The value '$json_obj->{ $param }' is not valid for the parameter '$param'."
+                      if ($json_obj->{$param} !~
+                        /^$param_obj->{ $param }->{ 'regex' }$/);
+                }
+            }
+        }
 
-		if ( exists $param_obj->{ $param }->{ 'function' } )
-		{
-			my $result =
-			  &{ $param_obj->{ $param }->{ 'function' } }( $json_obj->{ $param } );
+        # negated_regex
+        if ((exists $param_obj->{$param}->{'negated_regex'})) {
+            if (defined $json_obj->{$param}) {
 
-			return $custom_msg if ( !$result or $result eq 'false' );
-		}
-	}
+                # If ARRAY, evaluate all in values.
+                if (ref($json_obj->{$param}) eq "ARRAY") {
+                    foreach my $value (@{ $json_obj->{$param} }) {
+                        return
+"The value '$value' is not valid for the parameter '$param'."
+                          if (
+                            grep (/^$param_obj->{ $param }->{ 'regex' }$/,
+                                $value)
+                          );
+                    }
+                }
+                else {
+                    return
+"The value '$json_obj->{ $param }' is not valid for the parameter '$param'."
+                      if ($json_obj->{$param} =~
+                        /$param_obj->{ $param }->{ 'negated_regex' }/);
+                }
+            }
+        }
 
-	return;
+        # is_regex
+        if ($param_obj->{$param}->{'is_regex'} eq 'true') {
+            if (defined $json_obj->{$param}) {
+                my $regex = eval { qr/$json_obj->{ $param }/ };
+                return "The value of field $param is an invalid regex" if $@;
+            }
+        }
+
+        if (exists $param_obj->{$param}->{'function'}) {
+            my $result =
+              &{ $param_obj->{$param}->{'function'} }($json_obj->{$param});
+
+            return $custom_msg if (!$result or $result eq 'false');
+        }
+    }
+
+    return;
 }
 
 =begin nd
@@ -856,45 +839,39 @@ Returns:
 
 =cut
 
-sub checkParamsInterval
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $interval, $param, $value ) = @_;
-	my $err_msg;
+sub checkParamsInterval {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($interval, $param, $value) = @_;
+    my $err_msg;
 
-	if ( $interval =~ /,/ )
-	{
-		my ( $low_limit, $high_limit ) = split ( ',', $interval );
+    if ($interval =~ /,/) {
+        my ($low_limit, $high_limit) = split(',', $interval);
 
-		my $msg = "";
-		if ( defined $low_limit and defined $high_limit and length $high_limit )
-		{
-			$msg =
-			  "'$param' has to be an integer number between '$low_limit' and '$high_limit'";
-		}
-		elsif ( defined $low_limit )
-		{
-			$msg =
-			  "'$param' has to be an integer number greater than or equal to '$low_limit'";
-		}
-		elsif ( defined $high_limit )
-		{
-			$msg =
-			  "'$param' has to be an integer number lower than or equal to '$high_limit'";
-		}
+        my $msg = "";
+        if (defined $low_limit and defined $high_limit and length $high_limit) {
+            $msg =
+"'$param' has to be an integer number between '$low_limit' and '$high_limit'";
+        }
+        elsif (defined $low_limit) {
+            $msg =
+"'$param' has to be an integer number greater than or equal to '$low_limit'";
+        }
+        elsif (defined $high_limit) {
+            $msg =
+"'$param' has to be an integer number lower than or equal to '$high_limit'";
+        }
 
-		$err_msg = $msg
-		  if (    ( $value !~ /^\d*$/ )
-			   || ( $value > $high_limit and length $high_limit )
-			   || ( $value < $low_limit  and length $low_limit ) );
-	}
-	else
-	{
-		die "Expected a interval string, got: $interval";
-	}
+        $err_msg = $msg
+          if ( ($value !~ /^\d*$/)
+            || ($value > $high_limit and length $high_limit)
+            || ($value < $low_limit  and length $low_limit));
+    }
+    else {
+        die "Expected a interval string, got: $interval";
+    }
 
-	return $err_msg;
+    return $err_msg;
 }
 
 =begin nd
@@ -911,28 +888,25 @@ Returns:
 
 =cut
 
-sub checkParamsInvalid
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $rec_keys, $expect_params ) = @_;
-	my $err_msg;
-	my @non_valid;
+sub checkParamsInvalid {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($rec_keys, $expect_params) = @_;
+    my $err_msg;
+    my @non_valid;
 
-	foreach my $param ( @{ $rec_keys } )
-	{
-		push @non_valid, "'$param'" if ( !grep ( /^$param$/, @{ $expect_params } ) );
-	}
+    foreach my $param (@{$rec_keys}) {
+        push @non_valid, "'$param'" if (!grep (/^$param$/, @{$expect_params}));
+    }
 
-	if ( @non_valid )
-	{
-		$err_msg = &putArrayAsText( \@non_valid,
-			"The parameter<sp>s</sp> <pl> <bs>is<|>are</bp> not correct for this call. Please, try with: '"
-			  . join ( "', '", @{ $expect_params } )
-			  . "'" );
-	}
+    if (@non_valid) {
+        $err_msg = &putArrayAsText(\@non_valid,
+"The parameter<sp>s</sp> <pl> <bs>is<|>are</bp> not correct for this call. Please, try with: '"
+              . join("', '", @{$expect_params})
+              . "'");
+    }
 
-	return $err_msg;
+    return $err_msg;
 }
 
 =begin nd
@@ -950,31 +924,27 @@ Returns:
 
 =cut
 
-sub checkParamsRequired
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $rec_keys, $expect_params, $param_obj ) = @_;
-	my @miss_params;
-	my $err_msg;
+sub checkParamsRequired {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($rec_keys, $expect_params, $param_obj) = @_;
+    my @miss_params;
+    my $err_msg;
 
-	foreach my $param ( @{ $expect_params } )
-	{
-		next if ( !exists $param_obj->{ $param }->{ 'required' } );
+    foreach my $param (@{$expect_params}) {
+        next if (!exists $param_obj->{$param}->{'required'});
 
-		if ( $param_obj->{ $param }->{ 'required' } eq 'true' )
-		{
-			push @miss_params, "'$param'"
-			  if ( !grep ( /^$param$/, @{ $rec_keys } ) );
-		}
-	}
+        if ($param_obj->{$param}->{'required'} eq 'true') {
+            push @miss_params, "'$param'"
+              if (!grep (/^$param$/, @{$rec_keys}));
+        }
+    }
 
-	if ( @miss_params )
-	{
-		$err_msg = &putArrayAsText( \@miss_params,
-					   "The required parameter<sp>s</sp> <pl> <bs>is<|>are</bp> missing." );
-	}
-	return $err_msg;
+    if (@miss_params) {
+        $err_msg = &putArrayAsText(\@miss_params,
+            "The required parameter<sp>s</sp> <pl> <bs>is<|>are</bp> missing.");
+    }
+    return $err_msg;
 }
 
 =begin nd
@@ -993,64 +963,57 @@ Returns:
 
 =cut
 
-sub httpResponseHelp
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $param_obj  = shift;
-	my $desc       = shift;
-	my $resp_param = [];
+sub httpResponseHelp {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $param_obj  = shift;
+    my $desc       = shift;
+    my $resp_param = [];
 
-	# build the output
-	foreach my $p ( keys %{ $param_obj } )
-	{
-		my $param->{ name } = $p;
-		if ( exists $param_obj->{ $p }->{ valid_format } )
-		{
-			$param->{ format } = $param_obj->{ $p }->{ valid_format };
-		}
-		if ( exists $param_obj->{ $p }->{ values } )
-		{
-			$param->{ possible_values } = $param_obj->{ $p }->{ values };
-		}
-		if ( exists $param_obj->{ $p }->{ interval } )
-		{
-			my ( $ll, $hl ) = split ( ',', $param_obj->{ $p }->{ interval } );
-			$ll = '-' if ( !defined $ll );
-			$hl = '-' if ( !defined $hl );
-			$param->{ interval } = "Expects a value between '$ll' and '$hl'.";
-		}
-		if ( exists $param_obj->{ $p }->{ non_blank }
-			 and $param_obj->{ $p }->{ non_blank } eq 'true' )
-		{
-			push @{ $param->{ options } }, "non_blank";
-		}
-		if ( exists $param_obj->{ $p }->{ required }
-			 and $param_obj->{ $p }->{ required } eq 'true' )
-		{
-			push @{ $param->{ options } }, "required";
-		}
-		if ( exists $param_obj->{ $p }->{ format_msg } )
-		{
-			$param->{ description } = $param_obj->{ $p }->{ format_msg };
-		}
-		if ( exists $param_obj->{ $p }->{ ref } )
-		{
-			$param->{ ref } = $param_obj->{ $p }->{ ref };
-		}
+    # build the output
+    foreach my $p (keys %{$param_obj}) {
+        my $param->{name} = $p;
+        if (exists $param_obj->{$p}->{valid_format}) {
+            $param->{format} = $param_obj->{$p}->{valid_format};
+        }
+        if (exists $param_obj->{$p}->{values}) {
+            $param->{possible_values} = $param_obj->{$p}->{values};
+        }
+        if (exists $param_obj->{$p}->{interval}) {
+            my ($ll, $hl) = split(',', $param_obj->{$p}->{interval});
+            $ll                = '-' if (!defined $ll);
+            $hl                = '-' if (!defined $hl);
+            $param->{interval} = "Expects a value between '$ll' and '$hl'.";
+        }
+        if (exists $param_obj->{$p}->{non_blank}
+            and $param_obj->{$p}->{non_blank} eq 'true')
+        {
+            push @{ $param->{options} }, "non_blank";
+        }
+        if (exists $param_obj->{$p}->{required}
+            and $param_obj->{$p}->{required} eq 'true')
+        {
+            push @{ $param->{options} }, "required";
+        }
+        if (exists $param_obj->{$p}->{format_msg}) {
+            $param->{description} = $param_obj->{$p}->{format_msg};
+        }
+        if (exists $param_obj->{$p}->{ref}) {
+            $param->{ref} = $param_obj->{$p}->{ref};
+        }
 
-		push @{ $resp_param }, $param;
-	}
+        push @{$resp_param}, $param;
+    }
 
-	my $msg  = "No parameter has been sent. Please, try with:";
-	my $body = {
+    my $msg  = "No parameter has been sent. Please, try with:";
+    my $body = {
 
-		message => $msg,
-		params  => $resp_param,
-	};
-	$body->{ description } = $desc if ( defined $desc );
+        message => $msg,
+        params  => $resp_param,
+    };
+    $body->{description} = $desc if (defined $desc);
 
-	return &httpResponse( { code => 400, body => $body } );
+    return &httpResponse({ code => 400, body => $body });
 }
 
 =begin nd
@@ -1081,55 +1044,54 @@ Returns:
 
 =cut
 
-sub putArrayAsText
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $array_ref = shift;
-	my $msg       = shift;
-	my @array     = @{ $array_ref };
+sub putArrayAsText {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $array_ref = shift;
+    my $msg       = shift;
+    my @array     = @{$array_ref};
 
-	# one element
-	if ( scalar @array eq 1 )
-	{
-		# save single tags
-		$msg =~ s/<\/?ss>//g;
+    # one element
+    if (scalar @array eq 1) {
 
-		# remove plural text
-		#~ $msg =~ s/<sp>.+<\/?sp>// while ( $msg =~ /<sp>/ );
-		$msg =~ s/<sp>.+<\/?sp>//g;
+        # save single tags
+        $msg =~ s/<\/?ss>//g;
 
-		# select between plural and single text
-		#~ $msg =~ s/<bs>(.+)<|>.+<\/bp>/$1/ while ( $msg =~ /<|>/ );
-		$msg =~ s/<bs>(.+)<\|>.+<\/bp>/$1/g;
+        # remove plural text
+        #~ $msg =~ s/<sp>.+<\/?sp>// while ( $msg =~ /<sp>/ );
+        $msg =~ s/<sp>.+<\/?sp>//g;
 
-		# put list
-		$msg =~ s/<pl>/$array[0]/;
-	}
+        # select between plural and single text
+        #~ $msg =~ s/<bs>(.+)<|>.+<\/bp>/$1/ while ( $msg =~ /<|>/ );
+        $msg =~ s/<bs>(.+)<\|>.+<\/bp>/$1/g;
 
-	# more than one element
-	else
-	{
-		# save plual tags
-		$msg =~ s/<\/?sp>//g;
+        # put list
+        $msg =~ s/<pl>/$array[0]/;
+    }
 
-		# remove single text
-		#~ $msg =~ s/<ss>.+<\/?ss>// while ( $msg =~ /<ss>/ );
-		$msg =~ s/<ss>.+<\/?ss>//g;
+    # more than one element
+    else {
 
-		# select between plural and single text
-		#~ $msg =~ s/<bs>.+<|>(.+)<\/bp>/$1/ while ( $msg =~ /<|>/ );
-		$msg =~ s/<bs>.+<\|>(.+)<\/bp>/$1/g;
+        # save plual tags
+        $msg =~ s/<\/?sp>//g;
 
-		my $lastItem = pop @array;
-		my $list = join ( ", ", @array );
-		$list .= " and $lastItem";
+        # remove single text
+        #~ $msg =~ s/<ss>.+<\/?ss>// while ( $msg =~ /<ss>/ );
+        $msg =~ s/<ss>.+<\/?ss>//g;
 
-		# put list
-		$msg =~ s/<pl>/$list/;
-	}
+        # select between plural and single text
+        #~ $msg =~ s/<bs>.+<|>(.+)<\/bp>/$1/ while ( $msg =~ /<|>/ );
+        $msg =~ s/<bs>.+<\|>(.+)<\/bp>/$1/g;
 
-	return $msg;
+        my $lastItem = pop @array;
+        my $list     = join(", ", @array);
+        $list .= " and $lastItem";
+
+        # put list
+        $msg =~ s/<pl>/$list/;
+    }
+
+    return $msg;
 }
 
 1;

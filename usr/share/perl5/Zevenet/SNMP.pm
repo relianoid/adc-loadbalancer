@@ -42,53 +42,46 @@ See Also:
 
 sub setSnmpdStatus    # ($snmpd_status)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	# get 'true' string to start, or a 'false' string to stop
-	my ( $snmpd_status ) = @_;
+    # get 'true' string to start, or a 'false' string to stop
+    my ($snmpd_status) = @_;
 
-	my $return_code = -1;
-	my $systemctl   = &getGlobalConfiguration( 'systemctl' );
-	my $updatercd   = &getGlobalConfiguration( 'updatercd' );
-	my $snmpd_srv   = &getGlobalConfiguration( 'snmpd_service' );
+    my $return_code = -1;
+    my $systemctl   = &getGlobalConfiguration('systemctl');
+    my $updatercd   = &getGlobalConfiguration('updatercd');
+    my $snmpd_srv   = &getGlobalConfiguration('snmpd_service');
 
-	if ( $snmpd_status eq 'true' )
-	{
-		&zenlog( "Starting snmp service", "info", "SYSTEM" );
-		&logAndRun( "$updatercd snmpd enable" );
+    if ($snmpd_status eq 'true') {
+        &zenlog("Starting snmp service", "info", "SYSTEM");
+        &logAndRun("$updatercd snmpd enable");
 
-		if ( -f $systemctl )
-		{
-			$return_code = &logAndRun( "$systemctl start snmpd" );
-		}
-		else
-		{
-			$return_code = &logAndRun( "$snmpd_srv start" );
-		}
-	}
-	elsif ( $snmpd_status eq 'false' )
-	{
-		&zenlog( "Stopping snmp service", "info", "SYSTEM" );
-		&logAndRun( "$updatercd snmpd disable" );
+        if (-f $systemctl) {
+            $return_code = &logAndRun("$systemctl start snmpd");
+        }
+        else {
+            $return_code = &logAndRun("$snmpd_srv start");
+        }
+    }
+    elsif ($snmpd_status eq 'false') {
+        &zenlog("Stopping snmp service", "info", "SYSTEM");
+        &logAndRun("$updatercd snmpd disable");
 
-		if ( -f $systemctl )
-		{
-			$return_code = &logAndRun( "$systemctl stop snmpd" );
-		}
-		else
-		{
-			$return_code = &logAndRun( "$snmpd_srv stop" );
-		}
-	}
-	else
-	{
-		&zenlog( "SNMP requested state is invalid", "warning", "SYSTEM" );
-		return -1;
-	}
+        if (-f $systemctl) {
+            $return_code = &logAndRun("$systemctl stop snmpd");
+        }
+        else {
+            $return_code = &logAndRun("$snmpd_srv stop");
+        }
+    }
+    else {
+        &zenlog("SNMP requested state is invalid", "warning", "SYSTEM");
+        return -1;
+    }
 
-	# returns 0 = DONE SUCCESSFULLY
-	return $return_code;
+    # returns 0 = DONE SUCCESSFULLY
+    return $return_code;
 }
 
 =begin nd
@@ -108,12 +101,12 @@ See Also:
 
 sub getSnmpdStatus    # ()
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $pidof = &getGlobalConfiguration( 'pidof' );
-	my $return_code = ( &logAndRunCheck( "$pidof snmpd" ) ) ? 'false' : 'true';
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $pidof       = &getGlobalConfiguration('pidof');
+    my $return_code = (&logAndRunCheck("$pidof snmpd")) ? 'false' : 'true';
 
-	return $return_code;
+    return $return_code;
 }
 
 =begin nd
@@ -142,36 +135,36 @@ See Also:
 
 sub getSnmpdConfig    # ()
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	require Tie::File;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    require Tie::File;
 
-	my $snmpdconfig_file = &getGlobalConfiguration( 'snmpdconfig_file' );
+    my $snmpdconfig_file = &getGlobalConfiguration('snmpdconfig_file');
 
-	tie my @config_file, 'Tie::File', $snmpdconfig_file;
+    tie my @config_file, 'Tie::File', $snmpdconfig_file;
 
-	## agentAddress line ##
-	# agentAddress udp:127.0.0.1:161
-	my ( undef, $snmpd_ip, $snmpd_port ) = split ( /:/, $config_file[0] );
+    ## agentAddress line ##
+    # agentAddress udp:127.0.0.1:161
+    my (undef, $snmpd_ip, $snmpd_port) = split(/:/, $config_file[0]);
 
-	## rocommunity line ##
-	# rocommunity public 0.0.0.0/0
-	my ( undef, $snmpd_community, $snmpd_scope ) =
-	  split ( /\s+/, $config_file[1] );
+    ## rocommunity line ##
+    # rocommunity public 0.0.0.0/0
+    my (undef, $snmpd_community, $snmpd_scope) =
+      split(/\s+/, $config_file[1]);
 
-	$snmpd_ip = '*' if ( $snmpd_ip eq '0.0.0.0' );
+    $snmpd_ip = '*' if ($snmpd_ip eq '0.0.0.0');
 
-	# Close file
-	untie @config_file;
+    # Close file
+    untie @config_file;
 
-	my %snmpd_conf = (
-					   ip        => $snmpd_ip,
-					   port      => $snmpd_port,
-					   community => $snmpd_community,
-					   scope     => $snmpd_scope,
-	);
+    my %snmpd_conf = (
+        ip        => $snmpd_ip,
+        port      => $snmpd_port,
+        community => $snmpd_community,
+        scope     => $snmpd_scope,
+    );
 
-	return \%snmpd_conf;
+    return \%snmpd_conf;
 }
 
 =begin nd
@@ -191,42 +184,41 @@ See Also:
 
 sub setSnmpdConfig    # ($snmpd_conf)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $snmpd_conf ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($snmpd_conf) = @_;
 
-	my $snmpdconfig_file = &getGlobalConfiguration( 'snmpdconfig_file' );
+    my $snmpdconfig_file = &getGlobalConfiguration('snmpdconfig_file');
 
-	my $ip = $snmpd_conf->{ ip };
-	$ip = '0.0.0.0' if ( $snmpd_conf->{ ip } eq '*' );
+    my $ip = $snmpd_conf->{ip};
+    $ip = '0.0.0.0' if ($snmpd_conf->{ip} eq '*');
 
-	return -1 if ref $snmpd_conf ne 'HASH';
+    return -1 if ref $snmpd_conf ne 'HASH';
 
-	# scope has to be network range definition
-	my $network = new NetAddr::IP( $snmpd_conf->{ scope } )->network();
-	return -1 if ( $network ne $snmpd_conf->{ scope } );
+    # scope has to be network range definition
+    my $network = new NetAddr::IP($snmpd_conf->{scope})->network();
+    return -1 if ($network ne $snmpd_conf->{scope});
 
-	# Open config file
-	open my $config_file, '>', $snmpdconfig_file;
+    # Open config file
+    open my $config_file, '>', $snmpdconfig_file;
 
-	if ( !$config_file )
-	{
-		&zenlog( "Could not open $snmpdconfig_file: $!", "warning", "SYSTEM" );
-		return -1;
-	}
+    if (!$config_file) {
+        &zenlog("Could not open $snmpdconfig_file: $!", "warning", "SYSTEM");
+        return -1;
+    }
 
-	# example: agentAddress  udp:127.0.0.1:161
-	# example: rocommunity public  0.0.0.0/0
-	print $config_file "agentAddress udp:$ip:$snmpd_conf->{port}\n";
-	print $config_file
-	  "rocommunity $snmpd_conf->{community} $snmpd_conf->{scope}\n";
-	print $config_file "includeAllDisks 10%\n";
-	print $config_file "#zenlb\n";
+    # example: agentAddress  udp:127.0.0.1:161
+    # example: rocommunity public  0.0.0.0/0
+    print $config_file "agentAddress udp:$ip:$snmpd_conf->{port}\n";
+    print $config_file
+      "rocommunity $snmpd_conf->{community} $snmpd_conf->{scope}\n";
+    print $config_file "includeAllDisks 10%\n";
+    print $config_file "#zenlb\n";
 
-	# Close config file
-	close $config_file;
+    # Close config file
+    close $config_file;
 
-	return 0;
+    return 0;
 }
 
 1;

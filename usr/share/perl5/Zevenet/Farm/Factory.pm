@@ -24,9 +24,8 @@
 use strict;
 
 my $eload;
-if ( eval { require Zevenet::ELoad; } )
-{
-	$eload = 1;
+if (eval { require Zevenet::ELoad; }) {
+    $eload = 1;
 }
 
 =begin nd
@@ -51,62 +50,57 @@ FIXME:
 
 sub runFarmCreate    # ($farm_type,$vip,$vip_port,$farm_name,$fdev)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_type, $vip, $vip_port, $farm_name, $fdev ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_type, $vip, $vip_port, $farm_name, $fdev) = @_;
 
-	my $output        = -1;
-	my $farm_filename = &getFarmFile( $farm_name );
+    my $output        = -1;
+    my $farm_filename = &getFarmFile($farm_name);
 
-	if ( $farm_filename != -1 )
-	{
-		# the farm name already exists
-		$output = -2;
-		return $output;
-	}
+    if ($farm_filename != -1) {
 
-	my $status = 'up';
-	if ( $farm_type ne 'datalink' )
-	{
-		require Zevenet::Net::Interface;
-		$status = 'down'
-		  if ( !&validatePort( $vip, $vip_port, $farm_type, $farm_name ) );
-	}
+        # the farm name already exists
+        $output = -2;
+        return $output;
+    }
 
-	&zenlog( "running 'Create' for $farm_name farm $farm_type", "info", "LSLB" );
+    my $status = 'up';
+    if ($farm_type ne 'datalink') {
+        require Zevenet::Net::Interface;
+        $status = 'down'
+          if (!&validatePort($vip, $vip_port, $farm_type, $farm_name));
+    }
 
-	if ( $farm_type =~ /^HTTPS?$/i )
-	{
-		require Zevenet::Farm::HTTP::Factory;
-		$output =
-		  &runHTTPFarmCreate( $vip, $vip_port, $farm_name, $farm_type, $status );
-	}
-	elsif ( $farm_type =~ /^DATALINK$/i )
-	{
-		require Zevenet::Farm::Datalink::Factory;
-		$output = &runDatalinkFarmCreate( $farm_name, $vip, $fdev );
-	}
-	elsif ( $farm_type =~ /^L4xNAT$/i )
-	{
-		require Zevenet::Farm::L4xNAT::Factory;
-		$output = &runL4FarmCreate( $vip, $farm_name, $vip_port, $status );
-	}
-	elsif ( $farm_type =~ /^GSLB$/i )
-	{
-		$output = &eload(
-						  module => 'Zevenet::Farm::GSLB::Factory',
-						  func   => 'runGSLBFarmCreate',
-						  args   => [$vip, $vip_port, $farm_name, $status],
-		) if $eload;
-	}
+    &zenlog("running 'Create' for $farm_name farm $farm_type", "info", "LSLB");
 
-	&eload(
-			module => 'Zevenet::RBAC::Group::Config',
-			func   => 'addRBACUserResource',
-			args   => [$farm_name, 'farms'],
-	) if $eload;
+    if ($farm_type =~ /^HTTPS?$/i) {
+        require Zevenet::Farm::HTTP::Factory;
+        $output =
+          &runHTTPFarmCreate($vip, $vip_port, $farm_name, $farm_type, $status);
+    }
+    elsif ($farm_type =~ /^DATALINK$/i) {
+        require Zevenet::Farm::Datalink::Factory;
+        $output = &runDatalinkFarmCreate($farm_name, $vip, $fdev);
+    }
+    elsif ($farm_type =~ /^L4xNAT$/i) {
+        require Zevenet::Farm::L4xNAT::Factory;
+        $output = &runL4FarmCreate($vip, $farm_name, $vip_port, $status);
+    }
+    elsif ($farm_type =~ /^GSLB$/i) {
+        $output = &eload(
+            module => 'Zevenet::Farm::GSLB::Factory',
+            func   => 'runGSLBFarmCreate',
+            args   => [ $vip, $vip_port, $farm_name, $status ],
+        ) if $eload;
+    }
 
-	return $output;
+    &eload(
+        module => 'Zevenet::RBAC::Group::Config',
+        func   => 'addRBACUserResource',
+        args   => [ $farm_name, 'farms' ],
+    ) if $eload;
+
+    return $output;
 }
 
 =begin nd
@@ -129,100 +123,83 @@ Returns:
 
 =cut
 
-sub runFarmCreateFrom
-{
-	my $params = shift;
-	my $err    = 0;
+sub runFarmCreateFrom {
+    my $params = shift;
+    my $err    = 0;
 
-	# lock farm
-	my $lock_file = &getLockFile( $params->{ farmname } );
-	my $lock_fh = &openlock( $lock_file, 'w' );
+    # lock farm
+    my $lock_file = &getLockFile($params->{farmname});
+    my $lock_fh   = &openlock($lock_file, 'w');
 
-	# add ipds rules
-	my $ipds;
-	if ( $eload )
-	{
-		$ipds = &eload(
-						module => 'Zevenet::IPDS::Core',
-						func   => 'getIPDSfarmsRules',
-						args   => [$params->{ copy_from }],
-		);
+    # add ipds rules
+    my $ipds;
+    if ($eload) {
+        $ipds = &eload(
+            module => 'Zevenet::IPDS::Core',
+            func   => 'getIPDSfarmsRules',
+            args   => [ $params->{copy_from} ],
+        );
 
-		# they doesn't have to be applied, they already are in the config file
-		delete $ipds->{ waf };
-	}
+        # they doesn't have to be applied, they already are in the config file
+        delete $ipds->{waf};
+    }
 
-	# create file
-	require Zevenet::Farm::Action;
-	$err = &copyFarm( $params->{ copy_from }, $params->{ farmname } );
+    # create file
+    require Zevenet::Farm::Action;
+    $err = &copyFarm($params->{copy_from}, $params->{farmname});
 
-	# add fg
-	require Zevenet::FarmGuardian;
-	if ( $params->{ profile } eq 'l4xnat' )
-	{
-		my $fg = &getFGFarm( $params->{ copy_from } );
-		&linkFGFarm( $fg, $params->{ farmname } );
-	}
-	elsif ( $params->{ profile } ne 'datalink' )
-	{
-		my $fg;
-		require Zevenet::Farm::Service;
-		foreach my $s ( &getFarmServices( $params->{ farmname } ) )
-		{
-			$fg = &getFGFarm( $params->{ copy_from }, $s );
-			&linkFGFarm( $fg, $params->{ farmname }, $s );
-		}
-	}
+    # add fg
+    require Zevenet::FarmGuardian;
+    if ($params->{profile} eq 'l4xnat') {
+        my $fg = &getFGFarm($params->{copy_from});
+        &linkFGFarm($fg, $params->{farmname});
+    }
+    elsif ($params->{profile} ne 'datalink') {
+        my $fg;
+        require Zevenet::Farm::Service;
+        foreach my $s (&getFarmServices($params->{farmname})) {
+            $fg = &getFGFarm($params->{copy_from}, $s);
+            &linkFGFarm($fg, $params->{farmname}, $s);
+        }
+    }
 
-	# unlock farm
-	close $lock_fh;
+    # unlock farm
+    close $lock_fh;
 
-	# modify vport, vip, interface
-	if ( $params->{ profile } ne 'datalink' )
-	{
-		require Zevenet::Farm::Config;
-		$err = &setFarmVirtualConf(
-									$params->{ vip },
-									$params->{ vport },
-									$params->{ farmname }
-		);
-	}
-	else
-	{
-		require Zevenet::Farm::Datalink::Config;
-		$err = &setDatalinkFarmVirtualConf(
-											$params->{ vip },
-											$params->{ interface },
-											$params->{ farmname }
-		);
-	}
+    # modify vport, vip, interface
+    if ($params->{profile} ne 'datalink') {
+        require Zevenet::Farm::Config;
+        $err = &setFarmVirtualConf($params->{vip}, $params->{vport},
+            $params->{farmname});
+    }
+    else {
+        require Zevenet::Farm::Datalink::Config;
+        $err = &setDatalinkFarmVirtualConf($params->{vip}, $params->{interface},
+            $params->{farmname});
+    }
 
-	if ( $eload and !$err )
-	{
-		$err = &eload(
-					   module => 'Zevenet::IPDS::Core',
-					   func   => 'addIPDSFarms',
-					   args   => [$params->{ farmname }, $ipds],
-		);
-	}
+    if ($eload and !$err) {
+        $err = &eload(
+            module => 'Zevenet::IPDS::Core',
+            func   => 'addIPDSFarms',
+            args   => [ $params->{farmname}, $ipds ],
+        );
+    }
 
-	if ( ( $params->{ profile } eq 'l4xnat' ) and ( !$err ) )
-	{
-		require Zevenet::Net::Interface;
-		if (
-			 &validatePort(
-							$params->{ vip },
-							$params->{ vport },
-							'l4xnat',
-							$params->{ farmname }
-			 )
-		  )
-		{
-			$err = &startL4Farm( $params->{ farmname } );
-		}
-	}
+    if (($params->{profile} eq 'l4xnat') and (!$err)) {
+        require Zevenet::Net::Interface;
+        if (
+            &validatePort(
+                $params->{vip}, $params->{vport},
+                'l4xnat',       $params->{farmname}
+            )
+          )
+        {
+            $err = &startL4Farm($params->{farmname});
+        }
+    }
 
-	return $err;
+    return $err;
 }
 
 1;

@@ -24,77 +24,73 @@ use strict;
 use Zevenet::Farm::HTTP::Config;
 
 my $eload;
-if ( eval { require Zevenet::ELoad; } )
-{
-	$eload = 1;
+if (eval { require Zevenet::ELoad; }) {
+    $eload = 1;
 }
 
 # GET /farms/<farmname> Request info of a http|https Farm
 sub farms_name_http    # ( $farmname )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $farmname = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $farmname = shift;
 
-	# Get farm reference
-	require Zevenet::API40::Farm::Output::HTTP;
-	my $farm_ref = &getHTTPOutFarm( $farmname );
+    # Get farm reference
+    require Zevenet::API40::Farm::Output::HTTP;
+    my $farm_ref = &getHTTPOutFarm($farmname);
 
-	# Get farm services reference
-	require Zevenet::Farm::HTTP::Service;
-	my $services_ref = &getHTTPOutService( $farmname );
+    # Get farm services reference
+    require Zevenet::Farm::HTTP::Service;
+    my $services_ref = &getHTTPOutService($farmname);
 
-	# Output
-	my $body = {
-				 description => "List farm $farmname",
-				 params      => $farm_ref,
-				 services    => $services_ref,
-	};
+    # Output
+    my $body = {
+        description => "List farm $farmname",
+        params      => $farm_ref,
+        services    => $services_ref,
+    };
 
-	if ( $eload )
-	{
-		$body->{ ipds } = &eload(
-								  module => 'Zevenet::IPDS::Core',
-								  func   => 'getIPDSfarmsRules',
-								  args   => [$farmname],
-		);
-	}
+    if ($eload) {
+        $body->{ipds} = &eload(
+            module => 'Zevenet::IPDS::Core',
+            func   => 'getIPDSfarmsRules',
+            args   => [$farmname],
+        );
+    }
 
-	&httpResponse( { code => 200, body => $body } );
+    &httpResponse({ code => 200, body => $body });
 }
 
 # GET /farms/<farmname>/summary
-sub farms_name_http_summary
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $farmname = shift;
+sub farms_name_http_summary {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $farmname = shift;
 
-	# Get farm reference
-	require Zevenet::API40::Farm::Output::HTTP;
-	my $farm_ref = &getHTTPOutFarm( $farmname );
+    # Get farm reference
+    require Zevenet::API40::Farm::Output::HTTP;
+    my $farm_ref = &getHTTPOutFarm($farmname);
 
-	# Services
-	require Zevenet::Farm::HTTP::Service;
+    # Services
+    require Zevenet::Farm::HTTP::Service;
 
-	my $services_ref = &get_http_all_services_summary_struct( $farmname );
+    my $services_ref = &get_http_all_services_summary_struct($farmname);
 
-	my $body = {
-				 description => "List farm $farmname",
-				 params      => $farm_ref,
-				 services    => $services_ref,
-	};
+    my $body = {
+        description => "List farm $farmname",
+        params      => $farm_ref,
+        services    => $services_ref,
+    };
 
-	if ( $eload )
-	{
-		$body->{ ipds } = &eload(
-								  module => 'Zevenet::IPDS::Core',
-								  func   => 'getIPDSfarmsRules',
-								  args   => [$farmname],
-		);
-	}
+    if ($eload) {
+        $body->{ipds} = &eload(
+            module => 'Zevenet::IPDS::Core',
+            func   => 'getIPDSfarmsRules',
+            args   => [$farmname],
+        );
+    }
 
-	&httpResponse( { code => 200, body => $body } );
+    &httpResponse({ code => 200, body => $body });
 }
 
 1;

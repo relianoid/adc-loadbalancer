@@ -45,31 +45,30 @@ See Also:
 	zapi/v3/system.cgi
 =cut
 
-sub getLogs
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my @logs;
-	my $logdir = &getGlobalConfiguration( 'logdir' );
+sub getLogs {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my @logs;
+    my $logdir = &getGlobalConfiguration('logdir');
 
-	require Zevenet::File;
+    require Zevenet::File;
 
-	opendir ( DIR, $logdir );
-	my @files = readdir ( DIR );
-	closedir ( DIR );
+    opendir(DIR, $logdir);
+    my @files = readdir(DIR);
+    closedir(DIR);
 
-	foreach my $line ( @files )
-	{
-		# not list if it is a directory
-		next if -d "$logdir/$line";
+    foreach my $line (@files) {
 
-		my $filepath = "$logdir/$line";
-		chomp ( $filepath );
+        # not list if it is a directory
+        next if -d "$logdir/$line";
 
-		push @logs, { 'file' => $line, 'date' => &getFileDateGmt( $filepath ) };
-	}
+        my $filepath = "$logdir/$line";
+        chomp($filepath);
 
-	return \@logs;
+        push @logs, { 'file' => $line, 'date' => &getFileDateGmt($filepath) };
+    }
+
+    return \@logs;
 }
 
 =begin nd
@@ -88,28 +87,28 @@ See Also:
 	zapi/v31/system.cgi
 =cut
 
-sub getLogLines
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $logFile, $lines_number ) = @_;
+sub getLogLines {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($logFile, $lines_number) = @_;
 
-	my @lines;
-	my $path = &getGlobalConfiguration( 'logdir' );
-	my $tail = &getGlobalConfiguration( 'tail' );
+    my @lines;
+    my $path = &getGlobalConfiguration('logdir');
+    my $tail = &getGlobalConfiguration('tail');
 
-	if ( $logFile =~ /\.gz$/ )
-	{
-		my $zcat = &getGlobalConfiguration( 'zcat' );
-		@lines =
-		  @{ &logAndGet( "$zcat ${path}/$logFile | $tail -n $lines_number", "array" ) };
-	}
-	else
-	{
-		@lines = @{ &logAndGet( "$tail -n $lines_number ${path}/$logFile", "array" ) };
-	}
+    if ($logFile =~ /\.gz$/) {
+        my $zcat = &getGlobalConfiguration('zcat');
+        @lines = @{
+            &logAndGet("$zcat ${path}/$logFile | $tail -n $lines_number",
+                "array")
+        };
+    }
+    else {
+        @lines =
+          @{ &logAndGet("$tail -n $lines_number ${path}/$logFile", "array") };
+    }
 
-	return \@lines;
+    return \@lines;
 }
 
 1;

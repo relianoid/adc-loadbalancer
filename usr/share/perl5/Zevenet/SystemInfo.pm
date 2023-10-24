@@ -43,11 +43,10 @@ See Also:
 	zapi/v3/system.cgi, zapi/v3/system_stats.cgi, zapi/v2/system_stats.cgi
 =cut
 
-sub getDate
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	return scalar CORE::localtime ();
+sub getDate {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    return scalar CORE::localtime();
 }
 
 =begin nd
@@ -73,15 +72,14 @@ See Also:
 	zevenet
 =cut
 
-sub getHostname
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+sub getHostname {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my $uname = &getGlobalConfiguration( 'uname' );
-	state $hostname = &logAndGet( "$uname -n" );
+    my $uname = &getGlobalConfiguration('uname');
+    state $hostname = &logAndGet("$uname -n");
 
-	return $hostname;
+    return $hostname;
 }
 
 =begin nd
@@ -101,91 +99,84 @@ See Also:
 	zapi/v3/system.cgi, zenbui.pl, zevenet
 =cut
 
-sub getApplianceVersion
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $version;
-	my $hyperv;
-	my $applianceFile = &getGlobalConfiguration( 'applianceVersionFile' );
-	my $lsmod         = &getGlobalConfiguration( 'lsmod' );
-	my @packages      = @{ &logAndGet( "$lsmod", "array" ) };
-	my @hypervisor    = grep ( /(xen|vm|hv|kvm)_/, @packages );
+sub getApplianceVersion {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $version;
+    my $hyperv;
+    my $applianceFile = &getGlobalConfiguration('applianceVersionFile');
+    my $lsmod         = &getGlobalConfiguration('lsmod');
+    my @packages      = @{ &logAndGet("$lsmod", "array") };
+    my @hypervisor    = grep (/(xen|vm|hv|kvm)_/, @packages);
 
-	# look for appliance vesion
-	if ( -f $applianceFile )
-	{
-		require Tie::File;
-		Tie::File->import;
+    # look for appliance vesion
+    if (-f $applianceFile) {
+        require Tie::File;
+        Tie::File->import;
 
-		tie my @filelines, 'Tie::File', $applianceFile;
-		$version = $filelines[0];
-		untie @filelines;
-	}
+        tie my @filelines, 'Tie::File', $applianceFile;
+        $version = $filelines[0];
+        untie @filelines;
+    }
 
-	# generate appliance version
-	if ( !$version )
-	{
-		my $kernel = &getKernelVersion();
+    # generate appliance version
+    if (!$version) {
+        my $kernel = &getKernelVersion();
 
-		my $awk      = &getGlobalConfiguration( 'awk' );
-		my $ifconfig = &getGlobalConfiguration( 'ifconfig' );
+        my $awk      = &getGlobalConfiguration('awk');
+        my $ifconfig = &getGlobalConfiguration('ifconfig');
 
-		# look for mgmt interface
-		my @ifaces = @{ &logAndGet( "$ifconfig -s | $awk '{print $1}'", "array" ) };
+        # look for mgmt interface
+        my @ifaces =
+          @{ &logAndGet("$ifconfig -s | $awk '{print $1}'", "array") };
 
-		# Network appliance
-		if ( grep ( /mgmt/, @ifaces ) )
-		{
-			$version = "ZNA 3300";
-		}
-		else
-		{
-			# select appliance verison
-			if    ( $kernel =~ /3\.2\.0\-4/ )      { $version = "3110"; }
-			elsif ( $kernel =~ /3\.16\.0\-4/ )     { $version = "4000"; }
-			elsif ( $kernel =~ /3\.16\.7\-ckt20/ ) { $version = "4100"; }
-			else { $version = "System version not detected"; }
+        # Network appliance
+        if (grep (/mgmt/, @ifaces)) {
+            $version = "ZNA 3300";
+        }
+        else {
 
-			# virtual appliance
-			if ( $hypervisor[0] =~ /(xen|vm|hv|kvm)_/ )
-			{
-				$version = "ZVA $version";
-			}
+            # select appliance verison
+            if    ($kernel =~ /3\.2\.0\-4/)      { $version = "3110"; }
+            elsif ($kernel =~ /3\.16\.0\-4/)     { $version = "4000"; }
+            elsif ($kernel =~ /3\.16\.7\-ckt20/) { $version = "4100"; }
+            else { $version = "System version not detected"; }
 
-			# baremetal appliance
-			else
-			{
-				$version = "ZBA $version";
-			}
-		}
+            # virtual appliance
+            if ($hypervisor[0] =~ /(xen|vm|hv|kvm)_/) {
+                $version = "ZVA $version";
+            }
 
-		# save version for future request
-		require Tie::File;
-		Tie::File->import;
+            # baremetal appliance
+            else {
+                $version = "ZBA $version";
+            }
+        }
 
-		tie my @filelines, 'Tie::File', $applianceFile;
-		$filelines[0] = $version;
-		untie @filelines;
-	}
+        # save version for future request
+        require Tie::File;
+        Tie::File->import;
 
-	# virtual appliance
-	if ( @hypervisor && $hypervisor[0] =~ /(xen|vm|hv|kvm)_/ )
-	{
-		$hyperv = $1;
-		$hyperv = 'HyperV' if ( $hyperv eq 'hv' );
-		$hyperv = 'Vmware' if ( $hyperv eq 'vm' );
-		$hyperv = 'Xen' if ( $hyperv eq 'xen' );
-		$hyperv = 'KVM' if ( $hyperv eq 'kvm' );
-	}
+        tie my @filelines, 'Tie::File', $applianceFile;
+        $filelines[0] = $version;
+        untie @filelines;
+    }
+
+    # virtual appliance
+    if (@hypervisor && $hypervisor[0] =~ /(xen|vm|hv|kvm)_/) {
+        $hyperv = $1;
+        $hyperv = 'HyperV' if ($hyperv eq 'hv');
+        $hyperv = 'Vmware' if ($hyperv eq 'vm');
+        $hyperv = 'Xen'    if ($hyperv eq 'xen');
+        $hyperv = 'KVM'    if ($hyperv eq 'kvm');
+    }
 
 # before zevenet versions had hypervisor in appliance version file, so not inclue it in the chain
-	if ( $hyperv && $version !~ /hypervisor/ )
-	{
-		$version = "$version, hypervisor: $hyperv";
-	}
+    if ($hyperv && $version !~ /hypervisor/) {
+        $version = "$version, hypervisor: $hyperv";
+    }
 
-	return $version;
+    return $version;
 }
 
 =begin nd
@@ -203,24 +194,22 @@ See Also:
 	zapi/v3/system_stats.cgi
 =cut
 
-sub getCpuCores
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $cpuinfo_filename = '/proc/stat';
-	my $cores            = 1;
+sub getCpuCores {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $cpuinfo_filename = '/proc/stat';
+    my $cores            = 1;
 
-	open my $stat_file, '<', $cpuinfo_filename;
+    open my $stat_file, '<', $cpuinfo_filename;
 
-	while ( my $line = <$stat_file> )
-	{
-		next unless $line =~ /^cpu(\d+) /;
-		$cores = $1 + 1;
-	}
+    while (my $line = <$stat_file>) {
+        next unless $line =~ /^cpu(\d+) /;
+        $cores = $1 + 1;
+    }
 
-	close $stat_file;
+    close $stat_file;
 
-	return $cores;
+    return $cores;
 }
 
 =begin nd
@@ -237,16 +226,15 @@ Returns:
 
 =cut
 
-sub getCPUSecondToJiffy
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $sec = shift // 1;
-	my $ticks = &getCPUTicks();
+sub getCPUSecondToJiffy {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $sec   = shift // 1;
+    my $ticks = &getCPUTicks();
 
-	return -1 unless ( $ticks > 0 );
+    return -1 unless ($ticks > 0);
 
-	return $sec * $ticks;
+    return $sec * $ticks;
 }
 
 =begin nd
@@ -262,26 +250,23 @@ Returns:
 
 =cut
 
-sub getCPUJiffiesNow
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $jiffies = -1;
-	my $file    = '/proc/timer_list';
-	open my $fh, '<', $file or return -1;
+sub getCPUJiffiesNow {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $jiffies = -1;
+    my $file    = '/proc/timer_list';
+    open my $fh, '<', $file or return -1;
 
-	foreach my $line ( <$fh> )
-	{
-		if ( $line =~ /^jiffies: ([\d]+)/ )
-		{
-			$jiffies = $1;
-			last;
-		}
-	}
+    foreach my $line (<$fh>) {
+        if ($line =~ /^jiffies: ([\d]+)/) {
+            $jiffies = $1;
+            last;
+        }
+    }
 
-	close $fh;
+    close $fh;
 
-	return $jiffies;
+    return $jiffies;
 }
 
 =begin nd
@@ -297,29 +282,26 @@ Returns:
 
 =cut
 
-sub getCPUTicks
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $ticks = -1;
-	my $file  = '/boot/config-';    # end file with the kernel version
+sub getCPUTicks {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $ticks = -1;
+    my $file  = '/boot/config-';    # end file with the kernel version
 
-	my $kernel = &getKernelVersion();
+    my $kernel = &getKernelVersion();
 
-	open my $fh, '<', "${file}$kernel" or return -1;
+    open my $fh, '<', "${file}$kernel" or return -1;
 
-	foreach my $line ( <$fh> )
-	{
-		if ( $line =~ /^CONFIG_HZ[=: ](\d+)/ )
-		{
-			$ticks = $1;
-			last;
-		}
-	}
+    foreach my $line (<$fh>) {
+        if ($line =~ /^CONFIG_HZ[=: ](\d+)/) {
+            $ticks = $1;
+            last;
+        }
+    }
 
-	close $fh;
+    close $fh;
 
-	return $ticks;
+    return $ticks;
 }
 
 =begin nd
@@ -335,33 +317,30 @@ Returns:
 
 =cut
 
-sub setEnv
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	use Zevenet::Config;
-	$ENV{ http_proxy }  = &getGlobalConfiguration( 'http_proxy' )  // "";
-	$ENV{ https_proxy } = &getGlobalConfiguration( 'https_proxy' ) // "";
+sub setEnv {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    use Zevenet::Config;
+    $ENV{http_proxy}  = &getGlobalConfiguration('http_proxy')  // "";
+    $ENV{https_proxy} = &getGlobalConfiguration('https_proxy') // "";
 
-	my $provider = &getGlobalConfiguration( 'cloud_provider' );
-	if ( $provider eq 'aws' )
-	{
-		$ENV{ AWS_SHARED_CREDENTIALS_FILE } =
-		  &getGlobalConfiguration( 'aws_credentials' ) // "";
-		$ENV{ AWS_CONFIG_FILE } = &getGlobalConfiguration( 'aws_config' ) // "";
-	}
+    my $provider = &getGlobalConfiguration('cloud_provider');
+    if ($provider eq 'aws') {
+        $ENV{AWS_SHARED_CREDENTIALS_FILE} =
+          &getGlobalConfiguration('aws_credentials') // "";
+        $ENV{AWS_CONFIG_FILE} = &getGlobalConfiguration('aws_config') // "";
+    }
 }
 
-sub getKernelVersion
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	require Zevenet::Config;
+sub getKernelVersion {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    require Zevenet::Config;
 
-	my $uname   = &getGlobalConfiguration( 'uname' );
-	my $version = &logAndGet( "$uname -r" );
+    my $uname   = &getGlobalConfiguration('uname');
+    my $version = &logAndGet("$uname -r");
 
-	return $version;
+    return $version;
 }
 
 1;

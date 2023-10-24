@@ -36,17 +36,16 @@ Returns:
 
 =cut
 
-sub getUser
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+sub getUser {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	#~ if ( !exists $ENV{ REQ_USER } || !defined $ENV{ REQ_USER } )
-	#~ {
-	#~ &zenlog( 'User name not defined', 'Warning' );
-	#~ }
+    #~ if ( !exists $ENV{ REQ_USER } || !defined $ENV{ REQ_USER } )
+    #~ {
+    #~ &zenlog( 'User name not defined', 'Warning' );
+    #~ }
 
-	return $ENV{ REQ_USER } // '';
+    return $ENV{REQ_USER} // '';
 }
 
 =begin nd
@@ -62,12 +61,11 @@ Returns:
 
 =cut
 
-sub setUser
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $user = shift;
-	$ENV{ REQ_USER } = $user;
+sub setUser {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $user = shift;
+    $ENV{REQ_USER} = $user;
 }
 
 =begin nd
@@ -83,20 +81,18 @@ Returns:
 
 =cut
 
-sub getSysGroupList
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+sub getSysGroupList {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my @groupSet = ();
-	my $group_file = &openlock( "/etc/group", "r" );
-	while ( my $group = <$group_file> )
-	{
-		push ( @groupSet, $1 ) if ( $group =~ m/(\w+):x:.*/g );
-	}
-	close $group_file;
+    my @groupSet   = ();
+    my $group_file = &openlock("/etc/group", "r");
+    while (my $group = <$group_file>) {
+        push(@groupSet, $1) if ($group =~ m/(\w+):x:.*/g);
+    }
+    close $group_file;
 
-	return @groupSet;
+    return @groupSet;
 
 }
 
@@ -113,20 +109,18 @@ Returns:
 
 =cut
 
-sub getSysUserList
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+sub getSysUserList {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my @userSet = ();
-	my $user_file = &openlock( "/etc/passwd", "r" );
-	while ( my $user = <$user_file> )
-	{
-		push ( @userSet, $1 ) if ( $user =~ m/(\w+):x:.*/g );
-	}
-	close $user_file;
+    my @userSet   = ();
+    my $user_file = &openlock("/etc/passwd", "r");
+    while (my $user = <$user_file>) {
+        push(@userSet, $1) if ($user =~ m/(\w+):x:.*/g);
+    }
+    close $user_file;
 
-	return @userSet;
+    return @userSet;
 
 }
 
@@ -144,16 +138,15 @@ Returns:
 
 =cut
 
-sub getSysUserExists
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $user = shift;
+sub getSysUserExists {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $user = shift;
 
-	my $out = 0;
-	$out = 1 if ( grep ( /^$user$/, &getSysUserList() ) );
+    my $out = 0;
+    $out = 1 if (grep (/^$user$/, &getSysUserList()));
 
-	return $out;
+    return $out;
 }
 
 =begin nd
@@ -170,16 +163,15 @@ Returns:
 
 =cut
 
-sub getSysGroupExists
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $group = shift;
+sub getSysGroupExists {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $group = shift;
 
-	my $out = 0;
-	$out = 1 if ( grep ( /^$group$/, &getSysGroupList() ) );
+    my $out = 0;
+    $out = 1 if (grep (/^$group$/, &getSysGroupList()));
 
-	return $out;
+    return $out;
 }
 
 1;

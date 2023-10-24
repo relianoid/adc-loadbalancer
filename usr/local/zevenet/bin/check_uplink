@@ -28,47 +28,45 @@ use Zevenet::Farm::Core;
 use Zevenet::Farm::Backend;
 use Zevenet::Farm::Action;
 
-my ( $farmname, $count ) = @ARGV;
+my ($farmname, $count) = @ARGV;
 
 $count = 1 if not $count;
 
-my $filename  = &getFarmFile( $farmname );
-my $type      = &getFarmType( $farmname );
-my $configdir = &getGlobalConfiguration( 'configdir' );
+my $filename  = &getFarmFile($farmname);
+my $type      = &getFarmType($farmname);
+my $configdir = &getGlobalConfiguration('configdir');
 
-if ( -e "$configdir/$filename" and $type eq "datalink" )
-{
-	my @backends = &getFarmServers( $farmname );
+if (-e "$configdir/$filename" and $type eq "datalink") {
+    my @backends = &getFarmServers($farmname);
 
-	foreach my $line ( @backends )
-	{
-		my @lines   = split ( ';', $line );
-		my $index   = $lines[0];
-		my $backend = $lines[1];
-		my $status  = $lines[5];
-		chomp ( $status );
+    foreach my $line (@backends) {
+        my @lines   = split(';', $line);
+        my $index   = $lines[0];
+        my $backend = $lines[1];
+        my $status  = $lines[5];
+        chomp($status);
 
-		if ( $backend ne "" and $backend =~ /\./ )
-		{
-			my $output = &logAndRunCheck( "ping -c $count $backend" );
+        if ($backend ne "" and $backend =~ /\./) {
+            my $output = &logAndRunCheck("ping -c $count $backend");
 
-			if ( $output ne 0 and $status eq "up" )
-			{
-				&zenlog(
-					  "disabling datalink backend $index with ip $backend for the $farmname farm" );
-				&setFarmBackendStatus( $farmname, $index, "down" );    # disable backend
-				&runFarmStop( $farmname, "true" );
-				&runFarmStart( $farmname, "true" );
-			}
-			if ( $output eq 0 and $status eq "down" )
-			{
-				&zenlog(
-					   "enabling datalink backend $index with ip $backend for the $farmname farm" );
-				&setFarmBackendStatus( $farmname, $index, "up" );      # enable backend
-				&runFarmStop( $farmname, "true" );
-				&runFarmStart( $farmname, "true" );
-			}
-		}
-	}
+            if ($output ne 0 and $status eq "up") {
+                &zenlog(
+"disabling datalink backend $index with ip $backend for the $farmname farm"
+                );
+                &setFarmBackendStatus($farmname, $index, "down")
+                  ;    # disable backend
+                &runFarmStop($farmname, "true");
+                &runFarmStart($farmname, "true");
+            }
+            if ($output eq 0 and $status eq "down") {
+                &zenlog(
+"enabling datalink backend $index with ip $backend for the $farmname farm"
+                );
+                &setFarmBackendStatus($farmname, $index, "up"); # enable backend
+                &runFarmStop($farmname, "true");
+                &runFarmStart($farmname, "true");
+            }
+        }
+    }
 }
 

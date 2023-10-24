@@ -39,19 +39,18 @@ Returns:
 
 =cut
 
-sub moveByIndex
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $list, $ori_index, $dst_index ) = @_;
+sub moveByIndex {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($list, $ori_index, $dst_index) = @_;
 
-	my $elem = $list->[$ori_index];
+    my $elem = $list->[$ori_index];
 
-	# delete item
-	splice ( @{ $list }, $ori_index, 1 );
+    # delete item
+    splice(@{$list}, $ori_index, 1);
 
-	# add item
-	splice ( @{ $list }, $dst_index, 0, $elem );
+    # add item
+    splice(@{$list}, $dst_index, 0, $elem);
 }
 
 =begin nd
@@ -68,27 +67,24 @@ Returns:
 
 =cut
 
-sub getARRIndex
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $list, $item ) = @_;
-	my $ind;
+sub getARRIndex {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($list, $item) = @_;
+    my $ind;
 
-	my $id = 0;
-	foreach my $it ( @{ $list } )
-	{
-		if ( $it eq $item )
-		{
-			$ind = $id;
-			last;
-		}
-		$id++;
-	}
+    my $id = 0;
+    foreach my $it (@{$list}) {
+        if ($it eq $item) {
+            $ind = $id;
+            last;
+        }
+        $id++;
+    }
 
-	# fixme:  return undef when the index is not found
+    # fixme:  return undef when the index is not found
 
-	return $ind;
+    return $ind;
 }
 
 =begin nd
@@ -105,25 +101,22 @@ Returns:
 
 =cut
 
-sub uniqueArray
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $arr = shift;
+sub uniqueArray {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $arr = shift;
 
-	my %hold = ();
-	my @hold;
+    my %hold = ();
+    my @hold;
 
-	foreach my $v ( @{ $arr } )
-	{
-		unless ( exists $hold{ $v } )
-		{
-			$hold{ $v } = 1;
-			push @hold, $v;
-		}
-	}
+    foreach my $v (@{$arr}) {
+        unless (exists $hold{$v}) {
+            $hold{$v} = 1;
+            push @hold, $v;
+        }
+    }
 
-	@{ $arr } = @hold;
+    @{$arr} = @hold;
 }
 
 =begin nd
@@ -141,22 +134,19 @@ Returns:
 
 =cut
 
-sub getArrayCollision
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $arr1 = shift;
-	my $arr2 = shift;
+sub getArrayCollision {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $arr1 = shift;
+    my $arr2 = shift;
 
-	foreach my $it ( sort @{ $arr1 } )
-	{
-		if ( grep ( /^$it$/, @{ $arr2 } ) )
-		{
-			return $it;
-		}
-	}
+    foreach my $it (sort @{$arr1}) {
+        if (grep (/^$it$/, @{$arr2})) {
+            return $it;
+        }
+    }
 
-	return undef;
+    return undef;
 }
 
 1;

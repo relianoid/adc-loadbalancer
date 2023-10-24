@@ -24,54 +24,51 @@
 use strict;
 
 # GET /system/dns
-sub get_dns
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	require Zevenet::System::DNS;
+sub get_dns {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    require Zevenet::System::DNS;
 
-	my $desc = "Get dns";
-	my $dns  = &getDns();
+    my $desc = "Get dns";
+    my $dns  = &getDns();
 
-	&httpResponse(
-				   { code => 200, body => { description => $desc, params => $dns } } );
+    &httpResponse(
+        { code => 200, body => { description => $desc, params => $dns } });
 }
 
 #  POST /system/dns
-sub set_dns
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $json_obj = shift;
+sub set_dns {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $json_obj = shift;
 
-	require Zevenet::System::DNS;
+    require Zevenet::System::DNS;
 
-	my $desc = "Modify the DNS";
+    my $desc = "Modify the DNS";
 
-	my $params = &getZAPIModel( "system_dns-modify.json" );
+    my $params = &getZAPIModel("system_dns-modify.json");
 
-	# Check allowed parameters
-	my $error_msg = &checkZAPIParams( $json_obj, $params, $desc );
-	return &httpErrorResponse( code => 400, desc => $desc, msg => $error_msg )
-	  if ( $error_msg );
+    # Check allowed parameters
+    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+      if ($error_msg);
 
-	foreach my $key ( keys %{ $json_obj } )
-	{
-		my $msg = &setDns( $key, $json_obj->{ $key } );
-		&httpErrorResponse( code => 400, desc => $desc, msg => $msg ) if $msg;
-	}
+    foreach my $key (keys %{$json_obj}) {
+        my $msg = &setDns($key, $json_obj->{$key});
+        &httpErrorResponse(code => 400, desc => $desc, msg => $msg) if $msg;
+    }
 
-	my $dns = &getDns();
-	&httpResponse(
-				   {
-					 code => 200,
-					 body => {
-							   description => $desc,
-							   params      => $dns,
-							   message     => "The DNS service has been updated successfully."
-					 }
-				   }
-	);
+    my $dns = &getDns();
+    &httpResponse(
+        {
+            code => 200,
+            body => {
+                description => $desc,
+                params      => $dns,
+                message     => "The DNS service has been updated successfully."
+            }
+        }
+    );
 }
 
 1;

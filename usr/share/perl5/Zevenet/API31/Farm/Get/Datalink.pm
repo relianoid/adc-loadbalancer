@@ -24,52 +24,49 @@ use strict;
 use Zevenet::Farm::Datalink::Backend;
 
 my $eload;
-if ( eval { require Zevenet::ELoad; } )
-{
-	$eload = 1;
+if (eval { require Zevenet::ELoad; }) {
+    $eload = 1;
 }
 
 sub farms_name_datalink    # ( $farmname )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $farmname = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $farmname = shift;
 
-	require Zevenet::Farm::Config;
-	my $vip = &getFarmVip( "vip", $farmname );
-	my $status = &getFarmVipStatus( $farmname );
+    require Zevenet::Farm::Config;
+    my $vip    = &getFarmVip("vip", $farmname);
+    my $status = &getFarmVipStatus($farmname);
 
-	my $out_p = {
-				  vip       => $vip,
-				  algorithm => &getFarmAlgorithm( $farmname ),
-				  status    => $status,
-	};
+    my $out_p = {
+        vip       => $vip,
+        algorithm => &getFarmAlgorithm($farmname),
+        status    => $status,
+    };
 
-	### backends
-	my $out_b = &getDatalinkFarmBackends( $farmname );
+    ### backends
+    my $out_b = &getDatalinkFarmBackends($farmname);
 
-	my $body = {
-				 description => "List farm $farmname",
-				 params      => $out_p,
-				 backends    => $out_b,
-	};
+    my $body = {
+        description => "List farm $farmname",
+        params      => $out_p,
+        backends    => $out_b,
+    };
 
-	if ( $eload )
-	{
-		$body->{ ipds } = &eload(
-								  module => 'Zevenet::IPDS::Core',
-								  func   => 'getIPDSfarmsRules',
-								  args   => [$farmname],
-		);
-		delete $body->{ ipds }->{ rbl };
-		delete $body->{ ipds }->{ dos };
-		for my $blacklist ( @{ $body->{ ipds }->{ blacklists } } )
-		{
-			delete $blacklist->{ id };
-		}
-	}
+    if ($eload) {
+        $body->{ipds} = &eload(
+            module => 'Zevenet::IPDS::Core',
+            func   => 'getIPDSfarmsRules',
+            args   => [$farmname],
+        );
+        delete $body->{ipds}->{rbl};
+        delete $body->{ipds}->{dos};
+        for my $blacklist (@{ $body->{ipds}->{blacklists} }) {
+            delete $blacklist->{id};
+        }
+    }
 
-	&httpResponse( { code => 200, body => $body } );
+    &httpResponse({ code => 200, body => $body });
 }
 
 1;

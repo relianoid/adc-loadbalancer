@@ -39,6 +39,6 @@ use Zevenet::SystemInfo;
 use Zevenet::System;
 use Zevenet::Zapi;
 
-require Zevenet::CGI if defined $ENV{ GATEWAY_INTERFACE };
+require Zevenet::CGI if defined $ENV{GATEWAY_INTERFACE};
 
 1;

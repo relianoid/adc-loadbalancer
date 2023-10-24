@@ -25,11 +25,10 @@ use strict;
 
 require Zevenet::Core;
 
-my $ip_bin = &getGlobalConfiguration( 'ip_bin' );
+my $ip_bin = &getGlobalConfiguration('ip_bin');
 my $eload;
-if ( eval { require Zevenet::ELoad; } )
-{
-	$eload = 1;
+if (eval { require Zevenet::ELoad; }) {
+    $eload = 1;
 }
 
 =begin nd
@@ -50,22 +49,21 @@ See Also:
 # create network interface
 sub createIf    # ($if_ref)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $if_ref = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $if_ref = shift;
 
-	my $status = 1;
+    my $status = 1;
 
-	if ( defined $$if_ref{ vlan } && $$if_ref{ vlan } ne '' )
-	{
-		&zenlog( "Creating vlan $$if_ref{name}", "info", "NETWORK" );
+    if (defined $$if_ref{vlan} && $$if_ref{vlan} ne '') {
+        &zenlog("Creating vlan $$if_ref{name}", "info", "NETWORK");
 
-		my $ip_cmd =
-		  "$ip_bin link add link $$if_ref{dev} name $$if_ref{name} type vlan id $$if_ref{vlan}";
-		$status = &logAndRun( $ip_cmd );
-	}
+        my $ip_cmd =
+"$ip_bin link add link $$if_ref{dev} name $$if_ref{name} type vlan id $$if_ref{vlan}";
+        $status = &logAndRun($ip_cmd);
+    }
 
-	return $status;
+    return $status;
 }
 
 =begin nd
@@ -87,79 +85,76 @@ See Also:
 # up network interface
 sub upIf    # ($if_ref, $writeconf)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $if_ref    = shift;
-	my $writeconf = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $if_ref    = shift;
+    my $writeconf = shift;
 
-	my $configdir = &getGlobalConfiguration( 'configdir' );
-	my $status    = 0;
-	$if_ref->{ status } = 'up';
+    my $configdir = &getGlobalConfiguration('configdir');
+    my $status    = 0;
+    $if_ref->{status} = 'up';
 
-	my $ip_cmd = "$ip_bin link set dev $$if_ref{name} up";
+    my $ip_cmd = "$ip_bin link set dev $$if_ref{name} up";
 
-	$status = &logAndRun( $ip_cmd );
+    $status = &logAndRun($ip_cmd);
 
-	# not check virtual interfaces
-	if ( $if_ref->{ type } ne "virtual" )
-	{
-   #check if link is up after ip link up; checks /sys/class/net/$$if_ref{name}/operstate
-		my $cat       = &getGlobalConfiguration( 'cat_bin' );
-		my $status_if = &logAndGet( "$cat /sys/class/net/$$if_ref{name}/operstate" );
-		&zenlog( "Link status for $$if_ref{name} is $status_if", "info", "NETWORK" );
-		if ( $status_if =~ /down/ )
-		{
-			&zenlog( "Waiting link up for $$if_ref{name}", "info", "NETWORK" );
-			use Time::HiRes qw(usleep);
-			my $max_retry = 50;
-			my $retry     = 0;
-			while ( $status_if =~ /down/ and $retry < $max_retry )
-			{
-				$status_if = &logAndGet( "$cat /sys/class/net/$$if_ref{name}/operstate" );
-				if ( $status_if !~ /down/ )
-				{
-					&zenlog( "Link up for $$if_ref{name}", "info", "NETWORK" );
-					last;
-				}
-				$retry++;
-				usleep 100_000;
-			}
+    # not check virtual interfaces
+    if ($if_ref->{type} ne "virtual") {
 
-			if ( $status_if =~ /down/ )
-			{
-				$status = 1;
-				&zenlog( "No link up for $$if_ref{name}", "warning", "NETWORK" );
-				&downIf( { name => $if_ref->{ name } }, '' );
-			}
-		}
-	}
+#check if link is up after ip link up; checks /sys/class/net/$$if_ref{name}/operstate
+        my $cat = &getGlobalConfiguration('cat_bin');
+        my $status_if =
+          &logAndGet("$cat /sys/class/net/$$if_ref{name}/operstate");
+        &zenlog("Link status for $$if_ref{name} is $status_if",
+            "info", "NETWORK");
+        if ($status_if =~ /down/) {
+            &zenlog("Waiting link up for $$if_ref{name}", "info", "NETWORK");
+            use Time::HiRes qw(usleep);
+            my $max_retry = 50;
+            my $retry     = 0;
+            while ($status_if =~ /down/ and $retry < $max_retry) {
+                $status_if =
+                  &logAndGet("$cat /sys/class/net/$$if_ref{name}/operstate");
+                if ($status_if !~ /down/) {
+                    &zenlog("Link up for $$if_ref{name}", "info", "NETWORK");
+                    last;
+                }
+                $retry++;
+                usleep 100_000;
+            }
 
-	if ( $writeconf )
-	{
-		my $file = "$configdir/if_$$if_ref{name}_conf";
+            if ($status_if =~ /down/) {
+                $status = 1;
+                &zenlog("No link up for $$if_ref{name}", "warning", "NETWORK");
+                &downIf({ name => $if_ref->{name} }, '');
+            }
+        }
+    }
 
-		require Config::Tiny;
-		my $fileHandler = Config::Tiny->new();
-		$fileHandler = Config::Tiny->read( $file ) if ( -f $file );
+    if ($writeconf) {
+        my $file = "$configdir/if_$$if_ref{name}_conf";
 
-		$fileHandler->{ $if_ref->{ name } }->{ status } = "up";
-		$fileHandler->write( $file );
-	}
+        require Config::Tiny;
+        my $fileHandler = Config::Tiny->new();
+        $fileHandler = Config::Tiny->read($file) if (-f $file);
 
-	if ( !$status and $eload and $if_ref->{ dhcp } eq 'true' )
-	{
-		$status = &eload(
-						  'module' => 'Zevenet::Net::DHCP',
-						  'func'   => 'startDHCP',
-						  'args'   => [$if_ref->{ name }],
-		);
-	}
+        $fileHandler->{ $if_ref->{name} }->{status} = "up";
+        $fileHandler->write($file);
+    }
 
-	# calculate new backend masquerade IPs
-	require Zevenet::Farm::Config;
-	&reloadFarmsSourceAddress();
+    if (!$status and $eload and $if_ref->{dhcp} eq 'true') {
+        $status = &eload(
+            'module' => 'Zevenet::Net::DHCP',
+            'func'   => 'startDHCP',
+            'args'   => [ $if_ref->{name} ],
+        );
+    }
 
-	return $status;
+    # calculate new backend masquerade IPs
+    require Zevenet::Farm::Config;
+    &reloadFarmsSourceAddress();
+
+    return $status;
 }
 
 =begin nd
@@ -181,70 +176,67 @@ See Also:
 # down network interface in system and configuration file
 sub downIf    # ($if_ref, $writeconf)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $if_ref    = shift;
-	my $writeconf = shift;
-	my $status;
-	if ( ref $if_ref ne 'HASH' )
-	{
-		&zenlog( "Wrong argument putting down the interface", "error", "NETWORK" );
-		return -1;
-	}
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $if_ref    = shift;
+    my $writeconf = shift;
+    my $status;
+    if (ref $if_ref ne 'HASH') {
+        &zenlog("Wrong argument putting down the interface", "error",
+            "NETWORK");
+        return -1;
+    }
 
-	if ( $eload and $if_ref->{ dhcp } eq 'true' )
-	{
-		$status = &eload(
-						  'module' => 'Zevenet::Net::DHCP',
-						  'func'   => 'stopDHCP',
-						  'args'   => [$if_ref->{ name }],
-		);
-	}
+    if ($eload and $if_ref->{dhcp} eq 'true') {
+        $status = &eload(
+            'module' => 'Zevenet::Net::DHCP',
+            'func'   => 'stopDHCP',
+            'args'   => [ $if_ref->{name} ],
+        );
+    }
 
-	my $ip_cmd;
+    my $ip_cmd;
 
-	# For Eth and Vlan
-	if ( $$if_ref{ vini } eq '' )
-	{
-		$ip_cmd = "$ip_bin link set dev $$if_ref{name} down";
-	}
+    # For Eth and Vlan
+    if ($$if_ref{vini} eq '') {
+        $ip_cmd = "$ip_bin link set dev $$if_ref{name} down";
+    }
 
-	# For Vini
-	else
-	{
-		my ( $routed_iface ) = split ( ":", $$if_ref{ name } );
+    # For Vini
+    else {
+        my ($routed_iface) = split(":", $$if_ref{name});
 
-		$ip_cmd = "$ip_bin addr del $$if_ref{addr}/$$if_ref{mask} dev $routed_iface";
+        $ip_cmd =
+          "$ip_bin addr del $$if_ref{addr}/$$if_ref{mask} dev $routed_iface";
 
-		&eload(
-				module => 'Zevenet::Net::Routing',
-				func   => 'applyRoutingDependIfaceVirt',
-				args   => ['del', $if_ref]
-		) if $eload;
-	}
+        &eload(
+            module => 'Zevenet::Net::Routing',
+            func   => 'applyRoutingDependIfaceVirt',
+            args   => [ 'del', $if_ref ]
+        ) if $eload;
+    }
 
-	&setRuleIPtoTable( $$if_ref{ name }, $$if_ref{ addr }, "del" );
-	$status = &logAndRun( $ip_cmd );
+    &setRuleIPtoTable($$if_ref{name}, $$if_ref{addr}, "del");
+    $status = &logAndRun($ip_cmd);
 
-	# Set down status in configuration file
-	if ( $writeconf )
-	{
-		my $configdir = &getGlobalConfiguration( 'configdir' );
-		my $file      = "$configdir/if_$$if_ref{name}_conf";
+    # Set down status in configuration file
+    if ($writeconf) {
+        my $configdir = &getGlobalConfiguration('configdir');
+        my $file      = "$configdir/if_$$if_ref{name}_conf";
 
-		require Config::Tiny;
-		my $fileHandler = Config::Tiny->new();
-		$fileHandler = Config::Tiny->read( $file ) if ( -f $file );
+        require Config::Tiny;
+        my $fileHandler = Config::Tiny->new();
+        $fileHandler = Config::Tiny->read($file) if (-f $file);
 
-		$fileHandler->{ $if_ref->{ name } }->{ status } = "down";
-		$fileHandler->write( $file );
-	}
+        $fileHandler->{ $if_ref->{name} }->{status} = "down";
+        $fileHandler->write($file);
+    }
 
-	# calculate new backend masquerade IPs
-	require Zevenet::Farm::Config;
-	&reloadFarmsSourceAddress();
+    # calculate new backend masquerade IPs
+    require Zevenet::Farm::Config;
+    &reloadFarmsSourceAddress();
 
-	return $status;
+    return $status;
 }
 
 =begin nd
@@ -274,73 +266,70 @@ See Also:
 # stop network interface
 sub stopIf    # ($if_ref)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $if_ref = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $if_ref = shift;
 
-	&zenlog( "Stopping interface $$if_ref{ name }", "info", "NETWORK" );
+    &zenlog("Stopping interface $$if_ref{ name }", "info", "NETWORK");
 
-	my $status = 0;
-	my $if     = $$if_ref{ name };
+    my $status = 0;
+    my $if     = $$if_ref{name};
 
-	# If $if is Vini do nothing
-	if ( !$$if_ref{ vini } )
-	{
-		# If $if is a Interface, delete that IP
-		my $ip_cmd = "$ip_bin address flush dev $$if_ref{name}";
-		$status = &logAndRun( $ip_cmd );
+    # If $if is Vini do nothing
+    if (!$$if_ref{vini}) {
 
-		# If $if is a Vlan, delete Vlan
-		if ( $$if_ref{ vlan } ne '' )
-		{
-			$ip_cmd = "$ip_bin link delete $$if_ref{name} type vlan";
-			$status = &logAndRun( $ip_cmd );
-		}
+        # If $if is a Interface, delete that IP
+        my $ip_cmd = "$ip_bin address flush dev $$if_ref{name}";
+        $status = &logAndRun($ip_cmd);
 
-		#ensure Link Up
-		if ( $$if_ref{ status } eq 'up' )
-		{
-			$ip_cmd = "$ip_bin link set dev $$if_ref{name} up";
-			$status = &logAndRun( $ip_cmd );
-		}
+        # If $if is a Vlan, delete Vlan
+        if ($$if_ref{vlan} ne '') {
+            $ip_cmd = "$ip_bin link delete $$if_ref{name} type vlan";
+            $status = &logAndRun($ip_cmd);
+        }
 
-		my $rttables = &getGlobalConfiguration( 'rttables' );
+        #ensure Link Up
+        if ($$if_ref{status} eq 'up') {
+            $ip_cmd = "$ip_bin link set dev $$if_ref{name} up";
+            $status = &logAndRun($ip_cmd);
+        }
 
-		# Delete routes table
-		open my $rt_fd, '<', $rttables;
-		my @contents = <$rt_fd>;
-		close $rt_fd;
+        my $rttables = &getGlobalConfiguration('rttables');
 
-		@contents = grep !/^...\ttable_$if$/, @contents;
+        # Delete routes table
+        open my $rt_fd, '<', $rttables;
+        my @contents = <$rt_fd>;
+        close $rt_fd;
 
-		open $rt_fd, '>', $rttables;
-		print $rt_fd @contents;
-		close $rt_fd;
-	}
+        @contents = grep !/^...\ttable_$if$/, @contents;
 
-	#if virtual interface
-	else
-	{
-		my @ifphysic = split ( /:/, $if );
-		my $ip = $$if_ref{ addr };
+        open $rt_fd, '>', $rttables;
+        print $rt_fd @contents;
+        close $rt_fd;
+    }
 
-		if ( $ip =~ /\./ )
-		{
-			use Net::IPv4Addr qw(ipv4_network);
-			my ( undef, $mask ) = ipv4_network( "$ip / $$if_ref{mask}" );
-			my $cmd = "$ip_bin addr del $ip/$mask brd + dev $ifphysic[0] label $if";
+    #if virtual interface
+    else {
+        my @ifphysic = split(/:/, $if);
+        my $ip       = $$if_ref{addr};
 
-			&logAndRun( "$cmd" );
+        if ($ip =~ /\./) {
+            use Net::IPv4Addr qw(ipv4_network);
+            my (undef, $mask) = ipv4_network("$ip / $$if_ref{mask}");
+            my $cmd =
+              "$ip_bin addr del $ip/$mask brd + dev $ifphysic[0] label $if";
 
-			&eload(
-					module => 'Zevenet::Net::Routing',
-					func   => 'applyRoutingDependIfaceVirt',
-					args   => ['del', $if_ref]
-			) if $eload;
-		}
-	}
+            &logAndRun("$cmd");
 
-	return $status;
+            &eload(
+                module => 'Zevenet::Net::Routing',
+                func   => 'applyRoutingDependIfaceVirt',
+                args   => [ 'del', $if_ref ]
+            ) if $eload;
+        }
+    }
+
+    return $status;
 }
 
 =begin nd
@@ -361,108 +350,104 @@ See Also:
 # delete network interface configuration and from the system
 sub delIf    # ($if_ref)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $if_ref ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($if_ref) = @_;
 
-	my $status;
+    my $status;
 
-	# remove dhcp configuration
-	if ( exists $if_ref->{ dhcp } and $if_ref->{ dhcp } eq 'true' )
-	{
-		&eload(
-				module => 'Zevenet::Net::DHCP',
-				func   => 'disableDHCP',
-				args   => [$if_ref],
-		);
-	}
+    # remove dhcp configuration
+    if (exists $if_ref->{dhcp} and $if_ref->{dhcp} eq 'true') {
+        &eload(
+            module => 'Zevenet::Net::DHCP',
+            func   => 'disableDHCP',
+            args   => [$if_ref],
+        );
+    }
 
-	require Zevenet::Net::Interface;
-	$status = &cleanInterfaceConfig( $if_ref );
-	if ( $status )
-	{
-		return $status;
-	}
+    require Zevenet::Net::Interface;
+    $status = &cleanInterfaceConfig($if_ref);
+    if ($status) {
+        return $status;
+    }
 
-	&setRuleIPtoTable( $$if_ref{ name }, $$if_ref{ addr }, "del" );
+    &setRuleIPtoTable($$if_ref{name}, $$if_ref{addr}, "del");
 
-	# If $if is Vini do nothing
-	if ( $$if_ref{ vini } eq '' or !defined ( $$if_ref{ vini } ) )
-	{
-		my $ip_cmd;
+    # If $if is Vini do nothing
+    if ($$if_ref{vini} eq '' or !defined($$if_ref{vini})) {
+        my $ip_cmd;
 
-		# If $if is a gre Tunnel, delete gre
-		if ( $$if_ref{ type } eq 'gre' )
-		{
-			$ip_cmd = "$ip_bin tunnel delete $$if_ref{name} mode gre";
-			$status = &logAndRun( $ip_cmd );
-		}
-		else
-		{
-			if ( $if_ref->{ dhcp } ne 'true' )
-			{
-				# If $if is a Interface, delete that IP
-				$ip_cmd = "$ip_bin addr del $$if_ref{addr}/$$if_ref{mask} dev $$if_ref{name}";
-				$status = &logAndRun( $ip_cmd )
-				  if ( length $if_ref->{ addr } && length $if_ref->{ mask } );
-			}
+        # If $if is a gre Tunnel, delete gre
+        if ($$if_ref{type} eq 'gre') {
+            $ip_cmd = "$ip_bin tunnel delete $$if_ref{name} mode gre";
+            $status = &logAndRun($ip_cmd);
+        }
+        else {
+            if ($if_ref->{dhcp} ne 'true') {
 
-			# If $if is a Vlan, delete Vlan
-			if ( $$if_ref{ vlan } ne '' )
-			{
-				$ip_cmd = "$ip_bin link delete $$if_ref{name} type vlan";
-				$status = &logAndRun( $ip_cmd );
-			}
-		}
+                # If $if is a Interface, delete that IP
+                $ip_cmd =
+"$ip_bin addr del $$if_ref{addr}/$$if_ref{mask} dev $$if_ref{name}";
+                $status = &logAndRun($ip_cmd)
+                  if (length $if_ref->{addr} && length $if_ref->{mask});
+            }
 
-		#delete custom routes
-		&eload(
-				module => 'Zevenet::Net::Routing',
-				func   => 'delRoutingDependIface',
-				args   => [$$if_ref{ name }],
-		) if ( $eload );
+            # If $if is a Vlan, delete Vlan
+            if ($$if_ref{vlan} ne '') {
+                $ip_cmd = "$ip_bin link delete $$if_ref{name} type vlan";
+                $status = &logAndRun($ip_cmd);
+            }
+        }
 
-		# check if alternative stack is in use
-		my $ip_v_to_check = ( $$if_ref{ ip_v } == 4 ) ? 6 : 4;
-		my $interface = &getInterfaceConfig( $$if_ref{ name }, $ip_v_to_check );
+        #delete custom routes
+        &eload(
+            module => 'Zevenet::Net::Routing',
+            func   => 'delRoutingDependIface',
+            args   => [ $$if_ref{name} ],
+        ) if ($eload);
 
-		if ( !$interface
-			 or ( $interface->{ type } eq "bond" and !exists $interface->{ addr } ) )
-		{
-			&deleteRoutesTable( $$if_ref{ name } );
-		}
-	}
+        # check if alternative stack is in use
+        my $ip_v_to_check = ($$if_ref{ip_v} == 4) ? 6 : 4;
+        my $interface     = &getInterfaceConfig($$if_ref{name}, $ip_v_to_check);
 
-	# delete graphs
-	require Zevenet::RRD;
-	&delGraph( $$if_ref{ name }, "iface" );
+        if (!$interface
+            or ($interface->{type} eq "bond" and !exists $interface->{addr}))
+        {
+            &deleteRoutesTable($$if_ref{name});
+        }
+    }
 
-	if ( $eload )
-	{
-		# delete alias
-		&eload(
-				module => 'Zevenet::Alias',
-				func   => 'delAlias',
-				args   => ['interface', $$if_ref{ name }]
-		);
+    # delete graphs
+    require Zevenet::RRD;
+    &delGraph($$if_ref{name}, "iface");
 
-		#delete from RBAC
-		&eload(
-				module => 'Zevenet::RBAC::Group::Config',
-				func   => 'delRBACResource',
-				args   => [$$if_ref{ name }, 'interfaces'],
-		);
+    if ($eload) {
 
-		#reload netplug
-		if ( !defined ( $$if_ref{ vini } ) or $$if_ref{ vini } eq '' )
-		{
-			&eload( module => 'Zevenet::Net::Ext',
-					func   => 'reloadNetplug', );
-		}
+        # delete alias
+        &eload(
+            module => 'Zevenet::Alias',
+            func   => 'delAlias',
+            args   => [ 'interface', $$if_ref{name} ]
+        );
 
-	}
+        #delete from RBAC
+        &eload(
+            module => 'Zevenet::RBAC::Group::Config',
+            func   => 'delRBACResource',
+            args   => [ $$if_ref{name}, 'interfaces' ],
+        );
 
-	return $status;
+        #reload netplug
+        if (!defined($$if_ref{vini}) or $$if_ref{vini} eq '') {
+            &eload(
+                module => 'Zevenet::Net::Ext',
+                func   => 'reloadNetplug',
+            );
+        }
+
+    }
+
+    return $status;
 }
 
 =begin nd
@@ -485,25 +470,24 @@ See Also:
 # Execute command line to delete an IP from an interface
 sub delIp    # 	($if, $ip ,$netmask)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $if, $ip, $netmask ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($if, $ip, $netmask) = @_;
 
-	return 0 if ( !defined $ip or $ip eq '' );
+    return 0 if (!defined $ip or $ip eq '');
 
-	&zenlog( "Deleting ip $ip/$netmask from interface $if", "info", "NETWORK" );
+    &zenlog("Deleting ip $ip/$netmask from interface $if", "info", "NETWORK");
 
-	# Vini
-	if ( $if =~ /\:/ )
-	{
-		( $if ) = split ( /\:/, $if );
-	}
+    # Vini
+    if ($if =~ /\:/) {
+        ($if) = split(/\:/, $if);
+    }
 
-	&setRuleIPtoTable( $if, $ip, "del" );
-	my $ip_cmd = "$ip_bin addr del $ip/$netmask dev $if";
-	my $status = &logAndRun( $ip_cmd );
+    &setRuleIPtoTable($if, $ip, "del");
+    my $ip_cmd = "$ip_bin addr del $ip/$netmask dev $if";
+    my $status = &logAndRun($ip_cmd);
 
-	return $status;
+    return $status;
 }
 
 =begin nd
@@ -521,27 +505,26 @@ See Also:
 	<delIp>, <setIfacesUp>
 =cut
 
-sub isIp
-{
-	my $if_ref = shift;
+sub isIp {
+    my $if_ref = shift;
 
-	# finish if the address is already assigned
-	my $routed_iface = $$if_ref{ dev };
-	$routed_iface .= ".$$if_ref{vlan}"
-	  if defined $$if_ref{ vlan } && $$if_ref{ vlan } ne '';
+    # finish if the address is already assigned
+    my $routed_iface = $$if_ref{dev};
+    $routed_iface .= ".$$if_ref{vlan}"
+      if defined $$if_ref{vlan} && $$if_ref{vlan} ne '';
 
-	my @ip_output =
-	  @{ &logAndGet( "$ip_bin -$$if_ref{ip_v} addr show dev $routed_iface",
-					 "array" ) };
+    my @ip_output = @{
+        &logAndGet("$ip_bin -$$if_ref{ip_v} addr show dev $routed_iface",
+            "array")
+    };
 
-	if ( grep /$$if_ref{addr}\//, @ip_output )
-	{
-		&zenlog( "The IP '$$if_ref{addr}' already is applied in '$routed_iface'",
-				 "debug2", "NETWORK" );
-		return 1;
-	}
+    if (grep /$$if_ref{addr}\//, @ip_output) {
+        &zenlog("The IP '$$if_ref{addr}' already is applied in '$routed_iface'",
+            "debug2", "NETWORK");
+        return 1;
+    }
 
-	return 0;
+    return 0;
 }
 
 =begin nd
@@ -562,80 +545,76 @@ See Also:
 # Execute command line to add an IPv4 to an Interface, Vlan or Vini
 sub addIp    # ($if_ref)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $if_ref ) = @_;
-	my $if_announce = "";
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($if_ref) = @_;
+    my $if_announce = "";
 
-	&zenlog( "Adding IP $$if_ref{addr}/$$if_ref{mask} to interface $$if_ref{name}",
-			 "info", "NETWORK" );
+    &zenlog(
+        "Adding IP $$if_ref{addr}/$$if_ref{mask} to interface $$if_ref{name}",
+        "info", "NETWORK");
 
-	if ( $$if_ref{ addr } eq "" )
-	{
-		return 0;
-	}
+    if ($$if_ref{addr} eq "") {
+        return 0;
+    }
 
-	if ( &isIp( $if_ref ) )
-	{
-		return 0;
-	}
+    if (&isIp($if_ref)) {
+        return 0;
+    }
 
-	# Do not add automatically route in the main table
-	# The routes are managed by zevenet
-	my $extra_params = "noprefixroute";
+    # Do not add automatically route in the main table
+    # The routes are managed by zevenet
+    my $extra_params = "noprefixroute";
 
-	$extra_params .= ' nodad' if $$if_ref{ ip_v } == 6;
+    $extra_params .= ' nodad' if $$if_ref{ip_v} == 6;
 
-	my $ip_cmd;
+    my $ip_cmd;
 
-	my $broadcast_opt = ( $$if_ref{ ip_v } == 4 ) ? 'broadcast +' : '';
+    my $broadcast_opt = ($$if_ref{ip_v} == 4) ? 'broadcast +' : '';
 
-	# $if is a Virtual Network Interface
-	if ( defined $$if_ref{ vini } && $$if_ref{ vini } ne '' )
-	{
-		my ( $toif ) = split ( ':', $$if_ref{ name } );
+    # $if is a Virtual Network Interface
+    if (defined $$if_ref{vini} && $$if_ref{vini} ne '') {
+        my ($toif) = split(':', $$if_ref{name});
 
-		$ip_cmd =
-		  "$ip_bin addr add $$if_ref{addr}/$$if_ref{mask} $broadcast_opt dev $toif label $$if_ref{name} $extra_params";
-		$if_announce = $toif;
-	}
+        $ip_cmd =
+"$ip_bin addr add $$if_ref{addr}/$$if_ref{mask} $broadcast_opt dev $toif label $$if_ref{name} $extra_params";
+        $if_announce = $toif;
+    }
 
-	# $if is a Network Interface
-	else
-	{
-		$ip_cmd =
-		  "$ip_bin addr add $$if_ref{addr}/$$if_ref{mask} $broadcast_opt dev $$if_ref{name} $extra_params";
-		$if_announce = "$$if_ref{name}";
-	}
+    # $if is a Network Interface
+    else {
+        $ip_cmd =
+"$ip_bin addr add $$if_ref{addr}/$$if_ref{mask} $broadcast_opt dev $$if_ref{name} $extra_params";
+        $if_announce = "$$if_ref{name}";
+    }
 
-	my $status = &logAndRun( $ip_cmd );
+    my $status = &logAndRun($ip_cmd);
 
-	#if arp_announce is enabled then send garps to network
-	eval {
-		if ( $eload )
-		{
-			my $cl_status = &eload(
-									module => 'Zevenet::Cluster',
-									func   => 'getZClusterNodeStatus',
-									args   => [],
-			);
+    #if arp_announce is enabled then send garps to network
+    eval {
+        if ($eload) {
+            my $cl_status = &eload(
+                module => 'Zevenet::Cluster',
+                func   => 'getZClusterNodeStatus',
+                args   => [],
+            );
 
-			if (    &getGlobalConfiguration( 'arp_announce' ) eq "true"
-				 && $cl_status ne "backup" )
-			{
+            if (   &getGlobalConfiguration('arp_announce') eq "true"
+                && $cl_status ne "backup")
+            {
 
-				require Zevenet::Net::Util;
+                require Zevenet::Net::Util;
 
-				#&sendGArp($$if_ref{parent},$$if_ref{addr})
-				&zenlog( "Announcing garp $if_announce and $$if_ref{addr} " );
-				&sendGArp( $if_announce, $$if_ref{ addr } );
-			}
-		}
-	};
+                #&sendGArp($$if_ref{parent},$$if_ref{addr})
+                &zenlog("Announcing garp $if_announce and $$if_ref{addr} ");
+                &sendGArp($if_announce, $$if_ref{addr});
+            }
+        }
+    };
 
-	&setRuleIPtoTable( $$if_ref{ name }, $$if_ref{ addr }, "add" );
+    &setRuleIPtoTable($$if_ref{name}, $$if_ref{addr}, "add");
 
-	return $status;
+    return $status;
 }
 
 =begin nd
@@ -654,28 +633,27 @@ Returns:
 
 =cut
 
-sub setRuleIPtoTable
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+sub setRuleIPtoTable {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my ( $iface, $ip, $action ) = @_;
+    my ($iface, $ip, $action) = @_;
 
-	return 0 if ( $ip eq '' or !defined ( $ip ) );
+    return 0 if ($ip eq '' or !defined($ip));
 
-	my $prio = &getGlobalConfiguration( 'routingRulePrioIfacesDuplicated' );
+    my $prio = &getGlobalConfiguration('routingRulePrioIfacesDuplicated');
 
-	if ( &getGlobalConfiguration( 'duplicated_net' ) ne "true" )
-	{
-		#this feature is not in use
-		return 0;
-	}
+    if (&getGlobalConfiguration('duplicated_net') ne "true") {
 
-	#In case <if>:<name> is sent
-	my @ifname = split ( /:/, $iface );
-	my $ip_cmd =
-	  "$ip_bin rule $action from $ip/32 lookup table_$ifname[0] prio $prio";
-	return ( &execIpCmd( $ip_cmd ) > 0 );
+        #this feature is not in use
+        return 0;
+    }
+
+    #In case <if>:<name> is sent
+    my @ifname = split(/:/, $iface);
+    my $ip_cmd =
+      "$ip_bin rule $action from $ip/32 lookup table_$ifname[0] prio $prio";
+    return (&execIpCmd($ip_cmd) > 0);
 }
 
 =begin nd
@@ -692,39 +670,36 @@ Returns:
 
 =cut
 
-sub execIpCmd
-{
-	my $command = shift;
+sub execIpCmd {
+    my $command = shift;
 
 # do not use the logAndGet function, this function is managing the error output and error code
-	my @cmd_output  = `$command 2>&1`;
-	my $return_code = $?;
+    my @cmd_output  = `$command 2>&1`;
+    my $return_code = $?;
 
-	if ( $return_code == 512 )    # code 2 in shell
-	{
-		my $msg =
-		  ( $command =~ /add/ )
-		  ? "Trying to apply the rule but it already was applied"
-		  : "Trying to remove the rule but it was not found";
-		&zenlog( $msg,                "debug",  "net" );
-		&zenlog( "running: $command", "debug",  "SYSTEM" );
-		&zenlog( "out: @cmd_output",  "debug2", "SYSTEM" );
-		$return_code = -1;
-	}
-	elsif ( $return_code )
-	{
-		&zenlog( "Command failed: $command", "error", "SYSTEM" );
-		&zenlog( "out: @cmd_output", "error", "error", "SYSTEM" );
-		$return_code = 1;
-	}
-	else
-	{
-		&zenlog( "running: $command", "debug",  "SYSTEM" );
-		&zenlog( "out: @cmd_output",  "debug2", "SYSTEM" );
-		$return_code = 0;
-	}
+    if ($return_code == 512)    # code 2 in shell
+    {
+        my $msg =
+          ($command =~ /add/)
+          ? "Trying to apply the rule but it already was applied"
+          : "Trying to remove the rule but it was not found";
+        &zenlog($msg,                "debug",  "net");
+        &zenlog("running: $command", "debug",  "SYSTEM");
+        &zenlog("out: @cmd_output",  "debug2", "SYSTEM");
+        $return_code = -1;
+    }
+    elsif ($return_code) {
+        &zenlog("Command failed: $command", "error", "SYSTEM");
+        &zenlog("out: @cmd_output", "error", "error", "SYSTEM");
+        $return_code = 1;
+    }
+    else {
+        &zenlog("running: $command", "debug",  "SYSTEM");
+        &zenlog("out: @cmd_output",  "debug2", "SYSTEM");
+        $return_code = 0;
+    }
 
-	return $return_code;
+    return $return_code;
 }
 
 1;

@@ -24,72 +24,69 @@
 use strict;
 
 # show license
-sub get_license
-{
-	&zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING" );
-	my $format = shift;
+sub get_license {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $format = shift;
 
-	require Zevenet::System;
+    require Zevenet::System;
 
-	my $desc = "Get license";
-	my $licenseFile;
+    my $desc = "Get license";
+    my $licenseFile;
 
-	if ( $format eq 'txt' )
-	{
-		$licenseFile = &getGlobalConfiguration( 'licenseFileTxt' );
-	}
-	elsif ( $format eq 'html' )
-	{
-		$licenseFile = &getGlobalConfiguration( 'licenseFileHtml' );
-	}
-	else
-	{
-		my $msg = "Not found license.";
-		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    if ($format eq 'txt') {
+        $licenseFile = &getGlobalConfiguration('licenseFileTxt');
+    }
+    elsif ($format eq 'html') {
+        $licenseFile = &getGlobalConfiguration('licenseFileHtml');
+    }
+    else {
+        my $msg = "Not found license.";
+        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	my $file = &slurpFile( $licenseFile );
+    my $file = &slurpFile($licenseFile);
 
-	&httpResponse({ code => 200, body => $file, type => 'text/plain' });
+    &httpResponse({ code => 200, body => $file, type => 'text/plain' });
 }
 
-sub get_supportsave
-{
-	&zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING" );
-	my $desc = "Get supportsave file";
+sub get_supportsave {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $desc = "Get supportsave file";
 
-	require Zevenet::System;
+    require Zevenet::System;
 
-	my $ss_filename = &getSupportSave();
+    my $ss_filename = &getSupportSave();
 
-	&httpDownloadResponse( desc => $desc, dir => '/tmp', file => $ss_filename );
+    &httpDownloadResponse(desc => $desc, dir => '/tmp', file => $ss_filename);
 }
 
 # GET /system/version
-sub get_version
-{
-	&zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING" );
-	require Zevenet::SystemInfo;
-	require Zevenet::Certificate;
+sub get_version {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    require Zevenet::SystemInfo;
+    require Zevenet::Certificate;
 
-	my $desc    = "Get version";
-	my $zevenet = &getGlobalConfiguration( 'version' );
+    my $desc    = "Get version";
+    my $zevenet = &getGlobalConfiguration('version');
 
-	my $kernel     = &getKernelVersion();
-	my $hostname   = &getHostname();
-	my $date       = &getDate();
-	my $applicance = &getApplianceVersion();
+    my $kernel     = &getKernelVersion();
+    my $hostname   = &getHostname();
+    my $date       = &getDate();
+    my $applicance = &getApplianceVersion();
 
-	my $params = {
-				   'kernel_version'    => $kernel,
-				   'zevenet_version'   => $zevenet,
-				   'hostname'          => $hostname,
-				   'system_date'       => $date,
-				   'appliance_version' => $applicance,
-	};
-	my $body = { description => $desc, params => $params };
+    my $params = {
+        'kernel_version'    => $kernel,
+        'zevenet_version'   => $zevenet,
+        'hostname'          => $hostname,
+        'system_date'       => $date,
+        'appliance_version' => $applicance,
+    };
+    my $body = { description => $desc, params => $params };
 
-	&httpResponse( { code => 200, body => $body } );
+    &httpResponse({ code => 200, body => $body });
 }
 
 1;

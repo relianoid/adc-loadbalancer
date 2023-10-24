@@ -24,9 +24,8 @@
 use strict;
 
 my $eload;
-if ( eval { require Zevenet::ELoad; } )
-{
-	$eload = 1;
+if (eval { require Zevenet::ELoad; }) {
+    $eload = 1;
 }
 
 =begin nd
@@ -45,37 +44,34 @@ Returns:
 
 sub getFarmEstConns    # ($farm_name,$netstat)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name, $netstat ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name, $netstat) = @_;
 
-	my $farm_type   = &getFarmType( $farm_name );
-	my $connections = 0;
+    my $farm_type   = &getFarmType($farm_name);
+    my $connections = 0;
 
-	if ( $farm_type eq "http" || $farm_type eq "https" )
-	{
-		my @pid = &getFarmPid( $farm_name );
-		return $connections if ( !@pid );
-		require Zevenet::Farm::HTTP::Stats;
-		$connections = &getHTTPFarmEstConns( $farm_name );
-	}
-	elsif ( $farm_type eq "l4xnat" )
-	{
-		require Zevenet::Farm::L4xNAT::Stats;
-		$connections = &getL4FarmEstConns( $farm_name, $netstat );
-	}
-	elsif ( $farm_type eq "gslb" )
-	{
-		my @pid = &getFarmPid( $farm_name );
-		return $connections if ( !@pid );
-		$connections = &eload(
-							   module => 'Zevenet::Farm::GSLB::Stats',
-							   func   => 'getGSLBFarmEstConns',
-							   args   => [$farm_name, $netstat],
-		) if $eload;
-	}
+    if ($farm_type eq "http" || $farm_type eq "https") {
+        my @pid = &getFarmPid($farm_name);
+        return $connections if (!@pid);
+        require Zevenet::Farm::HTTP::Stats;
+        $connections = &getHTTPFarmEstConns($farm_name);
+    }
+    elsif ($farm_type eq "l4xnat") {
+        require Zevenet::Farm::L4xNAT::Stats;
+        $connections = &getL4FarmEstConns($farm_name, $netstat);
+    }
+    elsif ($farm_type eq "gslb") {
+        my @pid = &getFarmPid($farm_name);
+        return $connections if (!@pid);
+        $connections = &eload(
+            module => 'Zevenet::Farm::GSLB::Stats',
+            func   => 'getGSLBFarmEstConns',
+            args   => [ $farm_name, $netstat ],
+        ) if $eload;
+    }
 
-	return $connections;
+    return $connections;
 }
 
 =begin nd
@@ -96,27 +92,26 @@ Returns:
 
 sub getBackendSYNConns    # ($farm_name,$ip_backend,$port_backend,$netstat)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name, $ip_backend, $port_backend, $netstat ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name, $ip_backend, $port_backend, $netstat) = @_;
 
-	my $farm_type   = &getFarmType( $farm_name );
-	my $connections = 0;
+    my $farm_type   = &getFarmType($farm_name);
+    my $connections = 0;
 
-	if ( $farm_type eq "http" || $farm_type eq "https" )
-	{
-		require Zevenet::Farm::HTTP::Stats;
-		$connections =
-		  &getHTTPBackendSYNConns( $farm_name, $ip_backend, $port_backend );
-	}
-	elsif ( $farm_type eq "l4xnat" )
-	{
-		require Zevenet::Farm::L4xNAT::Stats;
-		$connections =
-		  &getL4BackendSYNConns( $farm_name, $ip_backend, $port_backend, $netstat );
-	}
+    if ($farm_type eq "http" || $farm_type eq "https") {
+        require Zevenet::Farm::HTTP::Stats;
+        $connections =
+          &getHTTPBackendSYNConns($farm_name, $ip_backend, $port_backend);
+    }
+    elsif ($farm_type eq "l4xnat") {
+        require Zevenet::Farm::L4xNAT::Stats;
+        $connections =
+          &getL4BackendSYNConns($farm_name, $ip_backend, $port_backend,
+            $netstat);
+    }
 
-	return $connections;
+    return $connections;
 }
 
 =begin nd
@@ -135,25 +130,23 @@ Returns:
 
 sub getFarmSYNConns    # ($farm_name, $netstat)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name, $netstat ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name, $netstat) = @_;
 
-	my $farm_type   = &getFarmType( $farm_name );
-	my $connections = 0;
+    my $farm_type   = &getFarmType($farm_name);
+    my $connections = 0;
 
-	if ( $farm_type eq "http" || $farm_type eq "https" )
-	{
-		require Zevenet::Farm::HTTP::Stats;
-		$connections = &getHTTPFarmSYNConns( $farm_name );
-	}
-	elsif ( $farm_type eq "l4xnat" )
-	{
-		require Zevenet::Farm::L4xNAT::Stats;
-		$connections = &getL4FarmSYNConns( $farm_name, $netstat );
-	}
+    if ($farm_type eq "http" || $farm_type eq "https") {
+        require Zevenet::Farm::HTTP::Stats;
+        $connections = &getHTTPFarmSYNConns($farm_name);
+    }
+    elsif ($farm_type eq "l4xnat") {
+        require Zevenet::Farm::L4xNAT::Stats;
+        $connections = &getL4FarmSYNConns($farm_name, $netstat);
+    }
 
-	return $connections;
+    return $connections;
 }
 
 1;

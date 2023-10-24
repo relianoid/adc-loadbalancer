@@ -24,14 +24,13 @@
 use strict;
 
 my $eload;
-if ( eval { require Zevenet::ELoad; } )
-{
-	$eload = 1;
+if (eval { require Zevenet::ELoad; }) {
+    $eload = 1;
 }
 
 require Zevenet::Lock;
 
-my $configdir = &getGlobalConfiguration( 'configdir' );
+my $configdir = &getGlobalConfiguration('configdir');
 
 =begin nd
 Function: setFarmClientTimeout
@@ -49,41 +48,39 @@ Returns:
 
 sub setFarmClientTimeout    # ($client,$farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $client, $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($client, $farm_name) = @_;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $output        = -1;
+    my $farm_filename = &getFarmFile($farm_name);
+    my $output        = -1;
 
-	my $lock_file = &getLockFile( $farm_name );
-	my $lock_fh = &openlock( $lock_file, 'w' );
+    my $lock_file = &getLockFile($farm_name);
+    my $lock_fh   = &openlock($lock_file, 'w');
 
-	require Tie::File;
-	tie my @filefarmhttp, 'Tie::File', "$configdir/$farm_filename";
+    require Tie::File;
+    tie my @filefarmhttp, 'Tie::File', "$configdir/$farm_filename";
 
-	my $i_f         = -1;
-	my $array_count = @filefarmhttp;
-	my $found       = "false";
+    my $i_f         = -1;
+    my $array_count = @filefarmhttp;
+    my $found       = "false";
 
-	while ( $i_f <= $array_count && $found eq "false" )
-	{
-		$i_f++;
+    while ($i_f <= $array_count && $found eq "false") {
+        $i_f++;
 
-		if ( $filefarmhttp[$i_f] =~ /^Client/ )
-		{
-			&zenlog( "setting 'ClientTimeout $client' for $farm_name farm http",
-					 "info", "LSLB" );
-			$filefarmhttp[$i_f] = "Client\t\t $client";
-			$output             = $?;
-			$found              = "true";
-		}
-	}
+        if ($filefarmhttp[$i_f] =~ /^Client/) {
+            &zenlog("setting 'ClientTimeout $client' for $farm_name farm http",
+                "info", "LSLB");
+            $filefarmhttp[$i_f] = "Client\t\t $client";
+            $output             = $?;
+            $found              = "true";
+        }
+    }
 
-	untie @filefarmhttp;
-	close $lock_fh;
+    untie @filefarmhttp;
+    close $lock_fh;
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -101,27 +98,25 @@ Returns:
 
 sub getFarmClientTimeout    # ($farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name) = @_;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $output        = -1;
+    my $farm_filename = &getFarmFile($farm_name);
+    my $output        = -1;
 
-	open my $fd, '<', "$configdir\/$farm_filename";
-	my @file = <$fd>;
-	close $fd;
+    open my $fd, '<', "$configdir\/$farm_filename";
+    my @file = <$fd>;
+    close $fd;
 
-	foreach my $line ( @file )
-	{
-		if ( $line =~ /^Client\t\t.*\d+/ )
-		{
-			my @line_aux = split ( "\ ", $line );
-			$output = $line_aux[1];
-		}
-	}
+    foreach my $line (@file) {
+        if ($line =~ /^Client\t\t.*\d+/) {
+            my @line_aux = split("\ ", $line);
+            $output = $line_aux[1];
+        }
+    }
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -140,88 +135,75 @@ Returns:
 
 sub setHTTPFarmSessionType    # ($session,$farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $session, $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($session, $farm_name) = @_;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $output        = -1;
+    my $farm_filename = &getFarmFile($farm_name);
+    my $output        = -1;
 
-	my $lock_file = &getLockFile( $farm_name );
-	my $lock_fh = &openlock( $lock_file, 'w' );
+    my $lock_file = &getLockFile($farm_name);
+    my $lock_fh   = &openlock($lock_file, 'w');
 
-	&zenlog( "Setting 'Session type $session' for $farm_name farm http",
-			 "info", "LSLB" );
-	tie my @contents, 'Tie::File', "$configdir\/$farm_filename";
-	my $i     = -1;
-	my $found = "false";
-	foreach my $line ( @contents )
-	{
-		$i++;
-		if ( $session ne "nothing" )
-		{
-			if ( $line =~ "Session" )
-			{
-				$contents[$i] = "\t\tSession";
-				$found = "true";
-			}
-			if ( $found eq "true" && $line =~ "End" )
-			{
-				$contents[$i] = "\t\tEnd";
-				$found = "false";
-			}
-			if ( $line =~ "Type" )
-			{
-				$contents[$i] = "\t\t\tType $session";
-				$output = $?;
-				$contents[$i + 1] =~ s/#//g;
-				if (    $session eq "URL"
-					 || $session eq "COOKIE"
-					 || $session eq "HEADER" )
-				{
-					$contents[$i + 2] =~ s/#//g;
-				}
-				else
-				{
-					if ( $contents[$i + 2] !~ /#/ )
-					{
-						$contents[$i + 2] =~ s/^/#/;
-					}
-				}
-			}
-		}
-		if ( $session eq "nothing" )
-		{
-			if ( $line =~ "Session" )
-			{
-				$contents[$i] = "\t\t#Session $session";
-				$found = "true";
-			}
-			if ( $found eq "true" && $line =~ "End" )
-			{
-				$contents[$i] = "\t\t#End";
-				$found = "false";
-			}
-			if ( $line =~ "TTL" )
-			{
-				$contents[$i] = "#$contents[$i]";
-			}
-			if ( $line =~ "Type" )
-			{
-				$contents[$i] = "#$contents[$i]";
-				$output = $?;
-			}
-			if ( $line =~ "ID" )
-			{
-				$contents[$i] = "#$contents[$i]";
-			}
-		}
-	}
+    &zenlog("Setting 'Session type $session' for $farm_name farm http",
+        "info", "LSLB");
+    tie my @contents, 'Tie::File', "$configdir\/$farm_filename";
+    my $i     = -1;
+    my $found = "false";
+    foreach my $line (@contents) {
+        $i++;
+        if ($session ne "nothing") {
+            if ($line =~ "Session") {
+                $contents[$i] = "\t\tSession";
+                $found = "true";
+            }
+            if ($found eq "true" && $line =~ "End") {
+                $contents[$i] = "\t\tEnd";
+                $found = "false";
+            }
+            if ($line =~ "Type") {
+                $contents[$i] = "\t\t\tType $session";
+                $output = $?;
+                $contents[ $i + 1 ] =~ s/#//g;
+                if (   $session eq "URL"
+                    || $session eq "COOKIE"
+                    || $session eq "HEADER")
+                {
+                    $contents[ $i + 2 ] =~ s/#//g;
+                }
+                else {
+                    if ($contents[ $i + 2 ] !~ /#/) {
+                        $contents[ $i + 2 ] =~ s/^/#/;
+                    }
+                }
+            }
+        }
+        if ($session eq "nothing") {
+            if ($line =~ "Session") {
+                $contents[$i] = "\t\t#Session $session";
+                $found = "true";
+            }
+            if ($found eq "true" && $line =~ "End") {
+                $contents[$i] = "\t\t#End";
+                $found = "false";
+            }
+            if ($line =~ "TTL") {
+                $contents[$i] = "#$contents[$i]";
+            }
+            if ($line =~ "Type") {
+                $contents[$i] = "#$contents[$i]";
+                $output = $?;
+            }
+            if ($line =~ "ID") {
+                $contents[$i] = "#$contents[$i]";
+            }
+        }
+    }
 
-	untie @contents;
-	close $lock_fh;
+    untie @contents;
+    close $lock_fh;
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -240,39 +222,39 @@ Returns:
 
 sub setHTTPFarmBlacklistTime    # ($blacklist_time,$farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $blacklist_time, $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($blacklist_time, $farm_name) = @_;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $output        = -1;
+    my $farm_filename = &getFarmFile($farm_name);
+    my $output        = -1;
 
-	my $lock_file = &getLockFile( $farm_name );
-	my $lock_fh = &openlock( $lock_file, 'w' );
+    my $lock_file = &getLockFile($farm_name);
+    my $lock_fh   = &openlock($lock_file, 'w');
 
-	require Tie::File;
-	tie my @filefarmhttp, 'Tie::File', "$configdir/$farm_filename";
-	my $i_f         = -1;
-	my $array_count = @filefarmhttp;
-	my $found       = "false";
+    require Tie::File;
+    tie my @filefarmhttp, 'Tie::File', "$configdir/$farm_filename";
+    my $i_f         = -1;
+    my $array_count = @filefarmhttp;
+    my $found       = "false";
 
-	while ( $i_f <= $array_count && $found eq "false" )
-	{
-		$i_f++;
-		if ( $filefarmhttp[$i_f] =~ /^Alive/ )
-		{
-			&zenlog( "Setting 'Blacklist time $blacklist_time' for $farm_name farm http",
-					 "info", "LSLB" );
-			$filefarmhttp[$i_f] = "Alive\t\t $blacklist_time";
-			$output             = $?;
-			$found              = "true";
-		}
-	}
+    while ($i_f <= $array_count && $found eq "false") {
+        $i_f++;
+        if ($filefarmhttp[$i_f] =~ /^Alive/) {
+            &zenlog(
+"Setting 'Blacklist time $blacklist_time' for $farm_name farm http",
+                "info", "LSLB"
+            );
+            $filefarmhttp[$i_f] = "Alive\t\t $blacklist_time";
+            $output             = $?;
+            $found              = "true";
+        }
+    }
 
-	untie @filefarmhttp;
-	close $lock_fh;
+    untie @filefarmhttp;
+    close $lock_fh;
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -290,26 +272,25 @@ Returns:
 
 sub getHTTPFarmBlacklistTime    # ($farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name) = @_;
 
-	my $blacklist_time = -1;
-	my $conf_file      = &getFarmFile( $farm_name );
-	my $conf_path      = "$configdir/$conf_file";
+    my $blacklist_time = -1;
+    my $conf_file      = &getFarmFile($farm_name);
+    my $conf_path      = "$configdir/$conf_file";
 
-	open ( my $fh, '<', $conf_path ) or die "Could not open $conf_path: $!";
-	while ( my $line = <$fh> )
-	{
-		next unless $line =~ /^Alive/i;
+    open(my $fh, '<', $conf_path) or die "Could not open $conf_path: $!";
+    while (my $line = <$fh>) {
+        next unless $line =~ /^Alive/i;
 
-		my @line_aux = split ( "\ ", $line );
-		$blacklist_time = $line_aux[1];
-		last;
-	}
-	close $fh;
+        my @line_aux = split("\ ", $line);
+        $blacklist_time = $line_aux[1];
+        last;
+    }
+    close $fh;
 
-	return $blacklist_time;
+    return $blacklist_time;
 }
 
 =begin nd
@@ -335,39 +316,38 @@ Returns:
 
 sub setFarmHttpVerb    # ($verb,$farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $verb, $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($verb, $farm_name) = @_;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $output        = -1;
+    my $farm_filename = &getFarmFile($farm_name);
+    my $output        = -1;
 
-	my $lock_file = &getLockFile( $farm_name );
-	my $lock_fh = &openlock( $lock_file, 'w' );
+    my $lock_file = &getLockFile($farm_name);
+    my $lock_fh   = &openlock($lock_file, 'w');
 
-	require Tie::File;
-	tie my @filefarmhttp, 'Tie::File', "$configdir/$farm_filename";
+    require Tie::File;
+    tie my @filefarmhttp, 'Tie::File', "$configdir/$farm_filename";
 
-	my $i_f         = -1;
-	my $array_count = @filefarmhttp;
-	my $found       = "false";
+    my $i_f         = -1;
+    my $array_count = @filefarmhttp;
+    my $found       = "false";
 
-	while ( $i_f <= $array_count && $found eq "false" )
-	{
-		$i_f++;
-		if ( $filefarmhttp[$i_f] =~ /xHTTP/ )
-		{
-			&zenlog( "Setting 'Http verb $verb' for $farm_name farm http", "info", "LSLB" );
-			$filefarmhttp[$i_f] = "\txHTTP $verb";
-			$output             = $?;
-			$found              = "true";
-		}
-	}
+    while ($i_f <= $array_count && $found eq "false") {
+        $i_f++;
+        if ($filefarmhttp[$i_f] =~ /xHTTP/) {
+            &zenlog("Setting 'Http verb $verb' for $farm_name farm http",
+                "info", "LSLB");
+            $filefarmhttp[$i_f] = "\txHTTP $verb";
+            $output             = $?;
+            $found              = "true";
+        }
+    }
 
-	untie @filefarmhttp;
-	close $lock_fh;
+    untie @filefarmhttp;
+    close $lock_fh;
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -392,27 +372,25 @@ Returns:
 
 sub getFarmHttpVerb    # ($farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name) = @_;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $output        = -1;
+    my $farm_filename = &getFarmFile($farm_name);
+    my $output        = -1;
 
-	open my $fh, '<', "$configdir\/$farm_filename";
-	my @file = <$fh>;
-	close $fh;
+    open my $fh, '<', "$configdir\/$farm_filename";
+    my @file = <$fh>;
+    close $fh;
 
-	foreach my $line ( @file )
-	{
-		if ( $line =~ /xHTTP/ )
-		{
-			my @line_aux = split ( "\ ", $line );
-			$output = $line_aux[1];
-		}
-	}
+    foreach my $line (@file) {
+        if ($line =~ /xHTTP/) {
+            my @line_aux = split("\ ", $line);
+            $output = $line_aux[1];
+        }
+    }
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -434,138 +412,123 @@ FIXME
 
 sub setFarmListen    # ( $farm_name, $farmlisten )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name, $flisten ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name, $flisten) = @_;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $i_f           = -1;
-	my $found         = "false";
+    my $farm_filename = &getFarmFile($farm_name);
+    my $i_f           = -1;
+    my $found         = "false";
 
-	my $lock_file = &getLockFile( $farm_name );
-	my $lock_fh = &openlock( $lock_file, 'w' );
+    my $lock_file = &getLockFile($farm_name);
+    my $lock_fh   = &openlock($lock_file, 'w');
 
-	require Tie::File;
-	tie my @filefarmhttp, 'Tie::File', "$configdir/$farm_filename";
-	my $array_count = @filefarmhttp;
+    require Tie::File;
+    tie my @filefarmhttp, 'Tie::File', "$configdir/$farm_filename";
+    my $array_count = @filefarmhttp;
 
-	while ( $i_f <= $array_count && $found eq "false" )
-	{
-		$i_f++;
-		if ( $filefarmhttp[$i_f] =~ /^ListenHTTP/ && $flisten eq "http" )
-		{
-			$filefarmhttp[$i_f] = "ListenHTTP";
-		}
-		if ( $filefarmhttp[$i_f] =~ /^ListenHTTP/ && $flisten eq "https" )
-		{
-			$filefarmhttp[$i_f] = "ListenHTTPS";
-		}
+    while ($i_f <= $array_count && $found eq "false") {
+        $i_f++;
+        if ($filefarmhttp[$i_f] =~ /^ListenHTTP/ && $flisten eq "http") {
+            $filefarmhttp[$i_f] = "ListenHTTP";
+        }
+        if ($filefarmhttp[$i_f] =~ /^ListenHTTP/ && $flisten eq "https") {
+            $filefarmhttp[$i_f] = "ListenHTTPS";
+        }
 
-		#
-		if ( $filefarmhttp[$i_f] =~ /.*Cert\ \"/ && $flisten eq "http" )
-		{
-			$filefarmhttp[$i_f] =~ s/Cert\ \"/#Cert\ \"/;
-		}
-		if ( $filefarmhttp[$i_f] =~ /.*Cert\ \"/ && $flisten eq "https" )
-		{
-			$filefarmhttp[$i_f] =~ s/#//g;
-		}
+        #
+        if ($filefarmhttp[$i_f] =~ /.*Cert\ \"/ && $flisten eq "http") {
+            $filefarmhttp[$i_f] =~ s/Cert\ \"/#Cert\ \"/;
+        }
+        if ($filefarmhttp[$i_f] =~ /.*Cert\ \"/ && $flisten eq "https") {
+            $filefarmhttp[$i_f] =~ s/#//g;
+        }
 
-		#
-		if ( $filefarmhttp[$i_f] =~ /.*Ciphers\ \"/ && $flisten eq "http" )
-		{
-			$filefarmhttp[$i_f] =~ s/Ciphers\ \"/#Ciphers\ \"/;
-		}
-		if ( $filefarmhttp[$i_f] =~ /.*Ciphers\ \"/ && $flisten eq "https" )
-		{
-			$filefarmhttp[$i_f] =~ s/#//g;
-		}
+        #
+        if ($filefarmhttp[$i_f] =~ /.*Ciphers\ \"/ && $flisten eq "http") {
+            $filefarmhttp[$i_f] =~ s/Ciphers\ \"/#Ciphers\ \"/;
+        }
+        if ($filefarmhttp[$i_f] =~ /.*Ciphers\ \"/ && $flisten eq "https") {
+            $filefarmhttp[$i_f] =~ s/#//g;
+        }
 
-		# Enable 'Disable TLSv1, TLSv1_1 or TLSv1_2'
-		if ( $filefarmhttp[$i_f] =~ /.*Disable TLSv1/ && $flisten eq "http" )
-		{
-			$filefarmhttp[$i_f] =~ s/Disable TLSv1/#Disable TLSv1/;
-		}
-		if ( $filefarmhttp[$i_f] =~ /.*Disable TLSv1/ && $flisten eq "https" )
-		{
-			$filefarmhttp[$i_f] =~ s/#//g;
-		}
-		elsif (    $filefarmhttp[$i_f] =~ /.*DisableTLSv1\d$/
-				&& $flisten eq "https" )
-		{
-			$filefarmhttp[$i_f] =~ s/#//g;
-		}
+        # Enable 'Disable TLSv1, TLSv1_1 or TLSv1_2'
+        if ($filefarmhttp[$i_f] =~ /.*Disable TLSv1/ && $flisten eq "http") {
+            $filefarmhttp[$i_f] =~ s/Disable TLSv1/#Disable TLSv1/;
+        }
+        if ($filefarmhttp[$i_f] =~ /.*Disable TLSv1/ && $flisten eq "https") {
+            $filefarmhttp[$i_f] =~ s/#//g;
+        }
+        elsif ($filefarmhttp[$i_f] =~ /.*DisableTLSv1\d$/
+            && $flisten eq "https")
+        {
+            $filefarmhttp[$i_f] =~ s/#//g;
+        }
 
-		# Enable 'Disable SSLv3 or SSLv2'
-		if ( $filefarmhttp[$i_f] =~ /.*Disable SSLv\d$/ && $flisten eq "http" )
-		{
-			$filefarmhttp[$i_f] =~ s/Disable SSLv/#Disable SSLv/;
-		}
-		if ( $filefarmhttp[$i_f] =~ /.*Disable SSLv\d$/ && $flisten eq "https" )
-		{
-			$filefarmhttp[$i_f] =~ s/#//g;
-		}
-		elsif (    $filefarmhttp[$i_f] =~ /.*DisableSSLv\d$/
-				&& $flisten eq "https" )
-		{
-			$filefarmhttp[$i_f] =~ s/#//g;
-		}
+        # Enable 'Disable SSLv3 or SSLv2'
+        if ($filefarmhttp[$i_f] =~ /.*Disable SSLv\d$/ && $flisten eq "http") {
+            $filefarmhttp[$i_f] =~ s/Disable SSLv/#Disable SSLv/;
+        }
+        if ($filefarmhttp[$i_f] =~ /.*Disable SSLv\d$/ && $flisten eq "https") {
+            $filefarmhttp[$i_f] =~ s/#//g;
+        }
+        elsif ($filefarmhttp[$i_f] =~ /.*DisableSSLv\d$/
+            && $flisten eq "https")
+        {
+            $filefarmhttp[$i_f] =~ s/#//g;
+        }
 
-		# Enable SSLHonorCipherOrder
-		if (    $filefarmhttp[$i_f] =~ /.*SSLHonorCipherOrder/
-			 && $flisten eq "http" )
-		{
-			$filefarmhttp[$i_f] =~ s/SSLHonorCipherOrder/#SSLHonorCipherOrder/;
-		}
-		if (    $filefarmhttp[$i_f] =~ /.*SSLHonorCipherOrder/
-			 && $flisten eq "https" )
-		{
-			$filefarmhttp[$i_f] =~ s/#//g;
-		}
+        # Enable SSLHonorCipherOrder
+        if (   $filefarmhttp[$i_f] =~ /.*SSLHonorCipherOrder/
+            && $flisten eq "http")
+        {
+            $filefarmhttp[$i_f] =~ s/SSLHonorCipherOrder/#SSLHonorCipherOrder/;
+        }
+        if (   $filefarmhttp[$i_f] =~ /.*SSLHonorCipherOrder/
+            && $flisten eq "https")
+        {
+            $filefarmhttp[$i_f] =~ s/#//g;
+        }
 
-		# Enable StrictTransportSecurity
-		if (    $filefarmhttp[$i_f] =~ /.*StrictTransportSecurity/
-			 && $flisten eq "http" )
-		{
-			$filefarmhttp[$i_f] =~ s/StrictTransportSecurity/#StrictTransportSecurity/;
-		}
-		if (    $filefarmhttp[$i_f] =~ /.*StrictTransportSecurity/
-			 && $flisten eq "https" )
-		{
-			$filefarmhttp[$i_f] =~ s/#//g;
-		}
+        # Enable StrictTransportSecurity
+        if (   $filefarmhttp[$i_f] =~ /.*StrictTransportSecurity/
+            && $flisten eq "http")
+        {
+            $filefarmhttp[$i_f] =~
+              s/StrictTransportSecurity/#StrictTransportSecurity/;
+        }
+        if (   $filefarmhttp[$i_f] =~ /.*StrictTransportSecurity/
+            && $flisten eq "https")
+        {
+            $filefarmhttp[$i_f] =~ s/#//g;
+        }
 
-		# Check for ECDHCurve cyphers
-		if ( $filefarmhttp[$i_f] =~ /ECDHCurve/ && $flisten eq "http" )
-		{
-			$filefarmhttp[$i_f] =~ s/ECDHCurve/\#ECDHCurve/;
-		}
-		if ( $filefarmhttp[$i_f] =~ /ECDHCurve/ && $flisten eq "https" )
-		{
-			$filefarmhttp[$i_f] =~ s/#ECDHCurve/ECDHCurve/;
-		}
+        # Check for ECDHCurve cyphers
+        if ($filefarmhttp[$i_f] =~ /ECDHCurve/ && $flisten eq "http") {
+            $filefarmhttp[$i_f] =~ s/ECDHCurve/\#ECDHCurve/;
+        }
+        if ($filefarmhttp[$i_f] =~ /ECDHCurve/ && $flisten eq "https") {
+            $filefarmhttp[$i_f] =~ s/#ECDHCurve/ECDHCurve/;
+        }
 
-		# Generate DH Keys if needed
-		#my $dhfile = "$configdir\/$farm_name\_dh2048.pem";
-		if ( $filefarmhttp[$i_f] =~ /^\#*DHParams/ && $flisten eq "http" )
-		{
-			$filefarmhttp[$i_f] =~ s/.*DHParams/\#DHParams/;
-		}
-		if ( $filefarmhttp[$i_f] =~ /^\#*DHParams/ && $flisten eq "https" )
-		{
-			$filefarmhttp[$i_f] =~ s/.*DHParams/DHParams/;
+        # Generate DH Keys if needed
+        #my $dhfile = "$configdir\/$farm_name\_dh2048.pem";
+        if ($filefarmhttp[$i_f] =~ /^\#*DHParams/ && $flisten eq "http") {
+            $filefarmhttp[$i_f] =~ s/.*DHParams/\#DHParams/;
+        }
+        if ($filefarmhttp[$i_f] =~ /^\#*DHParams/ && $flisten eq "https") {
+            $filefarmhttp[$i_f] =~ s/.*DHParams/DHParams/;
 
-			#$filefarmhttp[$i_f] =~ s/.*DHParams.*/DHParams\t"$dhfile"/;
-		}
+            #$filefarmhttp[$i_f] =~ s/.*DHParams.*/DHParams\t"$dhfile"/;
+        }
 
-		if ( $filefarmhttp[$i_f] =~ /ZWACL-END/ )
-		{
-			$found = "true";
-		}
-	}
+        if ($filefarmhttp[$i_f] =~ /ZWACL-END/) {
+            $found = "true";
+        }
+    }
 
-	untie @filefarmhttp;
-	close $lock_fh;
+    untie @filefarmhttp;
+    close $lock_fh;
 }
 
 =begin nd
@@ -584,40 +547,38 @@ Returns:
 
 sub setFarmRewriteL    # ($farm_name,$rewritelocation,$path)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name, $rewritelocation, $path ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name, $rewritelocation, $path) = @_;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $output        = -1;
+    my $farm_filename = &getFarmFile($farm_name);
+    my $output        = -1;
 
-	&zenlog( "setting 'Rewrite Location' for $farm_name to $rewritelocation",
-			 "info", "LSLB" );
+    &zenlog("setting 'Rewrite Location' for $farm_name to $rewritelocation",
+        "info", "LSLB");
 
-	my $lock_file = &getLockFile( $farm_name );
-	my $lock_fh = &openlock( $lock_file, 'w' );
+    my $lock_file = &getLockFile($farm_name);
+    my $lock_fh   = &openlock($lock_file, 'w');
 
-	require Tie::File;
-	tie my @filefarmhttp, 'Tie::File', "$configdir/$farm_filename";
-	my $i_f         = -1;
-	my $array_count = @filefarmhttp;
-	my $found       = "false";
+    require Tie::File;
+    tie my @filefarmhttp, 'Tie::File', "$configdir/$farm_filename";
+    my $i_f         = -1;
+    my $array_count = @filefarmhttp;
+    my $found       = "false";
 
-	while ( $i_f <= $array_count && $found eq "false" )
-	{
-		$i_f++;
-		if ( $filefarmhttp[$i_f] =~ /RewriteLocation\ .*/ )
-		{
-			my $directive = "\tRewriteLocation $rewritelocation";
-			$directive .= " path" if ( $path );
-			$filefarmhttp[$i_f] = $directive;
-			$output             = $?;
-			$found              = "true";
-		}
-	}
+    while ($i_f <= $array_count && $found eq "false") {
+        $i_f++;
+        if ($filefarmhttp[$i_f] =~ /RewriteLocation\ .*/) {
+            my $directive = "\tRewriteLocation $rewritelocation";
+            $directive .= " path" if ($path);
+            $filefarmhttp[$i_f] = $directive;
+            $output             = $?;
+            $found              = "true";
+        }
+    }
 
-	untie @filefarmhttp;
-	close $lock_fh;
+    untie @filefarmhttp;
+    close $lock_fh;
 }
 
 =begin nd
@@ -636,30 +597,28 @@ Returns:
 
 sub getFarmRewriteL    # ($farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name) = @_;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $output        = "disabled";
+    my $farm_filename = &getFarmFile($farm_name);
+    my $output        = "disabled";
 
-	open my $fd, '<', "$configdir\/$farm_filename";
-	my @file = <$fd>;
-	close $fd;
+    open my $fd, '<', "$configdir\/$farm_filename";
+    my @file = <$fd>;
+    close $fd;
 
-	foreach my $line ( @file )
-	{
-		if ( $line =~ /RewriteLocation\s+(\d)\s*(path)?/ )
-		{
-			if ( $1 eq 0 ) { $output = "disabled"; last; }
-			elsif ( $1 eq 1 ) { $output = "enabled"; }
-			elsif ( $1 eq 2 ) { $output = "enabled-backends"; }
+    foreach my $line (@file) {
+        if ($line =~ /RewriteLocation\s+(\d)\s*(path)?/) {
+            if    ($1 eq 0) { $output = "disabled"; last; }
+            elsif ($1 eq 1) { $output = "enabled"; }
+            elsif ($1 eq 2) { $output = "enabled-backends"; }
 
-			if ( $2 eq 'path' ) { $output .= "-path"; }
-			last;
-		}
-	}
-	return $output;
+            if ($2 eq 'path') { $output .= "-path"; }
+            last;
+        }
+    }
+    return $output;
 }
 
 =begin nd
@@ -678,40 +637,38 @@ Returns:
 
 sub setFarmConnTO    # ($tout,$farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $tout, $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($tout, $farm_name) = @_;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $output        = -1;
+    my $farm_filename = &getFarmFile($farm_name);
+    my $output        = -1;
 
-	&zenlog( "Setting 'ConnTo timeout $tout' for $farm_name farm http",
-			 "info", "LSLB" );
+    &zenlog("Setting 'ConnTo timeout $tout' for $farm_name farm http",
+        "info", "LSLB");
 
-	my $lock_file = &getLockFile( $farm_name );
-	my $lock_fh = &openlock( $lock_file, 'w' );
+    my $lock_file = &getLockFile($farm_name);
+    my $lock_fh   = &openlock($lock_file, 'w');
 
-	require Tie::File;
-	tie my @filefarmhttp, 'Tie::File', "$configdir/$farm_filename";
-	my $i_f         = -1;
-	my $array_count = @filefarmhttp;
-	my $found       = "false";
+    require Tie::File;
+    tie my @filefarmhttp, 'Tie::File', "$configdir/$farm_filename";
+    my $i_f         = -1;
+    my $array_count = @filefarmhttp;
+    my $found       = "false";
 
-	while ( $i_f <= $array_count && $found eq "false" )
-	{
-		$i_f++;
-		if ( $filefarmhttp[$i_f] =~ /^ConnTO.*/ )
-		{
-			$filefarmhttp[$i_f] = "ConnTO\t\t $tout";
-			$output             = $?;
-			$found              = "true";
-		}
-	}
+    while ($i_f <= $array_count && $found eq "false") {
+        $i_f++;
+        if ($filefarmhttp[$i_f] =~ /^ConnTO.*/) {
+            $filefarmhttp[$i_f] = "ConnTO\t\t $tout";
+            $output             = $?;
+            $found              = "true";
+        }
+    }
 
-	untie @filefarmhttp;
-	close $lock_fh;
+    untie @filefarmhttp;
+    close $lock_fh;
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -729,27 +686,25 @@ Returns:
 
 sub getFarmConnTO    # ($farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name) = @_;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $output        = -1;
+    my $farm_filename = &getFarmFile($farm_name);
+    my $output        = -1;
 
-	open my $fd, '<', "$configdir\/$farm_filename";
-	my @file = <$fd>;
-	close $fd;
+    open my $fd, '<', "$configdir\/$farm_filename";
+    my @file = <$fd>;
+    close $fd;
 
-	foreach my $line ( @file )
-	{
-		if ( $line =~ /^ConnTO/ )
-		{
-			my @line_aux = split ( "\ ", $line );
-			$output = $line_aux[1];
-		}
-	}
+    foreach my $line (@file) {
+        if ($line =~ /^ConnTO/) {
+            my @line_aux = split("\ ", $line);
+            $output = $line_aux[1];
+        }
+    }
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -768,37 +723,35 @@ Returns:
 
 sub setHTTPFarmTimeout    # ($timeout,$farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $timeout, $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($timeout, $farm_name) = @_;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $output        = -1;
+    my $farm_filename = &getFarmFile($farm_name);
+    my $output        = -1;
 
-	my $lock_file = &getLockFile( $farm_name );
-	my $lock_fh = &openlock( $lock_file, 'w' );
+    my $lock_file = &getLockFile($farm_name);
+    my $lock_fh   = &openlock($lock_file, 'w');
 
-	require Tie::File;
-	tie my @filefarmhttp, 'Tie::File', "$configdir/$farm_filename";
-	my $i_f         = -1;
-	my $array_count = @filefarmhttp;
-	my $found       = "false";
+    require Tie::File;
+    tie my @filefarmhttp, 'Tie::File', "$configdir/$farm_filename";
+    my $i_f         = -1;
+    my $array_count = @filefarmhttp;
+    my $found       = "false";
 
-	while ( $i_f <= $array_count && $found eq "false" )
-	{
-		$i_f++;
-		if ( $filefarmhttp[$i_f] =~ /^Timeout/ )
-		{
-			$filefarmhttp[$i_f] = "Timeout\t\t $timeout";
-			$output             = $?;
-			$found              = "true";
-		}
-	}
+    while ($i_f <= $array_count && $found eq "false") {
+        $i_f++;
+        if ($filefarmhttp[$i_f] =~ /^Timeout/) {
+            $filefarmhttp[$i_f] = "Timeout\t\t $timeout";
+            $output             = $?;
+            $found              = "true";
+        }
+    }
 
-	untie @filefarmhttp;
-	close $lock_fh;
+    untie @filefarmhttp;
+    close $lock_fh;
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -816,27 +769,25 @@ Returns:
 
 sub getHTTPFarmTimeout    # ($farm_filename)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name) = @_;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $output        = -1;
+    my $farm_filename = &getFarmFile($farm_name);
+    my $output        = -1;
 
-	open my $fd, '<', "$configdir\/$farm_filename";
-	my @file = <$fd>;
+    open my $fd, '<', "$configdir\/$farm_filename";
+    my @file = <$fd>;
 
-	foreach my $line ( @file )
-	{
-		if ( $line =~ /^Timeout/ )
-		{
-			my @line_aux = split ( "\ ", $line );
-			$output = $line_aux[1];
-		}
-	}
-	close $fd;
+    foreach my $line (@file) {
+        if ($line =~ /^Timeout/) {
+            my @line_aux = split("\ ", $line);
+            $output = $line_aux[1];
+        }
+    }
+    close $fd;
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -855,36 +806,34 @@ Returns:
 
 sub setHTTPFarmMaxClientTime    # ($track,$farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $track, $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($track, $farm_name) = @_;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $output        = -1;
-	my $i_f           = -1;
-	my $found         = "false";
+    my $farm_filename = &getFarmFile($farm_name);
+    my $output        = -1;
+    my $i_f           = -1;
+    my $found         = "false";
 
-	my $lock_file = &getLockFile( $farm_name );
-	my $lock_fh = &openlock( $lock_file, 'w' );
+    my $lock_file = &getLockFile($farm_name);
+    my $lock_fh   = &openlock($lock_file, 'w');
 
-	tie my @filefarmhttp, 'Tie::File', "$configdir/$farm_filename";
-	my $array_count = @filefarmhttp;
+    tie my @filefarmhttp, 'Tie::File', "$configdir/$farm_filename";
+    my $array_count = @filefarmhttp;
 
-	while ( $i_f <= $array_count && $found eq "false" )
-	{
-		$i_f++;
-		if ( $filefarmhttp[$i_f] =~ /TTL/ )
-		{
-			$filefarmhttp[$i_f] = "\t\t\tTTL $track";
-			$output             = $?;
-			$found              = "true";
-		}
-	}
+    while ($i_f <= $array_count && $found eq "false") {
+        $i_f++;
+        if ($filefarmhttp[$i_f] =~ /TTL/) {
+            $filefarmhttp[$i_f] = "\t\t\tTTL $track";
+            $output             = $?;
+            $found              = "true";
+        }
+    }
 
-	untie @filefarmhttp;
-	close $lock_fh;
+    untie @filefarmhttp;
+    close $lock_fh;
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -902,31 +851,29 @@ Returns:
 
 sub getHTTPFarmMaxClientTime    # ($farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name) = @_;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my @max_client_time;
+    my $farm_filename = &getFarmFile($farm_name);
+    my @max_client_time;
 
-	push ( @max_client_time, "" );
-	push ( @max_client_time, "" );
+    push(@max_client_time, "");
+    push(@max_client_time, "");
 
-	open my $fd, '<', "$configdir\/$farm_filename";
-	my @configfile = <$fd>;
+    open my $fd, '<', "$configdir\/$farm_filename";
+    my @configfile = <$fd>;
 
-	foreach my $line ( @configfile )
-	{
-		if ( $line =~ /TTL/ )
-		{
-			my @line_aux = split ( "\ ", $line );
-			@max_client_time[0] = "";
-			@max_client_time[1] = $line_aux[1];
-		}
-	}
-	close $fd;
+    foreach my $line (@configfile) {
+        if ($line =~ /TTL/) {
+            my @line_aux = split("\ ", $line);
+            @max_client_time[0] = "";
+            @max_client_time[1] = $line_aux[1];
+        }
+    }
+    close $fd;
 
-	return @max_client_time;
+    return @max_client_time;
 }
 
 =begin nd
@@ -944,14 +891,15 @@ Returns:
 
 sub getHTTPFarmGlobalStatus    # ($farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name) = @_;
 
-	my $proxyctl = &getGlobalConfiguration( 'proxyctl' );
+    my $proxyctl = &getGlobalConfiguration('proxyctl');
 
-	return
-	  @{ &logAndGet( "$proxyctl -c \"/tmp/$farm_name\_proxy.socket\"", "array" ) };
+    return
+      @{ &logAndGet("$proxyctl -c \"/tmp/$farm_name\_proxy.socket\"", "array")
+      };
 }
 
 =begin nd
@@ -971,31 +919,29 @@ Returns:
 
 sub setFarmErr    # ($farm_name,$content,$nerr)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name, $content, $nerr ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name, $content, $nerr) = @_;
 
-	my $output = -1;
+    my $output = -1;
 
-	&zenlog( "Setting 'Err $nerr' for $farm_name farm http", "info", "LSLB" );
+    &zenlog("Setting 'Err $nerr' for $farm_name farm http", "info", "LSLB");
 
-	if ( -e "$configdir\/$farm_name\_Err$nerr.html" && $nerr ne "" )
-	{
-		$output = 0;
-		my @err = split ( "\n", "$content" );
-		my $fd = &openlock( "$configdir\/$farm_name\_Err$nerr.html", 'w' );
+    if (-e "$configdir\/$farm_name\_Err$nerr.html" && $nerr ne "") {
+        $output = 0;
+        my @err = split("\n", "$content");
+        my $fd  = &openlock("$configdir\/$farm_name\_Err$nerr.html", 'w');
 
-		foreach my $line ( @err )
-		{
-			$line =~ s/\r$//;
-			print $fd "$line\n";
-			$output = $? || $output;
-		}
+        foreach my $line (@err) {
+            $line =~ s/\r$//;
+            print $fd "$line\n";
+            $output = $? || $output;
+        }
 
-		close $fd;
-	}
+        close $fd;
+    }
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -1015,39 +961,35 @@ Returns:
 # Only http function
 sub getFarmErr    # ($farm_name,$nerr)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name, $nerr ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name, $nerr) = @_;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $output;
+    my $farm_filename = &getFarmFile($farm_name);
+    my $output;
 
-	open my $fd, '<', "$configdir\/$farm_filename";
-	my @file = <$fd>;
-	close $fd;
+    open my $fd, '<', "$configdir\/$farm_filename";
+    my @file = <$fd>;
+    close $fd;
 
-	foreach my $line ( @file )
-	{
-		if ( $line =~ /Err$nerr/ )
-		{
-			my @line_aux = split ( "\ ", $line );
-			my $err = $line_aux[1];
-			$err =~ s/"//g;
+    foreach my $line (@file) {
+        if ($line =~ /Err$nerr/) {
+            my @line_aux = split("\ ", $line);
+            my $err      = $line_aux[1];
+            $err =~ s/"//g;
 
-			if ( -e $err )
-			{
-				open my $fd, '<', "$err";
-				while ( <$fd> )
-				{
-					$output .= $_;
-				}
-				close $fd;
-				chomp ( $output );
-			}
-		}
-	}
+            if (-e $err) {
+                open my $fd, '<', "$err";
+                while (<$fd>) {
+                    $output .= $_;
+                }
+                close $fd;
+                chomp($output);
+            }
+        }
+    }
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -1068,74 +1010,64 @@ Returns:
 
 sub setHTTPFarmConfErrFile    # ($enabled, $farm_name, $err)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $enabled, $farm_name, $err ) = @_;
-	require Zevenet::Farm::Core;
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $i             = -1;
-	my $found         = 0;                            # Error line was found
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($enabled, $farm_name, $err) = @_;
+    require Zevenet::Farm::Core;
+    my $farm_filename = &getFarmFile($farm_name);
+    my $i             = -1;
+    my $found         = 0;                          # Error line was found
 
-	require Tie::File;
-	tie my @filefarmhttp, 'Tie::File', "$configdir/$farm_filename";
-	foreach my $line ( @filefarmhttp )
-	{
-		$i++;
-		if ( $enabled eq "true" )
-		{
-			if ( $line =~ /^.*Err$err/ )
-			{
-				$line =~ s/#//;
-				splice @filefarmhttp, $i, 1, $line;
-				$found = 1;
-				last;
-			}
-		}
-		else
-		{
-			if ( $line =~ /^\s*Err$err/ )
-			{
-				splice @filefarmhttp, $i, 1;
-				last;
-			}
-		}
-	}
-	if ( !$found && $enabled eq "true" )
-	{
-		$i = -1;
-		foreach my $line ( @filefarmhttp )
-		{
-			$i++;
-			if ( $line =~ /^ListenHTTP/ )
-			{
-				my $directive = "\tErr$err \"$configdir" . "/" . $farm_name . "_Err$err.html\"";
-				splice @filefarmhttp, $i + 1, 0, $directive;
-				last;
-			}
-		}
-	}
-	untie @filefarmhttp;
+    require Tie::File;
+    tie my @filefarmhttp, 'Tie::File', "$configdir/$farm_filename";
+    foreach my $line (@filefarmhttp) {
+        $i++;
+        if ($enabled eq "true") {
+            if ($line =~ /^.*Err$err/) {
+                $line =~ s/#//;
+                splice @filefarmhttp, $i, 1, $line;
+                $found = 1;
+                last;
+            }
+        }
+        else {
+            if ($line =~ /^\s*Err$err/) {
+                splice @filefarmhttp, $i, 1;
+                last;
+            }
+        }
+    }
+    if (!$found && $enabled eq "true") {
+        $i = -1;
+        foreach my $line (@filefarmhttp) {
+            $i++;
+            if ($line =~ /^ListenHTTP/) {
+                my $directive =
+                    "\tErr$err \"$configdir" . "/"
+                  . $farm_name
+                  . "_Err$err.html\"";
+                splice @filefarmhttp, $i + 1, 0, $directive;
+                last;
+            }
+        }
+    }
+    untie @filefarmhttp;
 
-	if ( $eload )
-	{
-		if ( $enabled eq "true" )
-		{
-			if ( !-f "$configdir\/$farm_name\_ErrWAF.html" )
-			{
-				my $f_err;
-				open $f_err, '>', "$configdir\/$farm_name\_ErrWAF.html";
-				print $f_err "The request was rejected by the server.\n";
-				close $f_err;
-			}
-		}
-		else
-		{
-			if ( -f "$configdir\/$farm_name\_ErrWAF.html" )
-			{
-				unlink "$configdir\/$farm_name\_ErrWAF.html";
-			}
-		}
-	}
+    if ($eload) {
+        if ($enabled eq "true") {
+            if (!-f "$configdir\/$farm_name\_ErrWAF.html") {
+                my $f_err;
+                open $f_err, '>', "$configdir\/$farm_name\_ErrWAF.html";
+                print $f_err "The request was rejected by the server.\n";
+                close $f_err;
+            }
+        }
+        else {
+            if (-f "$configdir\/$farm_name\_ErrWAF.html") {
+                unlink "$configdir\/$farm_name\_ErrWAF.html";
+            }
+        }
+    }
 }
 
 =begin nd
@@ -1153,28 +1085,26 @@ Returns:
 
 sub getHTTPFarmBootStatus    # ($farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name) = @_;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $output        = "down";
-	my $lastline;
+    my $farm_filename = &getFarmFile($farm_name);
+    my $output        = "down";
+    my $lastline;
 
-	open my $fd, '<', "$configdir/$farm_filename";
+    open my $fd, '<', "$configdir/$farm_filename";
 
-	while ( my $line = <$fd> )
-	{
-		$lastline = $line;
-	}
-	close $fd;
+    while (my $line = <$fd>) {
+        $lastline = $line;
+    }
+    close $fd;
 
-	if ( $lastline !~ /^#down/ )
-	{
-		$output = "up";
-	}
+    if ($lastline !~ /^#down/) {
+        $output = "up";
+    }
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -1193,25 +1123,25 @@ Returns:
 
 sub setHTTPFarmBootStatus    # ($farm_name, $value)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name, $value ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name, $value) = @_;
 
-	my $farm_filename = &getFarmFile( $farm_name );
+    my $farm_filename = &getFarmFile($farm_name);
 
-	my $lock_file = &getLockFile( $farm_name );
-	my $lock_fh = &openlock( $lock_file, 'w' );
+    my $lock_file = &getLockFile($farm_name);
+    my $lock_fh   = &openlock($lock_file, 'w');
 
-	require Tie::File;
-	tie my @configfile, 'Tie::File', "$configdir\/$farm_filename";
-	@configfile = grep !/^\#down/, @configfile;
+    require Tie::File;
+    tie my @configfile, 'Tie::File', "$configdir\/$farm_filename";
+    @configfile = grep !/^\#down/, @configfile;
 
-	push @configfile, '#down' if ( $value eq "down" );
+    push @configfile, '#down' if ($value eq "down");
 
-	untie @configfile;
-	close $lock_fh;
+    untie @configfile;
+    close $lock_fh;
 
-	return;
+    return;
 }
 
 =begin nd
@@ -1229,25 +1159,24 @@ Returns:
 
 sub getHTTPFarmStatus    # ($farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name) = @_;
 
-	my @pid         = &getHTTPFarmPid( $farm_name );
-	my $output      = -1;
-	my $running_pid = kill ( 0, @pid ) if @pid;
+    my @pid         = &getHTTPFarmPid($farm_name);
+    my $output      = -1;
+    my $running_pid = kill(0, @pid) if @pid;
 
-	if ( @pid && $running_pid )
-	{
-		$output = "up";
-	}
-	else
-	{
-		#~ unlink &getHTTPFarmPidFile( $farm_name ) if ( !@pid && !$running_pid );
-		$output = "down";
-	}
+    if (@pid && $running_pid) {
+        $output = "up";
+    }
+    else {
 
-	return $output;
+      #~ unlink &getHTTPFarmPidFile( $farm_name ) if ( !@pid && !$running_pid );
+        $output = "down";
+    }
+
+    return $output;
 }
 
 =begin nd
@@ -1266,11 +1195,11 @@ Returns:
 
 sub getHTTPFarmSocket    # ($farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name) = @_;
 
-	return "/tmp/" . $farm_name . "_proxy.socket";
+    return "/tmp/" . $farm_name . "_proxy.socket";
 }
 
 =begin nd
@@ -1288,22 +1217,21 @@ Returns:
 
 sub getHTTPFarmPid    # ($farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name) = @_;
 
-	my $piddir  = &getGlobalConfiguration( 'piddir' );
-	my $pidfile = "$piddir\/$farm_name\_proxy.pid";
+    my $piddir  = &getGlobalConfiguration('piddir');
+    my $pidfile = "$piddir\/$farm_name\_proxy.pid";
 
-	my @pid = ();
-	if ( -e $pidfile )
-	{
-		open my $fd, '<', $pidfile;
-		@pid = <$fd>;
-		close $fd;
-	}
+    my @pid = ();
+    if (-e $pidfile) {
+        open my $fd, '<', $pidfile;
+        @pid = <$fd>;
+        close $fd;
+    }
 
-	return @pid;
+    return @pid;
 }
 
 =begin nd
@@ -1319,26 +1247,23 @@ Returns:
 
 =cut
 
-sub getHTTPFarmPidPound
-{
-	my $farm_name = shift;
+sub getHTTPFarmPidPound {
+    my $farm_name = shift;
 
-	my $ps        = &getGlobalConfiguration( 'ps' );
-	my $grep      = &getGlobalConfiguration( 'grep_bin' );
-	my @pid       = ();
-	my $farm_file = "$configdir/" . &getFarmFile( $farm_name );
-	my $cmd       = "$ps aux | $grep '\\-f $farm_file' | $grep -v grep";
+    my $ps        = &getGlobalConfiguration('ps');
+    my $grep      = &getGlobalConfiguration('grep_bin');
+    my @pid       = ();
+    my $farm_file = "$configdir/" . &getFarmFile($farm_name);
+    my $cmd       = "$ps aux | $grep '\\-f $farm_file' | $grep -v grep";
 
-	my $out = &logAndGet( $cmd, 'array' );
-	foreach my $l ( @{ $out } )
-	{
-		if ( $l =~ /^\s*[^\s]+\s+([^\s]+)\s/ )
-		{
-			push @pid, $1;
-		}
-	}
+    my $out = &logAndGet($cmd, 'array');
+    foreach my $l (@{$out}) {
+        if ($l =~ /^\s*[^\s]+\s+([^\s]+)\s/) {
+            push @pid, $1;
+        }
+    }
 
-	return @pid;
+    return @pid;
 }
 
 =begin nd
@@ -1356,14 +1281,14 @@ Returns:
 
 sub getHTTPFarmPidFile    # ($farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name) = @_;
 
-	my $piddir  = &getGlobalConfiguration( 'piddir' );
-	my $pidfile = "$piddir\/$farm_name\_proxy.pid";
+    my $piddir  = &getGlobalConfiguration('piddir');
+    my $pidfile = "$piddir\/$farm_name\_proxy.pid";
 
-	return $pidfile;
+    return $pidfile;
 }
 
 =begin nd
@@ -1382,37 +1307,36 @@ Returns:
 
 sub getHTTPFarmVip    # ($info,$farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $info, $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($info, $farm_name) = @_;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $output        = -1;
-	my $i             = 0;
-	my $lw            = 0;
+    my $farm_filename = &getFarmFile($farm_name);
+    my $output        = -1;
+    my $i             = 0;
+    my $lw            = 0;
 
-	open my $fi, '<', "$configdir/$farm_filename";
-	my @file = <$fi>;
-	close $fi;
+    open my $fi, '<', "$configdir/$farm_filename";
+    my @file = <$fi>;
+    close $fi;
 
-	foreach my $line ( @file )
-	{
-		if ( $line =~ /^ListenHTTP/ )
-		{
-			$lw = 1;
-		}
-		if ( $lw )
-		{
-			if ( $info eq "vip" && $line =~ /^\s+Address\s+(.*)/ ) { $output = $1 }
+    foreach my $line (@file) {
+        if ($line =~ /^ListenHTTP/) {
+            $lw = 1;
+        }
+        if ($lw) {
+            if ($info eq "vip" && $line =~ /^\s+Address\s+(.*)/) {
+                $output = $1;
+            }
 
-			if ( $info eq "vipp" && $line =~ /^\s+Port\s+(.*)/ ) { $output = $1 }
+            if ($info eq "vipp" && $line =~ /^\s+Port\s+(.*)/) { $output = $1 }
 
-			last if ( $output != -1 );
-		}
-		$i++;
-	}
+            last if ($output != -1);
+        }
+        $i++;
+    }
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -1432,60 +1356,54 @@ Returns:
 
 sub setHTTPFarmVirtualConf    # ($vip,$vip_port,$farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $vip, $vip_port, $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($vip, $vip_port, $farm_name) = @_;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $stat          = 1;
-	my $enter         = 2;
-	$enter-- if !$vip_port;
+    my $farm_filename = &getFarmFile($farm_name);
+    my $stat          = 1;
+    my $enter         = 2;
+    $enter-- if !$vip_port;
 
-	my $prev_config = getFarmStruct( $farm_name );
+    my $prev_config = getFarmStruct($farm_name);
 
-	my $lock_file = &getLockFile( $farm_name );
-	my $lock_fh = &openlock( $lock_file, 'w' );
+    my $lock_file = &getLockFile($farm_name);
+    my $lock_fh   = &openlock($lock_file, 'w');
 
-	require Tie::File;
-	tie my @array, 'Tie::File', "$configdir\/$farm_filename";
-	my $size = @array;
+    require Tie::File;
+    tie my @array, 'Tie::File', "$configdir\/$farm_filename";
+    my $size = @array;
 
-	for ( my $i = 0 ; $i < $size && $enter > 0 ; $i++ )
-	{
-		if ( $array[$i] =~ /Address/ )
-		{
-			if ( $array[$i] =~ s/.*Address\ .*/\tAddress\ $vip/ )
-			{
-				$stat = 0;
-			}
-			$enter--;
-		}
-		if ( $array[$i] =~ /Port/ and $vip_port )
-		{
-			if ( $array[$i] =~ s/.*Port\ .*/\tPort\ $vip_port/ )
-			{
-				$stat = 0;
-			}
-			$enter--;
-		}
-		last if ( !$enter );
-	}
+    for (my $i = 0 ; $i < $size && $enter > 0 ; $i++) {
+        if ($array[$i] =~ /Address/) {
+            if ($array[$i] =~ s/.*Address\ .*/\tAddress\ $vip/) {
+                $stat = 0;
+            }
+            $enter--;
+        }
+        if ($array[$i] =~ /Port/ and $vip_port) {
+            if ($array[$i] =~ s/.*Port\ .*/\tPort\ $vip_port/) {
+                $stat = 0;
+            }
+            $enter--;
+        }
+        last if (!$enter);
+    }
 
-	untie @array;
-	close $lock_fh;
+    untie @array;
+    close $lock_fh;
 
-	# Finally, reload rules and source address
-	if ( &getGlobalConfiguration( 'proxy_ng' ) eq "true" )
-	{
-		&doL7FarmRules( "reload", $farm_name, $prev_config )
-		  if ( $prev_config->{ status } eq "up" );
+    # Finally, reload rules and source address
+    if (&getGlobalConfiguration('proxy_ng') eq "true") {
+        &doL7FarmRules("reload", $farm_name, $prev_config)
+          if ($prev_config->{status} eq "up");
 
-		# reload source address maquerade
-		require Zevenet::Farm::Config;
-		&reloadFarmsSourceAddressByFarm( $farm_name );
-	}
+        # reload source address maquerade
+        require Zevenet::Farm::Config;
+        &reloadFarmsSourceAddressByFarm($farm_name);
+    }
 
-	return $stat;
+    return $stat;
 }
 
 =begin nd
@@ -1503,27 +1421,26 @@ Returns:
 
 sub getHTTPFarmConfigIsOK    # ($farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $farm_name = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $farm_name = shift;
 
-	my $proxy         = &getGlobalConfiguration( 'proxy' );
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $proxy_command = "$proxy -f $configdir\/$farm_filename -c";
+    my $proxy         = &getGlobalConfiguration('proxy');
+    my $farm_filename = &getFarmFile($farm_name);
+    my $proxy_command = "$proxy -f $configdir\/$farm_filename -c";
 
 # do not use the function 'logAndGet' here is managing the error output and error code
-	my $run = `$proxy_command 2>&1`;
-	my $rc  = $?;
+    my $run = `$proxy_command 2>&1`;
+    my $rc  = $?;
 
-	if ( $rc or &debug() )
-	{
-		my $tag     = ( $rc ) ? 'error'  : 'debug';
-		my $message = $rc     ? 'failed' : 'running';
-		&zenlog( "$message: $proxy_command", $tag, "LSLB" );
-		&zenlog( "output: $run ",            $tag, "LSLB" );
-	}
+    if ($rc or &debug()) {
+        my $tag     = ($rc) ? 'error'  : 'debug';
+        my $message = $rc   ? 'failed' : 'running';
+        &zenlog("$message: $proxy_command", $tag, "LSLB");
+        &zenlog("output: $run ",            $tag, "LSLB");
+    }
 
-	return $rc;
+    return $rc;
 }
 
 =begin nd
@@ -1541,538 +1458,515 @@ Returns:
 
 sub getHTTPFarmConfigErrorMessage    # ($farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $farm_name = shift;
-	my $service;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $farm_name = shift;
+    my $service;
 
-	my $proxy         = &getGlobalConfiguration( 'proxy' );
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $proxy_command = "$proxy -f $configdir\/$farm_filename -c";
+    my $proxy         = &getGlobalConfiguration('proxy');
+    my $farm_filename = &getFarmFile($farm_name);
+    my $proxy_command = "$proxy -f $configdir\/$farm_filename -c";
 
 # do not use the function 'logAndGet' here is managing the error output and error code
-	my @run = `$proxy_command 2>&1`;
-	my $rc  = $?;
+    my @run = `$proxy_command 2>&1`;
+    my $rc  = $?;
 
-	return "" unless ( $rc );
+    return "" unless ($rc);
 
-	shift @run if ( $run[0] =~ /starting\.\.\./ );
-	chomp @run;
-	my $msg;
+    shift @run if ($run[0] =~ /starting\.\.\./);
+    chomp @run;
+    my $msg;
 
-	&zenlog( "Error checking $configdir\/$farm_filename.", "Error", "LSLB" );
-	&zenlog( $run[0],                                      "Error", "LSLB" );
+    &zenlog("Error checking $configdir\/$farm_filename.", "Error", "LSLB");
+    &zenlog($run[0],                                      "Error", "LSLB");
 
-	$run[0] = $run[1] if ( $run[0] =~ /waf/i );
+    $run[0] = $run[1] if ($run[0] =~ /waf/i);
 
-	$run[0] =~ / line (\d+): /;
-	my $line_num = $1;
+    $run[0] =~ / line (\d+): /;
+    my $line_num = $1;
 
-	# get line
-	( $farm_name, $service ) = @_;
-	my $file_id = 0;
-	my $file_line;
-	my $srv;
+    # get line
+    ($farm_name, $service) = @_;
+    my $file_id = 0;
+    my $file_line;
+    my $srv;
 
-	open my $fileconf, '<', "$configdir/$farm_filename";
+    open my $fileconf, '<', "$configdir/$farm_filename";
 
-	foreach my $line ( <$fileconf> )
-	{
-		if ( $line =~ /^\tService \"(.+)\"/ ) { $srv = $1; }
-		if ( $file_id == $line_num - 1 )
-		{
-			$file_line = $line;
-			last;
-		}
-		$file_id++;
-	}
+    foreach my $line (<$fileconf>) {
+        if ($line =~ /^\tService \"(.+)\"/) { $srv = $1; }
+        if ($file_id == $line_num - 1) {
+            $file_line = $line;
+            last;
+        }
+        $file_id++;
+    }
 
-	close $fileconf;
+    close $fileconf;
 
 # examples of error msg
 #	AAAhttps, /usr/local/zevenet/config/AAAhttps_proxy.cfg line 36: unknown directive
 #	AAAhttps, /usr/local/zevenet/config/AAAhttps_proxy.cfg line 40: SSL_CTX_use_PrivateKey_file failed - aborted
-	$file_line =~ /\s*([\w-]+)/;
-	my $param = $1;
-	$msg = "Error in the configuration file";
+    $file_line =~ /\s*([\w-]+)/;
+    my $param = $1;
+    $msg = "Error in the configuration file";
 
-	# parse line
-	if ( $param eq "Cert" )
-	{
-		# return pem name if the pem file is not correct
-		$file_line =~ /([^\/]+)\"$/;
-		$msg = "Error loading the certificate: $1" if $1;
-	}
-	elsif ( $param eq "WafRules" )
-	{
-		# return waf rule name  if the waf rule file is not correct
-		$file_line =~ /([^\/]+)\"$/;
-		$msg = "Error loading the WafRuleSet: $1" if $1;
-	}
-	elsif ( $param )
-	{
-		$srv = "in the service $srv" if ( $srv );
-		$msg = "Error in the parameter $param ${srv}";
-	}
+    # parse line
+    if ($param eq "Cert") {
 
-	elsif ( &debug() )
-	{
-		$msg = $run[0];
-	}
+        # return pem name if the pem file is not correct
+        $file_line =~ /([^\/]+)\"$/;
+        $msg = "Error loading the certificate: $1" if $1;
+    }
+    elsif ($param eq "WafRules") {
 
-	&zenlog( "Error checking config file: $msg", 'debug' );
+        # return waf rule name  if the waf rule file is not correct
+        $file_line =~ /([^\/]+)\"$/;
+        $msg = "Error loading the WafRuleSet: $1" if $1;
+    }
+    elsif ($param) {
+        $srv = "in the service $srv" if ($srv);
+        $msg = "Error in the parameter $param ${srv}";
+    }
 
-	return $msg;
+    elsif (&debug()) {
+        $msg = $run[0];
+    }
+
+    &zenlog("Error checking config file: $msg", 'debug');
+
+    return $msg;
 }
 
-sub getHTTPFarmStruct
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $farmname = shift;
-	my $type = shift // &getFarmType( $farmname );
+sub getHTTPFarmStruct {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $farmname = shift;
+    my $type     = shift // &getFarmType($farmname);
 
-	require Zevenet::Farm::Core;
-	require Zevenet::Farm::Base;
+    require Zevenet::Farm::Core;
+    require Zevenet::Farm::Base;
 
-	my $proxy_ng = &getGlobalConfiguration( 'proxy_ng' );
+    my $proxy_ng = &getGlobalConfiguration('proxy_ng');
 
-	# Output hash reference or undef if the farm does not exist.
-	my $farm;
+    # Output hash reference or undef if the farm does not exist.
+    my $farm;
 
-	return $farm unless $farmname;
+    return $farm unless $farmname;
 
-	my $vip   = &getFarmVip( "vip",  $farmname );
-	my $vport = &getFarmVip( "vipp", $farmname ) + 0;
-	my $status = &getFarmVipStatus( $farmname );
+    my $vip    = &getFarmVip("vip",  $farmname);
+    my $vport  = &getFarmVip("vipp", $farmname) + 0;
+    my $status = &getFarmVipStatus($farmname);
 
-	my $connto          = 0 + &getFarmConnTO( $farmname );
-	my $timeout         = 0 + &getHTTPFarmTimeout( $farmname );
-	my $alive           = 0 + &getHTTPFarmBlacklistTime( $farmname );
-	my $client          = 0 + &getFarmClientTimeout( $farmname );
-	my $rewritelocation = &getFarmRewriteL( $farmname );
-	my $httpverb        = 0 + &getFarmHttpVerb( $farmname );
+    my $connto          = 0 + &getFarmConnTO($farmname);
+    my $timeout         = 0 + &getHTTPFarmTimeout($farmname);
+    my $alive           = 0 + &getHTTPFarmBlacklistTime($farmname);
+    my $client          = 0 + &getFarmClientTimeout($farmname);
+    my $rewritelocation = &getFarmRewriteL($farmname);
+    my $httpverb        = 0 + &getFarmHttpVerb($farmname);
 
-	if    ( $httpverb == 0 ) { $httpverb = "standardHTTP"; }
-	elsif ( $httpverb == 1 ) { $httpverb = "extendedHTTP"; }
-	elsif ( $httpverb == 2 ) { $httpverb = "standardWebDAV"; }
-	elsif ( $httpverb == 3 ) { $httpverb = "MSextWebDAV"; }
-	elsif ( $httpverb == 4 ) { $httpverb = "MSRPCext"; }
-	elsif ( $httpverb == 5 ) { $httpverb = "optionsHTTP"; }
+    if    ($httpverb == 0) { $httpverb = "standardHTTP"; }
+    elsif ($httpverb == 1) { $httpverb = "extendedHTTP"; }
+    elsif ($httpverb == 2) { $httpverb = "standardWebDAV"; }
+    elsif ($httpverb == 3) { $httpverb = "MSextWebDAV"; }
+    elsif ($httpverb == 4) { $httpverb = "MSRPCext"; }
+    elsif ($httpverb == 5) { $httpverb = "optionsHTTP"; }
 
-	my $errWAF = &getFarmErr( $farmname, "WAF" );
-	my $err414 = &getFarmErr( $farmname, "414" );
-	my $err500 = &getFarmErr( $farmname, "500" );
-	my $err501 = &getFarmErr( $farmname, "501" );
-	my $err503 = &getFarmErr( $farmname, "503" );
+    my $errWAF = &getFarmErr($farmname, "WAF");
+    my $err414 = &getFarmErr($farmname, "414");
+    my $err500 = &getFarmErr($farmname, "500");
+    my $err501 = &getFarmErr($farmname, "501");
+    my $err503 = &getFarmErr($farmname, "503");
 
-	$farm = {
-			  status          => $status,
-			  restimeout      => $timeout,
-			  contimeout      => $connto,
-			  resurrectime    => $alive,
-			  reqtimeout      => $client,
-			  rewritelocation => $rewritelocation,
-			  httpverb        => $httpverb,
-			  listener        => $type,
-			  vip             => $vip,
-			  vport           => $vport,
-			  error500        => $err500,
-			  error414        => $err414,
-			  error501        => $err501,
-			  error503        => $err503,
-			  name            => $farmname
-	};
+    $farm = {
+        status          => $status,
+        restimeout      => $timeout,
+        contimeout      => $connto,
+        resurrectime    => $alive,
+        reqtimeout      => $client,
+        rewritelocation => $rewritelocation,
+        httpverb        => $httpverb,
+        listener        => $type,
+        vip             => $vip,
+        vport           => $vport,
+        error500        => $err500,
+        error414        => $err414,
+        error501        => $err501,
+        error503        => $err503,
+        name            => $farmname
+    };
 
-	if ( $eload and $proxy_ng eq 'true' )
-	{
-		$farm->{ errorWAF } = $errWAF;
-	}
+    if ($eload and $proxy_ng eq 'true') {
+        $farm->{errorWAF} = $errWAF;
+    }
 
-	# HTTPS parameters
-	if ( $type eq "https" )
-	{
-		require Zevenet::Farm::HTTP::HTTPS;
+    # HTTPS parameters
+    if ($type eq "https") {
+        require Zevenet::Farm::HTTP::HTTPS;
 
-		## Get farm certificate(s)
-		my @cnames;
+        ## Get farm certificate(s)
+        my @cnames;
 
-		if ( $eload )
-		{
-			@cnames = &eload(
-							  module => 'Zevenet::Farm::HTTP::HTTPS::Ext',
-							  func   => 'getFarmCertificatesSNI',
-							  args   => [$farmname],
-			);
-		}
-		else
-		{
-			@cnames = ( &getFarmCertificate( $farmname ) );
-		}
+        if ($eload) {
+            @cnames = &eload(
+                module => 'Zevenet::Farm::HTTP::HTTPS::Ext',
+                func   => 'getFarmCertificatesSNI',
+                args   => [$farmname],
+            );
+        }
+        else {
+            @cnames = (&getFarmCertificate($farmname));
+        }
 
-		# Make struct array
-		my @cert_list;
+        # Make struct array
+        my @cert_list;
 
-		for ( my $i = 0 ; $i < scalar @cnames ; $i++ )
-		{
-			push @cert_list, { file => $cnames[$i], id => $i + 1 };
-		}
+        for (my $i = 0 ; $i < scalar @cnames ; $i++) {
+            push @cert_list, { file => $cnames[$i], id => $i + 1 };
+        }
 
-		## Get cipher set
-		my $ciphers = &getFarmCipherSet( $farmname );
+        ## Get cipher set
+        my $ciphers = &getFarmCipherSet($farmname);
 
-		# adapt "ciphers" to required interface values
-		if ( $ciphers eq "cipherglobal" )
-		{
-			$ciphers = "all";
-		}
-		elsif ( $ciphers eq "cipherssloffloading" )
-		{
-			$ciphers = "ssloffloading";
-		}
-		elsif ( $ciphers eq "cipherpci" )
-		{
-			$ciphers = "highsecurity";
-		}
-		else
-		{
-			$ciphers = "customsecurity";
-		}
+        # adapt "ciphers" to required interface values
+        if ($ciphers eq "cipherglobal") {
+            $ciphers = "all";
+        }
+        elsif ($ciphers eq "cipherssloffloading") {
+            $ciphers = "ssloffloading";
+        }
+        elsif ($ciphers eq "cipherpci") {
+            $ciphers = "highsecurity";
+        }
+        else {
+            $ciphers = "customsecurity";
+        }
 
-		## All HTTPS parameters
-		$farm->{ certlist } = \@cert_list;
-		$farm->{ ciphers }  = $ciphers;
-		$farm->{ cipherc }  = &getFarmCipherList( $farmname );
-		$farm->{ disable_sslv2 } =
-		  ( &getHTTPFarmDisableSSL( $farmname, "SSLv2" ) ) ? "true" : "false";
-		$farm->{ disable_sslv3 } =
-		  ( &getHTTPFarmDisableSSL( $farmname, "SSLv3" ) ) ? "true" : "false";
-		$farm->{ disable_tlsv1 } =
-		  ( &getHTTPFarmDisableSSL( $farmname, "TLSv1" ) ) ? "true" : "false";
-		$farm->{ disable_tlsv1_1 } =
-		  ( &getHTTPFarmDisableSSL( $farmname, "TLSv1_1" ) ) ? "true" : "false";
-		$farm->{ disable_tlsv1_2 } =
-		  ( &getHTTPFarmDisableSSL( $farmname, "TLSv1_2" ) ) ? "true" : "false";
-	}
+        ## All HTTPS parameters
+        $farm->{certlist} = \@cert_list;
+        $farm->{ciphers}  = $ciphers;
+        $farm->{cipherc}  = &getFarmCipherList($farmname);
+        $farm->{disable_sslv2} =
+          (&getHTTPFarmDisableSSL($farmname, "SSLv2")) ? "true" : "false";
+        $farm->{disable_sslv3} =
+          (&getHTTPFarmDisableSSL($farmname, "SSLv3")) ? "true" : "false";
+        $farm->{disable_tlsv1} =
+          (&getHTTPFarmDisableSSL($farmname, "TLSv1")) ? "true" : "false";
+        $farm->{disable_tlsv1_1} =
+          (&getHTTPFarmDisableSSL($farmname, "TLSv1_1")) ? "true" : "false";
+        $farm->{disable_tlsv1_2} =
+          (&getHTTPFarmDisableSSL($farmname, "TLSv1_2")) ? "true" : "false";
+    }
 
-	$farm->{ logs } = &getHTTPFarmLogs( $farmname );
-	require Zevenet::Farm::Config;
-	$farm = &get_http_farm_headers_struct( $farmname, $farm );
+    $farm->{logs} = &getHTTPFarmLogs($farmname);
+    require Zevenet::Farm::Config;
+    $farm = &get_http_farm_headers_struct($farmname, $farm);
 
-	$farm->{ ignore_100_continue } = &getHTTPFarm100Continue( $farmname );
+    $farm->{ignore_100_continue} = &getHTTPFarm100Continue($farmname);
 
-	return $farm;
+    return $farm;
 }
 
-sub getHTTPVerbCode
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $verbs_set = shift;
+sub getHTTPVerbCode {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $verbs_set = shift;
 
-	# Default output value in case of missing verb set
-	my $verb_code;
+    # Default output value in case of missing verb set
+    my $verb_code;
 
-	my %http_verbs = (
-					   standardHTTP   => 0,
-					   extendedHTTP   => 1,
-					   standardWebDAV => 2,
-					   MSextWebDAV    => 3,
-					   MSRPCext       => 4,
-					   optionsHTTP    => 5,
-	);
+    my %http_verbs = (
+        standardHTTP   => 0,
+        extendedHTTP   => 1,
+        standardWebDAV => 2,
+        MSextWebDAV    => 3,
+        MSRPCext       => 4,
+        optionsHTTP    => 5,
+    );
 
-	if ( exists $http_verbs{ $verbs_set } )
-	{
-		$verb_code = $http_verbs{ $verbs_set };
-	}
+    if (exists $http_verbs{$verbs_set}) {
+        $verb_code = $http_verbs{$verbs_set};
+    }
 
-	return $verb_code;
+    return $verb_code;
 }
 
 ######### l7 proxy Config
 
 # Reading
 
-sub parseL7ProxyConfig
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $file ) = @_;
+sub parseL7ProxyConfig {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($file) = @_;
 
-	my @lines = split /\n/, $file;
-	chomp @lines;
+    my @lines = split /\n/, $file;
+    chomp @lines;
 
-	my @farm_lines     = ();    # block 1
-	my @listener_lines = ();    # block 2
-	my @services_lines = ();    # block 3
-	my $block          = 1;
-	my $listener;
+    my @farm_lines     = ();    # block 1
+    my @listener_lines = ();    # block 2
+    my @services_lines = ();    # block 3
+    my $block          = 1;
+    my $listener;
 
-	# Split config in 3 blocks: farm, listener and services
-	for my $line ( @lines )
-	{
-		next unless $line;
+    # Split config in 3 blocks: farm, listener and services
+    for my $line (@lines) {
+        next unless $line;
 
-		# only one listener is expected
-		if ( $line =~ /^Listen(HTTPS?)/ ) { $block++; $listener = $1; next; }
-		if ( $line =~ /#ZWACL-INI/ )      { $block++; next; }
-		if ( $line =~ /#ZWACL-END/ )      { last; }
+        # only one listener is expected
+        if ($line =~ /^Listen(HTTPS?)/) { $block++; $listener = $1; next; }
+        if ($line =~ /#ZWACL-INI/)      { $block++; next; }
+        if ($line =~ /#ZWACL-END/)      { last; }
 
-		push ( @farm_lines,     $line ) if $block == 1;
-		push ( @listener_lines, $line ) if $block == 2;
-		push ( @services_lines, $line ) if $block == 3;
-	}
+        push(@farm_lines,     $line) if $block == 1;
+        push(@listener_lines, $line) if $block == 2;
+        push(@services_lines, $line) if $block == 3;
+    }
 
-	# Parse global farm parameters
-	my %conf = map {
-		if ( /^(\w+)\s+(\S.+)/ )
-		{
-			{ $1 => $2 }
-		}
-	} @farm_lines;
-	&cleanHashValues( \%conf );
-	delete $conf{ '' };
+    # Parse global farm parameters
+    my %conf = map {
+        if (/^(\w+)\s+(\S.+)/) {
+            { $1 => $2 }
+        }
+    } @farm_lines;
+    &cleanHashValues(\%conf);
+    delete $conf{''};
 
-	# Parse listener parameters
-	my %listener = map {
-		if ( /^\t(\w+)\s+(.+)/ )
-		{
-			{ $1 => $2 }
-		}
-	} @listener_lines;
-	delete $listener{ '' };
-	&cleanHashValues( \%listener );
-	$listener{ type } = lc $listener;
+    # Parse listener parameters
+    my %listener = map {
+        if (/^\t(\w+)\s+(.+)/) {
+            { $1 => $2 }
+        }
+    } @listener_lines;
+    delete $listener{''};
+    &cleanHashValues(\%listener);
+    $listener{type} = lc $listener;
 
-	# AddHeader
-	my @add_header = map {
-		if ( /^\tAddHeader "(.+)"$/ ) { $1 }
-	} grep { /AddHeader/ } @listener_lines;
-	$listener{ AddHeader } = \@add_header if scalar @add_header;
+    # AddHeader
+    my @add_header = map {
+        if (/^\tAddHeader "(.+)"$/) { $1 }
+    } grep { /AddHeader/ } @listener_lines;
+    $listener{AddHeader} = \@add_header if scalar @add_header;
 
-	# HeadRemove
-	my @head_remove = map {
-		if ( /^\tHeadRemove "(.+)"$/ ) { $1 }
-	} grep { /HeadRemove/ } @listener_lines;
-	$listener{ HeadRemove } = \@head_remove if scalar @head_remove;
+    # HeadRemove
+    my @head_remove = map {
+        if (/^\tHeadRemove "(.+)"$/) { $1 }
+    } grep { /HeadRemove/ } @listener_lines;
+    $listener{HeadRemove} = \@head_remove if scalar @head_remove;
 
-	## HTTPS
+    ## HTTPS
 
-	# Certificates
-	my @certs = map {
-		if ( /^\tCert "(.+)"$/ ) { $1 }
-	} grep { /Cert/ } @listener_lines;
-	$listener{ Cert } = \@certs if $listener{ type } eq 'https';
+    # Certificates
+    my @certs = map {
+        if (/^\tCert "(.+)"$/) { $1 }
+    } grep { /Cert/ } @listener_lines;
+    $listener{Cert} = \@certs if $listener{type} eq 'https';
 
-	# Disable HTTPS protocols
-	# Warning: Doesn't work without grep
-	my @disable = map {
-		if ( /^\tDisable (.*)$/ ) { $1 }
-	} grep { /Disable/ } @listener_lines;
-	$listener{ Disable } = \@disable if $listener{ type } eq 'https';
+    # Disable HTTPS protocols
+    # Warning: Doesn't work without grep
+    my @disable = map {
+        if (/^\tDisable (.*)$/) { $1 }
+    } grep { /Disable/ } @listener_lines;
+    $listener{Disable} = \@disable if $listener{type} eq 'https';
 
-	$conf{ listeners }[0] = \%listener;
+    $conf{listeners}[0] = \%listener;
 
-	## Parse services
-	my $svc_r;
-	my $svc_name;
-	my $svc_id = 0;
-	my @svc_lines;
+    ## Parse services
+    my $svc_r;
+    my $svc_name;
+    my $svc_id = 0;
+    my @svc_lines;
 
-	for my $line ( @services_lines )
-	{
-		# Detect the beginnig of a service block
-		if ( $line =~ /^\tService "(.+)"$/ )
-		{
-			$svc_name  = $1;
-			@svc_lines = ();
-			$svc_r     = {};
-			next;
-		}
+    for my $line (@services_lines) {
 
-		# Detect the end of a service block and parse the block
-		if ( $line =~ /^\tEnd$/ )
-		{
-			# Parse service paremeters
-			%$svc_r = map {
-				if ( /^\t\t(\S+)\ (\S.+)$/ )
-				{
-					{ $1 => $2 }
-				}
-			} @svc_lines;
+        # Detect the beginnig of a service block
+        if ($line =~ /^\tService "(.+)"$/) {
+            $svc_name  = $1;
+            @svc_lines = ();
+            $svc_r     = {};
+            next;
+        }
 
-			# Clean up empty parameters.
-			# FIXME: With a better parsing this should not be necessary
-			delete $svc_r->{ '' };
+        # Detect the end of a service block and parse the block
+        if ($line =~ /^\tEnd$/) {
 
-			# Remove commented service parameters
-			for my $key ( keys %{ $svc_r } )
-			{
-				delete $svc_r->{ $key } if $key =~ /^#/;
-			}
+            # Parse service paremeters
+            %$svc_r = map {
+                if (/^\t\t(\S+)\ (\S.+)$/) {
+                    { $1 => $2 }
+                }
+            } @svc_lines;
 
-			## Backends blocks
-			my $bb;      # 'In Backend Block' flag
-			my $be_r;    # Backend hash reference
-			my @be = (); # List of backends
+            # Clean up empty parameters.
+            # FIXME: With a better parsing this should not be necessary
+            delete $svc_r->{''};
 
-			# Session block
-			my $sb;      # 'In Session Block' flag
-			my $se_r;    # Session hash reference
+            # Remove commented service parameters
+            for my $key (keys %{$svc_r}) {
+                delete $svc_r->{$key} if $key =~ /^#/;
+            }
 
-			for my $line ( @svc_lines )
-			{
-				# Backends blocks
-				if ( $line =~ /^\t\tBackEnd$/ ) { $bb++; $be_r = {}; next; }
-				if ( $line =~ /^\t\t\t(\w+) (.+)$/ && $bb ) { $be_r->{ $1 } = $2; next; }
-				if ( $line =~ /^\t\t\tHTTPS$/ && $bb ) { $be_r->{ 'HTTPS' } = undef; next; }
-				if ( $line =~ /^\t\tEnd$/ && $bb )
-				{
-					$bb = 0;
-					&cleanHashValues( $be_r );
-					push @be, $be_r;
-					next;
-				}
+            ## Backends blocks
+            my $bb;         # 'In Backend Block' flag
+            my $be_r;       # Backend hash reference
+            my @be = ();    # List of backends
 
-				# Session block
-				if ( $line =~ /^\t\tSession$/ ) { $sb++; $se_r = {}; next; }
-				if ( $line =~ /^\t\t\t(\w+) (\S.+)$/ && $sb ) { $se_r->{ $1 } = $2; next; }
-				if ( $line =~ /^\t\tEnd$/ && $sb )
-				{
-					$sb = 0;
-					&cleanHashValues( $se_r );
-					next;
-				}
-			}
+            # Session block
+            my $sb;         # 'In Session Block' flag
+            my $se_r;       # Session hash reference
 
-			# Backend Cookie
-			if ( exists $svc_r->{ BackendCookie } )
-			{
-				$svc_r->{ BackendCookie } =~ /^"(.+)" "(.+)" "(.+)" ([0-9]+)$/;
-				$svc_r->{ BackendCookie } = {
-											  name   => $1,
-											  domain => $2,
-											  path   => $3,
-											  age    => $4 + 0,
-				};
-			}
+            for my $line (@svc_lines) {
 
-			# Populate service hash
-			$svc_r->{ name }     = $svc_name;
-			$svc_r->{ Session }  = $se_r if $se_r;
-			$svc_r->{ backends } = \@be;
+                # Backends blocks
+                if ($line =~ /^\t\tBackEnd$/) { $bb++; $be_r = {}; next; }
+                if ($line =~ /^\t\t\t(\w+) (.+)$/ && $bb) {
+                    $be_r->{$1} = $2;
+                    next;
+                }
+                if ($line =~ /^\t\t\tHTTPS$/ && $bb) {
+                    $be_r->{'HTTPS'} = undef;
+                    next;
+                }
+                if ($line =~ /^\t\tEnd$/ && $bb) {
+                    $bb = 0;
+                    &cleanHashValues($be_r);
+                    push @be, $be_r;
+                    next;
+                }
 
-			&cleanHashValues( $svc_r );
+                # Session block
+                if ($line =~ /^\t\tSession$/) { $sb++; $se_r = {}; next; }
+                if ($line =~ /^\t\t\t(\w+) (\S.+)$/ && $sb) {
+                    $se_r->{$1} = $2;
+                    next;
+                }
+                if ($line =~ /^\t\tEnd$/ && $sb) {
+                    $sb = 0;
+                    &cleanHashValues($se_r);
+                    next;
+                }
+            }
 
-			# Add service to listener
-			$conf{ listeners }[0]{ services }[$svc_id++] = $svc_r;
-			next;
-		}
+            # Backend Cookie
+            if (exists $svc_r->{BackendCookie}) {
+                $svc_r->{BackendCookie} =~ /^"(.+)" "(.+)" "(.+)" ([0-9]+)$/;
+                $svc_r->{BackendCookie} = {
+                    name   => $1,
+                    domain => $2,
+                    path   => $3,
+                    age    => $4 + 0,
+                };
+            }
 
-		# Every line of a service block is stored
-		push @svc_lines, $line;
-	}
+            # Populate service hash
+            $svc_r->{name}     = $svc_name;
+            $svc_r->{Session}  = $se_r if $se_r;
+            $svc_r->{backends} = \@be;
 
-	return \%conf;
+            &cleanHashValues($svc_r);
+
+            # Add service to listener
+            $conf{listeners}[0]{services}[ $svc_id++ ] = $svc_r;
+            next;
+        }
+
+        # Every line of a service block is stored
+        push @svc_lines, $line;
+    }
+
+    return \%conf;
 }
 
-sub getL7ProxyConf
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm ) = @_;
+sub getL7ProxyConf {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm) = @_;
 
-	require Zevenet::Config;
-	require Zevenet::System;
-	require Zevenet::Farm::Core;
+    require Zevenet::Config;
+    require Zevenet::System;
+    require Zevenet::Farm::Core;
 
-	my $farmfile  = &getFarmFile( $farm );
-	my $configdir = &getGlobalConfiguration( 'configdir' );
+    my $farmfile  = &getFarmFile($farm);
+    my $configdir = &getGlobalConfiguration('configdir');
 
-	my $file = &slurpFile( "$configdir/$farmfile" );
+    my $file = &slurpFile("$configdir/$farmfile");
 
-	return &parseL7ProxyConfig( $file );
+    return &parseL7ProxyConfig($file);
 }
 
 # Writing
 
 my $svc_defaults = {
-					 DynScale      => 1,
-					 BackendCookie => '"ZENSESSIONID" "domainname.com" "/" 0',
-					 HeadRequire   => '""',
-					 Url           => '""',
-					 Redirect      => '""',
-					 StrictTransportSecurity => 21600000,
+    DynScale                => 1,
+    BackendCookie           => '"ZENSESSIONID" "domainname.com" "/" 0',
+    HeadRequire             => '""',
+    Url                     => '""',
+    Redirect                => '""',
+    StrictTransportSecurity => 21600000,
 };
 
-sub print_backends
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $be_list ) = @_;
+sub print_backends {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($be_list) = @_;
 
-	my $be_list_str = '';
+    my $be_list_str = '';
 
-	for my $be ( @{ $be_list } )
-	{
-		my $single_be_str = "\t\tBackEnd\n";
-		$single_be_str .= "\t\t\tHTTPS\n"                    if exists $be->{ HTTPS };
-		$single_be_str .= "\t\t\tAddress $be->{ Address }\n";
-		$single_be_str .= "\t\t\tPort $be->{ Port }\n";
-		$single_be_str .= "\t\t\tTimeOut $be->{ TimeOut }\n" if exists $be->{ TimeOut };
-		$single_be_str .= "\t\t\tPriority $be->{ Priority }\n"
-		  if exists $be->{ Priority };
-		$single_be_str .= "\t\t\tConnLimit $be->{ ConnLimit }\n"
-		  if exists $be->{ ConnLimit };
-		$single_be_str .= "\t\tEnd\n";
+    for my $be (@{$be_list}) {
+        my $single_be_str = "\t\tBackEnd\n";
+        $single_be_str .= "\t\t\tHTTPS\n" if exists $be->{HTTPS};
+        $single_be_str .= "\t\t\tAddress $be->{ Address }\n";
+        $single_be_str .= "\t\t\tPort $be->{ Port }\n";
+        $single_be_str .= "\t\t\tTimeOut $be->{ TimeOut }\n"
+          if exists $be->{TimeOut};
+        $single_be_str .= "\t\t\tPriority $be->{ Priority }\n"
+          if exists $be->{Priority};
+        $single_be_str .= "\t\t\tConnLimit $be->{ ConnLimit }\n"
+          if exists $be->{ConnLimit};
+        $single_be_str .= "\t\tEnd\n";
 
-		$be_list_str .= $single_be_str;
-	}
+        $be_list_str .= $single_be_str;
+    }
 
-	return "\t\t#BackEnd\n" . "\n" . $be_list_str . "\t\t#End\n";
+    return "\t\t#BackEnd\n" . "\n" . $be_list_str . "\t\t#End\n";
 }
 
-sub print_session
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $session_ref ) = @_;
+sub print_session {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($session_ref) = @_;
 
-	my $session_str = '';
+    my $session_str = '';
 
-	if ( defined $session_ref )
-	{
-		$session_str .= "\t\tSession\n";
-		$session_str .= "\t\t\tType $session_ref->{ Type }\n";
-		$session_str .= "\t\t\tTTL $session_ref->{ TTL }\n";
-		$session_str .= "\t\t\tID \"$session_ref->{ ID }\"\n"
-		  if exists $session_ref->{ ID };
-		$session_str .= "\t\tEnd\n";
-	}
-	else
-	{
-		$session_str .= "\t\t#Session\n";
-		$session_str .= "\t\t\t#Type nothing\n";
-		$session_str .= "\t\t\t#TTL 120\n";
-		$session_str .= "\t\t\t#ID \"sessionname\"\n";
-		$session_str .= "\t\t#End\n";
-	}
+    if (defined $session_ref) {
+        $session_str .= "\t\tSession\n";
+        $session_str .= "\t\t\tType $session_ref->{ Type }\n";
+        $session_str .= "\t\t\tTTL $session_ref->{ TTL }\n";
+        $session_str .= "\t\t\tID \"$session_ref->{ ID }\"\n"
+          if exists $session_ref->{ID};
+        $session_str .= "\t\tEnd\n";
+    }
+    else {
+        $session_str .= "\t\t#Session\n";
+        $session_str .= "\t\t\t#Type nothing\n";
+        $session_str .= "\t\t\t#TTL 120\n";
+        $session_str .= "\t\t\t#ID \"sessionname\"\n";
+        $session_str .= "\t\t#End\n";
+    }
 
-	return $session_str;
+    return $session_str;
 }
 
-sub writeL7ProxyConfigToString
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $conf ) = @_;
+sub writeL7ProxyConfigToString {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($conf) = @_;
 
-	my $listener      = $conf->{ listeners }[0];
-	my $listener_type = uc $listener->{ type };
+    my $listener      = $conf->{listeners}[0];
+    my $listener_type = uc $listener->{type};
 
-	my $global_str =
-	  qq(######################################################################
+    my $global_str =
+      qq(######################################################################
 ##GLOBAL OPTIONS
 User		"$conf->{ User }"
 Group		"$conf->{ Group }"
@@ -2095,98 +1989,93 @@ ThreadModel	$conf->{ ThreadModel }
 Control 	"$conf->{ Control }"
 );
 
-	if ( $listener_type eq 'HTTP' )
-	{
-		$global_str .= qq(#DHParams 	"/usr/local/zevenet/app/zproxy/etc/dh2048.pem"
+    if ($listener_type eq 'HTTP') {
+        $global_str .=
+          qq(#DHParams 	"/usr/local/zevenet/app/zproxy/etc/dh2048.pem"
 #ECDHCurve	"prime256v1"
 );
-	}
-	else
-	{
-		$global_str .= qq(DHParams 	"$conf->{ DHParams }"
+    }
+    else {
+        $global_str .= qq(DHParams 	"$conf->{ DHParams }"
 ECDHCurve	"$conf->{ ECDHCurve }"
 );
-	}
+    }
 
-	## Services
-	my $services_print = '';
+    ## Services
+    my $services_print = '';
 
-	for my $svc ( @{ $conf->{ listeners }[0]{ services } } )
-	{
-		my @item_list = qw(
-		  DynScale
-		  BackendCookie
-		  HeadRequire
-		  Url
-		  Redirect
-		  StrictTransportSecurity
-		  Session
-		  BackEnd
-		);
+    for my $svc (@{ $conf->{listeners}[0]{services} }) {
+        my @item_list = qw(
+          DynScale
+          BackendCookie
+          HeadRequire
+          Url
+          Redirect
+          StrictTransportSecurity
+          Session
+          BackEnd
+        );
 
-		my $single_service_print = qq(\tService "$svc->{ name }"\n);
+        my $single_service_print = qq(\tService "$svc->{ name }"\n);
 
-		my $https_be = 'False';
-		$https_be = 'True'
-		  if defined $svc->{ backends }[0] && exists $svc->{ backends }[0]{ HTTPS };
+        my $https_be = 'False';
+        $https_be = 'True'
+          if defined $svc->{backends}[0] && exists $svc->{backends}[0]{HTTPS};
 
-		$single_service_print .= qq(\t\t##$https_be##HTTPS-backend##\n);
+        $single_service_print .= qq(\t\t##$https_be##HTTPS-backend##\n);
 
-		for my $i ( @item_list )
-		{
-			#
-			my $exists = exists $svc->{ $i };
+        for my $i (@item_list) {
+            #
+            my $exists = exists $svc->{$i};
 
-			my $prefix = $exists ? ''           : '#';
-			my $value  = $exists ? $svc->{ $i } : $svc_defaults->{ $i };
+            my $prefix = $exists ? ''         : '#';
+            my $value  = $exists ? $svc->{$i} : $svc_defaults->{$i};
 
-			my $i_str;
+            my $i_str;
 
-			if ( $i eq 'Session' )
-			{
-				$i_str = &print_session( $svc->{ 'Session' } );
-			}
-			elsif ( $i eq 'BackEnd' )
-			{
-				$i_str =
-				  exists $svc->{ 'backends' } ? &print_backends( $svc->{ 'backends' } ) : '';
-			}
-			elsif ( $i eq 'BackendCookie' )
-			{
-				if ( exists $svc->{ 'BackendCookie' }
-					 && ref $svc->{ 'BackendCookie' } eq 'HASH' )
-				{
-					my $ckie   = $svc->{ 'BackendCookie' };
-					my $values = qq("$ckie->{name}" "$ckie->{domain}" "$ckie->{path}" $ckie->{age});
-					$i_str = qq(\t\tBackendCookie $values\n);
-				}
-				else
-				{
-					$i_str = '';
-				}
-			}
-			else
-			{
-				$i_str = "\t\t${prefix}${i} $value\n";
-			}
+            if ($i eq 'Session') {
+                $i_str = &print_session($svc->{'Session'});
+            }
+            elsif ($i eq 'BackEnd') {
+                $i_str =
+                  exists $svc->{'backends'}
+                  ? &print_backends($svc->{'backends'})
+                  : '';
+            }
+            elsif ($i eq 'BackendCookie') {
+                if (exists $svc->{'BackendCookie'}
+                    && ref $svc->{'BackendCookie'} eq 'HASH')
+                {
+                    my $ckie = $svc->{'BackendCookie'};
+                    my $values =
+qq("$ckie->{name}" "$ckie->{domain}" "$ckie->{path}" $ckie->{age});
+                    $i_str = qq(\t\tBackendCookie $values\n);
+                }
+                else {
+                    $i_str = '';
+                }
+            }
+            else {
+                $i_str = "\t\t${prefix}${i} $value\n";
+            }
 
-			$single_service_print .= $i_str;
-		}
+            $single_service_print .= $i_str;
+        }
 
-		$single_service_print .= "\tEnd\n";
-		$services_print .= $single_service_print;
-	}
+        $single_service_print .= "\tEnd\n";
+        $services_print       .= $single_service_print;
+    }
 
-	chomp $services_print;
+    chomp $services_print;
 
-	## Listener
-	my $listener_str = qq(
+    ## Listener
+    my $listener_str = qq(
 #HTTP(S) LISTENERS
 Listen${listener_type}
 );
 
-	$listener_str .= qq(\tErrWAF "$listener->{ ErrWAF }") if ( &eload );
-	$listener_str .= qq(
+    $listener_str .= qq(\tErrWAF "$listener->{ ErrWAF }") if (&eload);
+    $listener_str .= qq(
 	ErrWAF "$listener->{ ErrWAF }"
 	Err414 "$listener->{ Err414 }"
 	Err500 "$listener->{ Err500 }"
@@ -2198,48 +2087,44 @@ Listen${listener_type}
 	RewriteLocation $listener->{ RewriteLocation }
 );
 
-	# Include AddHeader params
-	if ( exists $listener->{ AddHeader }
-		 && ref $listener->{ AddHeader } eq 'ARRAY' )
-	{
-		for my $header ( @{ $listener->{ AddHeader } } )
-		{
-			$listener_str .= qq(\tAddHeader "$header"\n);
-		}
-	}
+    # Include AddHeader params
+    if (exists $listener->{AddHeader}
+        && ref $listener->{AddHeader} eq 'ARRAY')
+    {
+        for my $header (@{ $listener->{AddHeader} }) {
+            $listener_str .= qq(\tAddHeader "$header"\n);
+        }
+    }
 
-	# Include HeadRemove params
-	if ( exists $listener->{ HeadRemove }
-		 && ref $listener->{ HeadRemove } eq 'ARRAY' )
-	{
-		for my $header ( @{ $listener->{ HeadRemove } } )
-		{
-			$listener_str .= qq(\tHeadRemove "$header"\n);
-		}
-	}
+    # Include HeadRemove params
+    if (exists $listener->{HeadRemove}
+        && ref $listener->{HeadRemove} eq 'ARRAY')
+    {
+        for my $header (@{ $listener->{HeadRemove} }) {
+            $listener_str .= qq(\tHeadRemove "$header"\n);
+        }
+    }
 
-	# Include https params
-	if ( $listener_type eq 'HTTPS' )
-	{
-		$listener_str .= "\n";
-		$listener_str .= qq(\tCert "$_"\n) for @{ $listener->{ Cert } };
-		$listener_str .= qq(\tCiphers "$listener->{ Ciphers }"\n);
-		$listener_str .= qq(\tDisable "$_"\n) for @{ $listener->{ Disable } };
-		$listener_str .=
-		  qq(\tSSLHonorCipherOrder "$listener->{ SSLHonorCipherOrder }"\n);
-	}
-	else
-	{
-		$listener_str .= qq(
+    # Include https params
+    if ($listener_type eq 'HTTPS') {
+        $listener_str .= "\n";
+        $listener_str .= qq(\tCert "$_"\n) for @{ $listener->{Cert} };
+        $listener_str .= qq(\tCiphers "$listener->{ Ciphers }"\n);
+        $listener_str .= qq(\tDisable "$_"\n) for @{ $listener->{Disable} };
+        $listener_str .=
+          qq(\tSSLHonorCipherOrder "$listener->{ SSLHonorCipherOrder }"\n);
+    }
+    else {
+        $listener_str .= qq(
 	#Cert "/usr/local/zevenet/config/zencert.pem"
 	#Ciphers "ALL"
 	#Disable SSLv3
 	#SSLHonorCipherOrder 1
 );
-	}
+    }
 
-	# Include services and bottom of the configuration
-	$listener_str .= qq(\t#ZWACL-INI
+    # Include services and bottom of the configuration
+    $listener_str .= qq(\t#ZWACL-INI
 
 $services_print
 	#ZWACL-END
@@ -2267,30 +2152,29 @@ $services_print
 End
 );
 
-	## Global configuration
-	#~ my $out_str = "$global_str\n";
-	#~ $out_str .= "$listener_str\n";
+    ## Global configuration
+    #~ my $out_str = "$global_str\n";
+    #~ $out_str .= "$listener_str\n";
 
-	#~ return $out_str;
-	return "$global_str\n$listener_str";
+    #~ return $out_str;
+    return "$global_str\n$listener_str";
 }
 
-sub cleanHashValues
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $hash_ref ) = @_;
+sub cleanHashValues {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($hash_ref) = @_;
 
-	for my $key ( keys %{ $hash_ref } )
-	{
-		# Convert digits to numeric type
-		$hash_ref->{ $key } += 0 if ( $hash_ref->{ $key } =~ /^[0-9]+$/ );
+    for my $key (keys %{$hash_ref}) {
 
-		# Remove leading and trailing double quotes
-		$hash_ref->{ $key } =~ s/^"|"$//g unless $key eq 'BackendCookie';
-	}
+        # Convert digits to numeric type
+        $hash_ref->{$key} += 0 if ($hash_ref->{$key} =~ /^[0-9]+$/);
 
-	return $hash_ref if defined wantarray;
+        # Remove leading and trailing double quotes
+        $hash_ref->{$key} =~ s/^"|"$//g unless $key eq 'BackendCookie';
+    }
+
+    return $hash_ref if defined wantarray;
 }
 
 =begin nd
@@ -2308,215 +2192,183 @@ Returns:
 
 sub setFarmProxyNGConf    # ($proxy_mode,$farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $proxy_mode, $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($proxy_mode, $farm_name) = @_;
 
-	require Zevenet::Farm::HTTP::Backend;
+    require Zevenet::Farm::HTTP::Backend;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $stat          = 0;
+    my $farm_filename = &getFarmFile($farm_name);
+    my $stat          = 0;
 
-	my $lock_file = &getLockFile( $farm_name );
-	my $lock_fh = &openlock( $lock_file, 'w' );
+    my $lock_file = &getLockFile($farm_name);
+    my $lock_fh   = &openlock($lock_file, 'w');
 
-	require Tie::File;
-	tie my @array, 'Tie::File', "$configdir\/$farm_filename";
-	my @array_bak = @array;
-	my @wafs;
-	my $sw = 0;
-	my $bw = 0;
-	my $connto;
+    require Tie::File;
+    tie my @array, 'Tie::File', "$configdir\/$farm_filename";
+    my @array_bak = @array;
+    my @wafs;
+    my $sw = 0;
+    my $bw = 0;
+    my $connto;
 
-	for ( my $i = 0 ; $i < @array ; $i++ )
-	{
-		$sw = 1 if ( $array[$i] =~ /^\s+Service/ );
-		$bw = 1 if ( $array[$i] =~ /^\s+BackEnd/ && $sw == 1 );
-		$sw = 0 if ( $array[$i] =~ /^\tEnd/ && $sw == 1 && $bw == 0 );
-		$bw = 0 if ( $array[$i] =~ /^\t\tEnd/ && $sw == 1 && $bw == 1 );
+    for (my $i = 0 ; $i < @array ; $i++) {
+        $sw = 1 if ($array[$i] =~ /^\s+Service/);
+        $bw = 1 if ($array[$i] =~ /^\s+BackEnd/ && $sw == 1);
+        $sw = 0 if ($array[$i] =~ /^\tEnd/      && $sw == 1 && $bw == 0);
+        $bw = 0 if ($array[$i] =~ /^\t\tEnd/    && $sw == 1 && $bw == 1);
 
-		if ( $proxy_mode eq "false" )
-		{
+        if ($proxy_mode eq "false") {
 
-			if ( $array[$i] =~ /^\s*(#?)RewriteLocation\s+(\d)/ )
-			{
-				if ( $1 ne "#" )
-				{
-					$array[$i] = "\tRewriteLocation $2";
-				}
-			}
-		}
+            if ($array[$i] =~ /^\s*(#?)RewriteLocation\s+(\d)/) {
+                if ($1 ne "#") {
+                    $array[$i] = "\tRewriteLocation $2";
+                }
+            }
+        }
 
-		if ( $bw == 0 and $sw == 0 and $proxy_mode eq "true" )
-		{
-			if ( $array[$i] =~ /^\s*ConnTO\s+(\d+)/ )
-			{
-				$connto = $1;
-			}
-			if ( $array[$i] =~ /^(\s*Alive\s+)(\d+)/ )
-			{
-				if ( defined $connto and $2 <= $connto )
-				{
-					$array[$i] = "$1" . ( $connto + 1 );
-				}
-			}
-		}
+        if ($bw == 0 and $sw == 0 and $proxy_mode eq "true") {
+            if ($array[$i] =~ /^\s*ConnTO\s+(\d+)/) {
+                $connto = $1;
+            }
+            if ($array[$i] =~ /^(\s*Alive\s+)(\d+)/) {
+                if (defined $connto and $2 <= $connto) {
+                    $array[$i] = "$1" . ($connto + 1);
+                }
+            }
+        }
 
-		if ( $bw == 1 )
-		{
-			if ( $proxy_mode eq "true" )
-			{
-				$array[$i] =~ s/Priority/Weight/;
-			}
-			elsif ( $proxy_mode eq "false" )
-			{
-				if ( $array[$i] =~ /Priority|ConnLimit/ )
-				{
-					splice @array, $i, 1;
-					$i--;
-				}
-				else
-				{
-					# Replace Priority value with Weight value
-					$array[$i] =~ s/Weight/Priority/;
-				}
-			}
-		}
+        if ($bw == 1) {
+            if ($proxy_mode eq "true") {
+                $array[$i] =~ s/Priority/Weight/;
+            }
+            elsif ($proxy_mode eq "false") {
+                if ($array[$i] =~ /Priority|ConnLimit/) {
+                    splice @array, $i, 1;
+                    $i--;
+                }
+                else {
 
-		# Service level all directives
-		if (   $sw == 1
-			&& $array[$i] =~
-			/^\s*(#?)(PinnedConnection|RoutingPolicy|RewriteLocation|AddHeader|AddResponseHeader|HeadRemove|RemoveResponseHeader|RewriteUrl|ReplaceHeader)/
-		  )
-		{
-			if ( $proxy_mode eq "false" )
-			{
-				if ( $1 ne "#" )
-				{
-					$array[$i] =~ s/$1/\t\t#$2/;
-				}
-			}
-			elsif ( $proxy_mode eq "true" )
-			{
-				$array[$i] =~ s/#//;
-			}
-		}
+                    # Replace Priority value with Weight value
+                    $array[$i] =~ s/Weight/Priority/;
+                }
+            }
+        }
 
-		# Farm level ReplaceHeader directives
-		elsif ( $sw == 0 && $array[$i] =~ /^\s*(#?)(ReplaceHeader)/ )
-		{
-			if ( $proxy_mode eq "false" )
-			{
-				if ( $1 ne "#" )
-				{
-					$array[$i] =~ s/$1/\t#$2/;
-				}
-			}
-			elsif ( $proxy_mode eq "true" )
-			{
-				$array[$i] =~ s/#//;
-			}
-		}
+        # Service level all directives
+        if (   $sw == 1
+            && $array[$i] =~
+/^\s*(#?)(PinnedConnection|RoutingPolicy|RewriteLocation|AddHeader|AddResponseHeader|HeadRemove|RemoveResponseHeader|RewriteUrl|ReplaceHeader)/
+          )
+        {
+            if ($proxy_mode eq "false") {
+                if ($1 ne "#") {
+                    $array[$i] =~ s/$1/\t\t#$2/;
+                }
+            }
+            elsif ($proxy_mode eq "true") {
+                $array[$i] =~ s/#//;
+            }
+        }
 
-		if ( $array[$i] =~ /^([\s#]*)(WafRules.*)/ )
-		{
-			push @wafs, "\t" . $2 if ( $proxy_mode eq "true" );
-			push @wafs, $2        if ( $proxy_mode eq "false" );
-			splice @array, $i, 1;
-			$i--;
-		}
-	}
-	for ( my $i = 0 ; $i < @array ; $i++ )
-	{
-		if ( $array[$i] =~ /#HTTP\(S\) LISTENERS/ )
-		{
-			if ( $proxy_mode eq "false" )
-			{
-				my $sizewaf = @wafs;
-				splice @array, $i, 0, @wafs;
-				$i = $i + $sizewaf;
-				next;
-			}
-		}
-		if ( $array[$i] =~ /#ZWACL-INI/ )
-		{
-			if ( $proxy_mode eq "true" )
-			{
-				my $sizewaf = @wafs;
-				splice @array, $i + 1, 0, @wafs;
-				$i = $i + $sizewaf;
-				next;
-			}
-		}
-	}
+        # Farm level ReplaceHeader directives
+        elsif ($sw == 0 && $array[$i] =~ /^\s*(#?)(ReplaceHeader)/) {
+            if ($proxy_mode eq "false") {
+                if ($1 ne "#") {
+                    $array[$i] =~ s/$1/\t#$2/;
+                }
+            }
+            elsif ($proxy_mode eq "true") {
+                $array[$i] =~ s/#//;
+            }
+        }
 
-	untie @array;
+        if ($array[$i] =~ /^([\s#]*)(WafRules.*)/) {
+            push @wafs, "\t" . $2 if ($proxy_mode eq "true");
+            push @wafs, $2        if ($proxy_mode eq "false");
+            splice @array, $i, 1;
+            $i--;
+        }
+    }
+    for (my $i = 0 ; $i < @array ; $i++) {
+        if ($array[$i] =~ /#HTTP\(S\) LISTENERS/) {
+            if ($proxy_mode eq "false") {
+                my $sizewaf = @wafs;
+                splice @array, $i, 0, @wafs;
+                $i = $i + $sizewaf;
+                next;
+            }
+        }
+        if ($array[$i] =~ /#ZWACL-INI/) {
+            if ($proxy_mode eq "true") {
+                my $sizewaf = @wafs;
+                splice @array, $i + 1, 0, @wafs;
+                $i = $i + $sizewaf;
+                next;
+            }
+        }
+    }
 
-	&migrateHTTPFarmLogs( $farm_name, $proxy_mode );
-	if ( $eload )
-	{
-		my $func =
-		  ( $proxy_mode eq 'false' )
-		  ? 'addHTTPFarmWafBodySize'
-		  : 'delHTTPFarmWafBodySize';
-		&eload(
-				module => 'Zevenet::Farm::HTTP::Ext',
-				func   => $func,
-				args   => [$farm_name],
-		);
-	}
+    untie @array;
 
-	require Zevenet::Farm::HTTP::Sessions;
-	my $farm_sessions_filename = &getSessionsFileName( $farm_name );
-	if ( $proxy_mode eq "true" )
-	{
-		&setHTTPFarmConfErrFile( "true", $farm_name, "WAF" );
-		&setHTTPFarmBackendsMarks( $farm_name );
+    &migrateHTTPFarmLogs($farm_name, $proxy_mode);
+    if ($eload) {
+        my $func =
+          ($proxy_mode eq 'false')
+          ? 'addHTTPFarmWafBodySize'
+          : 'delHTTPFarmWafBodySize';
+        &eload(
+            module => 'Zevenet::Farm::HTTP::Ext',
+            func   => $func,
+            args   => [$farm_name],
+        );
+    }
 
-		if ( !-f "$farm_sessions_filename" )
-		{
-			my $f_err;
-			open $f_err, '>', "$farm_sessions_filename";
-			close $f_err;
-		}
+    require Zevenet::Farm::HTTP::Sessions;
+    my $farm_sessions_filename = &getSessionsFileName($farm_name);
+    if ($proxy_mode eq "true") {
+        &setHTTPFarmConfErrFile("true", $farm_name, "WAF");
+        &setHTTPFarmBackendsMarks($farm_name);
 
-		require Zevenet::Farm::Config;
-		&reloadFarmsSourceAddressByFarm( $farm_name );
+        if (!-f "$farm_sessions_filename") {
+            my $f_err;
+            open $f_err, '>', "$farm_sessions_filename";
+            close $f_err;
+        }
 
-	}
-	else
-	{
-		&setHTTPFarmConfErrFile( "false", $farm_name, "WAF" );
-		&removeHTTPFarmBackendsMarks( $farm_name );
+        require Zevenet::Farm::Config;
+        &reloadFarmsSourceAddressByFarm($farm_name);
 
-		if ( -f "$farm_sessions_filename" )
-		{
-			unlink "$farm_sessions_filename";
-		}
+    }
+    else {
+        &setHTTPFarmConfErrFile("false", $farm_name, "WAF");
+        &removeHTTPFarmBackendsMarks($farm_name);
 
-		&eload(
-				module => 'Zevenet::Net::Floating',
-				func   => 'removeL7FloatingSourceAddr',
-				args   => [$farm_name],
-		) if ( $eload );
-	}
+        if (-f "$farm_sessions_filename") {
+            unlink "$farm_sessions_filename";
+        }
 
-	if ( &getHTTPFarmConfigIsOK( $farm_name ) )
-	{
-		tie my @array, 'Tie::File', "$configdir\/$farm_filename";
-		@array = @array_bak;
-		untie @array;
-		$stat = 1;
-		&zenlog( "Error in $farm_name config file!", "error", "SYSTEM" );
-	}
-	else
-	{
-		$stat = 0;
-	}
+        &eload(
+            module => 'Zevenet::Net::Floating',
+            func   => 'removeL7FloatingSourceAddr',
+            args   => [$farm_name],
+        ) if ($eload);
+    }
 
-	close $lock_fh;
+    if (&getHTTPFarmConfigIsOK($farm_name)) {
+        tie my @array, 'Tie::File', "$configdir\/$farm_filename";
+        @array = @array_bak;
+        untie @array;
+        $stat = 1;
+        &zenlog("Error in $farm_name config file!", "error", "SYSTEM");
+    }
+    else {
+        $stat = 0;
+    }
 
-	return $stat;
+    close $lock_fh;
+
+    return $stat;
 }
 
 =begin nd
@@ -2534,41 +2386,38 @@ Returns:
 
 =cut
 
-sub doL7FarmRules
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $action        = shift;
-	my $farm_name     = shift;
-	my $prev_farm_ref = shift;
+sub doL7FarmRules {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $action        = shift;
+    my $farm_name     = shift;
+    my $prev_farm_ref = shift;
 
-	return if &getGlobalConfiguration( 'mark_routing_L7' ) ne 'true';
-	require Zevenet::Farm::HTTP::Config;
-	my $farm_ref;
-	$farm_ref->{ name } = $farm_name;
-	$farm_ref->{ vip } = &getHTTPFarmVip( "vip", $farm_name );
+    return if &getGlobalConfiguration('mark_routing_L7') ne 'true';
+    require Zevenet::Farm::HTTP::Config;
+    my $farm_ref;
+    $farm_ref->{name} = $farm_name;
+    $farm_ref->{vip}  = &getHTTPFarmVip("vip", $farm_name);
 
-	require Zevenet::Farm::Backend;
-	require Zevenet::Farm::HTTP::Backend;
-	require Zevenet::Farm::HTTP::Service;
+    require Zevenet::Farm::Backend;
+    require Zevenet::Farm::HTTP::Backend;
+    require Zevenet::Farm::HTTP::Service;
 
-	my @backends;
-	foreach my $service ( &getHTTPFarmServices( $farm_name ) )
-	{
-		my $bckds = &getHTTPFarmBackends( $farm_name, $service, "false" );
-		push @backends, @{ $bckds };
-	}
+    my @backends;
+    foreach my $service (&getHTTPFarmServices($farm_name)) {
+        my $bckds = &getHTTPFarmBackends($farm_name, $service, "false");
+        push @backends, @{$bckds};
+    }
 
-	foreach my $backend ( @backends )
-	{
-		my $mark = sprintf ( "0x%x", $backend->{ tag } );
-		&setBackendRule( "del", $farm_ref, $mark )
-		  if ( $action eq "stop" );
-		&setBackendRule( "del", $prev_farm_ref, $mark )
-		  if ( $action eq "reload" );
-		&setBackendRule( "add", $farm_ref, $mark )
-		  if ( $action eq "start" || $action eq "reload" );
-	}
+    foreach my $backend (@backends) {
+        my $mark = sprintf("0x%x", $backend->{tag});
+        &setBackendRule("del", $farm_ref, $mark)
+          if ($action eq "stop");
+        &setBackendRule("del", $prev_farm_ref, $mark)
+          if ($action eq "reload");
+        &setBackendRule("add", $farm_ref, $mark)
+          if ($action eq "start" || $action eq "reload");
+    }
 }
 
 # Add request headers
@@ -2588,10 +2437,10 @@ Returns:
 
 sub getHTTPAddReqHeader    # ($farm_name,$service)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name ) = @_;
-	return &get_http_farm_headers_struct( $farm_name )->{ addheader };
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name) = @_;
+    return &get_http_farm_headers_struct($farm_name)->{addheader};
 }
 
 =begin nd
@@ -2610,47 +2459,46 @@ Returns:
 
 sub addHTTPAddheader    # ($farm_name, $header, $header_ind)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name, $header ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name, $header) = @_;
 
-	require Zevenet::Farm::Core;
-	my $ffile = &getFarmFile( $farm_name );
-	my $errno = 1;
+    require Zevenet::Farm::Core;
+    my $ffile = &getFarmFile($farm_name);
+    my $errno = 1;
 
-	require Zevenet::Lock;
-	&ztielock( \my @fileconf, "$configdir/$ffile" );
+    require Zevenet::Lock;
+    &ztielock(\my @fileconf, "$configdir/$ffile");
 
-	my $index        = 0;
-	my $rewrite_flag = 0;    # it is used to add HeadRemove before than AddHeader
-	foreach my $line ( @fileconf )
-	{
-		if ( $line =~ /^[#\s]*Service \"/ ) { last; }
-		if ( $line =~ /[#\s]*RewriteLocation/ )
-		{
-			$rewrite_flag = 1;
-		}
-		elsif ( $rewrite_flag )
-		{
-			# put new headremove before than last one
-			if ( $line !~
-				 /^[#\s]*(?:AddHeader|HeadRemove|AddResponseHeader|RemoveResponseHead)\s+"/
-				 and $rewrite_flag )
+    my $index        = 0;
+    my $rewrite_flag = 0;   # it is used to add HeadRemove before than AddHeader
+    foreach my $line (@fileconf) {
+        if ($line =~ /^[#\s]*Service \"/) { last; }
+        if ($line =~ /[#\s]*RewriteLocation/) {
+            $rewrite_flag = 1;
+        }
+        elsif ($rewrite_flag) {
 
-			{
-				# example: AddHeader "header: to add"
-				splice @fileconf, $index, 0, "\tAddHeader \"$header\"";
-				$errno = 0;
-				last;
-			}
-		}
-		$index++;
-	}
-	untie @fileconf;
+            # put new headremove before than last one
+            if ($line !~
+/^[#\s]*(?:AddHeader|HeadRemove|AddResponseHeader|RemoveResponseHead)\s+"/
+                and $rewrite_flag)
 
-	&zenlog( "Could not add AddHeader" ) if $errno;
+            {
 
-	return $errno;
+                # example: AddHeader "header: to add"
+                splice @fileconf, $index, 0, "\tAddHeader \"$header\"";
+                $errno = 0;
+                last;
+            }
+        }
+        $index++;
+    }
+    untie @fileconf;
+
+    &zenlog("Could not add AddHeader") if $errno;
+
+    return $errno;
 }
 
 =begin nd
@@ -2670,43 +2518,40 @@ Returns:
 
 sub modifyHTTPAddheader    # ($farm_name, $header, $header_ind)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name, $header, $header_ind ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name, $header, $header_ind) = @_;
 
-	require Zevenet::Farm::Core;
-	my $ffile = &getFarmFile( $farm_name );
-	my $errno = 1;
+    require Zevenet::Farm::Core;
+    my $ffile = &getFarmFile($farm_name);
+    my $errno = 1;
 
-	require Zevenet::Lock;
-	&ztielock( \my @fileconf, "$configdir/$ffile" );
+    require Zevenet::Lock;
+    &ztielock(\my @fileconf, "$configdir/$ffile");
 
-	my $index = 0;
-	my $ind   = 0;
-	foreach my $line ( @fileconf )
-	{
-		if ( $line =~ /^[#\s]*Service \"/ ) { last; }
-		if ( $line =~ /^\s*AddHeader\s+"/ )
-		{
-			# put new headremove before than last one
-			if ( $header_ind == $ind )
-			{
-				splice @fileconf, $index, 1, "\tAddHeader \"$header\"";
-				$errno = 0;
-				last;
-			}
-			else
-			{
-				$ind++;
-			}
-		}
-		$index++;
-	}
-	untie @fileconf;
+    my $index = 0;
+    my $ind   = 0;
+    foreach my $line (@fileconf) {
+        if ($line =~ /^[#\s]*Service \"/) { last; }
+        if ($line =~ /^\s*AddHeader\s+"/) {
 
-	&zenlog( "Could not modify AddHeader" ) if $errno;
+            # put new headremove before than last one
+            if ($header_ind == $ind) {
+                splice @fileconf, $index, 1, "\tAddHeader \"$header\"";
+                $errno = 0;
+                last;
+            }
+            else {
+                $ind++;
+            }
+        }
+        $index++;
+    }
+    untie @fileconf;
 
-	return $errno;
+    &zenlog("Could not modify AddHeader") if $errno;
+
+    return $errno;
 }
 
 =begin nd
@@ -2725,42 +2570,38 @@ Returns:
 
 sub delHTTPAddheader    # ($farm_name, $header_ind)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name, $header_ind ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name, $header_ind) = @_;
 
-	require Zevenet::Farm::Core;
-	my $ffile = &getFarmFile( $farm_name );
-	my $errno = 1;
+    require Zevenet::Farm::Core;
+    my $ffile = &getFarmFile($farm_name);
+    my $errno = 1;
 
-	require Zevenet::Lock;
-	&ztielock( \my @fileconf, "$configdir/$ffile" );
+    require Zevenet::Lock;
+    &ztielock(\my @fileconf, "$configdir/$ffile");
 
-	my $index = 0;
-	my $ind   = 0;
-	foreach my $line ( @fileconf )
-	{
-		if ( $line =~ /^[#\s]*Service \"/ ) { last; }
-		if ( $line =~ /^\s*AddHeader\s+"/ )
-		{
-			if ( $header_ind == $ind )
-			{
-				$errno = 0;
-				splice @fileconf, $index, 1;
-				last;
-			}
-			else
-			{
-				$ind++;
-			}
-		}
-		$index++;
-	}
-	untie @fileconf;
+    my $index = 0;
+    my $ind   = 0;
+    foreach my $line (@fileconf) {
+        if ($line =~ /^[#\s]*Service \"/) { last; }
+        if ($line =~ /^\s*AddHeader\s+"/) {
+            if ($header_ind == $ind) {
+                $errno = 0;
+                splice @fileconf, $index, 1;
+                last;
+            }
+            else {
+                $ind++;
+            }
+        }
+        $index++;
+    }
+    untie @fileconf;
 
-	&zenlog( "Could not remove HeadRemove" ) if $errno;
+    &zenlog("Could not remove HeadRemove") if $errno;
 
-	return $errno;
+    return $errno;
 }
 
 # remove request header
@@ -2780,10 +2621,10 @@ Returns:
 
 sub getHTTPRemReqHeader    # ($farm_name,$service)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name ) = @_;
-	return &get_http_farm_headers_struct( $farm_name )->{ headremove };
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name) = @_;
+    return &get_http_farm_headers_struct($farm_name)->{headremove};
 }
 
 =begin nd
@@ -2802,46 +2643,45 @@ Returns:
 
 sub addHTTPHeadremove    # ($farm_name, $header)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name, $header ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name, $header) = @_;
 
-	require Zevenet::Farm::Core;
-	my $ffile = &getFarmFile( $farm_name );
-	my $errno = 1;
+    require Zevenet::Farm::Core;
+    my $ffile = &getFarmFile($farm_name);
+    my $errno = 1;
 
-	require Zevenet::Lock;
-	&ztielock( \my @fileconf, "$configdir/$ffile" );
+    require Zevenet::Lock;
+    &ztielock(\my @fileconf, "$configdir/$ffile");
 
-	my $index        = 0;
-	my $rewrite_flag = 0;    # it is used to add HeadRemove before than AddHeader
-	foreach my $line ( @fileconf )
-	{
-		if ( $line =~ /^[#\s]*Service \"/ ) { last; }
-		if ( $line =~ /[#\s]*RewriteLocation/ )
-		{
-			$rewrite_flag = 1;
-		}
-		elsif ( $rewrite_flag )
-		{
-			# put new headremove after than last one
-			if ( $line !~
-				 /^[#\s]*(?:AddHeader|HeadRemove|AddResponseHeader|RemoveResponseHead)\s+"/
-				 and $rewrite_flag )
-			{
-				# example: AddHeader "header: to add"
-				splice @fileconf, $index, 0, "\tHeadRemove \"$header\"";
-				$errno = 0;
-				last;
-			}
-		}
-		$index++;
-	}
-	untie @fileconf;
+    my $index        = 0;
+    my $rewrite_flag = 0;   # it is used to add HeadRemove before than AddHeader
+    foreach my $line (@fileconf) {
+        if ($line =~ /^[#\s]*Service \"/) { last; }
+        if ($line =~ /[#\s]*RewriteLocation/) {
+            $rewrite_flag = 1;
+        }
+        elsif ($rewrite_flag) {
 
-	&zenlog( "Could not add HeadRemove" ) if $errno;
+            # put new headremove after than last one
+            if ($line !~
+/^[#\s]*(?:AddHeader|HeadRemove|AddResponseHeader|RemoveResponseHead)\s+"/
+                and $rewrite_flag)
+            {
 
-	return $errno;
+                # example: AddHeader "header: to add"
+                splice @fileconf, $index, 0, "\tHeadRemove \"$header\"";
+                $errno = 0;
+                last;
+            }
+        }
+        $index++;
+    }
+    untie @fileconf;
+
+    &zenlog("Could not add HeadRemove") if $errno;
+
+    return $errno;
 }
 
 =begin nd
@@ -2861,43 +2701,40 @@ Returns:
 
 sub modifyHTTPHeadremove    # ($farm_name, $header, $header_ind)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name, $header, $header_ind ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name, $header, $header_ind) = @_;
 
-	require Zevenet::Farm::Core;
-	my $ffile = &getFarmFile( $farm_name );
-	my $errno = 1;
+    require Zevenet::Farm::Core;
+    my $ffile = &getFarmFile($farm_name);
+    my $errno = 1;
 
-	require Zevenet::Lock;
-	&ztielock( \my @fileconf, "$configdir/$ffile" );
+    require Zevenet::Lock;
+    &ztielock(\my @fileconf, "$configdir/$ffile");
 
-	my $index = 0;
-	my $ind   = 0;
-	foreach my $line ( @fileconf )
-	{
-		if ( $line =~ /^[#\s]*Service \"/ ) { last; }
-		if ( $line =~ /^\s*HeadRemove\s+"/ )
-		{
-			# put new headremove before than last one
-			if ( $header_ind == $ind )
-			{
-				splice @fileconf, $index, 1, "\tHeadRemove \"$header\"";
-				$errno = 0;
-				last;
-			}
-			else
-			{
-				$ind++;
-			}
-		}
-		$index++;
-	}
-	untie @fileconf;
+    my $index = 0;
+    my $ind   = 0;
+    foreach my $line (@fileconf) {
+        if ($line =~ /^[#\s]*Service \"/) { last; }
+        if ($line =~ /^\s*HeadRemove\s+"/) {
 
-	&zenlog( "Could not modify HeadRemove" ) if $errno;
+            # put new headremove before than last one
+            if ($header_ind == $ind) {
+                splice @fileconf, $index, 1, "\tHeadRemove \"$header\"";
+                $errno = 0;
+                last;
+            }
+            else {
+                $ind++;
+            }
+        }
+        $index++;
+    }
+    untie @fileconf;
 
-	return $errno;
+    &zenlog("Could not modify HeadRemove") if $errno;
+
+    return $errno;
 }
 
 =begin nd
@@ -2916,42 +2753,38 @@ Returns:
 
 sub delHTTPHeadremove    # ($farm_name,$service,$code)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name, $header_ind ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name, $header_ind) = @_;
 
-	require Zevenet::Farm::Core;
-	my $ffile = &getFarmFile( $farm_name );
-	my $errno = 1;
+    require Zevenet::Farm::Core;
+    my $ffile = &getFarmFile($farm_name);
+    my $errno = 1;
 
-	require Zevenet::Lock;
-	&ztielock( \my @fileconf, "$configdir/$ffile" );
+    require Zevenet::Lock;
+    &ztielock(\my @fileconf, "$configdir/$ffile");
 
-	my $index = 0;
-	my $ind   = 0;
-	foreach my $line ( @fileconf )
-	{
-		if ( $line =~ /^[#\s]*Service \"/ ) { last; }
-		if ( $line =~ /^\s*HeadRemove\s+"/ )
-		{
-			if ( $header_ind == $ind )
-			{
-				$errno = 0;
-				splice @fileconf, $index, 1;
-				last;
-			}
-			else
-			{
-				$ind++;
-			}
-		}
-		$index++;
-	}
-	untie @fileconf;
+    my $index = 0;
+    my $ind   = 0;
+    foreach my $line (@fileconf) {
+        if ($line =~ /^[#\s]*Service \"/) { last; }
+        if ($line =~ /^\s*HeadRemove\s+"/) {
+            if ($header_ind == $ind) {
+                $errno = 0;
+                splice @fileconf, $index, 1;
+                last;
+            }
+            else {
+                $ind++;
+            }
+        }
+        $index++;
+    }
+    untie @fileconf;
 
-	&zenlog( "Could not remove HeadRemove" ) if $errno;
+    &zenlog("Could not remove HeadRemove") if $errno;
 
-	return $errno;
+    return $errno;
 }
 
 # Add response headers
@@ -2971,10 +2804,10 @@ Returns:
 
 sub getHTTPAddRespHeader    # ($farm_name,$service)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name ) = @_;
-	return &get_http_farm_headers_struct( $farm_name )->{ addresponseheader };
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name) = @_;
+    return &get_http_farm_headers_struct($farm_name)->{addresponseheader};
 }
 
 =begin nd
@@ -2993,46 +2826,45 @@ Returns:
 
 sub addHTTPAddRespheader    # ($farm_name,$service,$code)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name, $header ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name, $header) = @_;
 
-	require Zevenet::Farm::Core;
-	my $ffile = &getFarmFile( $farm_name );
-	my $errno = 1;
+    require Zevenet::Farm::Core;
+    my $ffile = &getFarmFile($farm_name);
+    my $errno = 1;
 
-	require Zevenet::Lock;
-	&ztielock( \my @fileconf, "$configdir/$ffile" );
+    require Zevenet::Lock;
+    &ztielock(\my @fileconf, "$configdir/$ffile");
 
-	my $index        = 0;
-	my $rewrite_flag = 0;    # it is used to add HeadRemove before than AddHeader
-	foreach my $line ( @fileconf )
-	{
-		if ( $line =~ /^[#\s]*Service \"/ ) { last; }
-		if ( $line =~ /[#\s]*RewriteLocation/ )
-		{
-			$rewrite_flag = 1;
-		}
-		elsif ( $rewrite_flag )
-		{
-			# put new headremove before than last one
-			if ( $line !~
-				 /^[#\s]*(?:AddHeader|HeadRemove|AddResponseHeader|RemoveResponseHead)\s+"/
-				 and $rewrite_flag )
-			{
-				# example: AddHeader "header: to add"
-				splice @fileconf, $index, 0, "\tAddResponseHeader \"$header\"";
-				$errno = 0;
-				last;
-			}
-		}
-		$index++;
-	}
-	untie @fileconf;
+    my $index        = 0;
+    my $rewrite_flag = 0;   # it is used to add HeadRemove before than AddHeader
+    foreach my $line (@fileconf) {
+        if ($line =~ /^[#\s]*Service \"/) { last; }
+        if ($line =~ /[#\s]*RewriteLocation/) {
+            $rewrite_flag = 1;
+        }
+        elsif ($rewrite_flag) {
 
-	&zenlog( "Could not add AddResponseHeader" ) if $errno;
+            # put new headremove before than last one
+            if ($line !~
+/^[#\s]*(?:AddHeader|HeadRemove|AddResponseHeader|RemoveResponseHead)\s+"/
+                and $rewrite_flag)
+            {
 
-	return $errno;
+                # example: AddHeader "header: to add"
+                splice @fileconf, $index, 0, "\tAddResponseHeader \"$header\"";
+                $errno = 0;
+                last;
+            }
+        }
+        $index++;
+    }
+    untie @fileconf;
+
+    &zenlog("Could not add AddResponseHeader") if $errno;
+
+    return $errno;
 }
 
 =begin nd
@@ -3052,43 +2884,40 @@ Returns:
 
 sub modifyHTTPAddRespheader    # ($farm_name, $header, $header_ind)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name, $header, $header_ind ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name, $header, $header_ind) = @_;
 
-	require Zevenet::Farm::Core;
-	my $ffile = &getFarmFile( $farm_name );
-	my $errno = 1;
+    require Zevenet::Farm::Core;
+    my $ffile = &getFarmFile($farm_name);
+    my $errno = 1;
 
-	require Zevenet::Lock;
-	&ztielock( \my @fileconf, "$configdir/$ffile" );
+    require Zevenet::Lock;
+    &ztielock(\my @fileconf, "$configdir/$ffile");
 
-	my $index = 0;
-	my $ind   = 0;
-	foreach my $line ( @fileconf )
-	{
-		if ( $line =~ /^[#\s]*Service \"/ ) { last; }
-		if ( $line =~ /^\s*AddResponseHeader\s+"/ )
-		{
-			# put new headremove before than last one
-			if ( $header_ind == $ind )
-			{
-				splice @fileconf, $index, 1, "\tAddResponseHeader \"$header\"";
-				$errno = 0;
-				last;
-			}
-			else
-			{
-				$ind++;
-			}
-		}
-		$index++;
-	}
-	untie @fileconf;
+    my $index = 0;
+    my $ind   = 0;
+    foreach my $line (@fileconf) {
+        if ($line =~ /^[#\s]*Service \"/) { last; }
+        if ($line =~ /^\s*AddResponseHeader\s+"/) {
 
-	&zenlog( "Could not modify AddResponseHeader" ) if $errno;
+            # put new headremove before than last one
+            if ($header_ind == $ind) {
+                splice @fileconf, $index, 1, "\tAddResponseHeader \"$header\"";
+                $errno = 0;
+                last;
+            }
+            else {
+                $ind++;
+            }
+        }
+        $index++;
+    }
+    untie @fileconf;
 
-	return $errno;
+    &zenlog("Could not modify AddResponseHeader") if $errno;
+
+    return $errno;
 }
 
 =begin nd
@@ -3107,42 +2936,38 @@ Returns:
 
 sub delHTTPAddRespheader    # ($farm_name,$service,$code)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name, $header_ind ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name, $header_ind) = @_;
 
-	require Zevenet::Farm::Core;
-	my $ffile = &getFarmFile( $farm_name );
-	my $errno = 1;
+    require Zevenet::Farm::Core;
+    my $ffile = &getFarmFile($farm_name);
+    my $errno = 1;
 
-	require Zevenet::Lock;
-	&ztielock( \my @fileconf, "$configdir/$ffile" );
+    require Zevenet::Lock;
+    &ztielock(\my @fileconf, "$configdir/$ffile");
 
-	my $index = 0;
-	my $ind   = 0;
-	foreach my $line ( @fileconf )
-	{
-		if ( $line =~ /^[#\s]*Service \"/ ) { last; }
-		if ( $line =~ /^\s*AddResponseHeader\s+"/ )
-		{
-			if ( $header_ind == $ind )
-			{
-				$errno = 0;
-				splice @fileconf, $index, 1;
-				last;
-			}
-			else
-			{
-				$ind++;
-			}
-		}
-		$index++;
-	}
-	untie @fileconf;
+    my $index = 0;
+    my $ind   = 0;
+    foreach my $line (@fileconf) {
+        if ($line =~ /^[#\s]*Service \"/) { last; }
+        if ($line =~ /^\s*AddResponseHeader\s+"/) {
+            if ($header_ind == $ind) {
+                $errno = 0;
+                splice @fileconf, $index, 1;
+                last;
+            }
+            else {
+                $ind++;
+            }
+        }
+        $index++;
+    }
+    untie @fileconf;
 
-	&zenlog( "Could not remove AddResponseHeader" ) if $errno;
+    &zenlog("Could not remove AddResponseHeader") if $errno;
 
-	return $errno;
+    return $errno;
 }
 
 # remove response header
@@ -3163,10 +2988,10 @@ Returns:
 
 sub getHTTPRemRespHeader    # ($farm_name,$service)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name ) = @_;
-	return &get_http_farm_headers_struct( $farm_name )->{ removeresponseheader };
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name) = @_;
+    return &get_http_farm_headers_struct($farm_name)->{removeresponseheader};
 }
 
 =begin nd
@@ -3184,48 +3009,46 @@ Returns:
 
 =cut
 
-sub addHTTPRemRespHeader
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name, $header ) = @_;
+sub addHTTPRemRespHeader {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name, $header) = @_;
 
-	require Zevenet::Farm::Core;
-	my $ffile = &getFarmFile( $farm_name );
-	my $errno = 1;
+    require Zevenet::Farm::Core;
+    my $ffile = &getFarmFile($farm_name);
+    my $errno = 1;
 
-	require Zevenet::Lock;
-	&ztielock( \my @fileconf, "$configdir/$ffile" );
+    require Zevenet::Lock;
+    &ztielock(\my @fileconf, "$configdir/$ffile");
 
-	my $index        = 0;
-	my $rewrite_flag = 0;    # it is used to add HeadRemove before than AddHeader
-	foreach my $line ( @fileconf )
-	{
-		if ( $line =~ /^[#\s]*Service \"/ ) { last; }
-		if ( $line =~ /[#\s]*RewriteLocation/ )
-		{
-			$rewrite_flag = 1;
-		}
-		elsif ( $rewrite_flag )
-		{
-			# put new headremove after than last one
-			if ( $line !~
-				 /^[#\s]*(?:AddHeader|HeadRemove|AddResponseHeader|RemoveResponseHead)\s+"/
-				 and $rewrite_flag )
-			{
-				# example: AddHeader "header: to add"
-				splice @fileconf, $index, 0, "\tRemoveResponseHead \"$header\"";
-				$errno = 0;
-				last;
-			}
-		}
-		$index++;
-	}
-	untie @fileconf;
+    my $index        = 0;
+    my $rewrite_flag = 0;   # it is used to add HeadRemove before than AddHeader
+    foreach my $line (@fileconf) {
+        if ($line =~ /^[#\s]*Service \"/) { last; }
+        if ($line =~ /[#\s]*RewriteLocation/) {
+            $rewrite_flag = 1;
+        }
+        elsif ($rewrite_flag) {
 
-	&zenlog( "Could not add RemoveResponseHead" ) if $errno;
+            # put new headremove after than last one
+            if ($line !~
+/^[#\s]*(?:AddHeader|HeadRemove|AddResponseHeader|RemoveResponseHead)\s+"/
+                and $rewrite_flag)
+            {
 
-	return $errno;
+                # example: AddHeader "header: to add"
+                splice @fileconf, $index, 0, "\tRemoveResponseHead \"$header\"";
+                $errno = 0;
+                last;
+            }
+        }
+        $index++;
+    }
+    untie @fileconf;
+
+    &zenlog("Could not add RemoveResponseHead") if $errno;
+
+    return $errno;
 }
 
 =begin nd
@@ -3245,43 +3068,40 @@ Returns:
 
 sub modifyHTTPRemRespHeader    # ($farm_name, $header, $header_ind)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name, $header, $header_ind ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name, $header, $header_ind) = @_;
 
-	require Zevenet::Farm::Core;
-	my $ffile = &getFarmFile( $farm_name );
-	my $errno = 1;
+    require Zevenet::Farm::Core;
+    my $ffile = &getFarmFile($farm_name);
+    my $errno = 1;
 
-	require Zevenet::Lock;
-	&ztielock( \my @fileconf, "$configdir/$ffile" );
+    require Zevenet::Lock;
+    &ztielock(\my @fileconf, "$configdir/$ffile");
 
-	my $index = 0;
-	my $ind   = 0;
-	foreach my $line ( @fileconf )
-	{
-		if ( $line =~ /^[#\s]*Service \"/ ) { last; }
-		if ( $line =~ /^\s*RemoveResponseHead\s+"/ )
-		{
-			# put new headremove before than last one
-			if ( $header_ind == $ind )
-			{
-				splice @fileconf, $index, 1, "\tRemoveResponseHead \"$header\"";
-				$errno = 0;
-				last;
-			}
-			else
-			{
-				$ind++;
-			}
-		}
-		$index++;
-	}
-	untie @fileconf;
+    my $index = 0;
+    my $ind   = 0;
+    foreach my $line (@fileconf) {
+        if ($line =~ /^[#\s]*Service \"/) { last; }
+        if ($line =~ /^\s*RemoveResponseHead\s+"/) {
 
-	&zenlog( "Could not modify RemoveResponseHead" ) if $errno;
+            # put new headremove before than last one
+            if ($header_ind == $ind) {
+                splice @fileconf, $index, 1, "\tRemoveResponseHead \"$header\"";
+                $errno = 0;
+                last;
+            }
+            else {
+                $ind++;
+            }
+        }
+        $index++;
+    }
+    untie @fileconf;
 
-	return $errno;
+    &zenlog("Could not modify RemoveResponseHead") if $errno;
+
+    return $errno;
 }
 
 =begin nd
@@ -3300,42 +3120,38 @@ Returns:
 
 sub delHTTPRemRespHeader    # ($farm_name,$service,$code)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name, $header_ind ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name, $header_ind) = @_;
 
-	require Zevenet::Farm::Core;
-	my $ffile = &getFarmFile( $farm_name );
-	my $errno = 1;
+    require Zevenet::Farm::Core;
+    my $ffile = &getFarmFile($farm_name);
+    my $errno = 1;
 
-	require Zevenet::Lock;
-	&ztielock( \my @fileconf, "$configdir/$ffile" );
+    require Zevenet::Lock;
+    &ztielock(\my @fileconf, "$configdir/$ffile");
 
-	my $index = 0;
-	my $ind   = 0;
-	foreach my $line ( @fileconf )
-	{
-		if ( $line =~ /^[#\s]*Service \"/ ) { last; }
-		if ( $line =~ /^\s*RemoveResponseHead\s+"/ )
-		{
-			if ( $header_ind == $ind )
-			{
-				$errno = 0;
-				splice @fileconf, $index, 1;
-				last;
-			}
-			else
-			{
-				$ind++;
-			}
-		}
-		$index++;
-	}
-	untie @fileconf;
+    my $index = 0;
+    my $ind   = 0;
+    foreach my $line (@fileconf) {
+        if ($line =~ /^[#\s]*Service \"/) { last; }
+        if ($line =~ /^\s*RemoveResponseHead\s+"/) {
+            if ($header_ind == $ind) {
+                $errno = 0;
+                splice @fileconf, $index, 1;
+                last;
+            }
+            else {
+                $ind++;
+            }
+        }
+        $index++;
+    }
+    untie @fileconf;
 
-	&zenlog( "Could not remove RemoveResponseHead" ) if $errno;
+    &zenlog("Could not remove RemoveResponseHead") if $errno;
 
-	return $errno;
+    return $errno;
 }
 
 =begin nd
@@ -3357,63 +3173,57 @@ Returns:
 
 sub addHTTPReplaceHeaders    # ( $farm_name, $type, $header, $match, $replace )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name, $type, $header, $match, $replace ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name, $type, $header, $match, $replace) = @_;
 
-	require Zevenet::Farm::Core;
-	my $ffile = &getFarmFile( $farm_name );
-	my $errno = 1;
+    require Zevenet::Farm::Core;
+    my $ffile = &getFarmFile($farm_name);
+    my $errno = 1;
 
-	require Zevenet::Lock;
-	&ztielock( \my @fileconf, "$configdir/$ffile" );
+    require Zevenet::Lock;
+    &ztielock(\my @fileconf, "$configdir/$ffile");
 
-	my $index        = 0;
-	my $rewrite_flag = 0;    # it is used to add HeadRemove before than AddHeader
-	my $rewritelocation_ind = 0;
-	my $replace_found       = 0;
-	foreach my $line ( @fileconf )
-	{
-		if ( $replace_found )
-		{
-			if ( $line =~ /^[#\s]*ReplaceHeader\s+$type\s+"/ ) { $index++; next; }
+    my $index        = 0;
+    my $rewrite_flag = 0;   # it is used to add HeadRemove before than AddHeader
+    my $rewritelocation_ind = 0;
+    my $replace_found       = 0;
+    foreach my $line (@fileconf) {
+        if ($replace_found) {
+            if ($line =~ /^[#\s]*ReplaceHeader\s+$type\s+"/) { $index++; next; }
 
-			# example: ReplaceHeader Request "header" "match" "replace"
-			splice @fileconf, $index, 0,
-			  "\tReplaceHeader $type \"$header\" \"$match\" \"$replace\"";
-			$errno = 0;
-			last;
-		}
-		if ( $line =~ /^[#\s]*Service \"/ )
-		{
-			if ( $rewrite_flag == 1 )
-			{
-				splice @fileconf, $rewritelocation_ind + 1, 0,
-				  "\tReplaceHeader $type \"$header\" \"$match\" \"$replace\"";
-				$errno = 0;
-			}
-			last;
-		}
-		if ( $line =~ /[#\s]*RewriteLocation/ )
-		{
-			$rewrite_flag        = 1;
-			$rewritelocation_ind = $index;
-		}
-		elsif ( $rewrite_flag )
-		{
-			# put new ReplaceHeader after the last one
-			if ( $line =~ /^[#\s]*ReplaceHeader\s+$type\s+"/ )
-			{
-				$replace_found = 1;
-			}
-		}
-		$index++;
-	}
-	untie @fileconf;
+            # example: ReplaceHeader Request "header" "match" "replace"
+            splice @fileconf, $index, 0,
+              "\tReplaceHeader $type \"$header\" \"$match\" \"$replace\"";
+            $errno = 0;
+            last;
+        }
+        if ($line =~ /^[#\s]*Service \"/) {
+            if ($rewrite_flag == 1) {
+                splice @fileconf, $rewritelocation_ind + 1, 0,
+                  "\tReplaceHeader $type \"$header\" \"$match\" \"$replace\"";
+                $errno = 0;
+            }
+            last;
+        }
+        if ($line =~ /[#\s]*RewriteLocation/) {
+            $rewrite_flag        = 1;
+            $rewritelocation_ind = $index;
+        }
+        elsif ($rewrite_flag) {
 
-	&zenlog( "Could not add ReplaceHeader" ) if $errno;
+            # put new ReplaceHeader after the last one
+            if ($line =~ /^[#\s]*ReplaceHeader\s+$type\s+"/) {
+                $replace_found = 1;
+            }
+        }
+        $index++;
+    }
+    untie @fileconf;
 
-	return $errno;
+    &zenlog("Could not add ReplaceHeader") if $errno;
+
+    return $errno;
 }
 
 =begin nd
@@ -3433,44 +3243,41 @@ Returns:
 
 sub modifyHTTPReplaceHeaders # ( $farm_name, $type, $header, $match, $replace, $header_ind )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name, $type, $header, $match, $replace, $header_ind ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name, $type, $header, $match, $replace, $header_ind) = @_;
 
-	require Zevenet::Farm::Core;
-	my $ffile = &getFarmFile( $farm_name );
-	my $errno = 1;
+    require Zevenet::Farm::Core;
+    my $ffile = &getFarmFile($farm_name);
+    my $errno = 1;
 
-	require Zevenet::Lock;
-	&ztielock( \my @fileconf, "$configdir/$ffile" );
+    require Zevenet::Lock;
+    &ztielock(\my @fileconf, "$configdir/$ffile");
 
-	my $index = 0;
-	my $ind   = 0;
-	foreach my $line ( @fileconf )
-	{
-		if ( $line =~ /^[#\s]*Service \"/ ) { last; }
-		if ( $line =~ /^\s*ReplaceHeader\s+$type\s+(.+)/ )
-		{
-			# put new headremove before than last one
-			if ( $header_ind == $ind )
-			{
-				splice @fileconf, $index, 1,
-				  "\tReplaceHeader $type \"$header\" \"$match\" \"$replace\"";
-				$errno = 0;
-				last;
-			}
-			else
-			{
-				$ind++;
-			}
-		}
-		$index++;
-	}
-	untie @fileconf;
+    my $index = 0;
+    my $ind   = 0;
+    foreach my $line (@fileconf) {
+        if ($line =~ /^[#\s]*Service \"/) { last; }
+        if ($line =~ /^\s*ReplaceHeader\s+$type\s+(.+)/) {
 
-	&zenlog( "Could not modify ReplaceHeader" ) if $errno;
+            # put new headremove before than last one
+            if ($header_ind == $ind) {
+                splice @fileconf, $index, 1,
+                  "\tReplaceHeader $type \"$header\" \"$match\" \"$replace\"";
+                $errno = 0;
+                last;
+            }
+            else {
+                $ind++;
+            }
+        }
+        $index++;
+    }
+    untie @fileconf;
 
-	return $errno;
+    &zenlog("Could not modify ReplaceHeader") if $errno;
+
+    return $errno;
 }
 
 =begin nd
@@ -3488,13 +3295,13 @@ Returns:
 
 sub getHTTPReplaceHeaders    # ( $farm_name, $type)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name, $type ) = @_;
-	return &get_http_farm_headers_struct( $farm_name )->{ replacerequestheader }
-	  if ( $type eq "Request" );
-	return &get_http_farm_headers_struct( $farm_name )->{ replaceresponseheader }
-	  if ( $type eq "Response" );
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name, $type) = @_;
+    return &get_http_farm_headers_struct($farm_name)->{replacerequestheader}
+      if ($type eq "Request");
+    return &get_http_farm_headers_struct($farm_name)->{replaceresponseheader}
+      if ($type eq "Response");
 }
 
 =begin nd
@@ -3513,46 +3320,41 @@ Returns:
 
 sub delHTTPReplaceHeaders    # ($farm_name, $header_ind, $type)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name, $header_ind, $deltype ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name, $header_ind, $deltype) = @_;
 
-	require Zevenet::Farm::Core;
-	my $ffile = &getFarmFile( $farm_name );
-	my $errno = 1;
+    require Zevenet::Farm::Core;
+    my $ffile = &getFarmFile($farm_name);
+    my $errno = 1;
 
-	require Zevenet::Lock;
-	&ztielock( \my @fileconf, "$configdir/$ffile" );
+    require Zevenet::Lock;
+    &ztielock(\my @fileconf, "$configdir/$ffile");
 
-	my $index = 0;
-	my $ind   = 0;
-	foreach my $line ( @fileconf )
-	{
-		if ( $line =~ /^[#\s]*Service \"/ ) { last; }
-		if ( $line =~ /^\s*ReplaceHeader\s+(.+)/ )
-		{
-			( my $type ) = split ( /\s+/, $1 );
-			if ( $deltype eq $type )
-			{
-				if ( $header_ind == $ind )
-				{
-					$errno = 0;
-					splice @fileconf, $index, 1;
-					last;
-				}
-				else
-				{
-					$ind++;
-				}
-			}
-		}
-		$index++;
-	}
-	untie @fileconf;
+    my $index = 0;
+    my $ind   = 0;
+    foreach my $line (@fileconf) {
+        if ($line =~ /^[#\s]*Service \"/) { last; }
+        if ($line =~ /^\s*ReplaceHeader\s+(.+)/) {
+            (my $type) = split(/\s+/, $1);
+            if ($deltype eq $type) {
+                if ($header_ind == $ind) {
+                    $errno = 0;
+                    splice @fileconf, $index, 1;
+                    last;
+                }
+                else {
+                    $ind++;
+                }
+            }
+        }
+        $index++;
+    }
+    untie @fileconf;
 
-	&zenlog( "Could not remove ReplaceHeader" ) if $errno;
+    &zenlog("Could not remove ReplaceHeader") if $errno;
 
-	return $errno;
+    return $errno;
 }
 
 =begin nd
@@ -3570,113 +3372,104 @@ Returns:
 	Hash ref - Farm struct updated with EE parameters
 =cut
 
-sub get_http_farm_headers_struct
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $farmname = shift;
-	my $farm_st  = shift // {};
-	my $proxy_ng = shift // &getGlobalConfiguration( 'proxy_ng' );
+sub get_http_farm_headers_struct {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $farmname = shift;
+    my $farm_st  = shift // {};
+    my $proxy_ng = shift // &getGlobalConfiguration('proxy_ng');
 
-	$farm_st->{ addheader }             = [];
-	$farm_st->{ headremove }            = [];
-	$farm_st->{ addresponseheader }     = [];
-	$farm_st->{ removeresponseheader }  = [];
-	$farm_st->{ replacerequestheader }  = [];
-	$farm_st->{ replaceresponseheader } = [];
+    $farm_st->{addheader}             = [];
+    $farm_st->{headremove}            = [];
+    $farm_st->{addresponseheader}     = [];
+    $farm_st->{removeresponseheader}  = [];
+    $farm_st->{replacerequestheader}  = [];
+    $farm_st->{replaceresponseheader} = [];
 
-	my $farm_filename = &getFarmFile( $farmname );
-	open my $fileconf, '<', "$configdir/$farm_filename";
+    my $farm_filename = &getFarmFile($farmname);
+    open my $fileconf, '<', "$configdir/$farm_filename";
 
-	my $add_req_head_index  = 0;
-	my $rem_req_head_index  = 0;
-	my $add_resp_head_index = 0;
-	my $rem_resp_head_index = 0;
-	my $rep_req_head_index  = 0;
-	my $rep_res_head_index  = 0;
-	foreach my $line ( <$fileconf> )
-	{
-		if ( $line =~ /^[#\s]*Service \"/ ) { last; }
-		elsif ( $line =~ /^[#\s]*AddHeader\s+"(.+)"/ )
-		{
-			push @{ $farm_st->{ addheader } },
-			  {
-				"id"     => $add_req_head_index++,
-				"header" => $1
-			  };
-		}
-		elsif ( $line =~ /^[#\s]*HeadRemove\s+"(.+)"/ )
-		{
-			push @{ $farm_st->{ headremove } },
-			  {
-				"id"      => $rem_req_head_index++,
-				"pattern" => $1
-			  };
-		}
-		elsif ( $line =~ /^[#\s]*AddResponseHeader\s+"(.+)"/ )
-		{
-			push @{ $farm_st->{ addresponseheader } },
-			  {
-				"id"     => $add_resp_head_index++,
-				"header" => $1
-			  };
-		}
-		elsif ( $line =~ /^[#\s]*RemoveResponseHead\s+"(.+)"/ )
-		{
-			push @{ $farm_st->{ removeresponseheader } },
-			  {
-				"id"      => $rem_resp_head_index++,
-				"pattern" => $1
-			  };
-		}
-		elsif (    $proxy_ng eq 'true'
-				&& $line =~ /^[#\s]*ReplaceHeader\s+(.+)\s+"(.+)"\s+"(.+)"\s+"(.*)"/ )
-		{
-			#( my $type, my $header, my $match, my $replace ) = split ( /\s+/, $1 );
-			push @{ $farm_st->{ replacerequestheader } },
-			  {
-				"id"      => $rep_req_head_index++,
-				"header"  => $2,
-				"match"   => $3,
-				"replace" => $4
-			  }
-			  if $1 eq "Request";
-			push @{ $farm_st->{ replaceresponseheader } },
-			  {
-				"id"      => $rep_res_head_index++,
-				"header"  => $2,
-				"match"   => $3,
-				"replace" => $4
-			  }
-			  if $1 eq "Response";
-		}
-		elsif ( $line =~ /Ignore100Continue (\d).*/ )
-		{
-			$farm_st->{ ignore_100_continue } = ( $1 eq '0' ) ? 'false' : 'true';
-		}
-		elsif ( $line =~ /LogLevel\s+(\d).*/ )
-		{
-			my $lvl = $1 + 0;
-			if ( $proxy_ng eq 'true' )
-			{
-				$farm_st->{ logs } = 'true' if ( $lvl >= 6 );
-			}
-			else
-			{
-				$farm_st->{ logs } = 'true' if ( $lvl >= 5 );
-			}
-		}
+    my $add_req_head_index  = 0;
+    my $rem_req_head_index  = 0;
+    my $add_resp_head_index = 0;
+    my $rem_resp_head_index = 0;
+    my $rep_req_head_index  = 0;
+    my $rep_res_head_index  = 0;
+    foreach my $line (<$fileconf>) {
+        if    ($line =~ /^[#\s]*Service \"/) { last; }
+        elsif ($line =~ /^[#\s]*AddHeader\s+"(.+)"/) {
+            push @{ $farm_st->{addheader} },
+              {
+                "id"     => $add_req_head_index++,
+                "header" => $1
+              };
+        }
+        elsif ($line =~ /^[#\s]*HeadRemove\s+"(.+)"/) {
+            push @{ $farm_st->{headremove} },
+              {
+                "id"      => $rem_req_head_index++,
+                "pattern" => $1
+              };
+        }
+        elsif ($line =~ /^[#\s]*AddResponseHeader\s+"(.+)"/) {
+            push @{ $farm_st->{addresponseheader} },
+              {
+                "id"     => $add_resp_head_index++,
+                "header" => $1
+              };
+        }
+        elsif ($line =~ /^[#\s]*RemoveResponseHead\s+"(.+)"/) {
+            push @{ $farm_st->{removeresponseheader} },
+              {
+                "id"      => $rem_resp_head_index++,
+                "pattern" => $1
+              };
+        }
+        elsif ($proxy_ng eq 'true'
+            && $line =~
+            /^[#\s]*ReplaceHeader\s+(.+)\s+"(.+)"\s+"(.+)"\s+"(.*)"/)
+        {
 
-	}
-	close $fileconf;
+        #( my $type, my $header, my $match, my $replace ) = split ( /\s+/, $1 );
+            push @{ $farm_st->{replacerequestheader} },
+              {
+                "id"      => $rep_req_head_index++,
+                "header"  => $2,
+                "match"   => $3,
+                "replace" => $4
+              }
+              if $1 eq "Request";
+            push @{ $farm_st->{replaceresponseheader} },
+              {
+                "id"      => $rep_res_head_index++,
+                "header"  => $2,
+                "match"   => $3,
+                "replace" => $4
+              }
+              if $1 eq "Response";
+        }
+        elsif ($line =~ /Ignore100Continue (\d).*/) {
+            $farm_st->{ignore_100_continue} = ($1 eq '0') ? 'false' : 'true';
+        }
+        elsif ($line =~ /LogLevel\s+(\d).*/) {
+            my $lvl = $1 + 0;
+            if ($proxy_ng eq 'true') {
+                $farm_st->{logs} = 'true' if ($lvl >= 6);
+            }
+            else {
+                $farm_st->{logs} = 'true' if ($lvl >= 5);
+            }
+        }
 
-	if ( $proxy_ng ne 'true' )
-	{
-		delete $farm_st->{ replacerequestheader };
-		delete $farm_st->{ replaceresponseheader };
-	}
+    }
+    close $fileconf;
 
-	return $farm_st;
+    if ($proxy_ng ne 'true') {
+        delete $farm_st->{replacerequestheader};
+        delete $farm_st->{replaceresponseheader};
+    }
+
+    return $farm_st;
 }
 
 =begin nd
@@ -3695,47 +3488,44 @@ Returns:
 
 =cut
 
-sub moveHeader
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+sub moveHeader {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my $farm_name = shift;
-	my $regex     = shift;
-	my $pos       = shift;
-	my $index     = shift;
+    my $farm_name = shift;
+    my $regex     = shift;
+    my $pos       = shift;
+    my $index     = shift;
 
-	require Zevenet::Arrays;
+    require Zevenet::Arrays;
 
-	my $err = 0;
+    my $err = 0;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	require Tie::File;
-	tie my @file, 'Tie::File', "$configdir/$farm_filename";
+    my $farm_filename = &getFarmFile($farm_name);
+    require Tie::File;
+    tie my @file, 'Tie::File', "$configdir/$farm_filename";
 
-	my $file_index   = 0;
-	my $header_index = 0;
-	my @headers      = ();
-	foreach my $l ( @file )
-	{
-		if ( $l =~ /^[#\s]*Service \"/ ) { last; }
-		if ( $l =~ /^$regex/ )
-		{
-			$header_index = $file_index unless ( $header_index != 0 );
-			push @headers, $l;
-		}
-		$file_index++;
-	}
+    my $file_index   = 0;
+    my $header_index = 0;
+    my @headers      = ();
+    foreach my $l (@file) {
+        if ($l =~ /^[#\s]*Service \"/) { last; }
+        if ($l =~ /^$regex/) {
+            $header_index = $file_index unless ($header_index != 0);
+            push @headers, $l;
+        }
+        $file_index++;
+    }
 
-	&moveByIndex( \@headers, $index, $pos );
+    &moveByIndex(\@headers, $index, $pos);
 
-	my $size = scalar @headers;
+    my $size = scalar @headers;
 
-	splice ( @file, $header_index, $size, @headers );
+    splice(@file, $header_index, $size, @headers);
 
-	untie @file;
+    untie @file;
 
-	return $err;
+    return $err;
 }
 
 =begin nd
@@ -3754,36 +3544,32 @@ Returns:
 
 sub getHTTPFarmLogs    # ($farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my $farm_name = shift;
-	my $proxy_ng = shift // &getGlobalConfiguration( 'proxy_ng' );
+    my $farm_name = shift;
+    my $proxy_ng  = shift // &getGlobalConfiguration('proxy_ng');
 
-	my $output = 'false';
+    my $output = 'false';
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	open my $fileconf, '<', "$configdir/$farm_filename";
+    my $farm_filename = &getFarmFile($farm_name);
+    open my $fileconf, '<', "$configdir/$farm_filename";
 
-	foreach my $line ( <$fileconf> )
-	{
-		if ( $line =~ /^[#\s]*Service \"/ ) { last; }
-		elsif ( $line =~ /LogLevel\s+(\d).*/ )
-		{
-			my $lvl = $1 + 0;
-			if ( $proxy_ng eq 'true' )
-			{
-				$output = 'true' if ( $lvl >= 6 );
-			}
-			else
-			{
-				$output = 'true' if ( $lvl >= 5 );
-			}
-			last;
-		}
-	}
+    foreach my $line (<$fileconf>) {
+        if    ($line =~ /^[#\s]*Service \"/) { last; }
+        elsif ($line =~ /LogLevel\s+(\d).*/) {
+            my $lvl = $1 + 0;
+            if ($proxy_ng eq 'true') {
+                $output = 'true' if ($lvl >= 6);
+            }
+            else {
+                $output = 'true' if ($lvl >= 5);
+            }
+            last;
+        }
+    }
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -3800,14 +3586,13 @@ Returns:
 
 =cut
 
-sub migrateHTTPFarmLogs
-{
-	my ( $farm_name, $proxy_mode ) = @_;
+sub migrateHTTPFarmLogs {
+    my ($farm_name, $proxy_mode) = @_;
 
-	# invert the log
-	my $read_log = ( $proxy_mode eq 'true' ) ? 'false' : 'true';
-	my $log = &getHTTPFarmLogs( $farm_name, $read_log );
-	&setHTTPFarmLogs( $farm_name, $log, $proxy_mode );
+    # invert the log
+    my $read_log = ($proxy_mode eq 'true') ? 'false' : 'true';
+    my $log      = &getHTTPFarmLogs($farm_name, $read_log);
+    &setHTTPFarmLogs($farm_name, $log, $proxy_mode);
 }
 
 =begin nd
@@ -3827,40 +3612,36 @@ Returns:
 
 sub setHTTPFarmLogs    # ($farm_name, $action)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $farm_name = shift;
-	my $action    = shift;
-	my $proxy_ng  = shift // &getGlobalConfiguration( 'proxy_ng' );
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $farm_name = shift;
+    my $action    = shift;
+    my $proxy_ng  = shift // &getGlobalConfiguration('proxy_ng');
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $output        = -1;
+    my $farm_filename = &getFarmFile($farm_name);
+    my $output        = -1;
 
-	my $loglvl;
-	if ( $proxy_ng eq 'true' )
-	{
-		$loglvl = ( $action eq "true" ) ? 6 : 5;
-	}
-	else
-	{
-		$loglvl = ( $action eq "true" ) ? 5 : 0;
-	}
+    my $loglvl;
+    if ($proxy_ng eq 'true') {
+        $loglvl = ($action eq "true") ? 6 : 5;
+    }
+    else {
+        $loglvl = ($action eq "true") ? 5 : 0;
+    }
 
-	require Tie::File;
-	tie my @file, 'Tie::File', "$configdir/$farm_filename";
+    require Tie::File;
+    tie my @file, 'Tie::File', "$configdir/$farm_filename";
 
-	# check if 100 continue directive exists
-	if ( !grep ( s/^LogLevel\s+(\d).*$/LogLevel\t$loglvl/, @file ) )
-	{
-		&zenlog( "Error modifying http logs", "error", "LSLB" );
-	}
-	else
-	{
-		$output = 0;
-	}
-	untie @file;
+    # check if 100 continue directive exists
+    if (!grep (s/^LogLevel\s+(\d).*$/LogLevel\t$loglvl/, @file)) {
+        &zenlog("Error modifying http logs", "error", "LSLB");
+    }
+    else {
+        $output = 0;
+    }
+    untie @file;
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -3878,26 +3659,24 @@ Returns:
 
 sub getHTTPFarm100Continue    # ($farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $farm_name = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $farm_name = shift;
 
-	my $output = 'true';
+    my $output = 'true';
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	open my $fileconf, '<', "$configdir/$farm_filename";
+    my $farm_filename = &getFarmFile($farm_name);
+    open my $fileconf, '<', "$configdir/$farm_filename";
 
-	foreach my $line ( <$fileconf> )
-	{
-		if ( $line =~ /^[#\s]*Service \"/ ) { last; }
-		elsif ( $line =~ /Ignore100Continue (\d).*/ )
-		{
-			$output = ( $1 eq '0' ) ? 'false' : 'true';
-			last;
-		}
-	}
+    foreach my $line (<$fileconf>) {
+        if    ($line =~ /^[#\s]*Service \"/) { last; }
+        elsif ($line =~ /Ignore100Continue (\d).*/) {
+            $output = ($1 eq '0') ? 'false' : 'true';
+            last;
+        }
+    }
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -3916,33 +3695,31 @@ Returns:
 
 sub setHTTPFarm100Continue    # ($farm_name, $action)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name, $action ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name, $action) = @_;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $output        = -1;
+    my $farm_filename = &getFarmFile($farm_name);
+    my $output        = -1;
 
-	require Tie::File;
-	tie my @file, 'Tie::File', "$configdir/$farm_filename";
+    require Tie::File;
+    tie my @file, 'Tie::File', "$configdir/$farm_filename";
 
-	# check if 100 continue directive exists
-	if ( !grep ( s/^Ignore100Continue\ .*/Ignore100Continue $action/, @file ) )
-	{
-		foreach my $line ( @file )
-		{
-			# put ignore below than rewritelocation
-			if ( $line =~ /^Control\s/ )
-			{
-				$line = "$line\nIgnore100Continue $action";
-				last;
-			}
-		}
-	}
-	$output = 0;
-	untie @file;
+    # check if 100 continue directive exists
+    if (!grep (s/^Ignore100Continue\ .*/Ignore100Continue $action/, @file)) {
+        foreach my $line (@file) {
 
-	return $output;
+            # put ignore below than rewritelocation
+            if ($line =~ /^Control\s/) {
+                $line = "$line\nIgnore100Continue $action";
+                last;
+            }
+        }
+    }
+    $output = 0;
+    untie @file;
+
+    return $output;
 }
 
 1;

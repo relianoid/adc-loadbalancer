@@ -23,7 +23,7 @@
 
 use strict;
 
-my $configdir = &getGlobalConfiguration( 'configdir' );
+my $configdir = &getGlobalConfiguration('configdir');
 
 =begin nd
 Function: getDatalinkFarmAlgorithm
@@ -40,28 +40,26 @@ Returns:
 
 sub getDatalinkFarmAlgorithm    # ($farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name) = @_;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $algorithm     = -1;
-	my $first         = "true";
+    my $farm_filename = &getFarmFile($farm_name);
+    my $algorithm     = -1;
+    my $first         = "true";
 
-	open my $fd, '<', "$configdir/$farm_filename";
+    open my $fd, '<', "$configdir/$farm_filename";
 
-	while ( my $line = <$fd> )
-	{
-		if ( $line ne "" && $first eq "true" )
-		{
-			$first = "false";
-			my @line = split ( "\;", $line );
-			$algorithm = $line[3];
-		}
-	}
-	close $fd;
+    while (my $line = <$fd>) {
+        if ($line ne "" && $first eq "true") {
+            $first = "false";
+            my @line = split("\;", $line);
+            $algorithm = $line[3];
+        }
+    }
+    close $fd;
 
-	return $algorithm;
+    return $algorithm;
 }
 
 =begin nd
@@ -83,38 +81,35 @@ FIXME:
 
 sub setDatalinkFarmAlgorithm    # ($algorithm,$farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $algorithm, $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($algorithm, $farm_name) = @_;
 
-	require Tie::File;
+    require Tie::File;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $i             = 0;
+    my $farm_filename = &getFarmFile($farm_name);
+    my $i             = 0;
 
-	tie my @configfile, 'Tie::File', "$configdir\/$farm_filename";
+    tie my @configfile, 'Tie::File', "$configdir\/$farm_filename";
 
-	for my $line ( @configfile )
-	{
-		if ( $line =~ /^$farm_name\;/ )
-		{
-			my @args = split ( "\;", $line );
-			$line = "$args[0]\;$args[1]\;$args[2]\;$algorithm\;$args[4]";
-			splice @configfile, $i, $line;
-		}
-		$i++;
-	}
-	untie @configfile;
+    for my $line (@configfile) {
+        if ($line =~ /^$farm_name\;/) {
+            my @args = split("\;", $line);
+            $line = "$args[0]\;$args[1]\;$args[2]\;$algorithm\;$args[4]";
+            splice @configfile, $i, $line;
+        }
+        $i++;
+    }
+    untie @configfile;
 
-	# Apply changes online
-	if ( &getFarmStatus( $farm_name ) eq 'up' )
-	{
-		require Zevenet::Farm::Action;
-		&runFarmStop( $farm_name, "true" );
-		&runFarmStart( $farm_name, "true" );
-	}
+    # Apply changes online
+    if (&getFarmStatus($farm_name) eq 'up') {
+        require Zevenet::Farm::Action;
+        &runFarmStop($farm_name, "true");
+        &runFarmStart($farm_name, "true");
+    }
 
-	return;
+    return;
 }
 
 =begin nd
@@ -132,29 +127,27 @@ Returns:
 
 sub getDatalinkFarmBootStatus    # ($farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name) = @_;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $output        = "down";
-	my $first         = "true";
+    my $farm_filename = &getFarmFile($farm_name);
+    my $output        = "down";
+    my $first         = "true";
 
-	open my $fd, '<', "$configdir/$farm_filename";
+    open my $fd, '<', "$configdir/$farm_filename";
 
-	while ( my $line = <$fd> )
-	{
-		if ( $line ne "" && $first eq "true" )
-		{
-			$first = "false";
-			my @line_a = split ( /;/, $line );
-			$output = $line_a[4];
-			chomp ( $output );
-		}
-	}
-	close $fd;
+    while (my $line = <$fd>) {
+        if ($line ne "" && $first eq "true") {
+            $first = "false";
+            my @line_a = split(/;/, $line);
+            $output = $line_a[4];
+            chomp($output);
+        }
+    }
+    close $fd;
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -170,32 +163,30 @@ Parameters:
 
 sub setDatalinkFarmBootStatus    # ($farm_name, $value)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name, $value ) = @_;
-	my $output = -1;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name, $value) = @_;
+    my $output = -1;
 
-	require Tie::File;
+    require Tie::File;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $i             = 0;
+    my $farm_filename = &getFarmFile($farm_name);
+    my $i             = 0;
 
-	tie my @configfile, 'Tie::File', "$configdir\/$farm_filename";
+    tie my @configfile, 'Tie::File', "$configdir\/$farm_filename";
 
-	for my $line ( @configfile )
-	{
-		if ( $line =~ /^$farm_name\;/ )
-		{
-			my @args = split ( "\;", $line );
-			$line = "$args[0]\;$args[1]\;$args[2]\;$args[3]\;$value";
-			splice @configfile, $i, $line;
-			$output = 0;
-			last;
-		}
-		$i++;
-	}
-	untie @configfile;
-	return $output;
+    for my $line (@configfile) {
+        if ($line =~ /^$farm_name\;/) {
+            my @args = split("\;", $line);
+            $line = "$args[0]\;$args[1]\;$args[2]\;$args[3]\;$value";
+            splice @configfile, $i, $line;
+            $output = 0;
+            last;
+        }
+        $i++;
+    }
+    untie @configfile;
+    return $output;
 }
 
 =begin nd
@@ -213,16 +204,16 @@ Returns:
 
 sub getDatalinkFarmStatus    # ($farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name) = @_;
 
-	my $piddir = &getGlobalConfiguration( 'piddir' );
-	my $output = "down";
+    my $piddir = &getGlobalConfiguration('piddir');
+    my $output = "down";
 
-	$output = "up" if ( -e "$piddir\/$farm_name\_datalink.pid" );
+    $output = "up" if (-e "$piddir\/$farm_name\_datalink.pid");
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -240,32 +231,30 @@ Returns:
 
 sub getDatalinkFarmInterface    # ($farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name) = @_;
 
-	my $output = -1;
+    my $output = -1;
 
-	my $line;
-	my $first         = "true";
-	my $farm_filename = &getFarmFile( $farm_name );
+    my $line;
+    my $first         = "true";
+    my $farm_filename = &getFarmFile($farm_name);
 
-	open my $fd, '<', "$configdir/$farm_filename";
+    open my $fd, '<', "$configdir/$farm_filename";
 
-	while ( $line = <$fd> )
-	{
-		if ( $line ne "" && $first eq "true" )
-		{
-			$first = "false";
-			my @line_a = split ( "\;", $line );
-			my @line_b = split ( "\:", $line_a[2] );
-			$output = $line_b[0];
-		}
-	}
+    while ($line = <$fd>) {
+        if ($line ne "" && $first eq "true") {
+            $first = "false";
+            my @line_a = split("\;", $line);
+            my @line_b = split("\:", $line_a[2]);
+            $output = $line_b[0];
+        }
+    }
 
-	close $fd;
+    close $fd;
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -284,30 +273,28 @@ Returns:
 
 sub getDatalinkFarmVip    # ($info,$farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $info, $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($info, $farm_name) = @_;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $output        = -1;
-	my $first         = "true";
+    my $farm_filename = &getFarmFile($farm_name);
+    my $output        = -1;
+    my $first         = "true";
 
-	open my $fd, '<', "$configdir/$farm_filename";
+    open my $fd, '<', "$configdir/$farm_filename";
 
-	while ( my $line = <$fd> )
-	{
-		if ( $line ne "" && $first eq "true" )
-		{
-			$first = "false";
-			my @line_a = split ( "\;", $line );
+    while (my $line = <$fd>) {
+        if ($line ne "" && $first eq "true") {
+            $first = "false";
+            my @line_a = split("\;", $line);
 
-			if ( $info eq "vip" )  { $output = $line_a[1]; }
-			if ( $info eq "vipp" ) { $output = $line_a[2]; }
-		}
-	}
-	close $fd;
+            if ($info eq "vip")  { $output = $line_a[1]; }
+            if ($info eq "vipp") { $output = $line_a[2]; }
+        }
+    }
+    close $fd;
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -327,52 +314,48 @@ Returns:
 
 sub setDatalinkFarmVirtualConf    # ($vip,$interface,$farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $vip, $interface, $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($vip, $interface, $farm_name) = @_;
 
-	require Tie::File;
-	require Zevenet::Farm::Action;
-	require Zevenet::Farm::Base;
+    require Tie::File;
+    require Zevenet::Farm::Action;
+    require Zevenet::Farm::Base;
 
-	# set the interface that has defined the vip
-	require Zevenet::Net::Interface;
-	foreach my $if_ref ( @{ &getConfigInterfaceList() } )
-	{
-		if ( $if_ref->{ addr } eq $vip )
-		{
-			$interface = $if_ref->{ name };
-			last;
-		}
-	}
+    # set the interface that has defined the vip
+    require Zevenet::Net::Interface;
+    foreach my $if_ref (@{ &getConfigInterfaceList() }) {
+        if ($if_ref->{addr} eq $vip) {
+            $interface = $if_ref->{name};
+            last;
+        }
+    }
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $farm_state    = &getFarmStatus( $farm_name );
-	my $stat          = -1;
-	my $i             = 0;
+    my $farm_filename = &getFarmFile($farm_name);
+    my $farm_state    = &getFarmStatus($farm_name);
+    my $stat          = -1;
+    my $i             = 0;
 
-	&runFarmStop( $farm_name, 'true' ) if $farm_state eq 'up';
+    &runFarmStop($farm_name, 'true') if $farm_state eq 'up';
 
-	tie my @configfile, 'Tie::File', "$configdir\/$farm_filename";
+    tie my @configfile, 'Tie::File', "$configdir\/$farm_filename";
 
-	for my $line ( @configfile )
-	{
-		if ( $line =~ /^$farm_name\;/ )
-		{
-			my @args = split ( "\;", $line );
-			$interface = $args[2] if ( !$interface );
-			$line = "$args[0]\;$vip\;$interface\;$args[3]\;$args[4]";
-			splice @configfile, $i, $line;
-			$stat = $?;
-		}
-		$i++;
-	}
-	untie @configfile;
-	$stat = $?;
+    for my $line (@configfile) {
+        if ($line =~ /^$farm_name\;/) {
+            my @args = split("\;", $line);
+            $interface = $args[2] if (!$interface);
+            $line      = "$args[0]\;$vip\;$interface\;$args[3]\;$args[4]";
+            splice @configfile, $i, $line;
+            $stat = $?;
+        }
+        $i++;
+    }
+    untie @configfile;
+    $stat = $?;
 
-	&runFarmStart( $farm_name, 'true' ) if $farm_state eq 'up';
+    &runFarmStart($farm_name, 'true') if $farm_state eq 'up';
 
-	return $stat;
+    return $stat;
 }
 
 1;

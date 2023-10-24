@@ -28,11 +28,11 @@ use Unix::Syslog qw(:macros :subs);    # Syslog macros
 # Get the program name for zenlog
 my $TAG = "[Log.pm]";
 my $program_name =
-    ( $0 ne '-e' ) ? $0
-  : ( exists $ENV{ _ } && $ENV{ _ } !~ /enterprise.bin$/ ) ? $ENV{ _ }
-  :                                                          $^X;
+    ($0 ne '-e')                                     ? $0
+  : (exists $ENV{_} && $ENV{_} !~ /enterprise.bin$/) ? $ENV{_}
+  :                                                    $^X;
 
-my $basename = ( split ( '/', $program_name ) )[-1];
+my $basename = (split('/', $program_name))[-1];
 
 =begin nd
 Function: zenlog
@@ -71,46 +71,44 @@ Returns:
 
 sub zenlog    # ($string, $type)
 {
-	my $string = shift;              # string = message
-	my $type   = shift // 'info';    # type   = log level (Default: info))
-	my $tag    = shift // "";
+    my $string = shift;              # string = message
+    my $type   = shift // 'info';    # type   = log level (Default: info))
+    my $tag    = shift // "";
 
-	if ( $tag eq 'PROFILING' )
-	{
-		$type = "debug5";
-		require Zevenet::Debug;
-		return 0 if ( &debug() < 5 );
-	}
+    if ($tag eq 'PROFILING') {
+        $type = "debug5";
+        require Zevenet::Debug;
+        return 0 if (&debug() < 5);
+    }
 
-	if ( $type =~ /^(debug)(\d*)?$/ )
-	{
-		require Zevenet::Debug;
+    if ($type =~ /^(debug)(\d*)?$/) {
+        require Zevenet::Debug;
 
-		# debug lvl
-		my $debug_lvl = $2;
-		$debug_lvl = 1 if not $debug_lvl;
-		$type = "$1$debug_lvl";
-		return 0 if ( &debug() lt $debug_lvl );
-	}
+        # debug lvl
+        my $debug_lvl = $2;
+        $debug_lvl = 1 if not $debug_lvl;
+        $type      = "$1$debug_lvl";
+        return 0 if (&debug() lt $debug_lvl);
+    }
 
-	$tag = lc $tag    if $tag;
-	$tag = "$tag :: " if $tag;
+    $tag = lc $tag    if $tag;
+    $tag = "$tag :: " if $tag;
 
-	# Get the program name
-	my $program = $basename;
+    # Get the program name
+    my $program = $basename;
 
-	#~ openlog( $program, 'pid', 'local0' );    #open syslog
-	openlog( $program, LOG_PID, LOG_LOCAL0 );
+    #~ openlog( $program, 'pid', 'local0' );    #open syslog
+    openlog($program, LOG_PID, LOG_LOCAL0);
 
-	my @lines = split /\n/, $string;
+    my @lines = split /\n/, $string;
 
-	foreach my $line ( @lines )
-	{
-		#~ syslog( $type, "(" . uc ( $type ) . ") " . $line );
-		syslog( LOG_INFO, "(" . uc ( $type ) . ") " . "${tag}$line" );
-	}
+    foreach my $line (@lines) {
 
-	closelog();    #close syslog
+        #~ syslog( $type, "(" . uc ( $type ) . ") " . $line );
+        syslog(LOG_INFO, "(" . uc($type) . ") " . "${tag}$line");
+    }
+
+    closelog();    #close syslog
 }
 
 =begin nd
@@ -150,45 +148,42 @@ Returns:
 
 sub notlog    # ($string, $type)
 {
-	my $string = shift;              # string = message
-	my $type   = shift // 'info';    # type   = log level (Default: info))
-	my $tag    = shift // "";
+    my $string = shift;              # string = message
+    my $type   = shift // 'info';    # type   = log level (Default: info))
+    my $tag    = shift // "";
 
-	if ( $tag eq 'PROFILING' )
-	{
-		$type = "debug5";
-		require Zevenet::Debug;
-		return 0 if ( &debug() < 5 );
-	}
+    if ($tag eq 'PROFILING') {
+        $type = "debug5";
+        require Zevenet::Debug;
+        return 0 if (&debug() < 5);
+    }
 
-	if ( $type =~ /^(debug)(\d*)?$/ )
-	{
-		require Zevenet::Debug;
+    if ($type =~ /^(debug)(\d*)?$/) {
+        require Zevenet::Debug;
 
-		# debug lvl
-		my $debug_lvl = $2;
-		$debug_lvl = 1 if not $debug_lvl;
-		$type = "$1$debug_lvl";
-		return 0 if ( &debug() lt $debug_lvl );
-	}
+        # debug lvl
+        my $debug_lvl = $2;
+        $debug_lvl = 1 if not $debug_lvl;
+        $type      = "$1$debug_lvl";
+        return 0 if (&debug() lt $debug_lvl);
+    }
 
-	$tag = lc $tag    if $tag;
-	$tag = "$tag :: " if $tag;
+    $tag = lc $tag    if $tag;
+    $tag = "$tag :: " if $tag;
 
-	# Get the program name
-	my $program = $basename;
+    # Get the program name
+    my $program = $basename;
 
-	#~ openlog( $program, 'pid', 'local1' );    #open syslog
-	openlog( $program, LOG_PID, LOG_LOCAL2 );
+    #~ openlog( $program, 'pid', 'local1' );    #open syslog
+    openlog($program, LOG_PID, LOG_LOCAL2);
 
-	my @lines = split /\n/, $string;
+    my @lines = split /\n/, $string;
 
-	foreach my $line ( @lines )
-	{
-		syslog( LOG_INFO, "(" . uc ( $type ) . ") " . "${tag}$line" );
-	}
+    foreach my $line (@lines) {
+        syslog(LOG_INFO, "(" . uc($type) . ") " . "${tag}$line");
+    }
 
-	closelog();    #close syslog
+    closelog();    #close syslog
 }
 
 =begin nd
@@ -207,31 +202,31 @@ Returns:
 
 sub zlog    # (@message)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my @message = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my @message = shift;
 
-	#my ($package,   # 0
-	#$filename,      # 1
-	#$line,          # 2
-	#$subroutine,    # 3
-	#$hasargs,       # 4
-	#$wantarray,     # 5
-	#$evaltext,      # 6
-	#$is_require,    # 7
-	#$hints,         # 8
-	#$bitmask,       # 9
-	#$hinthash       # 10
-	#) = caller (1);	 # arg = number of suroutines back in the stack trace
+    #my ($package,   # 0
+    #$filename,      # 1
+    #$line,          # 2
+    #$subroutine,    # 3
+    #$hasargs,       # 4
+    #$wantarray,     # 5
+    #$evaltext,      # 6
+    #$is_require,    # 7
+    #$hints,         # 8
+    #$bitmask,       # 9
+    #$hinthash       # 10
+    #) = caller (1);	 # arg = number of suroutines back in the stack trace
 
-	#~ use Data::Dumper;
-	&zenlog(   '>>> '
-			 . ( caller ( 3 ) )[3] . ' >>> '
-			 . ( caller ( 2 ) )[3] . ' >>> '
-			 . ( caller ( 1 ) )[3]
-			 . " => @message" );
+    #~ use Data::Dumper;
+    &zenlog('>>> '
+          . (caller(3))[3] . ' >>> '
+          . (caller(2))[3] . ' >>> '
+          . (caller(1))[3]
+          . " => @message");
 
-	return;
+    return;
 }
 
 =begin nd
@@ -251,28 +246,26 @@ See Also:
 
 sub logAndRun    # ($command)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $command = shift;    # command string to log and run
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $command = shift;    # command string to log and run
 
-	my $program     = $basename;
-	my @cmd_output  = `$command 2>&1`;
-	my $return_code = $?;
+    my $program     = $basename;
+    my @cmd_output  = `$command 2>&1`;
+    my $return_code = $?;
 
-	if ( $return_code )
-	{
-		&zenlog( $program . " running: $command", "error", "SYSTEM" );
-		&zenlog( "out: @cmd_output", "error", "error", "SYSTEM" );
-		&zenlog( "last command failed!", "error", "SYSTEM" );
-	}
-	else
-	{
-		&zenlog( $program . " running: $command", "debug",  "SYSTEM" );
-		&zenlog( "out: @cmd_output",              "debug2", "SYSTEM" );
-	}
+    if ($return_code) {
+        &zenlog($program . " running: $command", "error", "SYSTEM");
+        &zenlog("out: @cmd_output",     "error", "error", "SYSTEM");
+        &zenlog("last command failed!", "error", "SYSTEM");
+    }
+    else {
+        &zenlog($program . " running: $command", "debug",  "SYSTEM");
+        &zenlog("out: @cmd_output",              "debug2", "SYSTEM");
+    }
 
-	# returning error code from execution
-	return $return_code;
+    # returning error code from execution
+    return $return_code;
 }
 
 =begin nd
@@ -289,39 +282,36 @@ Returns:
 
 sub logAndRunBG    # ($command)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $command = shift;    # command string to log and run
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $command = shift;    # command string to log and run
 
-	my $program = $basename;
+    my $program = $basename;
 
-	my $return_code = system ( "$command >/dev/null 2>&1 &" );
+    my $return_code = system("$command >/dev/null 2>&1 &");
 
-	if ( $return_code )
-	{
-		&zenlog( $program . " running: $command", "error", "SYSTEM" );
-		&zenlog( "last command failed!",          "error", "SYSTEM" );
-	}
-	else
-	{
-		&zenlog( $program . " running: $command", "debug", "SYSTEM" );
-	}
+    if ($return_code) {
+        &zenlog($program . " running: $command", "error", "SYSTEM");
+        &zenlog("last command failed!",          "error", "SYSTEM");
+    }
+    else {
+        &zenlog($program . " running: $command", "debug", "SYSTEM");
+    }
 
-	# return_code is -1 on error.
+    # return_code is -1 on error.
 
- # returns true on error launching the program, false on error launching the program
-	return $return_code == -1;
+# returns true on error launching the program, false on error launching the program
+    return $return_code == -1;
 }
 
-sub zdie
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	require Carp;
-	Carp->import();
+sub zdie {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    require Carp;
+    Carp->import();
 
-	&zenlog( @_ );
-	carp( @_ );
+    &zenlog(@_);
+    carp(@_);
 }
 
 =begin nd
@@ -339,29 +329,26 @@ See Also:
 	<runFarmGuardianStart>, <_runHTTPFarmStart>, <runHTTPFarmCreate>, <_runGSLBFarmStart>, <_runGSLBFarmStop>, <runGSLBFarmReload>, <runGSLBFarmCreate>
 =cut
 
-sub zsystem
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( @exec ) = @_;
-	my $program = $basename;
+sub zsystem {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my (@exec) = @_;
+    my $program = $basename;
 
-	my @cmd_output = `. /etc/profile -notzenbui >/dev/null 2>&1 && @exec 2>&1`;
-	my $out        = $?;
+    my @cmd_output = `. /etc/profile -notzenbui >/dev/null 2>&1 && @exec 2>&1`;
+    my $out        = $?;
 
-	if ( $out )
-	{
-		&zenlog( $program . " running: @exec", "error", "SYSTEM" );
-		&zenlog( "@cmd_output", "error", "error", "SYSTEM" );
-		&zenlog( "last command failed!", "error", "SYSTEM" );
-	}
-	else
-	{
-		&zenlog( $program . " running: @exec", "debug",  "SYSTEM" );
-		&zenlog( "out: @cmd_output",           "debug2", "SYSTEM" );
-	}
+    if ($out) {
+        &zenlog($program . " running: @exec", "error", "SYSTEM");
+        &zenlog("@cmd_output", "error", "error", "SYSTEM");
+        &zenlog("last command failed!", "error", "SYSTEM");
+    }
+    else {
+        &zenlog($program . " running: @exec", "debug",  "SYSTEM");
+        &zenlog("out: @cmd_output",           "debug2", "SYSTEM");
+    }
 
-	return $out;
+    return $out;
 }
 
 =begin nd
@@ -388,52 +375,47 @@ TODO:
 
 =cut
 
-sub logAndGet
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $cmd        = shift;
-	my $type       = shift // 'string';
-	my $add_stderr = shift // 0;
+sub logAndGet {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $cmd        = shift;
+    my $type       = shift // 'string';
+    my $add_stderr = shift // 0;
 
-	my $tmp_err = ( $add_stderr ) ? '&1' : "/tmp/err.log";
-	my @print_err;
+    my $tmp_err = ($add_stderr) ? '&1' : "/tmp/err.log";
+    my @print_err;
 
-	my $out      = `$cmd 2>$tmp_err`;
-	my $err_code = $?;
-	&zenlog( "Executed (out: $err_code): $cmd", "debug", "system" );
+    my $out      = `$cmd 2>$tmp_err`;
+    my $err_code = $?;
+    &zenlog("Executed (out: $err_code): $cmd", "debug", "system");
 
-	if ( $err_code and !$add_stderr )
-	{
-		# execute again, removing stdout and getting stderr
-		if ( open ( my $fh, '<', $tmp_err ) )
-		{
-			local $/ = undef;
-			my $err_str = <$fh>;
-			&zenlog( "sterr: $err_str", "debug2", "SYSTEM" );
-			close $fh;
-		}
-		else
-		{
-			&zenlog( "file '$tmp_err' not found", "error", "SYSTEM" );
-		}
-	}
+    if ($err_code and !$add_stderr) {
 
-	chomp ( $out );
+        # execute again, removing stdout and getting stderr
+        if (open(my $fh, '<', $tmp_err)) {
+            local $/ = undef;
+            my $err_str = <$fh>;
+            &zenlog("sterr: $err_str", "debug2", "SYSTEM");
+            close $fh;
+        }
+        else {
+            &zenlog("file '$tmp_err' not found", "error", "SYSTEM");
+        }
+    }
 
-	# logging if there is not any error
-	if ( !@print_err )
-	{
-		&zenlog( "out: $out", "debug3", "SYSTEM" );
-	}
+    chomp($out);
 
-	if ( $type eq 'array' )
-	{
-		my @out = split ( "\n", $out );
-		return \@out;
-	}
+    # logging if there is not any error
+    if (!@print_err) {
+        &zenlog("out: $out", "debug3", "SYSTEM");
+    }
 
-	return $out;
+    if ($type eq 'array') {
+        my @out = split("\n", $out);
+        return \@out;
+    }
+
+    return $out;
 }
 
 =begin nd
@@ -455,26 +437,23 @@ See Also:
 
 =cut
 
-sub logAndRunCheck
-{
-	my $command = shift;
-	my $program = $basename;
+sub logAndRunCheck {
+    my $command = shift;
+    my $program = $basename;
 
-	my @cmd_output  = `$command 2>&1`;
-	my $return_code = $?;
+    my @cmd_output  = `$command 2>&1`;
+    my $return_code = $?;
 
-	if ( &debug() >= 2 )
-	{
-		&zenlog( $program . " err_code '$return_code' checking: $command",
-				 "debug2", "SYSTEM" );
-	}
-	if ( &debug() >= 3 )
-	{
-		&zenlog( $program . " output: @cmd_output", "debug3", "SYSTEM" );
-	}
+    if (&debug() >= 2) {
+        &zenlog($program . " err_code '$return_code' checking: $command",
+            "debug2", "SYSTEM");
+    }
+    if (&debug() >= 3) {
+        &zenlog($program . " output: @cmd_output", "debug3", "SYSTEM");
+    }
 
-	# returning error code of the execution
-	return $return_code;
+    # returning error code of the execution
+    return $return_code;
 }
 
 =begin nd
@@ -496,32 +475,30 @@ Returns:
 
 =cut
 
-sub logRunAndGet
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $command  = shift;
-	my $format   = shift // 'string';
-	my $outflush = shift // 0;
+sub logRunAndGet {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $command  = shift;
+    my $format   = shift // 'string';
+    my $outflush = shift // 0;
 
-	$command .= " 2>&1";
-	$command .= " > /dev/null" if ( $outflush );
+    $command .= " 2>&1";
+    $command .= " > /dev/null" if ($outflush);
 
-	my @get = ( $_ = qx{$command}, $? >> 8 );
+    my @get = ($_ = qx{$command}, $? >> 8);
 
-	my $exit;
-	$exit->{ stdout } = $get[0];
-	$exit->{ stderr } = $get[1];
+    my $exit;
+    $exit->{stdout} = $get[0];
+    $exit->{stderr} = $get[1];
 
-	&zenlog( "Executed (out: $exit->{ stderr }): $command", "debug", "system" );
+    &zenlog("Executed (out: $exit->{ stderr }): $command", "debug", "system");
 
-	if ( $format eq 'array' )
-	{
-		my @out = split ( "\n", $get[0] );
-		$exit->{ stdout } = \@out;
-	}
+    if ($format eq 'array') {
+        my @out = split("\n", $get[0]);
+        $exit->{stdout} = \@out;
+    }
 
-	return $exit;
+    return $exit;
 }
 
 1;

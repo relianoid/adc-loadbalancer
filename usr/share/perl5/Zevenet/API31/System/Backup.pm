@@ -26,195 +26,174 @@ use strict;
 use Zevenet::Backup;
 
 #	GET	/system/backup
-sub get_backup
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $desc    = "Get backups";
-	my $backups = &getBackup();
+sub get_backup {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $desc    = "Get backups";
+    my $backups = &getBackup();
 
-	&httpResponse(
-				{ code => 200, body => { description => $desc, params => $backups } } );
+    &httpResponse(
+        { code => 200, body => { description => $desc, params => $backups } });
 }
 
 #	POST  /system/backup
-sub create_backup
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $json_obj = shift;
+sub create_backup {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $json_obj = shift;
 
-	my $desc           = "Create a backups";
-	my @requiredParams = ( "name" );
+    my $desc           = "Create a backups";
+    my @requiredParams = ("name");
 
-	my $param_msg = getValidReqParams( $json_obj, \@requiredParams );
-	if ( $param_msg )
-	{
-		&httpErrorResponse( code => 400, desc => $desc, msg => $param_msg );
-	}
+    my $param_msg = getValidReqParams($json_obj, \@requiredParams);
+    if ($param_msg) {
+        &httpErrorResponse(code => 400, desc => $desc, msg => $param_msg);
+    }
 
-	if ( &getExistsBackup( $json_obj->{ 'name' } ) )
-	{
-		my $msg = "A backup already exists with this name.";
-		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    if (&getExistsBackup($json_obj->{'name'})) {
+        my $msg = "A backup already exists with this name.";
+        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	if ( !&getValidFormat( 'backup', $json_obj->{ 'name' } ) )
-	{
-		my $msg = "The backup name has invalid characters.";
-		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    if (!&getValidFormat('backup', $json_obj->{'name'})) {
+        my $msg = "The backup name has invalid characters.";
+        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	my $error = &createBackup( $json_obj->{ 'name' } );
-	if ( $error )
-	{
-		my $msg = "Error creating backup.";
-		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    my $error = &createBackup($json_obj->{'name'});
+    if ($error) {
+        my $msg = "Error creating backup.";
+        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	my $msg = "Backup $json_obj->{ 'name' } was created successfully.";
-	my $body = {
-				 description => $desc,
-				 params      => $json_obj->{ 'name' },
-				 message     => $msg,
-	};
+    my $msg  = "Backup $json_obj->{ 'name' } was created successfully.";
+    my $body = {
+        description => $desc,
+        params      => $json_obj->{'name'},
+        message     => $msg,
+    };
 
-	&httpResponse( { code => 200, body => $body } );
+    &httpResponse({ code => 200, body => $body });
 }
 
 #	GET	/system/backup/BACKUP
-sub download_backup
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $backup = shift;
+sub download_backup {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $backup = shift;
 
-	my $desc = "Download a backup";
+    my $desc = "Download a backup";
 
-	if ( !&getExistsBackup( $backup ) )
-	{
-		my $msg = "Not found $backup backup.";
-		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    if (!&getExistsBackup($backup)) {
+        my $msg = "Not found $backup backup.";
+        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	# Download function ends communication if itself finishes successful.
-	# It is not necessary to send "200 OK" msg here
-	my $error = &downloadBackup( $backup );
+    # Download function ends communication if itself finishes successful.
+    # It is not necessary to send "200 OK" msg here
+    my $error = &downloadBackup($backup);
 
-	my $msg = "Error, downloading backup.";
-	&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
+    my $msg = "Error, downloading backup.";
+    &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
 }
 
 #	PUT	/system/backup/BACKUP
-sub upload_backup
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $upload_filehandle = shift;
-	my $name              = shift;
+sub upload_backup {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $upload_filehandle = shift;
+    my $name              = shift;
 
-	my $desc = "Upload a backup";
+    my $desc = "Upload a backup";
 
-	if ( !$upload_filehandle || !$name )
-	{
-		my $msg = "It's necessary add a data binary file.";
-		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
-	elsif ( &getExistsBackup( $name ) )
-	{
-		my $msg = "A backup already exists with this name.";
-		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
-	elsif ( !&getValidFormat( 'backup', $name ) )
-	{
-		my $msg = "The backup name has invalid characters.";
-		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    if (!$upload_filehandle || !$name) {
+        my $msg = "It's necessary add a data binary file.";
+        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
+    elsif (&getExistsBackup($name)) {
+        my $msg = "A backup already exists with this name.";
+        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
+    elsif (!&getValidFormat('backup', $name)) {
+        my $msg = "The backup name has invalid characters.";
+        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	my $error = &uploadBackup( $name, $upload_filehandle );
-	if ( $error )
-	{
-		my $msg = "Error creating backup.";
-		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    my $error = &uploadBackup($name, $upload_filehandle);
+    if ($error) {
+        my $msg = "Error creating backup.";
+        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	my $msg = "Backup $name was created successfully.";
-	my $body = { description => $desc, params => $name, message => $msg };
+    my $msg  = "Backup $name was created successfully.";
+    my $body = { description => $desc, params => $name, message => $msg };
 
-	&httpResponse( { code => 200, body => $body } );
+    &httpResponse({ code => 200, body => $body });
 }
 
 #	DELETE /system/backup/BACKUP
-sub del_backup
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $backup = shift;
+sub del_backup {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $backup = shift;
 
-	my $desc = "Delete backup $backup'";
+    my $desc = "Delete backup $backup'";
 
-	if ( !&getExistsBackup( $backup ) )
-	{
-		my $msg = "$backup doesn't exist.";
-		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    if (!&getExistsBackup($backup)) {
+        my $msg = "$backup doesn't exist.";
+        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	my $error = &deleteBackup( $backup );
+    my $error = &deleteBackup($backup);
 
-	if ( $error )
-	{
-		my $msg = "There was a error deleting list $backup.";
-		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    if ($error) {
+        my $msg = "There was a error deleting list $backup.";
+        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	my $msg = "The list $backup has been deleted successfully.";
-	my $body = {
-				 description => $desc,
-				 success     => "true",
-				 message     => $msg,
-	};
+    my $msg  = "The list $backup has been deleted successfully.";
+    my $body = {
+        description => $desc,
+        success     => "true",
+        message     => $msg,
+    };
 
-	&httpResponse( { code => 200, body => $body } );
+    &httpResponse({ code => 200, body => $body });
 }
 
 #	POST /system/backup/BACKUP/actions
-sub apply_backup
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $json_obj = shift;
-	my $backup   = shift;
+sub apply_backup {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $json_obj = shift;
+    my $backup   = shift;
 
-	my $desc        = "Apply a backup to the system";
-	my @allowParams = ( "action" );
-	my $msg         = &getValidOptParams( $json_obj, \@allowParams );
+    my $desc        = "Apply a backup to the system";
+    my @allowParams = ("action");
+    my $msg         = &getValidOptParams($json_obj, \@allowParams);
 
-	if ( $msg )
-	{
-		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    if ($msg) {
+        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	if ( !&getExistsBackup( $backup ) )
-	{
-		my $msg = "Not found $backup backup.";
-		&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
-	}
-	elsif ( !&getValidFormat( 'backup_action', $json_obj->{ 'action' } ) )
-	{
-		my $msg = "Error, it's necessary add a valid action";
-		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    if (!&getExistsBackup($backup)) {
+        my $msg = "Not found $backup backup.";
+        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+    }
+    elsif (!&getValidFormat('backup_action', $json_obj->{'action'})) {
+        my $msg = "Error, it's necessary add a valid action";
+        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	my $error = &applyBackup( $backup );
+    my $error = &applyBackup($backup);
 
-	if ( $error )
-	{
-		my $msg = "There was a error applying the backup.";
-		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    if ($error) {
+        my $msg = "There was a error applying the backup.";
+        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	&httpResponse(
-			   { code => 200, body => { description => $desc, params => $json_obj } } );
+    &httpResponse(
+        { code => 200, body => { description => $desc, params => $json_obj } });
 }
 
 1;

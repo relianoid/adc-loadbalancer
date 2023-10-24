@@ -23,156 +23,144 @@
 
 use strict;
 
-sub get_gateway
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	require Zevenet::Net::Route;
+sub get_gateway {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    require Zevenet::Net::Route;
 
-	my $desc = "Default gateway";
+    my $desc = "Default gateway";
 
-	my $body = {
-		description => $desc,
-		params      => {
-			address   => &getDefaultGW(),
-			interface => &getIfDefaultGW(),
+    my $body = {
+        description => $desc,
+        params      => {
+            address   => &getDefaultGW(),
+            interface => &getIfDefaultGW(),
 
-		},
-	};
+        },
+    };
 
-	&httpResponse( { code => 200, body => $body } );
+    &httpResponse({ code => 200, body => $body });
 }
 
 sub modify_gateway    # ( $json_obj )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $json_obj = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $json_obj = shift;
 
-	require Zevenet::Net::Route;
+    require Zevenet::Net::Route;
 
-	my $desc       = "Modify default gateway";
-	my $default_gw = &getDefaultGW();
+    my $desc       = "Modify default gateway";
+    my $default_gw = &getDefaultGW();
 
-	# verify ONLY ACCEPTED parameters received
-	if ( grep { $_ !~ /^(?:address|interface)$/ } keys %$json_obj )
-	{
-		my $msg = "Parameter received not recognized";
-		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    # verify ONLY ACCEPTED parameters received
+    if (grep { $_ !~ /^(?:address|interface)$/ } keys %$json_obj) {
+        my $msg = "Parameter received not recognized";
+        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	# if default gateway is not configured requires address and interface
-	if ( $default_gw )
-	{
-		# verify AT LEAST ONE parameter received
-		unless ( exists $json_obj->{ address } || exists $json_obj->{ interface } )
-		{
-			my $msg = "No parameter received to be configured";
-			&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-		}
-	}
-	else
-	{
-		unless ( exists $json_obj->{ address } && exists $json_obj->{ interface } )
-		{
-			my $msg = "Gateway requires address and interface to be configured";
-			&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-		}
-	}
+    # if default gateway is not configured requires address and interface
+    if ($default_gw) {
 
-	# validate ADDRESS
-	if ( exists $json_obj->{ address } )
-	{
-		unless ( defined ( $json_obj->{ address } )
-				 && &getValidFormat( 'IPv4_addr', $json_obj->{ address } ) )
-		{
-			my $msg = "Gateway address is not valid.";
-			&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-		}
-	}
+        # verify AT LEAST ONE parameter received
+        unless (exists $json_obj->{address} || exists $json_obj->{interface}) {
+            my $msg = "No parameter received to be configured";
+            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        }
+    }
+    else {
+        unless (exists $json_obj->{address} && exists $json_obj->{interface}) {
+            my $msg = "Gateway requires address and interface to be configured";
+            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        }
+    }
 
-	# validate INTERFACE
-	if ( exists $json_obj->{ interface } )
-	{
-		require Zevenet::Net::Interface;
+    # validate ADDRESS
+    if (exists $json_obj->{address}) {
+        unless (defined($json_obj->{address})
+            && &getValidFormat('IPv4_addr', $json_obj->{address}))
+        {
+            my $msg = "Gateway address is not valid.";
+            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        }
+    }
 
-		my @system_interfaces = &getInterfaceList();
+    # validate INTERFACE
+    if (exists $json_obj->{interface}) {
+        require Zevenet::Net::Interface;
 
-		unless ( grep ( { $json_obj->{ interface } eq $_ } @system_interfaces ) )
-		{
-			my $msg = "Gateway interface not found.";
-			&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
-		}
-	}
+        my @system_interfaces = &getInterfaceList();
 
-	my $ip_version = 4;
-	my $interface  = $json_obj->{ interface } // &getIfDefaultGW();
-	my $address    = $json_obj->{ address } // $default_gw;
+        unless (grep ({ $json_obj->{interface} eq $_ } @system_interfaces)) {
+            my $msg = "Gateway interface not found.";
+            &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        }
+    }
 
-	require Zevenet::Net::Interface;
-	my $if_ref = &getInterfaceConfig( $interface, $ip_version );
+    my $ip_version = 4;
+    my $interface  = $json_obj->{interface} // &getIfDefaultGW();
+    my $address    = $json_obj->{address}   // $default_gw;
 
-	# check if network is correct
-	require Zevenet::Net::Validate;
-	unless ( &validateGateway( $if_ref->{ addr }, $if_ref->{ mask }, $address ) )
-	{
-		my $msg = "The gateway is not valid for the network.";
-		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    require Zevenet::Net::Interface;
+    my $if_ref = &getInterfaceConfig($interface, $ip_version);
 
-	&zenlog( "applyRoutes interface:$interface address:$address if_ref:$if_ref",
-			 "debug", "NETWORK" )
-	  if &debug();
+    # check if network is correct
+    require Zevenet::Net::Validate;
+    unless (&validateGateway($if_ref->{addr}, $if_ref->{mask}, $address)) {
+        my $msg = "The gateway is not valid for the network.";
+        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	my $error = &applyRoutes( "global", $if_ref, $address );
+    &zenlog("applyRoutes interface:$interface address:$address if_ref:$if_ref",
+        "debug", "NETWORK")
+      if &debug();
 
-	if ( $error )
-	{
-		my $msg = "The default gateway hasn't been changed";
-		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    my $error = &applyRoutes("global", $if_ref, $address);
 
-	my $msg = "The default gateway has been changed successfully";
-	my $body = {
-				 description => $desc,
-				 success     => "true",
-				 message     => $msg,
-	};
+    if ($error) {
+        my $msg = "The default gateway hasn't been changed";
+        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	&httpResponse( { code => 200, body => $body } );
+    my $msg  = "The default gateway has been changed successfully";
+    my $body = {
+        description => $desc,
+        success     => "true",
+        message     => $msg,
+    };
+
+    &httpResponse({ code => 200, body => $body });
 }
 
-sub delete_gateway
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	require Zevenet::Net::Route;
-	require Zevenet::Net::Interface;
+sub delete_gateway {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    require Zevenet::Net::Route;
+    require Zevenet::Net::Interface;
 
-	my $desc        = "Remove default gateway";
-	my $ip_version  = 4;
-	my $defaultgwif = &getIfDefaultGW();
-	my $if_ref      = &getInterfaceConfig( $defaultgwif, $ip_version );
-	my $error       = &delRoutes( "global", $if_ref );
+    my $desc        = "Remove default gateway";
+    my $ip_version  = 4;
+    my $defaultgwif = &getIfDefaultGW();
+    my $if_ref      = &getInterfaceConfig($defaultgwif, $ip_version);
+    my $error       = &delRoutes("global", $if_ref);
 
-	if ( $error )
-	{
-		my $msg = "The default gateway hasn't been deleted";
-		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    if ($error) {
+        my $msg = "The default gateway hasn't been deleted";
+        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	my $msg = "The default gateway has been deleted successfully";
-	my $body = {
-		description => $desc,
-		message     => $msg,
-		params      => {
-			address   => &getDefaultGW(),
-			interface => &getIfDefaultGW(),
+    my $msg  = "The default gateway has been deleted successfully";
+    my $body = {
+        description => $desc,
+        message     => $msg,
+        params      => {
+            address   => &getDefaultGW(),
+            interface => &getIfDefaultGW(),
 
-		},
-	};
+        },
+    };
 
-	&httpResponse( { code => 200, body => $body } );
+    &httpResponse({ code => 200, body => $body });
 }
 
 1;

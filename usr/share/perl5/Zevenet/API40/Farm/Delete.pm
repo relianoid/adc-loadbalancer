@@ -26,65 +26,60 @@ use Zevenet::Farm::Base;
 use Zevenet::Farm::Action;
 
 my $eload;
-if ( eval { require Zevenet::ELoad; } )
-{
-	$eload = 1;
+if (eval { require Zevenet::ELoad; }) {
+    $eload = 1;
 }
 
 # DELETE /farms/FARMNAME
 sub delete_farm    # ( $farmname )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $farmname = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $farmname = shift;
 
-	my $desc = "Delete farm $farmname";
+    my $desc = "Delete farm $farmname";
 
-	if ( !&getFarmExists( $farmname ) )
-	{
-		my $msg = "The farm $farmname doesn't exist, try another name.";
-		&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
-	}
+    if (!&getFarmExists($farmname)) {
+        my $msg = "The farm $farmname doesn't exist, try another name.";
+        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+    }
 
-	if ( &getFarmStatus( $farmname ) eq 'up' )
-	{
-		if ( &runFarmStop( $farmname, "true" ) )
-		{
-			my $msg = "The farm $farmname could not be stopped.";
-			&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-		}
+    if (&getFarmStatus($farmname) eq 'up') {
+        if (&runFarmStop($farmname, "true")) {
+            my $msg = "The farm $farmname could not be stopped.";
+            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        }
 
-		&eload(
-				module => 'Zevenet::Cluster',
-				func   => 'runZClusterRemoteManager',
-				args   => ['farm', 'stop', $farmname],
-		) if ( $eload );
-	}
+        &eload(
+            module => 'Zevenet::Cluster',
+            func   => 'runZClusterRemoteManager',
+            args   => [ 'farm', 'stop', $farmname ],
+        ) if ($eload);
+    }
 
-	my $error = &runFarmDelete( $farmname );
+    my $error = &runFarmDelete($farmname);
 
-	if ( $error )
-	{
-		my $msg = "The Farm $farmname hasn't been deleted";
-		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    if ($error) {
+        my $msg = "The Farm $farmname hasn't been deleted";
+        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	&zenlog( "Success, the farm $farmname has been deleted.", "info", "FARMS" );
+    &zenlog("Success, the farm $farmname has been deleted.", "info", "FARMS");
 
-	&eload(
-			module => 'Zevenet::Cluster',
-			func   => 'runZClusterRemoteManager',
-			args   => ['farm', 'delete', $farmname],
-	) if ( $eload );
+    &eload(
+        module => 'Zevenet::Cluster',
+        func   => 'runZClusterRemoteManager',
+        args   => [ 'farm', 'delete', $farmname ],
+    ) if ($eload);
 
-	my $msg = "The Farm $farmname has been deleted.";
-	my $body = {
-				 description => $desc,
-				 success     => "true",
-				 message     => $msg
-	};
+    my $msg  = "The Farm $farmname has been deleted.";
+    my $body = {
+        description => $desc,
+        success     => "true",
+        message     => $msg
+    };
 
-	&httpResponse( { code => 200, body => $body } );
+    &httpResponse({ code => 200, body => $body });
 }
 
 1;

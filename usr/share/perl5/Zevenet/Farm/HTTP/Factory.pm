@@ -24,12 +24,11 @@
 use strict;
 
 my $eload;
-if ( eval { require Zevenet::ELoad; } )
-{
-	$eload = 1;
+if (eval { require Zevenet::ELoad; }) {
+    $eload = 1;
 }
 require Zevenet::Core;
-my $configdir = &getGlobalConfiguration( 'configdir' );
+my $configdir = &getGlobalConfiguration('configdir');
 
 =begin nd
 Function: runHTTPFarmCreate
@@ -50,159 +49,148 @@ Returns:
 
 sub runHTTPFarmCreate    # ( $vip, $vip_port, $farm_name, $farm_type )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	require Zevenet::Farm::HTTP::Config;
-	my ( $vip, $vip_port, $farm_name, $farm_type, $status ) = @_;
-	$status = 'up' if not defined $status;
+    require Zevenet::Farm::HTTP::Config;
+    my ($vip, $vip_port, $farm_name, $farm_type, $status) = @_;
+    $status = 'up' if not defined $status;
 
-	my $proxy_ng = &getGlobalConfiguration( 'proxy_ng' );
+    my $proxy_ng = &getGlobalConfiguration('proxy_ng');
 
-	require Tie::File;
-	require File::Copy;
-	File::Copy->import();
+    require Tie::File;
+    require File::Copy;
+    File::Copy->import();
 
-	my $output = -1;
+    my $output = -1;
 
-	#copy template modyfing values
-	my $proxytpl        = &getGlobalConfiguration( 'proxytpl' );
-	my $proxy_conf_file = "$configdir/${farm_name}_proxy.cfg";
-	&zenlog( "Copying proxy template ($proxytpl) to $proxy_conf_file",
-			 "info", "LSLB" );
-	copy( $proxytpl, $proxy_conf_file );
+    #copy template modyfing values
+    my $proxytpl        = &getGlobalConfiguration('proxytpl');
+    my $proxy_conf_file = "$configdir/${farm_name}_proxy.cfg";
+    &zenlog("Copying proxy template ($proxytpl) to $proxy_conf_file",
+        "info", "LSLB");
+    copy($proxytpl, $proxy_conf_file);
 
-	#modify strings with variables
-	tie my @file, 'Tie::File', $proxy_conf_file;
+    #modify strings with variables
+    tie my @file, 'Tie::File', $proxy_conf_file;
 
-	foreach my $line ( @file )
-	{
-		$line =~ s/\[IP\]/$vip/;
-		$line =~ s/\[PORT\]/$vip_port/;
-		$line =~ s/\[DESC\]/$farm_name/;
-		$line =~ s/\[CONFIGDIR\]/$configdir/;
-		if ( $farm_type eq "HTTPS" )
-		{
-			$line =~ s/ListenHTTP/ListenHTTPS/;
-			$line =~ s/#Cert/Cert/;
-		}
-	}
-	untie @file;
+    foreach my $line (@file) {
+        $line =~ s/\[IP\]/$vip/;
+        $line =~ s/\[PORT\]/$vip_port/;
+        $line =~ s/\[DESC\]/$farm_name/;
+        $line =~ s/\[CONFIGDIR\]/$configdir/;
+        if ($farm_type eq "HTTPS") {
+            $line =~ s/ListenHTTP/ListenHTTPS/;
+            $line =~ s/#Cert/Cert/;
+        }
+    }
+    untie @file;
 
-	#create files with personalized errors
-	my $f_err;
-	if ( $eload )
-	{
-		open $f_err, '>', "$configdir\/$farm_name\_ErrWAF.html";
-		print $f_err "The request was rejected by the server.\n";
-		close $f_err;
-	}
-	open $f_err, '>', "$configdir\/$farm_name\_Err414.html";
-	print $f_err "Request URI is too long.\n";
-	close $f_err;
-	open $f_err, '>', "$configdir\/$farm_name\_Err500.html";
-	print $f_err "An internal server error occurred. Please try again later.\n";
-	close $f_err;
-	open $f_err, '>', "$configdir\/$farm_name\_Err501.html";
-	print $f_err "This method may not be used.\n";
-	close $f_err;
-	open $f_err, '>', "$configdir\/$farm_name\_Err503.html";
-	print $f_err "The service is not available. Please try again later.\n";
-	close $f_err;
+    #create files with personalized errors
+    my $f_err;
+    if ($eload) {
+        open $f_err, '>', "$configdir\/$farm_name\_ErrWAF.html";
+        print $f_err "The request was rejected by the server.\n";
+        close $f_err;
+    }
+    open $f_err, '>', "$configdir\/$farm_name\_Err414.html";
+    print $f_err "Request URI is too long.\n";
+    close $f_err;
+    open $f_err, '>', "$configdir\/$farm_name\_Err500.html";
+    print $f_err "An internal server error occurred. Please try again later.\n";
+    close $f_err;
+    open $f_err, '>', "$configdir\/$farm_name\_Err501.html";
+    print $f_err "This method may not be used.\n";
+    close $f_err;
+    open $f_err, '>', "$configdir\/$farm_name\_Err503.html";
+    print $f_err "The service is not available. Please try again later.\n";
+    close $f_err;
 
-	#create session file
-	open $f_err, '>', "$configdir\/$farm_name\_sessions.cfg";
-	close $f_err;
+    #create session file
+    open $f_err, '>', "$configdir\/$farm_name\_sessions.cfg";
+    close $f_err;
 
-	&setHTTPFarmLogs( $farm_name, 'false' );
+    &setHTTPFarmLogs($farm_name, 'false');
 
-	if ( $eload )
-	{
+    if ($eload) {
 
-		&eload(
-				module => 'Zevenet::Farm::HTTP::Ext',
-				func   => 'addHTTPFarmWafBodySize',
-				args   => [$farm_name],
-		) if ( $proxy_ng eq 'false' );
-	}
+        &eload(
+            module => 'Zevenet::Farm::HTTP::Ext',
+            func   => 'addHTTPFarmWafBodySize',
+            args   => [$farm_name],
+        ) if ($proxy_ng eq 'false');
+    }
 
-	$output = &getHTTPFarmConfigIsOK( $farm_name );
+    $output = &getHTTPFarmConfigIsOK($farm_name);
 
-	if ( $output )
-	{
-		require Zevenet::Farm::Action;
-		&runFarmDelete( $farm_name );
-		return 1;
-	}
+    if ($output) {
+        require Zevenet::Farm::Action;
+        &runFarmDelete($farm_name);
+        return 1;
+    }
 
-	#run farm
-	require Zevenet::System;
-	my $proxy  = &getGlobalConfiguration( 'proxy' );
-	my $piddir = &getGlobalConfiguration( 'piddir' );
+    #run farm
+    require Zevenet::System;
+    my $proxy  = &getGlobalConfiguration('proxy');
+    my $piddir = &getGlobalConfiguration('piddir');
 
-	if ( $status eq 'up' )
-	{
-		&zenlog(
-			"Running $proxy -f $configdir\/$farm_name\_proxy.cfg -p $piddir\/$farm_name\_proxy.pid",
-			"info", "LSLB"
-		);
+    if ($status eq 'up') {
+        &zenlog(
+"Running $proxy -f $configdir\/$farm_name\_proxy.cfg -p $piddir\/$farm_name\_proxy.pid",
+            "info", "LSLB"
+        );
 
-		$output = &zsystem(
-			"$proxy -f $configdir\/$farm_name\_proxy.cfg -p $piddir\/$farm_name\_proxy.pid 2>/dev/null"
-		);
+        $output = &zsystem(
+"$proxy -f $configdir\/$farm_name\_proxy.cfg -p $piddir\/$farm_name\_proxy.pid 2>/dev/null"
+        );
 
-		if ( $proxy_ng eq 'true' )
-		{
-			if ( &getGlobalConfiguration( "mark_routing_L7" ) eq 'true' )
-			{
-				# create L4 farm type local
-				require Zevenet::Net::Validate;
-				my $vip_family;
-				if ( &ipversion( $vip ) == 6 )
-				{
-					$vip_family = "ipv6";
-				}
-				else
-				{
-					$vip_family = "ipv4";
-				}
-				my $body =
-				  qq({"farms" : [ { "name" : "$farm_name", "virtual-addr" : "$vip", "virtual-ports" : "$vip_port", "mode" : "local", "state": "up", "family" : "$vip_family" }]});
-				require Zevenet::Nft;
-				my $error = &httpNlbRequest(
-											 {
-											   farm   => $farm_name,
-											   method => "PUT",
-											   uri    => "/farms",
-											   body   => $body
-											 }
-				);
-				if ( $error )
-				{
-					&zenlog( "L4xnat Farm Type local for '$farm_name' can not be created.",
-							 "warning", "LSLB" );
-				}
-			}
+        if ($proxy_ng eq 'true') {
+            if (&getGlobalConfiguration("mark_routing_L7") eq 'true') {
 
-			if ( $eload )
-			{
-				if ( &getGlobalConfiguration( "floating_L7" ) eq 'true' )
-				{
-					&eload(
-							module => 'Zevenet::Farm::Config',
-							func   => 'reloadFarmsSourceAddressByFarm',
-							args   => [$farm_name],
-					);
-				}
-			}
-		}
-	}
-	else
-	{
-		$output = &setHTTPFarmBootStatus( $farm_name, 'down' );
-	}
+                # create L4 farm type local
+                require Zevenet::Net::Validate;
+                my $vip_family;
+                if (&ipversion($vip) == 6) {
+                    $vip_family = "ipv6";
+                }
+                else {
+                    $vip_family = "ipv4";
+                }
+                my $body =
+qq({"farms" : [ { "name" : "$farm_name", "virtual-addr" : "$vip", "virtual-ports" : "$vip_port", "mode" : "local", "state": "up", "family" : "$vip_family" }]});
+                require Zevenet::Nft;
+                my $error = &httpNlbRequest(
+                    {
+                        farm   => $farm_name,
+                        method => "PUT",
+                        uri    => "/farms",
+                        body   => $body
+                    }
+                );
+                if ($error) {
+                    &zenlog(
+"L4xnat Farm Type local for '$farm_name' can not be created.",
+                        "warning", "LSLB"
+                    );
+                }
+            }
 
-	return $output;
+            if ($eload) {
+                if (&getGlobalConfiguration("floating_L7") eq 'true') {
+                    &eload(
+                        module => 'Zevenet::Farm::Config',
+                        func   => 'reloadFarmsSourceAddressByFarm',
+                        args   => [$farm_name],
+                    );
+                }
+            }
+        }
+    }
+    else {
+        $output = &setHTTPFarmBootStatus($farm_name, 'down');
+    }
+
+    return $output;
 }
 
 1;

@@ -24,48 +24,50 @@
 use strict;
 
 # GET /system/ntp
-sub get_ntp
-{
-	&zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING" );
-	my $desc = "Get ntp";
-	my $ntp  = &getGlobalConfiguration( 'ntp' );
+sub get_ntp {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $desc = "Get ntp";
+    my $ntp  = &getGlobalConfiguration('ntp');
 
-	&httpResponse(
-			 { code => 200, body => { description => $desc, params => { "server" => $ntp } } } );
+    &httpResponse(
+        {
+            code => 200,
+            body => { description => $desc, params => { "server" => $ntp } }
+        }
+    );
 }
 
 #  POST /system/ntp
-sub set_ntp
-{
-	&zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING" );
-	my $json_obj = shift;
+sub set_ntp {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $json_obj = shift;
 
-	my $desc = "Post ntp";
+    my $desc = "Post ntp";
 
-	my @allowParams = ( "server" );
-	my $param_msg = &getValidOptParams( $json_obj, \@allowParams );
+    my @allowParams = ("server");
+    my $param_msg   = &getValidOptParams($json_obj, \@allowParams);
 
-	if ( $param_msg )
-	{
-		&httpErrorResponse( code => 400, desc => $desc, msg => $param_msg );
-	}
+    if ($param_msg) {
+        &httpErrorResponse(code => 400, desc => $desc, msg => $param_msg);
+    }
 
-	if ( !&getValidFormat( "ntp", $json_obj->{ 'server' } ) )
-	{
-		my $msg = "NTP hasn't a correct format.";
-		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    if (!&getValidFormat("ntp", $json_obj->{'server'})) {
+        my $msg = "NTP hasn't a correct format.";
+        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	my $error = &setGlobalConfiguration( 'ntp', $json_obj->{ 'server' } );
+    my $error = &setGlobalConfiguration('ntp', $json_obj->{'server'});
 
-	if ( $error )
-	{
-		my $msg = "There was a error modifying ntp.";
-		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    if ($error) {
+        my $msg = "There was a error modifying ntp.";
+        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	my $ntp = &getGlobalConfiguration( 'ntp' );
-	&httpResponse( { code => 200, body => { description => $desc, params => $ntp } } );
+    my $ntp = &getGlobalConfiguration('ntp');
+    &httpResponse(
+        { code => 200, body => { description => $desc, params => $ntp } });
 }
 
 1;

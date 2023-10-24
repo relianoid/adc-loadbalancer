@@ -24,12 +24,11 @@
 use strict;
 
 my $eload;
-if ( eval { require Zevenet::ELoad; } )
-{
-	$eload = 1;
+if (eval { require Zevenet::ELoad; }) {
+    $eload = 1;
 }
 
-my $configdir = &getGlobalConfiguration( 'configdir' );
+my $configdir = &getGlobalConfiguration('configdir');
 
 =begin nd
 Function: getFarmServices
@@ -46,29 +45,27 @@ Returns:
 
 sub getFarmServices    # ($farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name) = @_;
 
-	my $farm_type = &getFarmType( $farm_name );
-	my @output    = ();
+    my $farm_type = &getFarmType($farm_name);
+    my @output    = ();
 
-	if ( $farm_type eq "http" || $farm_type eq "https" )
-	{
-		require Zevenet::Farm::HTTP::Service;
-		@output = &getHTTPFarmServices( $farm_name );
-	}
+    if ($farm_type eq "http" || $farm_type eq "https") {
+        require Zevenet::Farm::HTTP::Service;
+        @output = &getHTTPFarmServices($farm_name);
+    }
 
-	if ( $farm_type eq "gslb" )
-	{
-		@output = &eload(
-						  module => 'Zevenet::Farm::GSLB::Service',
-						  func   => 'getGSLBFarmServices',
-						  args   => [$farm_name],
-		) if $eload;
-	}
+    if ($farm_type eq "gslb") {
+        @output = &eload(
+            module => 'Zevenet::Farm::GSLB::Service',
+            func   => 'getGSLBFarmServices',
+            args   => [$farm_name],
+        ) if $eload;
+    }
 
-	return @output;
+    return @output;
 }
 
 1;

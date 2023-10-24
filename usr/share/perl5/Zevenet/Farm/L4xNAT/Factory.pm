@@ -27,12 +27,11 @@ use warnings;
 use Zevenet::Core;
 use Zevenet::Farm::L4xNAT::Action;
 
-my $configdir = &getGlobalConfiguration( 'configdir' );
+my $configdir = &getGlobalConfiguration('configdir');
 
 my $eload;
-if ( eval { require Zevenet::ELoad; } )
-{
-	$eload = 1;
+if (eval { require Zevenet::ELoad; }) {
+    $eload = 1;
 }
 
 =begin nd
@@ -51,60 +50,55 @@ Returns:
 
 =cut
 
-sub runL4FarmCreate
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $vip, $farm_name, $vip_port, $status ) = @_;
+sub runL4FarmCreate {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($vip, $farm_name, $vip_port, $status) = @_;
 
-	$status = 'up' if not defined $status;
+    $status = 'up' if not defined $status;
 
-	my $output        = -1;
-	my $farm_type     = 'l4xnat';
-	my $farm_filename = "$configdir/$farm_name\_$farm_type.cfg";
+    my $output        = -1;
+    my $farm_type     = 'l4xnat';
+    my $farm_filename = "$configdir/$farm_name\_$farm_type.cfg";
 
-	require Zevenet::Farm::L4xNAT::Action;
-	require Zevenet::Farm::L4xNAT::Config;
+    require Zevenet::Farm::L4xNAT::Action;
+    require Zevenet::Farm::L4xNAT::Config;
 
-	my $proto = ( $vip_port eq "*" ) ? 'all' : 'tcp';
-	$vip_port = "80" if not defined $vip_port;
-	$vip_port = ""   if ( $vip_port eq "*" );
-	$vip_port =~ s/\:/\-/g;
+    my $proto = ($vip_port eq "*") ? 'all' : 'tcp';
+    $vip_port = "80" if not defined $vip_port;
+    $vip_port = ""   if ($vip_port eq "*");
+    $vip_port =~ s/\:/\-/g;
 
-	require Zevenet::Net::Validate;
-	my $vip_family;
-	if ( &ipversion( $vip ) == 6 )
-	{
-		$vip_family = "ipv6";
-	}
-	else
-	{
-		$vip_family = "ipv4";
-	}
+    require Zevenet::Net::Validate;
+    my $vip_family;
+    if (&ipversion($vip) == 6) {
+        $vip_family = "ipv6";
+    }
+    else {
+        $vip_family = "ipv4";
+    }
 
-	$output = &sendL4NlbCmd(
-		{
-		   farm   => $farm_name,
-		   file   => "$farm_filename",
-		   method => "POST",
-		   body =>
-			 qq({"farms" : [ { "name" : "$farm_name", "virtual-addr" : "$vip", "virtual-ports" : "$vip_port", "protocol" : "$proto", "mode" : "snat", "scheduler" : "weight", "state" : "$status", "family" : "$vip_family" } ] })
-		}
-	);
+    $output = &sendL4NlbCmd(
+        {
+            farm   => $farm_name,
+            file   => "$farm_filename",
+            method => "POST",
+            body   =>
+qq({"farms" : [ { "name" : "$farm_name", "virtual-addr" : "$vip", "virtual-ports" : "$vip_port", "protocol" : "$proto", "mode" : "snat", "scheduler" : "weight", "state" : "$status", "family" : "$vip_family" } ] })
+        }
+    );
 
-	if ( $output )
-	{
-		require Zevenet::Farm::Action;
-		&runFarmDelete( $farm_name );
-		return 1;
-	}
+    if ($output) {
+        require Zevenet::Farm::Action;
+        &runFarmDelete($farm_name);
+        return 1;
+    }
 
-	if ( $status eq 'up' )
-	{
-		$output = &startL4Farm( $farm_name );
-	}
+    if ($status eq 'up') {
+        $output = &startL4Farm($farm_name);
+    }
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -121,28 +115,27 @@ Returns:
 
 =cut
 
-sub runL4FarmDelete
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name ) = @_;
+sub runL4FarmDelete {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name) = @_;
 
-	my $output = -1;
+    my $output = -1;
 
-	require Zevenet::Farm::L4xNAT::Action;
-	require Zevenet::Farm::L4xNAT::Config;
-	require Zevenet::Farm::Core;
-	require Zevenet::Netfilter;
+    require Zevenet::Farm::L4xNAT::Action;
+    require Zevenet::Farm::L4xNAT::Config;
+    require Zevenet::Farm::Core;
+    require Zevenet::Netfilter;
 
-	my $farmfile = &getFarmFile( $farm_name );
+    my $farmfile = &getFarmFile($farm_name);
 
-	$output = &sendL4NlbCmd( { farm => $farm_name, method => "DELETE" } );
+    $output = &sendL4NlbCmd({ farm => $farm_name, method => "DELETE" });
 
-	unlink ( "$configdir/$farmfile" ) if ( -f "$configdir/$farmfile" );
+    unlink("$configdir/$farmfile") if (-f "$configdir/$farmfile");
 
-	&delMarks( $farm_name, "" );
+    &delMarks($farm_name, "");
 
-	return $output;
+    return $output;
 }
 
 1;

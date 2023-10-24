@@ -25,143 +25,134 @@ use strict;
 use warnings;
 
 my $eload;
-if ( eval { require Zevenet::ELoad; } )
-{
-	$eload = 1;
+if (eval { require Zevenet::ELoad; }) {
+    $eload = 1;
 }
 
 #
 sub loadNfModule    # ($modname,$params)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $modname, $params ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($modname, $params) = @_;
 
-	my $status  = 0;
-	my $lsmod   = &getGlobalConfiguration( 'lsmod' );
-	my @modules = @{ &logAndGet( $lsmod, "array" ) };
+    my $status  = 0;
+    my $lsmod   = &getGlobalConfiguration('lsmod');
+    my @modules = @{ &logAndGet($lsmod, "array") };
 
-	if ( !grep { /^$modname /x } @modules )
-	{
-		my $modprobe         = &getGlobalConfiguration( 'modprobe' );
-		my $modprobe_command = "$modprobe $modname $params";
+    if (!grep { /^$modname /x } @modules) {
+        my $modprobe         = &getGlobalConfiguration('modprobe');
+        my $modprobe_command = "$modprobe $modname $params";
 
-		&zenlog( "L4 loadNfModule: $modprobe_command", "info", "SYSTEM" );
-		$status = &logAndRun( "$modprobe_command" );
-	}
+        &zenlog("L4 loadNfModule: $modprobe_command", "info", "SYSTEM");
+        $status = &logAndRun("$modprobe_command");
+    }
 
-	return $status;
+    return $status;
 }
 
 #
 sub removeNfModule    # ($modname)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $modname = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $modname = shift;
 
-	my $modprobe         = &getGlobalConfiguration( 'modprobe' );
-	my $modprobe_command = "$modprobe -r $modname";
+    my $modprobe         = &getGlobalConfiguration('modprobe');
+    my $modprobe_command = "$modprobe -r $modname";
 
-	&zenlog( "L4 removeNfModule: $modprobe_command", "info", "SYSTEM" );
+    &zenlog("L4 removeNfModule: $modprobe_command", "info", "SYSTEM");
 
-	return &logAndRun( "$modprobe_command" );
+    return &logAndRun("$modprobe_command");
 }
 
 #
 sub getNewMark    # ($farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $farm_name = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $farm_name = shift;
 
-	require Tie::File;
-	require Zevenet::Lock;
+    require Tie::File;
+    require Zevenet::Lock;
 
-	my $found       = 0;
-	my $marknum     = 0x200;
-	my $fwmarksconf = &getGlobalConfiguration( 'fwmarksconf' );
-	my @contents;
+    my $found       = 0;
+    my $marknum     = 0x200;
+    my $fwmarksconf = &getGlobalConfiguration('fwmarksconf');
+    my @contents;
 
-	&ztielock( \@contents, "$fwmarksconf" );
+    &ztielock(\@contents, "$fwmarksconf");
 
-	for my $i ( 512 .. 4095 )
-	{
-		my $num = sprintf ( "0x%x", $i );
-		if ( !grep { /^$num/x } @contents )
-		{
-			$found   = 1;
-			$marknum = $num;
-			last;
-		}
-	}
+    for my $i (512 .. 4095) {
+        my $num = sprintf("0x%x", $i);
+        if (!grep { /^$num/x } @contents) {
+            $found   = 1;
+            $marknum = $num;
+            last;
+        }
+    }
 
-	if ( $found )
-	{
-		push @contents, "$marknum // FARM\_$farm_name\_";
-	}
+    if ($found) {
+        push @contents, "$marknum // FARM\_$farm_name\_";
+    }
 
-	untie @contents;
+    untie @contents;
 
-	return $marknum;
+    return $marknum;
 }
 
 #
 sub delMarks    # ($farm_name,$mark)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name, $mark ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name, $mark) = @_;
 
-	require Zevenet::Lock;
+    require Zevenet::Lock;
 
-	my $status      = 0;
-	my $fwmarksconf = &getGlobalConfiguration( 'fwmarksconf' );
-	my @contents;
+    my $status      = 0;
+    my $fwmarksconf = &getGlobalConfiguration('fwmarksconf');
+    my @contents;
 
-	if ( $farm_name ne "" )
-	{
-		&ztielock( \@contents, "$fwmarksconf" );
-		@contents = grep { !/ \/\/ FARM\_$farm_name\_$/ } @contents;
-		untie @contents;
-	}
+    if ($farm_name ne "") {
+        &ztielock(\@contents, "$fwmarksconf");
+        @contents = grep { !/ \/\/ FARM\_$farm_name\_$/ } @contents;
+        untie @contents;
+    }
 
-	if ( $mark ne "" )
-	{
-		&ztielock( \@contents, "$fwmarksconf" );
-		@contents = grep { !/^$mark \/\/ FARM\_/ } @contents;
-		untie @contents;
-	}
+    if ($mark ne "") {
+        &ztielock(\@contents, "$fwmarksconf");
+        @contents = grep { !/^$mark \/\/ FARM\_/ } @contents;
+        untie @contents;
+    }
 
-	return $status;
+    return $status;
 }
 
 #
 sub renameMarks    # ( $farm_name, $newfname )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my $farm_name = shift;
-	my $newfname  = shift;
+    my $farm_name = shift;
+    my $newfname  = shift;
 
-	require Tie::File;
+    require Tie::File;
 
-	my $status = 0;
+    my $status = 0;
 
-	if ( $farm_name ne "" )
-	{
-		my $fwmarksconf = &getGlobalConfiguration( 'fwmarksconf' );
-		tie my @contents, 'Tie::File', "$fwmarksconf";
-		foreach my $line ( @contents )
-		{
-			$line =~ s/ \/\/ FARM\_$farm_name\_/ \/\/ FARM\_$newfname\_/x;
-		}
-		$status = $?;    # FIXME
-		untie @contents;
-	}
+    if ($farm_name ne "") {
+        my $fwmarksconf = &getGlobalConfiguration('fwmarksconf');
+        tie my @contents, 'Tie::File', "$fwmarksconf";
+        foreach my $line (@contents) {
+            $line =~ s/ \/\/ FARM\_$farm_name\_/ \/\/ FARM\_$newfname\_/x;
+        }
+        $status = $?;    # FIXME
+        untie @contents;
+    }
 
-	return $status;      # FIXME
+    return $status;      # FIXME
 }
 
 1;

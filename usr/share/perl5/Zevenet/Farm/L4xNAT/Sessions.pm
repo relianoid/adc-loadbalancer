@@ -57,26 +57,24 @@ Returns:
 
 =cut
 
-sub parseL4FarmSessions
-{
-	my $s = shift;
+sub parseL4FarmSessions {
+    my $s = shift;
 
-	# translate session
-	my $session = $s->{ client };
-	$session =~ s/ \. /_/;
+    # translate session
+    my $session = $s->{client};
+    $session =~ s/ \. /_/;
 
-	my $obj = {
-				'session' => $session,
-				'type'    => ( exists $s->{ expiration } ) ? 'dynamic' : 'static',
-				'ttl'     => ( exists $s->{ expiration } ) ? $s->{ expiration } : undef,
-	};
+    my $obj = {
+        'session' => $session,
+        'type'    => (exists $s->{expiration}) ? 'dynamic'        : 'static',
+        'ttl'     => (exists $s->{expiration}) ? $s->{expiration} : undef,
+    };
 
-	if ( $s->{ backend } =~ /bck(\d+)/ )
-	{
-		$obj->{ id } = $1;
-	}
+    if ($s->{backend} =~ /bck(\d+)/) {
+        $obj->{id} = $1;
+    }
 
-	return $obj;
+    return $obj;
 }
 
 =begin nd
@@ -106,61 +104,57 @@ Returns:
 
 =cut
 
-sub listL4FarmSessions
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $farmname = shift;
+sub listL4FarmSessions {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $farmname = shift;
 
-	require Zevenet::Lock;
-	require Zevenet::JSON;
-	require Zevenet::Nft;
+    require Zevenet::Lock;
+    require Zevenet::JSON;
+    require Zevenet::Nft;
 
-	my $farm     = &getL4FarmStruct( $farmname );
-	my @sessions = ();
-	my $it;
+    my $farm     = &getL4FarmStruct($farmname);
+    my @sessions = ();
+    my $it;
 
-	return [] if ( $farm->{ persist } eq "" );
+    return [] if ($farm->{persist} eq "");
 
-	my $session_tmp = "/tmp/session_$farmname.data";
-	my $lock_f      = &getLockFile( $session_tmp );
-	my $lock_fd     = &openlock( $lock_f, '>' );
-	my $err = &sendL4NlbCmd(
-							 {
-							   method => "GET",
-							   uri    => "/farms/" . $farmname . '/sessions',
-							   farm   => $farmname,
-							   file   => $session_tmp,
-							 }
-	);
+    my $session_tmp = "/tmp/session_$farmname.data";
+    my $lock_f      = &getLockFile($session_tmp);
+    my $lock_fd     = &openlock($lock_f, '>');
+    my $err         = &sendL4NlbCmd(
+        {
+            method => "GET",
+            uri    => "/farms/" . $farmname . '/sessions',
+            farm   => $farmname,
+            file   => $session_tmp,
+        }
+    );
 
-	my $nftlb_resp;
-	if ( !$err )
-	{
-		$nftlb_resp = &decodeJSONFile( $session_tmp );
-	}
+    my $nftlb_resp;
+    if (!$err) {
+        $nftlb_resp = &decodeJSONFile($session_tmp);
+    }
 
-	close $lock_fd;
-	return [] if ( $err or !defined $nftlb_resp );
+    close $lock_fd;
+    return [] if ($err or !defined $nftlb_resp);
 
-	my $client_id = 0;
-	my $backend_info;
-	foreach my $bck ( @{ $farm->{ servers } } )
-	{
-		$backend_info->{ $bck->{ id } }->{ ip }   = $bck->{ ip };
-		$backend_info->{ $bck->{ id } }->{ port } = $bck->{ port };
-	}
+    my $client_id = 0;
+    my $backend_info;
+    foreach my $bck (@{ $farm->{servers} }) {
+        $backend_info->{ $bck->{id} }->{ip}   = $bck->{ip};
+        $backend_info->{ $bck->{id} }->{port} = $bck->{port};
+    }
 
-	foreach my $s ( @{ $nftlb_resp->{ sessions } } )
-	{
-		$it                   = &parseL4FarmSessions( $s );
-		$it->{ client }       = $client_id++;
-		$it->{ backend_ip }   = $backend_info->{ $it->{ id } }->{ ip };
-		$it->{ backend_port } = $backend_info->{ $it->{ id } }->{ port };
-		push @sessions, $it;
-	}
+    foreach my $s (@{ $nftlb_resp->{sessions} }) {
+        $it                 = &parseL4FarmSessions($s);
+        $it->{client}       = $client_id++;
+        $it->{backend_ip}   = $backend_info->{ $it->{id} }->{ip};
+        $it->{backend_port} = $backend_info->{ $it->{id} }->{port};
+        push @sessions, $it;
+    }
 
-	return \@sessions;
+    return \@sessions;
 }
 
 =begin nd
@@ -188,19 +182,17 @@ Returns:
 
 =cut
 
-sub getL4FarmSession
-{
-	my $farm    = shift;
-	my $session = shift;
+sub getL4FarmSession {
+    my $farm    = shift;
+    my $session = shift;
 
-	my $list = &listL4FarmSessions( $farm );
+    my $list = &listL4FarmSessions($farm);
 
-	foreach my $s ( @{ $list } )
-	{
-		return $s if ( $s->{ session } eq $session );
-	}
+    foreach my $s (@{$list}) {
+        return $s if ($s->{session} eq $session);
+    }
 
-	return undef;
+    return undef;
 }
 
 1;

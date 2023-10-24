@@ -47,35 +47,34 @@ See Also:
 
 sub changePassword    #($user, $newpass, $verifypass)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $user, $newpass, $verifypass ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($user, $newpass, $verifypass) = @_;
 
-	$verifypass = $newpass if ( !$verifypass );
+    $verifypass = $newpass if (!$verifypass);
 
-	##write \$ instead $
-	$newpass =~ s/\$/\\\$/g;
-	$verifypass =~ s/\$/\\\$/g;
+    ##write \$ instead $
+    $newpass    =~ s/\$/\\\$/g;
+    $verifypass =~ s/\$/\\\$/g;
 
-	chomp ( $newpass );
-	chomp ( $verifypass );
+    chomp($newpass);
+    chomp($verifypass);
 
-	##no move the next lines
-	my $cmd = "
+    ##no move the next lines
+    my $cmd = "
 /usr/bin/passwd $user 2>/dev/null<<EOF
 $newpass
 $verifypass
 EOF
 	";
 
-	my $output = system ( $cmd );
-	if ( $output )
-	{
-		&zenlog( "Error trying to change the $user password", "error" );
-	}
-	else { &zenlog( "The $user password was changed", "info" ); }
+    my $output = system($cmd );
+    if ($output) {
+        &zenlog("Error trying to change the $user password", "error");
+    }
+    else { &zenlog("The $user password was changed", "info"); }
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -99,19 +98,18 @@ See Also:
 
 sub checkValidUser    #($user,$curpasswd)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $user, $curpasswd ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($user, $curpasswd) = @_;
 
-	my $output = 0;
-	use Authen::Simple::Passwd;
-	my $passwd = Authen::Simple::Passwd->new( path => "$passfile" );
-	if ( $passwd->authenticate( $user, $curpasswd ) )
-	{
-		$output = 1;
-	}
+    my $output = 0;
+    use Authen::Simple::Passwd;
+    my $passwd = Authen::Simple::Passwd->new(path => "$passfile");
+    if ($passwd->authenticate($user, $curpasswd)) {
+        $output = 1;
+    }
 
-	return $output;
+    return $output;
 }
 
 1;

@@ -31,26 +31,26 @@
 #
 ###############################################################################
 
-$zenbin="/usr/local/zevenet/bin/zevenet";
-$action=$ARGV[0];
+$zenbin = "/usr/local/zevenet/bin/zevenet";
+$action = $ARGV[0];
 
-if ( "$action" eq "start"){
-        my @run = `$zenbin start > /dev/console`;
-        exit;
+if ("$action" eq "start") {
+    my @run = `$zenbin start > /dev/console`;
+    exit;
 }
 
-if ( "$action" eq "stop"){
+if ("$action" eq "stop") {
 
-        my @run = `$zenbin stop > /dev/console`;
-        exit;
+    my @run = `$zenbin stop > /dev/console`;
+    exit;
 }
 
-if ( "$action" eq "restart"){
+if ("$action" eq "restart") {
 
-        my @run = `$zenbin stop > /dev/console`;
-	sleep(5);
-        my @run = `$zenbin start > /dev/console`;
-        exit;
+    my @run = `$zenbin stop > /dev/console`;
+    sleep(5);
+    my @run = `$zenbin start > /dev/console`;
+    exit;
 }
 
 print "Usage: /etc/init.d/zevenet ( stop | start | restart )\n";

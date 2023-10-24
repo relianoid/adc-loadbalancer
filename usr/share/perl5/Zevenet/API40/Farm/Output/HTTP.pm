@@ -24,41 +24,37 @@ use strict;
 use Zevenet::Farm::HTTP::Config;
 
 # farm parameters
-sub getHTTPOutFarm
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	require Zevenet::Farm::Config;
-	my $farmname = shift;
-	my $farm_ref = &getFarmStruct( $farmname );
+sub getHTTPOutFarm {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    require Zevenet::Farm::Config;
+    my $farmname = shift;
+    my $farm_ref = &getFarmStruct($farmname);
 
-	# Remove useless fields
-	delete ( $farm_ref->{ name } );
-	return $farm_ref;
+    # Remove useless fields
+    delete($farm_ref->{name});
+    return $farm_ref;
 }
 
-sub getHTTPOutService
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+sub getHTTPOutService {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	require Zevenet::Farm::HTTP::Service;
-	my $farmname      = shift;
-	my @services_list = ();
+    require Zevenet::Farm::HTTP::Service;
+    my $farmname      = shift;
+    my @services_list = ();
 
-	foreach my $service ( &getHTTPFarmServices( $farmname ) )
-	{
-		my $service_ref = &getHTTPServiceStruct( $farmname, $service );
-		push @services_list, $service_ref;
-	}
+    foreach my $service (&getHTTPFarmServices($farmname)) {
+        my $service_ref = &getHTTPServiceStruct($farmname, $service);
+        push @services_list, $service_ref;
+    }
 
-	return \@services_list;
+    return \@services_list;
 }
 
-sub getHTTPOutBackend
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+sub getHTTPOutBackend {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
 }
 

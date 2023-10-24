@@ -25,79 +25,73 @@ use strict;
 use Zevenet::System::Log;
 
 #	GET	/system/logs
-sub get_logs
-{
-	&zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING" );
-	my $desc    = "Get logs";
-	my $backups = &getLogs;
+sub get_logs {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $desc    = "Get logs";
+    my $backups = &getLogs;
 
-	&httpResponse(
-		 { code => 200, body => { description => $desc, params => $backups } } );
+    &httpResponse(
+        { code => 200, body => { description => $desc, params => $backups } });
 }
 
 #	GET	/system/logs/LOG
-sub download_logs
-{
-	&zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING" );
-	my $logFile = shift;
+sub download_logs {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $logFile = shift;
 
-	my $desc     = "Download log file '$logFile'";
-	my $logfiles = &getLogs();
-	my $error    = 1;
+    my $desc     = "Download log file '$logFile'";
+    my $logfiles = &getLogs();
+    my $error    = 1;
 
-	# check if the file exists
-	foreach my $file ( @{$logfiles} )
-	{
-		if ( $file->{file} eq $logFile )
-		{
-			$error=0;
-			last;
-		}
-	}
+    # check if the file exists
+    foreach my $file (@{$logfiles}) {
+        if ($file->{file} eq $logFile) {
+            $error = 0;
+            last;
+        }
+    }
 
-	if ( $error )
-	{
-		my $msg = "Not found $logFile file.";
-		&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
-	}
+    if ($error) {
+        my $msg = "Not found $logFile file.";
+        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+    }
 
-	# Download function ends communication if itself finishes successful. It is not necessary send "200 OK" msg
-	my $logdir = &getGlobalConfiguration( 'logdir' );
+# Download function ends communication if itself finishes successful. It is not necessary send "200 OK" msg
+    my $logdir = &getGlobalConfiguration('logdir');
 
-	&httpDownloadResponse( desc => $desc, dir => $logdir, file => $logFile );
+    &httpDownloadResponse(desc => $desc, dir => $logdir, file => $logFile);
 }
 
 #	GET	/system/logs/LOG/lines/LINES
-sub show_logs
-{
-	&zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING" );
-	my $logFile      = shift;
-	my $lines_number = shift; # number of lines to show
+sub show_logs {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $logFile      = shift;
+    my $lines_number = shift;    # number of lines to show
 
-	my $desc     = "Show a log file";
-	my $logfiles = &getLogs;
-	my $error    = 1;
-	
-	# check if the file exists
-	foreach my $file ( @{ $logfiles } )
-	{
-		if ( $file->{ file } eq $logFile )
-		{
-			$error = 0;
-			last;
-		}
-	}
+    my $desc     = "Show a log file";
+    my $logfiles = &getLogs;
+    my $error    = 1;
 
-	if ( $error )
-	{
-		my $msg = "Not found $logFile file.";
-		&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
-	}
+    # check if the file exists
+    foreach my $file (@{$logfiles}) {
+        if ($file->{file} eq $logFile) {
+            $error = 0;
+            last;
+        }
+    }
 
-	my $lines = &getLogLines( $logFile, $lines_number );
-	my $body = { description => $desc, log => $lines };
+    if ($error) {
+        my $msg = "Not found $logFile file.";
+        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+    }
 
-	&httpResponse( { code => 200, body => $body } );
+    my $lines = &getLogLines($logFile, $lines_number);
+    my $body  = { description => $desc, log => $lines };
+
+    &httpResponse({ code => 200, body => $body });
 }
 
 1;

@@ -24,12 +24,11 @@
 use strict;
 
 my $eload;
-if ( eval { require Zevenet::ELoad; } )
-{
-	$eload = 1;
+if (eval { require Zevenet::ELoad; }) {
+    $eload = 1;
 }
 
-my $configdir = &getGlobalConfiguration( 'configdir' );
+my $configdir = &getGlobalConfiguration('configdir');
 
 =begin nd
 Function: getDatalinkFarmBackends
@@ -46,49 +45,46 @@ Returns:
 
 sub getDatalinkFarmBackends    # ($farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name) = @_;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $first         = "true";
-	my $sindex        = 0;
-	my @servers;
+    my $farm_filename = &getFarmFile($farm_name);
+    my $first         = "true";
+    my $sindex        = 0;
+    my @servers;
 
-	require Zevenet::Farm::Base;
-	my $farmStatus = &getFarmStatus( $farm_name );
+    require Zevenet::Farm::Base;
+    my $farmStatus = &getFarmStatus($farm_name);
 
-	open my $fd, '<', "$configdir/$farm_filename";
+    open my $fd, '<', "$configdir/$farm_filename";
 
-	while ( my $line = <$fd> )
-	{
-		chomp ( $line );
+    while (my $line = <$fd>) {
+        chomp($line);
 
-		# ;server;45.2.2.3;eth0;1;1;up
-		if ( $line ne "" && $line =~ /^\;server\;/ && $first ne "true" )
-		{
-			my @aux = split ( ';', $line );
-			my $status = $aux[6];
-			$status = "undefined" if ( $farmStatus eq "down" );
-			push @servers,
-			  {
-				id        => $sindex,
-				ip        => $aux[2],
-				interface => $aux[3],
-				weight    => $aux[4] + 0,
-				priority  => $aux[5] + 0,
-				status    => $status
-			  };
-			$sindex = $sindex + 1;
-		}
-		else
-		{
-			$first = "false";
-		}
-	}
-	close $fd;
+        # ;server;45.2.2.3;eth0;1;1;up
+        if ($line ne "" && $line =~ /^\;server\;/ && $first ne "true") {
+            my @aux    = split(';', $line);
+            my $status = $aux[6];
+            $status = "undefined" if ($farmStatus eq "down");
+            push @servers,
+              {
+                id        => $sindex,
+                ip        => $aux[2],
+                interface => $aux[3],
+                weight    => $aux[4] + 0,
+                priority  => $aux[5] + 0,
+                status    => $status
+              };
+            $sindex = $sindex + 1;
+        }
+        else {
+            $first = "false";
+        }
+    }
+    close $fd;
 
-	return \@servers;
+    return \@servers;
 }
 
 =begin nd
@@ -114,60 +110,55 @@ FIXME:
 
 sub setDatalinkFarmServer    # ($ids,$rip,$iface,$weight,$priority,$farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $ids, $rip, $iface, $weight, $priority, $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($ids, $rip, $iface, $weight, $priority, $farm_name) = @_;
 
-	require Tie::File;
+    require Tie::File;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $end           = "false";
-	my $i             = 0;
-	my $l             = 0;
+    my $farm_filename = &getFarmFile($farm_name);
+    my $end           = "false";
+    my $i             = 0;
+    my $l             = 0;
 
-	# default value
-	$weight   ||= 1;
-	$priority ||= 1;
+    # default value
+    $weight   ||= 1;
+    $priority ||= 1;
 
-	tie my @contents, 'Tie::File', "$configdir\/$farm_filename";
+    tie my @contents, 'Tie::File', "$configdir\/$farm_filename";
 
-	foreach my $line ( @contents )
-	{
-		if ( $line =~ /^\;server\;/ && $end ne "true" )
-		{
-			# modify a backend
-			if ( $i eq $ids )
-			{
-				my $dline = "\;server\;$rip\;$iface\;$weight\;$priority\;up\n";
-				splice @contents, $l, 1, $dline;
-				$end = "true";
-			}
-			else
-			{
-				$i++;
-			}
-		}
-		$l++;
-	}
+    foreach my $line (@contents) {
+        if ($line =~ /^\;server\;/ && $end ne "true") {
 
-	# create a backend
-	if ( $end eq "false" )
-	{
-		push ( @contents, "\;server\;$rip\;$iface\;$weight\;$priority\;up\n" );
-	}
+            # modify a backend
+            if ($i eq $ids) {
+                my $dline = "\;server\;$rip\;$iface\;$weight\;$priority\;up\n";
+                splice @contents, $l, 1, $dline;
+                $end = "true";
+            }
+            else {
+                $i++;
+            }
+        }
+        $l++;
+    }
 
-	untie @contents;
+    # create a backend
+    if ($end eq "false") {
+        push(@contents, "\;server\;$rip\;$iface\;$weight\;$priority\;up\n");
+    }
 
-	# Apply changes online
-	require Zevenet::Farm::Base;
-	if ( &getFarmStatus( $farm_name ) eq 'up' )
-	{
-		require Zevenet::Farm::Action;
-		&runFarmStop( $farm_name, "true" );
-		&runFarmStart( $farm_name, "true" );
-	}
+    untie @contents;
 
-	return;
+    # Apply changes online
+    require Zevenet::Farm::Base;
+    if (&getFarmStatus($farm_name) eq 'up') {
+        require Zevenet::Farm::Action;
+        &runFarmStop($farm_name, "true");
+        &runFarmStart($farm_name, "true");
+    }
+
+    return;
 }
 
 =begin nd
@@ -186,71 +177,63 @@ Returns:
 
 sub runDatalinkFarmServerDelete    # ($ids,$farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $ids, $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($ids, $farm_name) = @_;
 
-	require Tie::File;
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $output        = -1;
-	my $end           = "false";
-	my $i             = 0;
-	my $l             = 0;
+    require Tie::File;
+    my $farm_filename = &getFarmFile($farm_name);
+    my $output        = -1;
+    my $end           = "false";
+    my $i             = 0;
+    my $l             = 0;
 
-	tie my @contents, 'Tie::File', "$configdir\/$farm_filename";
+    tie my @contents, 'Tie::File', "$configdir\/$farm_filename";
 
-	foreach my $line ( @contents )
-	{
-		if ( $line =~ /^\;server\;/ && $end ne "true" )
-		{
-			if ( $i eq $ids )
-			{
-				splice @contents, $l, 1,;
-				$output = $?;
-				$end    = "true";
-			}
-			else
-			{
-				$i++;
-			}
-		}
-		$l++;
-	}
-	untie @contents;
+    foreach my $line (@contents) {
+        if ($line =~ /^\;server\;/ && $end ne "true") {
+            if ($i eq $ids) {
+                splice @contents, $l, 1,;
+                $output = $?;
+                $end    = "true";
+            }
+            else {
+                $i++;
+            }
+        }
+        $l++;
+    }
+    untie @contents;
 
-	# Apply changes online
-	require Zevenet::Farm::Base;
+    # Apply changes online
+    require Zevenet::Farm::Base;
 
-	if ( &getFarmStatus( $farm_name ) eq 'up' )
-	{
-		require Zevenet::Farm::Action;
-		&runFarmStop( $farm_name, "true" );
-		&runFarmStart( $farm_name, "true" );
-	}
+    if (&getFarmStatus($farm_name) eq 'up') {
+        require Zevenet::Farm::Action;
+        &runFarmStop($farm_name, "true");
+        &runFarmStart($farm_name, "true");
+    }
 
-	return $output;
+    return $output;
 }
 
-sub getDatalinkFarmBackendAvailableID
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $farmname = shift;
+sub getDatalinkFarmBackendAvailableID {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $farmname = shift;
 
-	my $id       = 0;
-	my $backends = &getDatalinkFarmBackends( $farmname );
+    my $id       = 0;
+    my $backends = &getDatalinkFarmBackends($farmname);
 
-	foreach my $l_serv ( @{ $backends } )
-	{
-		if ( $l_serv->{ id } > $id && $l_serv->{ ip } ne "0.0.0.0" )
-		{
-			$id = $l_serv->{ id };
-		}
-	}
+    foreach my $l_serv (@{$backends}) {
+        if ($l_serv->{id} > $id && $l_serv->{ip} ne "0.0.0.0") {
+            $id = $l_serv->{id};
+        }
+    }
 
-	$id++ if @{ $backends };
+    $id++ if @{$backends};
 
-	return $id;
+    return $id;
 }
 
 1;

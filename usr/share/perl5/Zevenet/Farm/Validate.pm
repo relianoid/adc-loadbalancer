@@ -38,29 +38,26 @@ Returns:
 
 sub priorityAlgorithmIsOK    # ( \@Priorities )
 {
-	use List::Util qw( min max );
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $priority_ref = shift;
-	my @backends     = sort @{ $priority_ref };
-	my @backendstmp;
+    use List::Util qw( min max );
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $priority_ref = shift;
+    my @backends     = sort @{$priority_ref};
+    my @backendstmp;
 
-	my $prio_last = 0;
-	foreach my $prio_cur ( @backends )
-	{
-		if ( $prio_cur != $prio_last )
-		{
-			my $n_backendstmp = @backendstmp;
-			return $prio_cur if ( $prio_cur > ( $n_backendstmp + 1 ) );
-			push @backendstmp, $prio_cur;
-			$prio_last = $prio_cur;
-		}
-		else
-		{
-			push @backendstmp, $prio_cur;
-		}
-	}
-	return 0;
+    my $prio_last = 0;
+    foreach my $prio_cur (@backends) {
+        if ($prio_cur != $prio_last) {
+            my $n_backendstmp = @backendstmp;
+            return $prio_cur if ($prio_cur > ($n_backendstmp + 1));
+            push @backendstmp, $prio_cur;
+            $prio_last = $prio_cur;
+        }
+        else {
+            push @backendstmp, $prio_cur;
+        }
+    }
+    return 0;
 }
 
 1;

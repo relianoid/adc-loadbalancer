@@ -30,76 +30,70 @@ use warnings;
 use Zevenet::Log;
 use Zevenet::Config;
 
-my $conf_dir = &getGlobalConfiguration( 'configdir' );
+my $conf_dir = &getGlobalConfiguration('configdir');
 my $fg_conf  = "$conf_dir/farmguardian.conf";
 
 use Zevenet::File;
 use Zevenet::FarmGuardian;
 
-opendir ( DIR, $conf_dir ) or return;
+opendir(DIR, $conf_dir) or return;
 my $index = 0;
-while ( my $file = readdir ( DIR ) )
-{
-	if ( $file =~ /_guardian\.conf$/ )
-	{
-		print " + Migrating Farmguardian file $conf_dir/$file ...\n";
-		my $file_content = &getFile( "$conf_dir/$file" );
-		chomp $file_content;
+while (my $file = readdir(DIR)) {
+    if ($file =~ /_guardian\.conf$/) {
+        print " + Migrating Farmguardian file $conf_dir/$file ...\n";
+        my $file_content = &getFile("$conf_dir/$file");
+        chomp $file_content;
 
-		my $file_name = $1 if $file =~ /^(.+)_guardian\.conf$/;
-		my ( $farm, $service ) = split ( /_/, $file_name );
-		my ( $farm, $interval, $command, $cut, $log ) = split ( /:{3}/, $file_content );
+        my $file_name = $1 if $file =~ /^(.+)_guardian\.conf$/;
+        my ($farm, $service) = split(/_/, $file_name);
+        my ($farm, $interval, $command, $cut, $log) =
+          split(/:{3}/, $file_content);
 
-		my @check_command = split ( / /, $command );
-		my $farmguardian_name = "migrated" . $index++ . "_" . $check_command[0];
-		my $farmguardian_ref = {
-								 "description" => "check migrated from community backup",
-								 "interval"    => $interval,
-								 "command"     => "$command",
-								 "cut_conns"   => "$cut",
-								 "log"         => "$log"
-		};
+        my @check_command     = split(/ /, $command);
+        my $farmguardian_name = "migrated" . $index++ . "_" . $check_command[0];
+        my $farmguardian_ref  = {
+            "description" => "check migrated from community backup",
+            "interval"    => $interval,
+            "command"     => "$command",
+            "cut_conns"   => "$cut",
+            "log"         => "$log"
+        };
 
-		print "      Create Farmguardian $farmguardian_name ... ";
-		my $error = &createFGBlank( $farmguardian_name );
-		if ( $error )
-		{
-			print "ERROR\n";
-			next;
-		}
-		print "OK\n";
-		print "      Update Farmguardian $farmguardian_name ... ";
-		$error = &setFGObject( $farmguardian_name, $farmguardian_ref );
+        print "      Create Farmguardian $farmguardian_name ... ";
+        my $error = &createFGBlank($farmguardian_name);
+        if ($error) {
+            print "ERROR\n";
+            next;
+        }
+        print "OK\n";
+        print "      Update Farmguardian $farmguardian_name ... ";
+        $error = &setFGObject($farmguardian_name, $farmguardian_ref);
 
-		#$error = &setTinyObj( $fg_conf, $farmguardian_name, $farmguardian_ref );
-		if ( $error )
-		{
-			print "ERROR\n";
-			next;
-		}
-		print "OK\n";
-		print "      Link farm : $farm ";
-		print " service : $service " if $service;
-		print " to Farmguardian : $farmguardian_name ...";
-		$error = &linkFGFarm( $farmguardian_name, $farm, $service );
-		if ( $error )
-		{
-			print "ERROR\n";
-			next;
-		}
-		print "OK\n";
-		print "      Delete old configuration file : $file ... ";
-		unlink "$conf_dir/$file";
-		if ( -f "$conf_dir/$file" )
-		{
-			print "ERROR\n";
-		}
-		else
-		{
-			print "OK\n";
-		}
-	}
+       #$error = &setTinyObj( $fg_conf, $farmguardian_name, $farmguardian_ref );
+        if ($error) {
+            print "ERROR\n";
+            next;
+        }
+        print "OK\n";
+        print "      Link farm : $farm ";
+        print " service : $service " if $service;
+        print " to Farmguardian : $farmguardian_name ...";
+        $error = &linkFGFarm($farmguardian_name, $farm, $service);
+        if ($error) {
+            print "ERROR\n";
+            next;
+        }
+        print "OK\n";
+        print "      Delete old configuration file : $file ... ";
+        unlink "$conf_dir/$file";
+        if (-f "$conf_dir/$file") {
+            print "ERROR\n";
+        }
+        else {
+            print "OK\n";
+        }
+    }
 }
-closedir ( DIR );
+closedir(DIR);
 1;
 

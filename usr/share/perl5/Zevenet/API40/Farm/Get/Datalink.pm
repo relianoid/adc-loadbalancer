@@ -24,49 +24,47 @@ use strict;
 use Zevenet::Farm::Backend;
 
 my $eload;
-if ( eval { require Zevenet::ELoad; } )
-{
-	$eload = 1;
+if (eval { require Zevenet::ELoad; }) {
+    $eload = 1;
 }
 
 sub farms_name_datalink    # ( $farmname )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $farmname = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $farmname = shift;
 
-	require Zevenet::Farm::Config;
-	my $vip = &getFarmVip( "vip", $farmname );
-	my $status = &getFarmVipStatus( $farmname );
+    require Zevenet::Farm::Config;
+    my $vip    = &getFarmVip("vip", $farmname);
+    my $status = &getFarmVipStatus($farmname);
 
-	my $out_p = {
-				  vip       => $vip,
-				  algorithm => &getFarmAlgorithm( $farmname ),
-				  status    => $status,
-	};
+    my $out_p = {
+        vip       => $vip,
+        algorithm => &getFarmAlgorithm($farmname),
+        status    => $status,
+    };
 
-	### backends
-	my $out_b = &getFarmServers( $farmname );
-	&getAPIFarmBackends( $out_b, 'datalink' );
+    ### backends
+    my $out_b = &getFarmServers($farmname);
+    &getAPIFarmBackends($out_b, 'datalink');
 
-	my $body = {
-				 description => "List farm $farmname",
-				 params      => $out_p,
-				 backends    => $out_b,
-	};
+    my $body = {
+        description => "List farm $farmname",
+        params      => $out_p,
+        backends    => $out_b,
+    };
 
-	if ( $eload )
-	{
-		$body->{ ipds } = &eload(
-								  module => 'Zevenet::IPDS::Core',
-								  func   => 'getIPDSfarmsRules',
-								  args   => [$farmname],
-		);
-		delete $body->{ ipds }->{ rbl };
-		delete $body->{ ipds }->{ dos };
-	}
+    if ($eload) {
+        $body->{ipds} = &eload(
+            module => 'Zevenet::IPDS::Core',
+            func   => 'getIPDSfarmsRules',
+            args   => [$farmname],
+        );
+        delete $body->{ipds}->{rbl};
+        delete $body->{ipds}->{dos};
+    }
 
-	&httpResponse( { code => 200, body => $body } );
+    &httpResponse({ code => 200, body => $body });
 }
 
 1;

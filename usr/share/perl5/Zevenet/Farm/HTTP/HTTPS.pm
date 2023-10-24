@@ -24,12 +24,11 @@
 use strict;
 
 my $eload;
-if ( eval { require Zevenet::ELoad; } )
-{
-	$eload = 1;
+if (eval { require Zevenet::ELoad; }) {
+    $eload = 1;
 }
 
-my $configdir = &getGlobalConfiguration( 'configdir' );
+my $configdir = &getGlobalConfiguration('configdir');
 
 =begin nd
 Function: getFarmCertificate
@@ -49,29 +48,27 @@ FIXME:
 
 sub getFarmCertificate    # ($farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name) = @_;
 
-	my $output = -1;
+    my $output = -1;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	open my $fd, '<', "$configdir/$farm_filename";
-	my @content = <$fd>;
-	close $fd;
+    my $farm_filename = &getFarmFile($farm_name);
+    open my $fd, '<', "$configdir/$farm_filename";
+    my @content = <$fd>;
+    close $fd;
 
-	foreach my $line ( @content )
-	{
-		if ( $line =~ /Cert/ && $line !~ /\#.*Cert/ )
-		{
-			my @partline = split ( '\"', $line );
-			@partline = split ( "\/", $partline[1] );
-			my $lfile = @partline;
-			$output = $partline[$lfile - 1];
-		}
-	}
+    foreach my $line (@content) {
+        if ($line =~ /Cert/ && $line !~ /\#.*Cert/) {
+            my @partline = split('\"', $line);
+            @partline = split("\/", $partline[1]);
+            my $lfile = @partline;
+            $output = $partline[ $lfile - 1 ];
+        }
+    }
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -93,45 +90,42 @@ FIXME:
 
 sub setFarmCertificate    # ($cfile,$farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $cfile, $farm_name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($cfile, $farm_name) = @_;
 
-	require Tie::File;
-	require Zevenet::Lock;
-	require Zevenet::Farm::HTTP::Config;
+    require Tie::File;
+    require Zevenet::Lock;
+    require Zevenet::Farm::HTTP::Config;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $lock_file     = &getLockFile( $farm_name );
-	my $lock_fh       = &openlock( $lock_file, 'w' );
-	my $output        = -1;
+    my $farm_filename = &getFarmFile($farm_name);
+    my $lock_file     = &getLockFile($farm_name);
+    my $lock_fh       = &openlock($lock_file, 'w');
+    my $output        = -1;
 
-	my $certdir = &getGlobalConfiguration( 'certdir' );
+    my $certdir = &getGlobalConfiguration('certdir');
 
-	&zenlog( "Setting 'Certificate $cfile' for $farm_name farm https",
-			 "info", "LSLB" );
+    &zenlog("Setting 'Certificate $cfile' for $farm_name farm https",
+        "info", "LSLB");
 
-	require Zevenet::Certificate;
-	my $error = &checkCertPEMValid( "$certdir/$cfile" );
-	if ( $error->{ code } )
-	{
-		&zenlog( "'Certificate $cfile' for $farm_name farm https is not valid",
-				 "error", "LSLB" );
-		return $output;
-	}
-	tie my @array, 'Tie::File', "$configdir/$farm_filename";
-	for ( @array )
-	{
-		if ( $_ =~ /Cert "/ )
-		{
-			s/.*Cert\ .*/\tCert\ \"$certdir\/$cfile\"/g;
-			$output = $?;
-		}
-	}
-	untie @array;
-	close $lock_fh;
+    require Zevenet::Certificate;
+    my $error = &checkCertPEMValid("$certdir/$cfile");
+    if ($error->{code}) {
+        &zenlog("'Certificate $cfile' for $farm_name farm https is not valid",
+            "error", "LSLB");
+        return $output;
+    }
+    tie my @array, 'Tie::File', "$configdir/$farm_filename";
+    for (@array) {
+        if ($_ =~ /Cert "/) {
+            s/.*Cert\ .*/\tCert\ \"$certdir\/$cfile\"/g;
+            $output = $?;
+        }
+    }
+    untie @array;
+    close $lock_fh;
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -150,72 +144,67 @@ Returns:
 
 sub setFarmCipherList    # ($farm_name,$ciphers,$cipherc)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	# assign first/second/third argument or take global value
-	my $farm_name = shift;
-	my $ciphers   = shift;
-	my $cipherc   = shift;
+    # assign first/second/third argument or take global value
+    my $farm_name = shift;
+    my $ciphers   = shift;
+    my $cipherc   = shift;
 
-	require Tie::File;
-	require Zevenet::Lock;
-	require Zevenet::Farm::HTTP::Config;
+    require Tie::File;
+    require Zevenet::Lock;
+    require Zevenet::Farm::HTTP::Config;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $lock_file     = &getLockFile( $farm_name );
-	my $lock_fh       = &openlock( $lock_file, 'w' );
-	my $output        = -1;
+    my $farm_filename = &getFarmFile($farm_name);
+    my $lock_file     = &getLockFile($farm_name);
+    my $lock_fh       = &openlock($lock_file, 'w');
+    my $output        = -1;
 
-	tie my @array, 'Tie::File', "$configdir/$farm_filename";
+    tie my @array, 'Tie::File', "$configdir/$farm_filename";
 
-	for my $line ( @array )
-	{
-		# takes the first Ciphers line only
-		next if ( $line !~ /Ciphers/ );
+    for my $line (@array) {
 
-		if ( $ciphers eq "cipherglobal" )
-		{
-			$line =~ s/#//g;
-			$line   = "\tCiphers \"ALL\"";
-			$output = 0;
-		}
-		elsif ( $ciphers eq "cipherpci" )
-		{
-			my $cipher_pci = &getGlobalConfiguration( 'cipher_pci' );
-			$line =~ s/#//g;
-			$line   = "\tCiphers \"$cipher_pci\"";
-			$output = 0;
-		}
-		elsif ( $ciphers eq "ciphercustom" )
-		{
-			$cipherc = 'DEFAULT' if not defined $cipherc;
-			$line =~ s/#//g;
-			$line   = "\tCiphers \"$cipherc\"";
-			$output = 0;
-		}
-		elsif ( $ciphers eq "cipherssloffloading" )
-		{
-			my $cipher = &getGlobalConfiguration( 'cipher_ssloffloading' );
-			$line   = "\tCiphers \"$cipher\"";
-			$output = 0;
-		}
+        # takes the first Ciphers line only
+        next if ($line !~ /Ciphers/);
 
-		# default cipher
-		else
-		{
-			$line =~ s/#//g;
-			$line   = "\tCiphers \"ALL\"";
-			$output = 0;
-		}
+        if ($ciphers eq "cipherglobal") {
+            $line =~ s/#//g;
+            $line   = "\tCiphers \"ALL\"";
+            $output = 0;
+        }
+        elsif ($ciphers eq "cipherpci") {
+            my $cipher_pci = &getGlobalConfiguration('cipher_pci');
+            $line =~ s/#//g;
+            $line   = "\tCiphers \"$cipher_pci\"";
+            $output = 0;
+        }
+        elsif ($ciphers eq "ciphercustom") {
+            $cipherc = 'DEFAULT' if not defined $cipherc;
+            $line =~ s/#//g;
+            $line   = "\tCiphers \"$cipherc\"";
+            $output = 0;
+        }
+        elsif ($ciphers eq "cipherssloffloading") {
+            my $cipher = &getGlobalConfiguration('cipher_ssloffloading');
+            $line   = "\tCiphers \"$cipher\"";
+            $output = 0;
+        }
 
-		last;
-	}
+        # default cipher
+        else {
+            $line =~ s/#//g;
+            $line   = "\tCiphers \"ALL\"";
+            $output = 0;
+        }
 
-	untie @array;
-	close $lock_fh;
+        last;
+    }
 
-	return $output;
+    untie @array;
+    close $lock_fh;
+
+    return $output;
 }
 
 =begin nd
@@ -232,27 +221,26 @@ Returns:
 
 sub getFarmCipherList    # ($farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $farm_name = shift;
-	my $output    = -1;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $farm_name = shift;
+    my $output    = -1;
 
-	my $farm_filename = &getFarmFile( $farm_name );
+    my $farm_filename = &getFarmFile($farm_name);
 
-	open my $fd, '<', "$configdir/$farm_filename";
-	my @content = <$fd>;
-	close $fd;
+    open my $fd, '<', "$configdir/$farm_filename";
+    my @content = <$fd>;
+    close $fd;
 
-	foreach my $line ( @content )
-	{
-		next if ( $line !~ /Ciphers/ );
+    foreach my $line (@content) {
+        next if ($line !~ /Ciphers/);
 
-		$output = ( split ( '\"', $line ) )[1];
+        $output = (split('\"', $line))[1];
 
-		last;
-	}
+        last;
+    }
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -271,33 +259,30 @@ Returns:
 
 sub getFarmCipherSet    # ($farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $farm_name = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $farm_name = shift;
 
-	my $output = -1;
+    my $output = -1;
 
-	my $cipher_list = &getFarmCipherList( $farm_name );
+    my $cipher_list = &getFarmCipherList($farm_name);
 
-	if ( $cipher_list eq 'ALL' )
-	{
-		$output = "cipherglobal";
-	}
-	elsif ( $cipher_list eq &getGlobalConfiguration( 'cipher_pci' ) )
-	{
-		$output = "cipherpci";
-	}
-	elsif (    $eload
-			&& $cipher_list eq &getGlobalConfiguration( 'cipher_ssloffloading' ) )
-	{
-		$output = "cipherssloffloading";
-	}
-	else
-	{
-		$output = "ciphercustom";
-	}
+    if ($cipher_list eq 'ALL') {
+        $output = "cipherglobal";
+    }
+    elsif ($cipher_list eq &getGlobalConfiguration('cipher_pci')) {
+        $output = "cipherpci";
+    }
+    elsif ($eload
+        && $cipher_list eq &getGlobalConfiguration('cipher_ssloffloading'))
+    {
+        $output = "cipherssloffloading";
+    }
+    else {
+        $output = "ciphercustom";
+    }
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -315,28 +300,26 @@ Returns:
 
 sub getHTTPFarmDisableSSL    # ($farm_name, $protocol)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name, $protocol ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name, $protocol) = @_;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $output        = -1;
+    my $farm_filename = &getFarmFile($farm_name);
+    my $output        = -1;
 
-	open my $fd, '<', "$configdir\/$farm_filename" or return $output;
-	$output = 0;    # if the directive is not in config file, it is disabled
-	my @file = <$fd>;
-	close $fd;
+    open my $fd, '<', "$configdir\/$farm_filename" or return $output;
+    $output = 0;    # if the directive is not in config file, it is disabled
+    my @file = <$fd>;
+    close $fd;
 
-	foreach my $line ( @file )
-	{
-		if ( $line =~ /^\tDisable $protocol$/ )
-		{
-			$output = 1;
-			last;
-		}
-	}
+    foreach my $line (@file) {
+        if ($line =~ /^\tDisable $protocol$/) {
+            $output = 1;
+            last;
+        }
+    }
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -355,51 +338,46 @@ Returns:
 
 sub setHTTPFarmDisableSSL    # ($farm_name, $protocol, $action )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name, $protocol, $action ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name, $protocol, $action) = @_;
 
-	require Tie::File;
-	require Zevenet::Lock;
-	require Zevenet::Farm::HTTP::Config;
+    require Tie::File;
+    require Zevenet::Lock;
+    require Zevenet::Farm::HTTP::Config;
 
-	my $farm_filename = &getFarmFile( $farm_name );
-	my $lock_file     = &getLockFile( $farm_name );
-	my $lock_fh       = &openlock( $lock_file, 'w' );
-	my $output        = -1;
+    my $farm_filename = &getFarmFile($farm_name);
+    my $lock_file     = &getLockFile($farm_name);
+    my $lock_fh       = &openlock($lock_file, 'w');
+    my $output        = -1;
 
-	tie my @file, 'Tie::File', "$configdir/$farm_filename";
+    tie my @file, 'Tie::File', "$configdir/$farm_filename";
 
-	if ( $action == 1 )
-	{
-		foreach my $line ( @file )
-		{
-			if ( $line =~ /Ciphers\ .*/ )
-			{
-				$line = "$line\n\tDisable $protocol";
-				last;
-			}
-		}
-		$output = 0;
-	}
-	else
-	{
-		my $it = -1;
-		foreach my $line ( @file )
-		{
-			$it = $it + 1;
-			last if ( $line =~ /Disable $protocol$/ );
-		}
+    if ($action == 1) {
+        foreach my $line (@file) {
+            if ($line =~ /Ciphers\ .*/) {
+                $line = "$line\n\tDisable $protocol";
+                last;
+            }
+        }
+        $output = 0;
+    }
+    else {
+        my $it = -1;
+        foreach my $line (@file) {
+            $it = $it + 1;
+            last if ($line =~ /Disable $protocol$/);
+        }
 
-		# Remove line only if it is found (we haven't arrive at last line).
-		splice ( @file, $it, 1 ) if ( ( $it + 1 ) != scalar @file );
-		$output = 0;
-	}
+        # Remove line only if it is found (we haven't arrive at last line).
+        splice(@file, $it, 1) if (($it + 1) != scalar @file);
+        $output = 0;
+    }
 
-	untie @file;
-	close $lock_fh;
+    untie @file;
+    close $lock_fh;
 
-	return $output;
+    return $output;
 }
 
 1;

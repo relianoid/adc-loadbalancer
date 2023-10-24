@@ -24,51 +24,49 @@ use strict;
 use Zevenet::Farm::Core;
 
 my $eload;
-if ( eval { require Zevenet::ELoad; } ) { $eload = 1; }
+if (eval { require Zevenet::ELoad; }) {
+    $eload = 1;
+}
 
-sub modify_farm # ( $json_obj, $farmname )
+sub modify_farm    # ( $json_obj, $farmname )
 {
-	&zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING" );
-	my $json_obj = shift;
-	my $farmname = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $json_obj = shift;
+    my $farmname = shift;
 
-	my $desc = "Modify farm";
+    my $desc = "Modify farm";
 
-	# Check that the farm exists
-	if ( !&getFarmExists( $farmname ) )
-	{
-		my $msg = "The farmname $farmname does not exist.";
-		&httpErrorResponse( code => 404, desc => $desc, msg => $msg );
-	}
+    # Check that the farm exists
+    if (!&getFarmExists($farmname)) {
+        my $msg = "The farmname $farmname does not exist.";
+        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+    }
 
-	my $type = &getFarmType( $farmname );
+    my $type = &getFarmType($farmname);
 
-	if ( $type eq "http" || $type eq "https" )
-	{
-		require Zevenet::API31::Farm::Put::HTTP;
-		&modify_http_farm( $json_obj, $farmname );
-	}
+    if ($type eq "http" || $type eq "https") {
+        require Zevenet::API31::Farm::Put::HTTP;
+        &modify_http_farm($json_obj, $farmname);
+    }
 
-	if ( $type eq "l4xnat" )
-	{
-		require Zevenet::API31::Farm::Put::L4xNAT;
-		&modify_l4xnat_farm( $json_obj, $farmname );
-	}
+    if ($type eq "l4xnat") {
+        require Zevenet::API31::Farm::Put::L4xNAT;
+        &modify_l4xnat_farm($json_obj, $farmname);
+    }
 
-	if ( $type eq "datalink" )
-	{
-		require Zevenet::API31::Farm::Put::Datalink;
-		&modify_datalink_farm( $json_obj, $farmname );
-	}
+    if ($type eq "datalink") {
+        require Zevenet::API31::Farm::Put::Datalink;
+        &modify_datalink_farm($json_obj, $farmname);
+    }
 
-	if ( $type eq "gslb" && $eload)
-	{
-		&eload(
-			module => 'Zevenet::API31::Farm::Put::GSLB',
-			func   => 'modify_gslb_farm',
-			args   => [$json_obj, $farmname],
-		);
-	}
+    if ($type eq "gslb" && $eload) {
+        &eload(
+            module => 'Zevenet::API31::Farm::Put::GSLB',
+            func   => 'modify_gslb_farm',
+            args   => [ $json_obj, $farmname ],
+        );
+    }
 }
 
 1;

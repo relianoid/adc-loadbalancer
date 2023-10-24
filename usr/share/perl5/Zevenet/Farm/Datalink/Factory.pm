@@ -23,7 +23,7 @@
 
 use strict;
 
-my $configdir = &getGlobalConfiguration( 'configdir' );
+my $configdir = &getGlobalConfiguration('configdir');
 
 =begin nd
 Function: runDatalinkFarmCreate
@@ -45,31 +45,31 @@ FIXME:
 
 sub runDatalinkFarmCreate    # ($farm_name,$vip,$fdev)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name, $vip, $fdev ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name, $vip, $fdev) = @_;
 
-	# remove the default gateway for the iface. This farm will replace it
-	require Zevenet::Net::Interface;
-	my $if_ref = &getInterfaceConfig( $fdev );
-	$if_ref->{ gateway } = "";
-	&setInterfaceConfig( $if_ref );
+    # remove the default gateway for the iface. This farm will replace it
+    require Zevenet::Net::Interface;
+    my $if_ref = &getInterfaceConfig($fdev);
+    $if_ref->{gateway} = "";
+    &setInterfaceConfig($if_ref);
 
-	open my $fd, '>', "$configdir\/$farm_name\_datalink.cfg";
-	print $fd "$farm_name\;$vip\;$fdev\;weight\;up\n";
-	close $fd;
+    open my $fd, '>', "$configdir\/$farm_name\_datalink.cfg";
+    print $fd "$farm_name\;$vip\;$fdev\;weight\;up\n";
+    close $fd;
 
-	my $output = $?;
-	my $piddir = &getGlobalConfiguration( 'piddir' );
+    my $output = $?;
+    my $piddir = &getGlobalConfiguration('piddir');
 
-	if ( !-e "$piddir/${farm_name}_datalink.pid" )
-	{
-		# Enable active datalink file
-		open my $fd, '>', "$piddir\/$farm_name\_datalink.pid";
-		close $fd;
-	}
+    if (!-e "$piddir/${farm_name}_datalink.pid") {
 
-	return $output;
+        # Enable active datalink file
+        open my $fd, '>', "$piddir\/$farm_name\_datalink.pid";
+        close $fd;
+    }
+
+    return $output;
 }
 
 1;

@@ -32,46 +32,45 @@ require Zevenet::Farm::Config;
 
 # Get a list of all network interfaces detected in the system.
 my @interfaces = IO::Interface::Simple->interfaces;
-foreach my $iface ( @interfaces )
-{
-	next if $iface eq 'lo';
-	next if $iface eq 'cl_maintenance';
+foreach my $iface (@interfaces) {
+    next if $iface eq 'lo';
+    next if $iface eq 'cl_maintenance';
 
-	# Get the system addr
-	my $addr = $iface->address;
+    # Get the system addr
+    my $addr = $iface->address;
 
-	# Get the system netmask
-	my $netmask = $iface->netmask;
-	&zenlog( "system interface = $iface", "debug", "NETWORK" );
-	&zenlog( "system addr = $addr",       "debug", "NETWORK" );
-	&zenlog( "system netmask = $netmask", "debug", "NETWORK" );
+    # Get the system netmask
+    my $netmask = $iface->netmask;
+    &zenlog("system interface = $iface", "debug", "NETWORK");
+    &zenlog("system addr = $addr",       "debug", "NETWORK");
+    &zenlog("system netmask = $netmask", "debug", "NETWORK");
 
-	# Get config file of interface
-	my $cfg_file = &getInterfaceConfigFile( $iface );
-	&zenlog( "Interface config file = $cfg_file", "debug", "NETWORK" );
+    # Get config file of interface
+    my $cfg_file = &getInterfaceConfigFile($iface);
+    &zenlog("Interface config file = $cfg_file", "debug", "NETWORK");
 
-	my $iface_hash_ref = &getSystemInterface( $iface );
-	$iface_hash_ref->{ 'addr' } = $addr;
-	$iface_hash_ref->{ 'mask' } = $netmask;
+    my $iface_hash_ref = &getSystemInterface($iface);
+    $iface_hash_ref->{'addr'} = $addr;
+    $iface_hash_ref->{'mask'} = $netmask;
 
-	if ( not -f $cfg_file )
-	{
-		# Store a network interface configuration.
-		&setInterfaceConfig( $iface_hash_ref );
-		next;
-	}
+    if (not -f $cfg_file) {
 
-	# Get IP from configuration file
-	my $ip_ref = &getInterfaceConfig( $iface );
-	my $ip     = $ip_ref->{ 'addr' };
+        # Store a network interface configuration.
+        &setInterfaceConfig($iface_hash_ref);
+        next;
+    }
 
-	if ( $ip ne $addr )
-	{
-		# Store a network interface configuration.
-		&setInterfaceConfig( $iface_hash_ref );
+    # Get IP from configuration file
+    my $ip_ref = &getInterfaceConfig($iface);
+    my $ip     = $ip_ref->{'addr'};
 
-		# Change the virtual interface for a set of farms.
-		my @farms = &getFarmListByVip( $ip );
-		&setAllFarmByVip( $addr, \@farms );
-	}
+    if ($ip ne $addr) {
+
+        # Store a network interface configuration.
+        &setInterfaceConfig($iface_hash_ref);
+
+        # Change the virtual interface for a set of farms.
+        my @farms = &getFarmListByVip($ip);
+        &setAllFarmByVip($addr, \@farms);
+    }
 }

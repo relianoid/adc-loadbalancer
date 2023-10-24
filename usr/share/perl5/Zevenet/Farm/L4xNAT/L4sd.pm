@@ -36,20 +36,18 @@ Returns:
 	Integer - Error code: 0 on success or other value on failure
 =cut
 
-sub runL4sdDaemon
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+sub runL4sdDaemon {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my $l4sdbin = &getGlobalConfiguration( 'l4sd' );
-	my $pidfile = &getGlobalConfiguration( 'l4sdpid' );
+    my $l4sdbin = &getGlobalConfiguration('l4sd');
+    my $pidfile = &getGlobalConfiguration('l4sdpid');
 
-	if ( !-f "$pidfile" )
-	{
-		return &logAndRunBG( $l4sdbin );
-	}
+    if (!-f "$pidfile") {
+        return &logAndRunBG($l4sdbin);
+    }
 
-	return -1;
+    return -1;
 }
 
 =begin nd
@@ -64,25 +62,24 @@ Returns:
 	Integer - Error code: 0 on success or other value on failure
 =cut
 
-sub sendL4sdSignal
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+sub sendL4sdSignal {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my $output  = -1;
-	my $pidfile = &getGlobalConfiguration( 'l4sdpid' );
+    my $output  = -1;
+    my $pidfile = &getGlobalConfiguration('l4sdpid');
 
-	&runL4sdDaemon();
+    &runL4sdDaemon();
 
-	# read pid number
-	open my $file, "<", "$pidfile" or return -1;
-	my $pid = <$file>;
-	close $file;
+    # read pid number
+    open my $file, "<", "$pidfile" or return -1;
+    my $pid = <$file>;
+    close $file;
 
-	kill USR1 => $pid;
-	$output = $?;
+    kill USR1 => $pid;
+    $output = $?;
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -97,28 +94,25 @@ Returns:
 	String - Returns a string with the type of dynamic scheduler, empty if none.
 =cut
 
-sub getL4sdType
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+sub getL4sdType {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my $farm_name = shift;
-	my $output    = "";
-	my $l4sdfile  = &getGlobalConfiguration( 'l4sdcfg' );
+    my $farm_name = shift;
+    my $output    = "";
+    my $l4sdfile  = &getGlobalConfiguration('l4sdcfg');
 
-	if ( !-f "$l4sdfile" )
-	{
-		return $output;
-	}
+    if (!-f "$l4sdfile") {
+        return $output;
+    }
 
-	require Config::Tiny;
-	my $config = Config::Tiny->read( $l4sdfile );
-	if ( defined $config->{ $farm_name } && exists $config->{ $farm_name } )
-	{
-		$output = $config->{ $farm_name }->{ type };
-	}
+    require Config::Tiny;
+    my $config = Config::Tiny->read($l4sdfile);
+    if (defined $config->{$farm_name} && exists $config->{$farm_name}) {
+        $output = $config->{$farm_name}->{type};
+    }
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -134,42 +128,37 @@ Returns:
 	String - Returns a string with the type of dynamic scheduler, empty if none.
 =cut
 
-sub setL4sdType
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+sub setL4sdType {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my $farm_name = shift;
-	my $type      = shift;
-	my $l4sdfile  = &getGlobalConfiguration( 'l4sdcfg' );
+    my $farm_name = shift;
+    my $type      = shift;
+    my $l4sdfile  = &getGlobalConfiguration('l4sdcfg');
 
-	if ( !-f "$l4sdfile" )
-	{
-		open my $fd, '>', $l4sdfile;
-		if ( !$fd )
-		{
-			&zenlog( "Could not create file $l4sdfile: $!", "error", "L4SD" );
-			return -1;
-		}
-		close $fd;
-	}
+    if (!-f "$l4sdfile") {
+        open my $fd, '>', $l4sdfile;
+        if (!$fd) {
+            &zenlog("Could not create file $l4sdfile: $!", "error", "L4SD");
+            return -1;
+        }
+        close $fd;
+    }
 
-	require Config::Tiny;
-	my $config = Config::Tiny->read( $l4sdfile );
+    require Config::Tiny;
+    my $config = Config::Tiny->read($l4sdfile);
 
-	if ( $type eq "none" )
-	{
-		delete $config->{ $farm_name };
-	}
-	elsif ( $type eq "leastconn" )
-	{
-		$config->{ $farm_name }->{ type } = $type;
-	}
-	$config->write( $l4sdfile );
+    if ($type eq "none") {
+        delete $config->{$farm_name};
+    }
+    elsif ($type eq "leastconn") {
+        $config->{$farm_name}->{type} = $type;
+    }
+    $config->write($l4sdfile);
 
-	&sendL4sdSignal();
+    &sendL4sdSignal();
 
-	return 0;
+    return 0;
 }
 
 1;

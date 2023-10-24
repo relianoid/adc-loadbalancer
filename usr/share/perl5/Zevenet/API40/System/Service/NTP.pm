@@ -24,56 +24,53 @@
 use strict;
 
 # GET /system/ntp
-sub get_ntp
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $desc = "Get ntp";
-	my $ntp  = &getGlobalConfiguration( 'ntp' );
+sub get_ntp {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $desc = "Get ntp";
+    my $ntp  = &getGlobalConfiguration('ntp');
 
-	&httpResponse(
-				   {
-					 code => 200,
-					 body => { description => $desc, params => { "server" => $ntp } }
-				   }
-	);
+    &httpResponse(
+        {
+            code => 200,
+            body => { description => $desc, params => { "server" => $ntp } }
+        }
+    );
 }
 
 #  POST /system/ntp
-sub set_ntp
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $json_obj = shift;
+sub set_ntp {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $json_obj = shift;
 
-	my $desc = "Post ntp";
+    my $desc = "Post ntp";
 
-	my $params = &getZAPIModel( "system_ntp-modify.json" );
+    my $params = &getZAPIModel("system_ntp-modify.json");
 
-	# Check allowed parameters
-	my $error_msg = &checkZAPIParams( $json_obj, $params, $desc );
-	return &httpErrorResponse( code => 400, desc => $desc, msg => $error_msg )
-	  if ( $error_msg );
+    # Check allowed parameters
+    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+      if ($error_msg);
 
-	my $error = &setGlobalConfiguration( 'ntp', $json_obj->{ 'server' } );
+    my $error = &setGlobalConfiguration('ntp', $json_obj->{'server'});
 
-	if ( $error )
-	{
-		my $msg = "There was a error modifying ntp.";
-		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    if ($error) {
+        my $msg = "There was a error modifying ntp.";
+        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	my $ntp = &getGlobalConfiguration( 'ntp' );
-	&httpResponse(
-				   {
-					 code => 200,
-					 body => {
-							   description => $desc,
-							   params      => $ntp,
-							   message     => "The NTP service has been updated successfully."
-					 }
-				   }
-	);
+    my $ntp = &getGlobalConfiguration('ntp');
+    &httpResponse(
+        {
+            code => 200,
+            body => {
+                description => $desc,
+                params      => $ntp,
+                message     => "The NTP service has been updated successfully."
+            }
+        }
+    );
 }
 
 1;

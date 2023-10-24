@@ -24,121 +24,115 @@
 use strict;
 
 my $eload;
-if ( eval { require Zevenet::ELoad; } )
-{
-	$eload = 1;
+if (eval { require Zevenet::ELoad; }) {
+    $eload = 1;
 }
 
 sub validCGISession    # ()
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	require Zevenet::CGI;
-	require CGI::Session;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    require Zevenet::CGI;
+    require CGI::Session;
 
-	my $q            = &getCGI();
-	my $validSession = 0;
+    my $q            = &getCGI();
+    my $validSession = 0;
 
-	my $session = CGI::Session->load( $q );
+    my $session = CGI::Session->load($q);
 
 #~ &zenlog( "CGI SESSION ID: " . Dumper $session, "debug", "ZAPI" );
 #~ &zenlog( "CGI SESSION ID: " . $session->id , "debug", "ZAPI") if $session->id;
 #~ &zenlog( "session data: " . Dumper $session->dataref(), "debug", "ZAPI" ); # DEBUG
 
-	if ( $session && $session->param( 'is_logged_in' ) && !$session->is_expired )
-	{
-		# ignore cluster nodes status to reset session expiration date
-		unless ( $q->path_info eq '/system/cluster/nodes' )
-		{
-			my $session_timeout = &getGlobalConfiguration( 'session_timeout' ) // 30;
-			$session->expire( 'is_logged_in', '+' . $session_timeout . 'm' );
-		}
+    if ($session && $session->param('is_logged_in') && !$session->is_expired) {
 
-		$validSession = 1;
-		require Zevenet::User;
-		&setUser( $session->param( 'username' ) );
-	}
+        # ignore cluster nodes status to reset session expiration date
+        unless ($q->path_info eq '/system/cluster/nodes') {
+            my $session_timeout = &getGlobalConfiguration('session_timeout')
+              // 30;
+            $session->expire('is_logged_in', '+' . $session_timeout . 'm');
+        }
 
-	return $validSession;
+        $validSession = 1;
+        require Zevenet::User;
+        &setUser($session->param('username'));
+    }
+
+    return $validSession;
 }
 
 sub getAuthorizationCredentials    # ()
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $base64_digest;
-	my $username;
-	my $password;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $base64_digest;
+    my $username;
+    my $password;
 
-	require MIME::Base64;
-	MIME::Base64->import();
+    require MIME::Base64;
+    MIME::Base64->import();
 
-	if ( exists $ENV{ HTTP_AUTHORIZATION } )
-	{
-		# Expected header example: 'Authorization': 'Basic aHR0cHdhdGNoOmY='
-		$ENV{ HTTP_AUTHORIZATION } =~ /^Basic (.+)$/;
-		$base64_digest = $1;
-	}
+    if (exists $ENV{HTTP_AUTHORIZATION}) {
 
-	if ( $base64_digest )
-	{
-		# $decoded_digest format: "username:password"
-		my $decoded_digest = decode_base64( $base64_digest );
-		chomp $decoded_digest;
-		if ( $decoded_digest =~ /^([^:]+):(.+)$/ )
-		{
-			$username = $1;
-			$password = $2;
-		}
-		else
-		{
-			&zenlog( "User or password not found", "error", "zapi" );
-		}
-	}
+        # Expected header example: 'Authorization': 'Basic aHR0cHdhdGNoOmY='
+        $ENV{HTTP_AUTHORIZATION} =~ /^Basic (.+)$/;
+        $base64_digest = $1;
+    }
 
-	return if !$username or !$password;
+    if ($base64_digest) {
 
-	require Zevenet::User;
-	&setUser( $username );
+        # $decoded_digest format: "username:password"
+        my $decoded_digest = decode_base64($base64_digest);
+        chomp $decoded_digest;
+        if ($decoded_digest =~ /^([^:]+):(.+)$/) {
+            $username = $1;
+            $password = $2;
+        }
+        else {
+            &zenlog("User or password not found", "error", "zapi");
+        }
+    }
 
-	return ( $username, $password );
+    return if !$username or !$password;
+
+    require Zevenet::User;
+    &setUser($username);
+
+    return ($username, $password);
 }
 
 sub authenticateCredentials    #($user,$curpasswd)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $user, $pass ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($user, $pass) = @_;
 
-	return if !defined $user or !defined $pass;
+    return if !defined $user or !defined $pass;
 
-	my $valid_credentials = 0;    # output
+    my $valid_credentials = 0;    # output
 
-	if ( $user eq 'root' )
-	{
-		require Authen::Simple::Passwd;
-		Authen::Simple::Passwd->import;
+    if ($user eq 'root') {
+        require Authen::Simple::Passwd;
+        Authen::Simple::Passwd->import;
 
-		my $passfile = "/etc/shadow";
-		my $simple = Authen::Simple::Passwd->new( path => "$passfile" );
+        my $passfile = "/etc/shadow";
+        my $simple   = Authen::Simple::Passwd->new(path => "$passfile");
 
-		if ( $simple->authenticate( $user, $pass ) )
-		{
-			&zenlog( "The user '$user' login locally", "debug", "auth" );
-			$valid_credentials = 1;
+        if ($simple->authenticate($user, $pass)) {
+            &zenlog("The user '$user' login locally", "debug", "auth");
+            $valid_credentials = 1;
 
-		}
-	}
-	elsif ( $eload )
-	{
-		$valid_credentials = &eload(
-									 module => 'Zevenet::RBAC::Runtime',
-									 func   => 'runRBACAuthUser',
-									 args   => [$user, $pass]
-		);
-	}
+        }
+    }
+    elsif ($eload) {
+        $valid_credentials = &eload(
+            module => 'Zevenet::RBAC::Runtime',
+            func   => 'runRBACAuthUser',
+            args   => [ $user, $pass ]
+        );
+    }
 
-	return $valid_credentials;
+    return $valid_credentials;
 }
 
 1;

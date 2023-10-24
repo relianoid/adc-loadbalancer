@@ -26,82 +26,72 @@ use strict;
 use Zevenet::SNMP;
 
 # GET /system/snmp
-sub get_snmp
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $desc = "Get snmp";
+sub get_snmp {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $desc = "Get snmp";
 
-	my %snmp = %{ &getSnmpdConfig() };
-	$snmp{ 'status' } = &getSnmpdStatus();
+    my %snmp = %{ &getSnmpdConfig() };
+    $snmp{'status'} = &getSnmpdStatus();
 
-	&httpResponse(
-				  { code => 200, body => { description => $desc, params => \%snmp } } );
+    &httpResponse(
+        { code => 200, body => { description => $desc, params => \%snmp } });
 }
 
 #  POST /system/snmp
-sub set_snmp
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $json_obj = shift;
+sub set_snmp {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $json_obj = shift;
 
-	my $desc = "Post snmp";
+    my $desc = "Post snmp";
 
-	my @allowParams = ( "port", "status", "ip", "community", "scope" );
-	my $param_msg = &getValidOptParams( $json_obj, \@allowParams );
+    my @allowParams = ("port", "status", "ip", "community", "scope");
+    my $param_msg   = &getValidOptParams($json_obj, \@allowParams);
 
-	if ( $param_msg )
-	{
-		&httpErrorResponse( code => 400, desc => $desc, msg => $param_msg );
-	}
+    if ($param_msg) {
+        &httpErrorResponse(code => 400, desc => $desc, msg => $param_msg);
+    }
 
-	# Check key format
-	foreach my $key ( keys %{ $json_obj } )
-	{
-		if ( !&getValidFormat( "snmp_$key", $json_obj->{ $key } ) )
-		{
-			my $msg = "$key hasn't a correct format.";
-			&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-		}
-	}
+    # Check key format
+    foreach my $key (keys %{$json_obj}) {
+        if (!&getValidFormat("snmp_$key", $json_obj->{$key})) {
+            my $msg = "$key hasn't a correct format.";
+            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        }
+    }
 
-	my $status = $json_obj->{ 'status' };
-	delete $json_obj->{ 'status' };
-	my $snmp = &getSnmpdConfig();
+    my $status = $json_obj->{'status'};
+    delete $json_obj->{'status'};
+    my $snmp = &getSnmpdConfig();
 
-	foreach my $key ( keys %{ $json_obj } )
-	{
-		$snmp->{ $key } = $json_obj->{ $key };
-	}
+    foreach my $key (keys %{$json_obj}) {
+        $snmp->{$key} = $json_obj->{$key};
+    }
 
-	my $error = &setSnmpdConfig( $snmp );
-	if ( $error )
-	{
-		my $msg = "There was an error modifying SNMP.";
-		&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    my $error = &setSnmpdConfig($snmp);
+    if ($error) {
+        my $msg = "There was an error modifying SNMP.";
+        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	if ( !$status && &getSnmpdStatus() eq 'true' )
-	{
-		&setSnmpdStatus( 'false' );    # stopping snmp
-		&setSnmpdStatus( 'true' );     # starting snmp
-	}
-	elsif ( $status eq 'true' && &getSnmpdStatus() eq 'false' )
-	{
-		&setSnmpdStatus( 'true' );     # starting snmp
-	}
-	elsif ( $status eq 'false' && &getSnmpdStatus() eq 'true' )
-	{
-		&setSnmpdStatus( 'false' );    # stopping snmp
-	}
+    if (!$status && &getSnmpdStatus() eq 'true') {
+        &setSnmpdStatus('false');    # stopping snmp
+        &setSnmpdStatus('true');     # starting snmp
+    }
+    elsif ($status eq 'true' && &getSnmpdStatus() eq 'false') {
+        &setSnmpdStatus('true');     # starting snmp
+    }
+    elsif ($status eq 'false' && &getSnmpdStatus() eq 'true') {
+        &setSnmpdStatus('false');    # stopping snmp
+    }
 
-	# wait to check pid values
-	sleep ( 1 );
-	$snmp->{ status } = &getSnmpdStatus();
+    # wait to check pid values
+    sleep(1);
+    $snmp->{status} = &getSnmpdStatus();
 
-	&httpResponse(
-				   { code => 200, body => { description => $desc, params => $snmp } } );
+    &httpResponse(
+        { code => 200, body => { description => $desc, params => $snmp } });
 }
 
 1;

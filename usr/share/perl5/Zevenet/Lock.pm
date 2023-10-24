@@ -31,16 +31,15 @@ my $lock_file = undef;
 my $lock_fh   = undef;
 
 # generate a lock file based on a input path
-sub getLockFile
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $lock = shift;
+sub getLockFile {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $lock = shift;
 
-	$lock =~ s/\//_/g;
-	$lock = "/tmp/$lock.lock";
+    $lock =~ s/\//_/g;
+    $lock = "/tmp/$lock.lock";
 
-	return $lock;
+    return $lock;
 }
 
 =begin nd
@@ -83,39 +82,39 @@ Returns:
 
 sub openlock    # ( $path, $mode )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $path = shift;
-	my $mode = shift // '';
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $path = shift;
+    my $mode = shift // '';
 
-	$mode =~ s/a/>>/;    # append
-	$mode =~ s/w/>/;     # write
-	$mode =~ s/r/</;     # read
+    $mode =~ s/a/>>/;    # append
+    $mode =~ s/w/>/;     # write
+    $mode =~ s/r/</;     # read
 
-	my $binmode  = $mode =~ s/b//;
-	my $textmode = $mode =~ s/t//;
+    my $binmode  = $mode =~ s/b//;
+    my $textmode = $mode =~ s/t//;
 
-	my $encoding = '';
-	$encoding = ":encoding(UTF-8)" if $textmode;
-	$encoding = ":raw :bytes"      if $binmode;
+    my $encoding = '';
+    $encoding = ":encoding(UTF-8)" if $textmode;
+    $encoding = ":raw :bytes"      if $binmode;
 
-	open ( my $fh, "$mode $encoding", $path )
-	  or do { &zenlog( "Error openning the file $path" ); return undef; };
+    open(my $fh, "$mode $encoding", $path)
+      or do { &zenlog("Error openning the file $path"); return undef; };
 
-	binmode $fh if $fh && $binmode;
+    binmode $fh if $fh && $binmode;
 
-	if ( $mode =~ />/ )
-	{
-		# exclusive lock for writing
-		flock $fh, LOCK_EX;
-	}
-	else
-	{
-		# shared lock for reading
-		flock $fh, LOCK_SH;
-	}
+    if ($mode =~ />/) {
 
-	return $fh;
+        # exclusive lock for writing
+        flock $fh, LOCK_EX;
+    }
+    else {
+
+        # shared lock for reading
+        flock $fh, LOCK_SH;
+    }
+
+    return $fh;
 }
 
 =begin nd
@@ -144,36 +143,34 @@ Bugs:
 
 sub ztielock    # ($file_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $array_ref = shift;    #parameters
-	my $file_name = shift;    #parameters
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $array_ref = shift;    #parameters
+    my $file_name = shift;    #parameters
 
-	require Tie::File;
+    require Tie::File;
 
-	my $o = tie @{ $array_ref }, "Tie::File", $file_name;
-	$o->flock;
+    my $o = tie @{$array_ref}, "Tie::File", $file_name;
+    $o->flock;
 }
 
-sub copyLock
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $ori = shift;
-	my $dst = shift;
+sub copyLock {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $ori = shift;
+    my $dst = shift;
 
-	my $fhOri = &openlock( $ori, 'r' ) or return 1;
-	my $fhDst = &openlock( $dst, 'w' ) or do { close $fhOri; return 1; };
+    my $fhOri = &openlock($ori, 'r') or return 1;
+    my $fhDst = &openlock($dst, 'w') or do { close $fhOri; return 1; };
 
-	foreach my $line ( <$fhOri> )
-	{
-		print $fhDst $line;
-	}
+    foreach my $line (<$fhOri>) {
+        print $fhDst $line;
+    }
 
-	close $fhOri;
-	close $fhDst;
+    close $fhOri;
+    close $fhDst;
 
-	return 0;
+    return 0;
 }
 
 =begin nd
@@ -189,33 +186,29 @@ Bugs:
 	Not used yet.
 =cut
 
-sub lockResource
-{
-	my $resource = shift;
-	my $oper     = shift;    # l (lock), r (release), rd (release, delete)
+sub lockResource {
+    my $resource = shift;
+    my $oper     = shift;    # l (lock), r (release), rd (release, delete)
 
-	# TOODO: Define here the available resources
-	# bonding
-	# crl
-	# ...
+    # TOODO: Define here the available resources
+    # bonding
+    # crl
+    # ...
 
-	if ( $oper =~ /l/ )
-	{
-		$lock_file = &getLockFile( $resource );
-		$lock_fh = &openlock( $lock_file, 'w' );
-	}
-	elsif ( $oper =~ /u/ )
-	{
-		close $lock_fh;
-		unlink $lock_file if ( $oper =~ /d/ );
-	}
-	elsif ( $oper =~ /r/ )
-	{
-		$lock_file = &getLockFile( $resource );
-		$lock_fh = &openlock( $lock_file, 'r' );
-	}
+    if ($oper =~ /l/) {
+        $lock_file = &getLockFile($resource);
+        $lock_fh   = &openlock($lock_file, 'w');
+    }
+    elsif ($oper =~ /u/) {
+        close $lock_fh;
+        unlink $lock_file if ($oper =~ /d/);
+    }
+    elsif ($oper =~ /r/) {
+        $lock_file = &getLockFile($resource);
+        $lock_fh   = &openlock($lock_file, 'r');
+    }
 
-	return;
+    return;
 }
 
 1;

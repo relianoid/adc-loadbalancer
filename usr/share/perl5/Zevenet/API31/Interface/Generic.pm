@@ -24,104 +24,106 @@
 use strict;
 
 my $eload;
-if ( eval { require Zevenet::ELoad; } ) { $eload = 1; }
+if (eval { require Zevenet::ELoad; }) {
+    $eload = 1;
+}
 
 # GET /interfaces Get params of the interfaces
-sub get_interfaces # ()
+sub get_interfaces    # ()
 {
-	&zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING" );
-	my @output_list;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my @output_list;
 
-	require Zevenet::Net::Interface;
+    require Zevenet::Net::Interface;
 
-	my $desc = "List interfaces";
+    my $desc = "List interfaces";
 
-	# Configured interfaces list
-	my @interfaces = @{ &getSystemInterfaceList() };
+    # Configured interfaces list
+    my @interfaces = @{ &getSystemInterfaceList() };
 
-	# get cluster interface
-	my $cluster_if;
+    # get cluster interface
+    my $cluster_if;
 
-	if ( $eload )
-	{
-		my $zcl_conf = &eload(
-			module => 'Zevenet::Cluster',
-			func   => 'getZClusterConfig',
-		);
+    if ($eload) {
+        my $zcl_conf = &eload(
+            module => 'Zevenet::Cluster',
+            func   => 'getZClusterConfig',
+        );
 
-		if ( exists $zcl_conf->{ _ }->{ interface } ) {
-			$cluster_if = $zcl_conf->{ _ }->{ interface };
-		}
-	}
+        if (exists $zcl_conf->{_}->{interface}) {
+            $cluster_if = $zcl_conf->{_}->{interface};
+        }
+    }
 
-	# to include 'has_vlan' to nics
-	my @vlans = &getInterfaceTypeList( 'vlan' );
+    # to include 'has_vlan' to nics
+    my @vlans = &getInterfaceTypeList('vlan');
 
-	for my $if_ref ( @interfaces )
-	{
-		# Exclude IPv6
-		next if $if_ref->{ ip_v } == 6 && &getGlobalConfiguration( 'ipv6_enabled' ) ne 'true';
+    for my $if_ref (@interfaces) {
 
-		# Exclude cluster maintenance interface
-		next if $if_ref->{ type } eq 'dummy';
+        # Exclude IPv6
+        next
+          if $if_ref->{ip_v} == 6
+          && &getGlobalConfiguration('ipv6_enabled') ne 'true';
 
-		$if_ref->{ status } = &getInterfaceSystemStatus( $if_ref );
+        # Exclude cluster maintenance interface
+        next if $if_ref->{type} eq 'dummy';
 
-		# Any key must cotain a value or "" but can't be null
-		if ( ! defined $if_ref->{ name } )    { $if_ref->{ name }    = ""; }
-		if ( ! defined $if_ref->{ addr } )    { $if_ref->{ addr }    = ""; }
-		if ( ! defined $if_ref->{ mask } )    { $if_ref->{ mask }    = ""; }
-		if ( ! defined $if_ref->{ gateway } ) { $if_ref->{ gateway } = ""; }
-		if ( ! defined $if_ref->{ status } )  { $if_ref->{ status }  = ""; }
-		if ( ! defined $if_ref->{ mac } )     { $if_ref->{ mac }     = ""; }
+        $if_ref->{status} = &getInterfaceSystemStatus($if_ref);
 
-		my $if_conf = {
-			name    => $if_ref->{ name },
-			ip      => $if_ref->{ addr },
-			netmask => $if_ref->{ mask },
-			gateway => $if_ref->{ gateway },
-			status  => $if_ref->{ status },
-			mac     => $if_ref->{ mac },
-			type    => $if_ref->{ type },
+        # Any key must cotain a value or "" but can't be null
+        if (!defined $if_ref->{name})    { $if_ref->{name}    = ""; }
+        if (!defined $if_ref->{addr})    { $if_ref->{addr}    = ""; }
+        if (!defined $if_ref->{mask})    { $if_ref->{mask}    = ""; }
+        if (!defined $if_ref->{gateway}) { $if_ref->{gateway} = ""; }
+        if (!defined $if_ref->{status})  { $if_ref->{status}  = ""; }
+        if (!defined $if_ref->{mac})     { $if_ref->{mac}     = ""; }
 
-			#~ ipv     => $if_ref->{ ip_v },
-		};
+        my $if_conf = {
+            name    => $if_ref->{name},
+            ip      => $if_ref->{addr},
+            netmask => $if_ref->{mask},
+            gateway => $if_ref->{gateway},
+            status  => $if_ref->{status},
+            mac     => $if_ref->{mac},
+            type    => $if_ref->{type},
 
-		if ( $if_ref->{ type } eq 'nic' )
-		{
-			my @bond_slaves = ();
+            #~ ipv     => $if_ref->{ ip_v },
+        };
 
-			@bond_slaves = &eload(
-					module => 'Zevenet::Net::Bonding',
-					func   => 'getAllBondsSlaves',
-			) if ( $eload );
+        if ($if_ref->{type} eq 'nic') {
+            my @bond_slaves = ();
 
-			$if_conf->{ is_slave } =
-			  ( grep { $$if_ref{ name } eq $_ } @bond_slaves ) ? 'true' : 'false';
+            @bond_slaves = &eload(
+                module => 'Zevenet::Net::Bonding',
+                func   => 'getAllBondsSlaves',
+            ) if ($eload);
 
-			# include 'has_vlan'
-			for my $vlan_ref ( @vlans )
-			{
-				if ( $vlan_ref->{ parent } eq $if_ref->{ name } )
-				{
-					$if_conf->{ has_vlan } = 'true';
-					last;
-				}
-			}
+            $if_conf->{is_slave} =
+              (grep { $$if_ref{name} eq $_ } @bond_slaves) ? 'true' : 'false';
 
-			$if_conf->{ has_vlan } = 'false' unless $if_conf->{ has_vlan };
-		}
+            # include 'has_vlan'
+            for my $vlan_ref (@vlans) {
+                if ($vlan_ref->{parent} eq $if_ref->{name}) {
+                    $if_conf->{has_vlan} = 'true';
+                    last;
+                }
+            }
 
-		$if_conf->{ is_cluster } = 'true' if $cluster_if && $cluster_if eq $if_ref->{ name };
-		push @output_list, $if_conf;
-	}
+            $if_conf->{has_vlan} = 'false' unless $if_conf->{has_vlan};
+        }
 
-	my $body = {
-				 description => $desc,
-				 interfaces  => \@output_list,
-	};
+        $if_conf->{is_cluster} = 'true'
+          if $cluster_if && $cluster_if eq $if_ref->{name};
+        push @output_list, $if_conf;
+    }
 
-	&httpResponse({ code => 200, body => $body });
+    my $body = {
+        description => $desc,
+        interfaces  => \@output_list,
+    };
+
+    &httpResponse({ code => 200, body => $body });
 }
 
 1;

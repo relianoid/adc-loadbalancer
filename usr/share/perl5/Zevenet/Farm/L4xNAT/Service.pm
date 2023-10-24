@@ -25,12 +25,11 @@ use strict;
 use warnings;
 
 my $eload;
-if ( eval { require Zevenet::ELoad; } )
-{
-	$eload = 1;
+if (eval { require Zevenet::ELoad; }) {
+    $eload = 1;
 }
 
-my $configdir = &getGlobalConfiguration( 'configdir' );
+my $configdir = &getGlobalConfiguration('configdir');
 
 =begin nd
 Function: loadL4FarmModules
@@ -45,36 +44,33 @@ Returns:
 
 =cut
 
-sub loadL4FarmModules
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+sub loadL4FarmModules {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my $modprobe_bin = &getGlobalConfiguration( "modprobe" );
-	my $error        = 0;
-	if ( $eload )
-	{
-		my $cmd = "$modprobe_bin nf_conntrack enable_hooks=1";
-		$error += &logAndRun( "$cmd" );
-	}
-	else
-	{
-		$error += &logAndRun( "$modprobe_bin nf_conntrack" );
+    my $modprobe_bin = &getGlobalConfiguration("modprobe");
+    my $error        = 0;
+    if ($eload) {
+        my $cmd = "$modprobe_bin nf_conntrack enable_hooks=1";
+        $error += &logAndRun("$cmd");
+    }
+    else {
+        $error += &logAndRun("$modprobe_bin nf_conntrack");
 
-		# Initialize conntrack
-		my $nftbin = &getGlobalConfiguration( "nft_bin" );
+        # Initialize conntrack
+        my $nftbin = &getGlobalConfiguration("nft_bin");
 
-		# Flush nft tables
-		&logAndRun( "$nftbin flush table ip dummyTable" );
+        # Flush nft tables
+        &logAndRun("$nftbin flush table ip dummyTable");
 
-		my $nftCmd =
-		  "$nftbin add table ip dummyTable; $nftbin add chain ip dummyTable dummyChain { type nat hook input priority 0 \\; }; $nftbin add rule ip dummyTable dummyChain ct state established accept";
+        my $nftCmd =
+"$nftbin add table ip dummyTable; $nftbin add chain ip dummyTable dummyChain { type nat hook input priority 0 \\; }; $nftbin add rule ip dummyTable dummyChain ct state established accept";
 
-		$error += &logAndRun( "$nftCmd" )
-		  if ( &logAndRunCheck( "$nftbin list table dummyTable" ) );
-	}
+        $error += &logAndRun("$nftCmd")
+          if (&logAndRunCheck("$nftbin list table dummyTable"));
+    }
 
-	return $error;
+    return $error;
 }
 
 1;

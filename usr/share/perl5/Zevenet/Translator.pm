@@ -24,30 +24,27 @@
 use strict;
 
 # expects a hash. the keys are the zapi parameters and the value the lib parameters
-sub createTRANSLATE
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $dictionary = shift;
-	my %translator = ();
+sub createTRANSLATE {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $dictionary = shift;
+    my %translator = ();
 
-	$translator{ api } = $dictionary;
+    $translator{api} = $dictionary;
 
-	foreach my $key ( keys %{ $dictionary } )
-	{
-		$translator{ lib }->{ $dictionary->{ $key } } = $key;
-	}
+    foreach my $key (keys %{$dictionary}) {
+        $translator{lib}->{ $dictionary->{$key} } = $key;
+    }
 
-	return \%translator;
+    return \%translator;
 }
 
-sub getTRANSLATEInputs
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $tr     = shift;
-	my @values = sort keys ( %{ $tr->{ api } } );
-	return \@values;
+sub getTRANSLATEInputs {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $tr     = shift;
+    my @values = sort keys(%{ $tr->{api} });
+    return \@values;
 }
 
 1;

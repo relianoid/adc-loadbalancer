@@ -25,7 +25,7 @@ use strict;
 
 #  OPTIONS PreAuth
 OPTIONS qr{^/.*$} => sub {
-	&httpResponse( { code => 200 } );
+    &httpResponse({ code => 200 });
 };
 
 1;

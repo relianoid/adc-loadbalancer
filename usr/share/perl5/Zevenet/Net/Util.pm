@@ -42,34 +42,32 @@ See Also:
 # Get List of Vinis or Vlans from an interface
 sub getIfacesFromIf    # ($if_name, $type)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $if_name = shift;    # Interface's Name
-	my $type    = shift;    # Type: vini or vlan
-	my @ifaces;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $if_name = shift;    # Interface's Name
+    my $type    = shift;    # Type: vini or vlan
+    my @ifaces;
 
-	my @configured_interfaces = @{ &getConfigInterfaceList() };
+    my @configured_interfaces = @{ &getConfigInterfaceList() };
 
-	for my $interface ( @configured_interfaces )
-	{
-		next if $$interface{ name } !~ /^$if_name.+/;
+    for my $interface (@configured_interfaces) {
+        next if $$interface{name} !~ /^$if_name.+/;
 
-		# get vinis
-		if ( $type eq "vini" && $$interface{ vini } ne '' )
-		{
-			push @ifaces, $interface;
-		}
+        # get vinis
+        if ($type eq "vini" && $$interface{vini} ne '') {
+            push @ifaces, $interface;
+        }
 
-		# get vlans (including vlan:vini)
-		elsif (    $type eq "vlan"
-				&& $$interface{ vlan } ne ''
-				&& $$interface{ vini } eq '' )
-		{
-			push @ifaces, $interface;
-		}
-	}
+        # get vlans (including vlan:vini)
+        elsif ($type eq "vlan"
+            && $$interface{vlan} ne ''
+            && $$interface{vini} eq '')
+        {
+            push @ifaces, $interface;
+        }
+    }
 
-	return @ifaces;
+    return @ifaces;
 }
 
 =begin nd
@@ -94,42 +92,37 @@ See Also:
 # Check if there are some Virtual Interfaces or Vlan with IPv6 and previous UP status to get it up.
 sub setIfacesUp    # ($if_name,$type)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $if_name = shift;    # Interface's Name
-	my $type    = shift;    # Type: vini or vlan
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $if_name = shift;    # Interface's Name
+    my $type    = shift;    # Type: vini or vlan
 
-	die ( "setIfacesUp: type variable must be 'vlan' or 'vini'" )
-	  if $type !~ /^(?:vlan|vini)$/;
+    die("setIfacesUp: type variable must be 'vlan' or 'vini'")
+      if $type !~ /^(?:vlan|vini)$/;
 
-	my @ifaces = &getIfacesFromIf( $if_name, $type );
+    my @ifaces = &getIfacesFromIf($if_name, $type);
 
-	if ( @ifaces )
-	{
-		for my $iface ( @ifaces )
-		{
-			if ( $iface->{ status } eq 'up' )
-			{
-				&addIp( $iface );
-				if ( $iface->{ type } eq 'vlan' )
-				{
-					&applyRoutes( "local", $iface );
-				}
-			}
-		}
+    if (@ifaces) {
+        for my $iface (@ifaces) {
+            if ($iface->{status} eq 'up') {
+                &addIp($iface);
+                if ($iface->{type} eq 'vlan') {
+                    &applyRoutes("local", $iface);
+                }
+            }
+        }
 
-		if ( $type eq "vini" )
-		{
-			&zenlog( "Virtual interfaces of $if_name have been put up.", "info",
-					 "NETWORK" );
-		}
-		elsif ( $type eq "vlan" )
-		{
-			&zenlog( "VLAN interfaces of $if_name have been put up.", "info", "NETWORK" );
-		}
-	}
+        if ($type eq "vini") {
+            &zenlog("Virtual interfaces of $if_name have been put up.",
+                "info", "NETWORK");
+        }
+        elsif ($type eq "vlan") {
+            &zenlog("VLAN interfaces of $if_name have been put up.",
+                "info", "NETWORK");
+        }
+    }
 
-	return;
+    return;
 }
 
 =begin nd
@@ -150,22 +143,21 @@ See Also:
 # send gratuitous ICMP packets for L3 aware
 sub sendGPing    # ($pif)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $pif ) = @_;
-	my $if_conf = &getInterfaceConfig( $pif );
-	my $gw      = $if_conf->{ gateway };
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($pif)   = @_;
+    my $if_conf = &getInterfaceConfig($pif);
+    my $gw      = $if_conf->{gateway};
 
-	if ( $gw )
-	{
-		my $ping_bin = &getGlobalConfiguration( 'ping_bin' );
-		my $pingc    = &getGlobalConfiguration( 'pingc' );
-		my $ping_cmd = "$ping_bin -c $pingc -I $if_conf->{addr} $gw";
+    if ($gw) {
+        my $ping_bin = &getGlobalConfiguration('ping_bin');
+        my $pingc    = &getGlobalConfiguration('pingc');
+        my $ping_cmd = "$ping_bin -c $pingc -I $if_conf->{addr} $gw";
 
-		&zenlog( "Sending $pingc ping(s) to gateway $gw from $if_conf->{addr}",
-				 "info", "NETWORK" );
-		&logAndRunBG( "$ping_cmd" );
-	}
+        &zenlog("Sending $pingc ping(s) to gateway $gw from $if_conf->{addr}",
+            "info", "NETWORK");
+        &logAndRunBG("$ping_cmd");
+    }
 }
 
 =begin nd
@@ -186,43 +178,39 @@ See Also:
 #get a random available port
 sub getRandomPort    # ()
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	require Zevenet::Net::Validate;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    require Zevenet::Net::Validate;
 
-	my $proto = shift;
+    my $proto = shift;
 
-	#down limit
-	my $min = "35060";
+    #down limit
+    my $min = "35060";
 
-	#up limit
-	my $max = "35460";
+    #up limit
+    my $max = "35460";
 
-	#limit of tries looking for the port
-	my $limit_tries = 40;
+    #limit of tries looking for the port
+    my $limit_tries = 40;
 
-	my $random_port;
-	for ( my $tries = 0 ; $tries < $limit_tries ; $tries++ )
-	{
-		$tries++;
-		$random_port = int ( rand ( $max - $min ) ) + $min;
-		if ( &validatePort( '127.0.0.1', $random_port, $proto ) )
-		{
-			last;
-		}
-		else
-		{
-			$random_port = -1;
-		}
-	}
+    my $random_port;
+    for (my $tries = 0 ; $tries < $limit_tries ; $tries++) {
+        $tries++;
+        $random_port = int(rand($max - $min)) + $min;
+        if (&validatePort('127.0.0.1', $random_port, $proto)) {
+            last;
+        }
+        else {
+            $random_port = -1;
+        }
+    }
 
-	if ( $random_port == -1 )
-	{
-		&zenlog( "The limit of tries was reached looking for a port not used",
-				 "error", "networking" );
-	}
+    if ($random_port == -1) {
+        &zenlog("The limit of tries was reached looking for a port not used",
+            "error", "networking");
+    }
 
-	return $random_port;
+    return $random_port;
 }
 
 =begin nd
@@ -247,36 +235,34 @@ See Also:
 # send gratuitous ARP frames
 sub sendGArp    # ($if,$ip)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $if, $ip ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($if, $ip) = @_;
 
-	require Zevenet::Net::Validate;
+    require Zevenet::Net::Validate;
 
-	my @iface = split ( ':', $if );
-	my $ip_v = &ipversion( $ip );
+    my @iface = split(':', $if);
+    my $ip_v  = &ipversion($ip);
 
-	if ( $ip_v == 4 )
-	{
-		my $arping_bin      = &getGlobalConfiguration( 'arping_bin' );
-		my $arp_unsolicited = &getGlobalConfiguration( 'arp_unsolicited' );
+    if ($ip_v == 4) {
+        my $arping_bin      = &getGlobalConfiguration('arping_bin');
+        my $arp_unsolicited = &getGlobalConfiguration('arp_unsolicited');
 
-		my $arp_arg = $arp_unsolicited ? '-U' : '-A';
-		my $arping_cmd = "$arping_bin $arp_arg -c 2 -I $iface[0] $ip";
+        my $arp_arg    = $arp_unsolicited ? '-U' : '-A';
+        my $arping_cmd = "$arping_bin $arp_arg -c 2 -I $iface[0] $ip";
 
-		&zenlog( "$arping_cmd", "info", "NETWORK" );
-		&logAndRunBG( "$arping_cmd" );
-	}
-	elsif ( $ip_v == 6 )
-	{
-		my $arpsend_bin = &getGlobalConfiguration( 'arpsend_bin' );
-		my $arping_cmd  = "$arpsend_bin -U -i $ip $iface[0]";
+        &zenlog("$arping_cmd", "info", "NETWORK");
+        &logAndRunBG("$arping_cmd");
+    }
+    elsif ($ip_v == 6) {
+        my $arpsend_bin = &getGlobalConfiguration('arpsend_bin');
+        my $arping_cmd  = "$arpsend_bin -U -i $ip $iface[0]";
 
-		&zenlog( "$arping_cmd", "info", "NETWORK" );
-		&logAndRunBG( "$arping_cmd" );
-	}
+        &zenlog("$arping_cmd", "info", "NETWORK");
+        &logAndRunBG("$arping_cmd");
+    }
 
-	&sendGPing( $iface[0] );
+    &sendGPing($iface[0]);
 }
 
 =begin nd
@@ -292,25 +278,23 @@ Returns:
 
 =cut
 
-sub setArpAnnounce
-{
-	my $script = &getGlobalConfiguration( "arp_announce_bin" );
-	my $path   = &getGlobalConfiguration( "arp_announce_cron_path" );
-	my $err    = 0;
+sub setArpAnnounce {
+    my $script = &getGlobalConfiguration("arp_announce_bin");
+    my $path   = &getGlobalConfiguration("arp_announce_cron_path");
+    my $err    = 0;
 
-	my $fh = &openlock( $path, 'w' ) or return 1;
-	print $fh "* * * * *	root	$script &>/dev/null\n";
-	close $fh;
+    my $fh = &openlock($path, 'w') or return 1;
+    print $fh "* * * * *	root	$script &>/dev/null\n";
+    close $fh;
 
-	my $cron_service = &getGlobalConfiguration( 'cron_service' );
-	$err = &logAndRun( "$cron_service reload" );
+    my $cron_service = &getGlobalConfiguration('cron_service');
+    $err = &logAndRun("$cron_service reload");
 
-	if ( !$err )
-	{
-		$err = &setGlobalConfiguration( 'arp_announce', "true" );
-	}
+    if (!$err) {
+        $err = &setGlobalConfiguration('arp_announce', "true");
+    }
 
-	return $err;
+    return $err;
 }
 
 =begin nd
@@ -326,30 +310,26 @@ Returns:
 
 =cut
 
-sub unsetArpAnnounce
-{
-	my $path         = &getGlobalConfiguration( "arp_announce_cron_path" );
-	my $cron_service = &getGlobalConfiguration( 'cron_service' );
-	my $err          = 0;
+sub unsetArpAnnounce {
+    my $path         = &getGlobalConfiguration("arp_announce_cron_path");
+    my $cron_service = &getGlobalConfiguration('cron_service');
+    my $err          = 0;
 
-	if ( -f $path )
-	{
-		my $rem = unlink $path;
-		if ( !$rem )
-		{
-			&zenlog( "Error deleting the file '$path'", "error", "NETWORK" );
-			return 1;
-		}
-	}
+    if (-f $path) {
+        my $rem = unlink $path;
+        if (!$rem) {
+            &zenlog("Error deleting the file '$path'", "error", "NETWORK");
+            return 1;
+        }
+    }
 
-	$err = &logAndRun( "$cron_service reload" );
+    $err = &logAndRun("$cron_service reload");
 
-	if ( !$err )
-	{
-		$err = &setGlobalConfiguration( 'arp_announce', "false" );
-	}
+    if (!$err) {
+        $err = &setGlobalConfiguration('arp_announce', "false");
+    }
 
-	return $err;
+    return $err;
 }
 
 =begin nd
@@ -372,24 +352,23 @@ See Also:
 #know if and return ip
 sub iponif    # ($if)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $if = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $if = shift;
 
-	require IO::Socket;
-	require Zevenet::Net::Interface;
+    require IO::Socket;
+    require Zevenet::Net::Interface;
 
-	my $s = IO::Socket::INET->new( Proto => 'udp' );
-	my $iponif = $s->if_addr( $if );
+    my $s      = IO::Socket::INET->new(Proto => 'udp');
+    my $iponif = $s->if_addr($if);
 
-	# fixes virtual interfaces IPs
-	unless ( $iponif )
-	{
-		my $if_ref = &getInterfaceConfig( $if );
-		$iponif = $if_ref->{ addr };
-	}
+    # fixes virtual interfaces IPs
+    unless ($iponif) {
+        my $if_ref = &getInterfaceConfig($if);
+        $iponif = $if_ref->{addr};
+    }
 
-	return $iponif;
+    return $iponif;
 }
 
 =begin nd
@@ -410,16 +389,16 @@ See Also:
 # return the mask of an if
 sub maskonif    # ($if)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $if = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $if = shift;
 
-	require IO::Socket;
+    require IO::Socket;
 
-	my $s = IO::Socket::INET->new( Proto => 'udp' );
-	my $maskonif = $s->if_netmask( $if );
+    my $s        = IO::Socket::INET->new(Proto => 'udp');
+    my $maskonif = $s->if_netmask($if);
 
-	return $maskonif;
+    return $maskonif;
 }
 
 =begin nd
@@ -445,19 +424,18 @@ See Also:
 #list ALL IPS UP
 sub listallips    # ()
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	require Zevenet::Net::Interface;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    require Zevenet::Net::Interface;
 
-	my @listinterfaces = ();
+    my @listinterfaces = ();
 
-	for my $if_name ( &getInterfaceList() )
-	{
-		my $if_ref = &getInterfaceConfig( $if_name );
-		push @listinterfaces, $if_ref->{ addr } if ( $if_ref->{ addr } );
-	}
+    for my $if_name (&getInterfaceList()) {
+        my $if_ref = &getInterfaceConfig($if_name);
+        push @listinterfaces, $if_ref->{addr} if ($if_ref->{addr});
+    }
 
-	return @listinterfaces;
+    return @listinterfaces;
 }
 
 =begin nd
@@ -478,26 +456,26 @@ See Also:
 # Enable(true) / Disable(false) IP Forwarding
 sub setIpForward    # ($arg)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $arg = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $arg = shift;
 
-	my $status = 0;
+    my $status = 0;
 
-	my $switch = ( $arg eq 'true' )
-	  ? 1           # set switch on if arg == 'true'
-	  : 0;          # switch is off by default
+    my $switch = ($arg eq 'true')
+      ? 1     # set switch on if arg == 'true'
+      : 0;    # switch is off by default
 
-	&zenlog( "setting $arg to IP forwarding ", "info", "NETWORK" );
+    &zenlog("setting $arg to IP forwarding ", "info", "NETWORK");
 
-	# switch forwarding as requested
-	$status +=
-	  &logAndRun( "echo $switch > /proc/sys/net/ipv4/conf/all/forwarding" );
-	$status += &logAndRun( "echo $switch > /proc/sys/net/ipv4/ip_forward" );
-	$status +=
-	  &logAndRun( "echo $switch > /proc/sys/net/ipv6/conf/all/forwarding" );
+    # switch forwarding as requested
+    $status +=
+      &logAndRun("echo $switch > /proc/sys/net/ipv4/conf/all/forwarding");
+    $status += &logAndRun("echo $switch > /proc/sys/net/ipv4/ip_forward");
+    $status +=
+      &logAndRun("echo $switch > /proc/sys/net/ipv6/conf/all/forwarding");
 
-	return $status;
+    return $status;
 }
 
 =begin nd
@@ -517,31 +495,31 @@ See Also:
 
 sub getInterfaceOfIp    # ($ip)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $ip = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $ip = shift;
 
-	require Zevenet::Net::Interface;
-	require NetAddr::IP;
+    require Zevenet::Net::Interface;
+    require NetAddr::IP;
 
-	my $ref_addr = NetAddr::IP->new( $ip );
+    my $ref_addr = NetAddr::IP->new($ip);
 
-	foreach my $iface ( &getInterfaceList() )
-	{
-		# return interface if found in the listç
-		my $if_ip = &iponif( $iface );
-		next if ( !$if_ip );
+    foreach my $iface (&getInterfaceList()) {
 
-		my $if_addr = NetAddr::IP->new( $if_ip );
+        # return interface if found in the listç
+        my $if_ip = &iponif($iface);
+        next if (!$if_ip);
 
-		return $iface if ( $if_addr eq $ref_addr );
-	}
+        my $if_addr = NetAddr::IP->new($if_ip);
 
-	# returns an invalid interface name, an undefined variable
-	&zenlog( "Warning: No interface was found configured with IP address $ip",
-			 "info", "NETWORK" );
+        return $iface if ($if_addr eq $ref_addr);
+    }
 
-	return;
+    # returns an invalid interface name, an undefined variable
+    &zenlog("Warning: No interface was found configured with IP address $ip",
+        "info", "NETWORK");
+
+    return;
 }
 
 1;

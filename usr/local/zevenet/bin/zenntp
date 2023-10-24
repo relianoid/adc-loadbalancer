@@ -25,11 +25,10 @@ use strict;
 use warnings;
 use Zevenet::Config;
 
-my $ntp     = &getGlobalConfiguration( 'ntp' );
-my $datentp = &getGlobalConfiguration( 'datentp' );
+my $ntp     = &getGlobalConfiguration('ntp');
+my $datentp = &getGlobalConfiguration('datentp');
 
-if ( $datentp !~ /^$/ )
-{
-	my @conf = `$datentp $ntp`;
-	print @conf;
+if ($datentp !~ /^$/) {
+    my @conf = `$datentp $ntp`;
+    print @conf;
 }

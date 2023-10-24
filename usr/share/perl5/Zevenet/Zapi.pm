@@ -24,7 +24,7 @@
 use strict;
 
 my $eload;
-$eload = 1 if ( eval { require Zevenet::ELoad; } );
+$eload = 1 if (eval { require Zevenet::ELoad; });
 
 =begin nd
 Function: getZAPI
@@ -45,28 +45,25 @@ See Also:
 
 sub getZAPI    #($name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $name ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($name) = @_;
 
-	use File::Grep 'fgrep';
+    use File::Grep 'fgrep';
 
-	my $result = "false";
+    my $result = "false";
 
-	#return if zapi user is enabled or not true = enable, false = disabled
-	if ( $name eq "status" )
-	{
-		if ( fgrep { /^zapi/ } &getGlobalConfiguration( 'htpass' ) )
-		{
-			$result = "true";
-		}
-	}
-	elsif ( $name eq "zapikey" )
-	{
-		$result = &getGlobalConfiguration( 'zapikey' );
-	}
+    #return if zapi user is enabled or not true = enable, false = disabled
+    if ($name eq "status") {
+        if (fgrep { /^zapi/ } &getGlobalConfiguration('htpass')) {
+            $result = "true";
+        }
+    }
+    elsif ($name eq "zapikey") {
+        $result = &getGlobalConfiguration('zapikey');
+    }
 
-	return $result;
+    return $result;
 }
 
 =begin nd
@@ -97,86 +94,75 @@ See Also:
 
 sub setZAPI    #($name,$value)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $name, $value ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($name, $value) = @_;
 
-	my $globalcfg = &getGlobalConfiguration( 'globalcfg' );
+    my $globalcfg = &getGlobalConfiguration('globalcfg');
 
-	#Enable ZAPI
-	if ( $name eq "enable" )
-	{
-		my $cmd = "adduser --system --shell /bin/false --no-create-home zapi";
-		return &logAndRun( $cmd );
-	}
+    #Enable ZAPI
+    if ($name eq "enable") {
+        my $cmd = "adduser --system --shell /bin/false --no-create-home zapi";
+        return &logAndRun($cmd);
+    }
 
-	#Disable ZAPI
-	if ( $name eq "disable" )
-	{
-		my $deluser_bin = &getGlobalConfiguration( 'deluser_bin' );
-		my $cmd         = "$deluser_bin zapi";
+    #Disable ZAPI
+    if ($name eq "disable") {
+        my $deluser_bin = &getGlobalConfiguration('deluser_bin');
+        my $cmd         = "$deluser_bin zapi";
 
-		# delete zapikey
-		require Tie::File;
-		tie my @contents, 'Tie::File', "$globalcfg";
+        # delete zapikey
+        require Tie::File;
+        tie my @contents, 'Tie::File', "$globalcfg";
 
-		foreach my $line ( @contents )
-		{
-			if ( $line =~ /^\$zapikey/ )
-			{
-				$line =~ s/^\$zapikey.*/\$zapikey=""\;/g;
-			}
-		}
-		untie @contents;
+        foreach my $line (@contents) {
+            if ($line =~ /^\$zapikey/) {
+                $line =~ s/^\$zapikey.*/\$zapikey=""\;/g;
+            }
+        }
+        untie @contents;
 
-		# Update zapikey global configuration
-		&getGlobalConfiguration( 'zapikey', 1 );
-		return &logAndRun( $cmd );
-	}
+        # Update zapikey global configuration
+        &getGlobalConfiguration('zapikey', 1);
+        return &logAndRun($cmd);
+    }
 
-	#Set Random key for zapi
-	if ( $name eq "randomkey" )
-	{
-		require Tie::File;
-		my $random = &setZAPIKey( 64 );
-		tie my @contents, 'Tie::File', "$globalcfg";
-		foreach my $line ( @contents )
-		{
-			if ( $line =~ /zapi/ )
-			{
-				$line =~ s/^\$zapikey.*/\$zapikey="$random"\;/g;
-			}
-		}
-		untie @contents;
-	}
+    #Set Random key for zapi
+    if ($name eq "randomkey") {
+        require Tie::File;
+        my $random = &setZAPIKey(64);
+        tie my @contents, 'Tie::File', "$globalcfg";
+        foreach my $line (@contents) {
+            if ($line =~ /zapi/) {
+                $line =~ s/^\$zapikey.*/\$zapikey="$random"\;/g;
+            }
+        }
+        untie @contents;
+    }
 
-	#Set ZAPI KEY
-	if ( $name eq "key" )
-	{
-		if ( $eload )
-		{
-			$value = &eload(
-							 module => 'Zevenet::Code',
-							 func   => 'setCryptString',
-							 args   => [$value],
-			);
-		}
+    #Set ZAPI KEY
+    if ($name eq "key") {
+        if ($eload) {
+            $value = &eload(
+                module => 'Zevenet::Code',
+                func   => 'setCryptString',
+                args   => [$value],
+            );
+        }
 
-		require Tie::File;
-		tie my @contents, 'Tie::File', "$globalcfg";
+        require Tie::File;
+        tie my @contents, 'Tie::File', "$globalcfg";
 
-		foreach my $line ( @contents )
-		{
-			if ( $line =~ /zapi/ )
-			{
-				$line =~ s/^\$zapikey.*/\$zapikey="$value"\;/g;
-			}
-		}
-		untie @contents;
+        foreach my $line (@contents) {
+            if ($line =~ /zapi/) {
+                $line =~ s/^\$zapikey.*/\$zapikey="$value"\;/g;
+            }
+        }
+        untie @contents;
 
-		# Update zapikey global configuration
-		&getGlobalConfiguration( 'zapikey', 1 );
-	}
+        # Update zapikey global configuration
+        &getGlobalConfiguration('zapikey', 1);
+    }
 }
 
 =begin nd
@@ -196,72 +182,68 @@ See Also:
 
 sub setZAPIKey    #()
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $passwordsize = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $passwordsize = shift;
 
-	my @alphanumeric = ( 'a' .. 'z', 'A' .. 'Z', 0 .. 9 );
-	my $randpassword = join '', map $alphanumeric[rand @alphanumeric],
-	  0 .. $passwordsize;
+    my @alphanumeric = ('a' .. 'z', 'A' .. 'Z', 0 .. 9);
+    my $randpassword = join '', map $alphanumeric[ rand @alphanumeric ],
+      0 .. $passwordsize;
 
-	return $randpassword;
+    return $randpassword;
 }
 
 sub validZapiKey    # ()
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my $validKey = 0;                 # output
-	my $key      = "HTTP_ZAPI_KEY";
+    my $validKey = 0;                 # output
+    my $key      = "HTTP_ZAPI_KEY";
 
-	require Zevenet::User;
-	if ( exists $ENV{ $key } )        # zapi key was provided
-	{
-		if (
-			 &getZAPI( "status" ) eq "true"              # zapi user is enabled
-			 && &getZAPI( "zapikey" ) eq $ENV{ $key }    # matches key
-		  )
-		{
-			&setUser( 'root' );
-			$validKey = 1;
-		}
-		elsif ( $eload )
-		{
-			# get a RBAC user
-			my $user = &eload(
-							   module => 'Zevenet::RBAC::User::Core',
-							   func   => 'validateRBACUserZapi',
-							   args   => [$ENV{ $key }],
-			);
-			if ( $user )
-			{
-				&setUser( $user );
-				$validKey = 1;
-			}
-		}
-	}
+    require Zevenet::User;
+    if (exists $ENV{$key})            # zapi key was provided
+    {
+        if (
+            &getZAPI("status") eq "true"            # zapi user is enabled
+            && &getZAPI("zapikey") eq $ENV{$key}    # matches key
+          )
+        {
+            &setUser('root');
+            $validKey = 1;
+        }
+        elsif ($eload) {
 
-	return $validKey;
+            # get a RBAC user
+            my $user = &eload(
+                module => 'Zevenet::RBAC::User::Core',
+                func   => 'validateRBACUserZapi',
+                args   => [ $ENV{$key} ],
+            );
+            if ($user) {
+                &setUser($user);
+                $validKey = 1;
+            }
+        }
+    }
+
+    return $validKey;
 }
 
-sub listZapiVersions
-{
-	my $version_st = &getGlobalConfiguration( "zapi_versions" );
-	my @versions = split ( ' ', $version_st );
+sub listZapiVersions {
+    my $version_st = &getGlobalConfiguration("zapi_versions");
+    my @versions   = split(' ', $version_st);
 
-	return sort @versions;
+    return sort @versions;
 }
 
-sub setZapiVersion
-{
-	my $version = shift;
-	$ENV{ ZAPI_VERSION } = $version;
+sub setZapiVersion {
+    my $version = shift;
+    $ENV{ZAPI_VERSION} = $version;
 }
 
-sub getZapiVersion
-{
-	return $ENV{ ZAPI_VERSION } // "";
+sub getZapiVersion {
+    return $ENV{ZAPI_VERSION} // "";
 }
 
 1;

@@ -28,12 +28,11 @@ use Zevenet::Config;
 use Zevenet::Nft;
 
 my $eload;
-if ( eval { require Zevenet::ELoad; } )
-{
-	$eload = 1;
+if (eval { require Zevenet::ELoad; }) {
+    $eload = 1;
 }
 
-my $configdir = &getGlobalConfiguration( 'configdir' );
+my $configdir = &getGlobalConfiguration('configdir');
 
 =begin nd
 Function: startL4Farm
@@ -51,45 +50,43 @@ Returns:
 
 sub startL4Farm    # ($farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my $farm_name = shift;
-	my $writeconf = shift // 0;
+    my $farm_name = shift;
+    my $writeconf = shift // 0;
 
-	require Zevenet::Farm::L4xNAT::Config;
+    require Zevenet::Farm::L4xNAT::Config;
 
-	&zlog( "Starting farm $farm_name" ) if &debug == 2;
+    &zlog("Starting farm $farm_name") if &debug == 2;
 
-	my $status = 0;
-	my $farm   = &getL4FarmStruct( $farm_name );
+    my $status = 0;
+    my $farm   = &getL4FarmStruct($farm_name);
 
-	&zenlog( "startL4Farm << farm_name:$farm_name" )
-	  if &debug;
+    &zenlog("startL4Farm << farm_name:$farm_name")
+      if &debug;
 
-	&loadL4Modules( $$farm{ vproto } );
+    &loadL4Modules($$farm{vproto});
 
-	$status = &startL4FarmNlb( $farm_name, $writeconf );
-	if ( $status != 0 )
-	{
-		return $status;
-	}
+    $status = &startL4FarmNlb($farm_name, $writeconf);
+    if ($status != 0) {
+        return $status;
+    }
 
-	&doL4FarmRules( "start", $farm_name );
+    &doL4FarmRules("start", $farm_name);
 
-	&reloadFarmsSourceAddressByFarm( $farm_name );
+    &reloadFarmsSourceAddressByFarm($farm_name);
 
-	# Enable IP forwarding
-	require Zevenet::Net::Util;
-	&setIpForward( 'true' );
+    # Enable IP forwarding
+    require Zevenet::Net::Util;
+    &setIpForward('true');
 
-	if ( $farm->{ lbalg } eq 'leastconn' )
-	{
-		require Zevenet::Farm::L4xNAT::L4sd;
-		&sendL4sdSignal();
-	}
+    if ($farm->{lbalg} eq 'leastconn') {
+        require Zevenet::Farm::L4xNAT::L4sd;
+        &sendL4sdSignal();
+    }
 
-	return $status;
+    return $status;
 }
 
 =begin nd
@@ -108,44 +105,42 @@ Returns:
 
 sub stopL4Farm    # ($farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my $farm_name = shift;
-	my $writeconf = shift;
-	my $pidfile   = &getL4FarmPidFile( $farm_name );
+    my $farm_name = shift;
+    my $writeconf = shift;
+    my $pidfile   = &getL4FarmPidFile($farm_name);
 
-	require Zevenet::Farm::Core;
-	require Zevenet::Farm::L4xNAT::Config;
+    require Zevenet::Farm::Core;
+    require Zevenet::Farm::L4xNAT::Config;
 
-	&zlog( "Stopping farm $farm_name" ) if &debug > 2;
+    &zlog("Stopping farm $farm_name") if &debug > 2;
 
-	my $farm = &getL4FarmStruct( $farm_name );
+    my $farm = &getL4FarmStruct($farm_name);
 
-	&doL4FarmRules( "stop", $farm_name );
+    &doL4FarmRules("stop", $farm_name);
 
-	my $pid = &getNlbPid();
-	if ( $pid <= 0 )
-	{
-		return 0;
-	}
+    my $pid = &getNlbPid();
+    if ($pid <= 0) {
+        return 0;
+    }
 
-	my $status = &stopL4FarmNlb( $farm_name, $writeconf );
+    my $status = &stopL4FarmNlb($farm_name, $writeconf);
 
-	# Flush conntrack
-	&resetL4FarmConntrack( $farm_name ) unless ( $status );
+    # Flush conntrack
+    &resetL4FarmConntrack($farm_name) unless ($status);
 
-	unlink "$pidfile" if ( -e "$pidfile" );
+    unlink "$pidfile" if (-e "$pidfile");
 
-	&unloadL4Modules( $$farm{ vproto } );
+    &unloadL4Modules($$farm{vproto});
 
-	if ( $farm->{ lbalg } eq 'leastconn' )
-	{
-		require Zevenet::Farm::L4xNAT::L4sd;
-		&sendL4sdSignal();
-	}
+    if ($farm->{lbalg} eq 'leastconn') {
+        require Zevenet::Farm::L4xNAT::L4sd;
+        &sendL4sdSignal();
+    }
 
-	return $status;
+    return $status;
 }
 
 =begin nd
@@ -164,21 +159,20 @@ Returns:
 
 sub setL4NewFarmName    # ($farm_name, $new_farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $farm_name     = shift;
-	my $new_farm_name = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $farm_name     = shift;
+    my $new_farm_name = shift;
 
-	my $err = &setL4FarmParam( 'name', "$new_farm_name", $farm_name );
+    my $err = &setL4FarmParam('name', "$new_farm_name", $farm_name);
 
-	unlink "$configdir\/${farm_name}_l4xnat.cfg";
+    unlink "$configdir\/${farm_name}_l4xnat.cfg";
 
-	if ( !$err )
-	{
-		$err = &setL4FarmParam( 'log-prefix', undef, $new_farm_name );
-	}
+    if (!$err) {
+        $err = &setL4FarmParam('log-prefix', undef, $new_farm_name);
+    }
 
-	return $err;
+    return $err;
 }
 
 =begin nd
@@ -199,56 +193,50 @@ Returns:
 
 sub copyL4Farm    # ($farm_name, $new_farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $farm_name     = shift;
-	my $new_farm_name = shift;
-	my $del           = shift // '';
-	my $output        = 0;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $farm_name     = shift;
+    my $new_farm_name = shift;
+    my $del           = shift // '';
+    my $output        = 0;
 
-	use File::Copy qw(copy);
+    use File::Copy qw(copy);
 
-	my $file_ori = "$configdir/" . &getFarmFile( $farm_name );
-	my $file_new = "$configdir/${new_farm_name}_l4xnat.cfg";
+    my $file_ori = "$configdir/" . &getFarmFile($farm_name);
+    my $file_new = "$configdir/${new_farm_name}_l4xnat.cfg";
 
-	copy( $file_ori, $file_new );
+    copy($file_ori, $file_new);
 
-	# replace the farm directive
-	my @lines;
-	&ztielock( \@lines, $file_new );
-	require Zevenet::Netfilter;
-	my $backend_block = 0;
+    # replace the farm directive
+    my @lines;
+    &ztielock(\@lines, $file_new);
+    require Zevenet::Netfilter;
+    my $backend_block = 0;
 
-	foreach my $line ( @lines )
-	{
-		if ( $line =~ /(^\s+"name": )"$farm_name(.*)",/ )
-		{
-			$line = $1 . "\"$new_farm_name" . $2 . "\",";
-		}
-		if ( ( !$backend_block ) and ( $line =~ /^(\s+"state": )"\w+",/ ) )
-		{
-			$line = $1 . "\"down\",";
-		}
-		if ( $line =~ /^\s+"backends": \[/ )
-		{
-			$backend_block = 1;
-		}
-		if ( ( $backend_block ) and ( $line =~ /(^\s+"mark": )"0x\w+",/ ) )
-		{
-			my $new_mark = &getNewMark( $new_farm_name );
-			$line = $1 . "\"$new_mark\",";
-		}
-		if ( $line =~ /(^\s+"log-prefix":)(.*)$farm_name ",/ )
-		{
-			$line = $1 . $2 . "$new_farm_name \",";
-		}
-	}
+    foreach my $line (@lines) {
+        if ($line =~ /(^\s+"name": )"$farm_name(.*)",/) {
+            $line = $1 . "\"$new_farm_name" . $2 . "\",";
+        }
+        if ((!$backend_block) and ($line =~ /^(\s+"state": )"\w+",/)) {
+            $line = $1 . "\"down\",";
+        }
+        if ($line =~ /^\s+"backends": \[/) {
+            $backend_block = 1;
+        }
+        if (($backend_block) and ($line =~ /(^\s+"mark": )"0x\w+",/)) {
+            my $new_mark = &getNewMark($new_farm_name);
+            $line = $1 . "\"$new_mark\",";
+        }
+        if ($line =~ /(^\s+"log-prefix":)(.*)$farm_name ",/) {
+            $line = $1 . $2 . "$new_farm_name \",";
+        }
+    }
 
-	untie @lines;
+    untie @lines;
 
-	unlink $file_ori if ( $del eq 'del' );
+    unlink $file_ori if ($del eq 'del');
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -266,25 +254,24 @@ Returns:
 
 sub loadL4FarmNlb    # ($farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $farm_name = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $farm_name = shift;
 
-	require Zevenet::Farm::Core;
+    require Zevenet::Farm::Core;
 
-	my $farmfile = &getFarmFile( $farm_name );
+    my $farmfile = &getFarmFile($farm_name);
 
-	return 0 if ( $farmfile eq "-1" or ( !-e "$configdir/$farmfile" ) );
+    return 0 if ($farmfile eq "-1" or (!-e "$configdir/$farmfile"));
 
-	return
-	  &httpNlbRequest(
-					   {
-						 farm   => $farm_name,
-						 method => "POST",
-						 uri    => "/farms",
-						 body   => qq(\@$configdir/$farmfile)
-					   }
-	  );
+    return &httpNlbRequest(
+        {
+            farm   => $farm_name,
+            method => "POST",
+            uri    => "/farms",
+            body   => qq(\@$configdir/$farmfile)
+        }
+    );
 }
 
 =begin nd
@@ -303,25 +290,24 @@ Returns:
 
 sub startL4FarmNlb    # ($farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $farm_name = shift;
-	my $writeconf = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $farm_name = shift;
+    my $writeconf = shift;
 
-	require Zevenet::Farm::L4xNAT::Config;
+    require Zevenet::Farm::L4xNAT::Config;
 
-	my $output =
-	  &setL4FarmParam( ( $writeconf ) ? 'bootstatus' : 'status', "up", $farm_name );
+    my $output =
+      &setL4FarmParam(($writeconf) ? 'bootstatus' : 'status', "up", $farm_name);
 
-	my $pidfile = &getL4FarmPidFile( $farm_name );
+    my $pidfile = &getL4FarmPidFile($farm_name);
 
-	if ( !-e "$pidfile" )
-	{
-		open my $fi, '>', "$pidfile";
-		close $fi;
-	}
+    if (!-e "$pidfile") {
+        open my $fi, '>', "$pidfile";
+        close $fi;
+    }
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -340,17 +326,17 @@ Returns:
 
 sub stopL4FarmNlb    # ($farm_name)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $farm_name = shift;
-	my $writeconf = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $farm_name = shift;
+    my $writeconf = shift;
 
-	require Zevenet::Farm::Core;
+    require Zevenet::Farm::Core;
 
-	my $out = &setL4FarmParam( ( $writeconf ) ? 'bootstatus' : 'status',
-							   "down", $farm_name );
+    my $out = &setL4FarmParam(($writeconf) ? 'bootstatus' : 'status',
+        "down", $farm_name);
 
-	return $out;
+    return $out;
 }
 
 =begin nd
@@ -366,16 +352,15 @@ Returns:
 
 =cut
 
-sub getL4FarmPidFile
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $farm_name ) = @_;
+sub getL4FarmPidFile {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name) = @_;
 
-	my $piddir  = &getGlobalConfiguration( 'piddir' );
-	my $pidfile = "$piddir/$farm_name\_l4xnat.pid";
+    my $piddir  = &getGlobalConfiguration('piddir');
+    my $pidfile = "$piddir/$farm_name\_l4xnat.pid";
 
-	return $pidfile;
+    return $pidfile;
 }
 
 =begin nd
@@ -397,121 +382,111 @@ Returns:
 
 =cut
 
-sub sendL4NlbCmd
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $self    = shift;
-	my $cfgfile = "";
-	my $output  = -1;
+sub sendL4NlbCmd {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $self    = shift;
+    my $cfgfile = "";
+    my $output  = -1;
 
-	# load the configuration file first if the farm is down
-	my $status = &getL4FarmStatus( $self->{ farm } );
-	if ( $status ne "up" )
-	{
-		my $out = &loadL4FarmNlb( $self->{ farm } );
-		return $out if ( $out != 0 );
-	}
+    # load the configuration file first if the farm is down
+    my $status = &getL4FarmStatus($self->{farm});
+    if ($status ne "up") {
+        my $out = &loadL4FarmNlb($self->{farm});
+        return $out if ($out != 0);
+    }
 
-  # avoid farm configuration file destruction by asking nftlb only for modifications
-  # or deletion of attributes of the farm
-	if ( $self->{ method } =~ /PUT/
-		 || ( $self->{ method } =~ /DELETE/ && $self->{ uri } =~ /farms\/.*\/.*/ ) )
-	{
-		my $file  = "/tmp/get_farm_$$";
-		my $match = 0;
+# avoid farm configuration file destruction by asking nftlb only for modifications
+# or deletion of attributes of the farm
+    if ($self->{method} =~ /PUT/
+        || ($self->{method} =~ /DELETE/ && $self->{uri} =~ /farms\/.*\/.*/))
+    {
+        my $file  = "/tmp/get_farm_$$";
+        my $match = 0;
 
-		$output = &httpNlbRequest(
-								   {
-									 method => "GET",
-									 uri    => "/farms/" . $self->{ farm },
-									 file   => "$file",
-								   }
-		);
+        $output = &httpNlbRequest(
+            {
+                method => "GET",
+                uri    => "/farms/" . $self->{farm},
+                file   => "$file",
+            }
+        );
 
-		if ( -e "$file" )
-		{
-			open my $fh, "<", $file;
-			while ( my $line = <$fh> )
-			{
-				if ( $line =~ /\"name\"\: \"$$self{ farm }\"/ )
-				{
-					$match = 1;
-					last;
-				}
-			}
-			close $fh;
-			unlink $file;
-		}
+        if (-e "$file") {
+            open my $fh, "<", $file;
+            while (my $line = <$fh>) {
+                if ($line =~ /\"name\"\: \"$$self{ farm }\"/) {
+                    $match = 1;
+                    last;
+                }
+            }
+            close $fh;
+            unlink $file;
+        }
 
-		if ( !$match )
-		{
-			&zenlog( "The farms was not loaded properly, trying it again", "error", );
-			&loadL4FarmNlb( $self->{ farm } );
-		}
-	}
+        if (!$match) {
+            &zenlog("The farms was not loaded properly, trying it again",
+                "error",);
+            &loadL4FarmNlb($self->{farm});
+        }
+    }
 
-	if ( $self->{ method } =~ /PUT|DELETE/ )
-	{
-		$cfgfile = $self->{ file };
-		$self->{ file } = "";
-	}
+    if ($self->{method} =~ /PUT|DELETE/) {
+        $cfgfile = $self->{file};
+        $self->{file} = "";
+    }
 
-	if ( defined $self->{ backend } && $self->{ backend } ne "" )
-	{
-		$self->{ uri } =
-		  "/farms/" . $self->{ farm } . "/backends/" . $self->{ backend };
-	}
-	elsif ( !defined $self->{ uri } )
-	{
-		$self->{ uri } = "/farms";
-		$self->{ uri } = "/farms/" . $self->{ farm }
-		  if ( $self->{ method } eq "DELETE" );
-	}
+    if (defined $self->{backend} && $self->{backend} ne "") {
+        $self->{uri} =
+          "/farms/" . $self->{farm} . "/backends/" . $self->{backend};
+    }
+    elsif (!defined $self->{uri}) {
+        $self->{uri} = "/farms";
+        $self->{uri} = "/farms/" . $self->{farm}
+          if ($self->{method} eq "DELETE");
+    }
 
-	# use the new name
-	$self->{ farm } = $self->{ farm_new_name } if exists $self->{ farm_new_name };
+    # use the new name
+    $self->{farm} = $self->{farm_new_name} if exists $self->{farm_new_name};
 
-	$output = &httpNlbRequest( $self );
+    $output = &httpNlbRequest($self);
 
-	return $output if ( $self->{ method } eq "GET" or !defined $self->{ file } );
+    return $output if ($self->{method} eq "GET" or !defined $self->{file});
 
-	# end if the farm was deleted
-	return $output
-	  if ( $self->{ method } eq "DELETE" and !exists $self->{ backend } );
+    # end if the farm was deleted
+    return $output
+      if ($self->{method} eq "DELETE" and !exists $self->{backend});
 
-	# save the conf
-	if ( $self->{ method } =~ /PUT|DELETE/ )
-	{
-		$self->{ file } = $cfgfile;
-	}
+    # save the conf
+    if ($self->{method} =~ /PUT|DELETE/) {
+        $self->{file} = $cfgfile;
+    }
 
-	$self->{ method } = "GET";
-	$self->{ uri }    = "/farms/" . $self->{ farm };
-	$self->{ body }   = "";
+    $self->{method} = "GET";
+    $self->{uri}    = "/farms/" . $self->{farm};
+    $self->{body}   = "";
 
-	$output = &httpNlbRequest( $self );
+    $output = &httpNlbRequest($self);
 
-	return $output;
+    return $output;
 }
 
-sub saveL4Conf
-{
-	my $farm = shift;
+sub saveL4Conf {
+    my $farm = shift;
 
-	my $configdir = &getGlobalConfiguration( 'configdir' );
-	my $farmfile  = &getFarmFile( $farm );
-	my $file      = "$configdir/$farmfile";
+    my $configdir = &getGlobalConfiguration('configdir');
+    my $farmfile  = &getFarmFile($farm);
+    my $file      = "$configdir/$farmfile";
 
-	my $req = {
-				method => "GET",
-				file   => $file,
-				uri    => "/farms/" . $farm,
-	};
+    my $req = {
+        method => "GET",
+        file   => $file,
+        uri    => "/farms/" . $farm,
+    };
 
-	my $err = &httpNlbRequest( $req );
+    my $err = &httpNlbRequest($req);
 
-	return $err;
+    return $err;
 }
 
 1;

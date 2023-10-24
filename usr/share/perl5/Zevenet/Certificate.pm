@@ -28,7 +28,7 @@ use Time::localtime;
 
 use Zevenet::Core;
 
-my $openssl = &getGlobalConfiguration( 'openssl' );
+my $openssl = &getGlobalConfiguration('openssl');
 
 =begin nd
 Function: getCertFiles
@@ -49,20 +49,20 @@ See Also:
 
 sub getCertFiles    # ()
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $configdir = &getGlobalConfiguration( 'certdir' );
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $configdir = &getGlobalConfiguration('certdir');
 
-	opendir ( DIR, $configdir );
-	my @files = grep ( /.*\.pem$/, readdir ( DIR ) );
-	@files = grep ( !/_dh\d+\.pem$/, @files );
-	closedir ( DIR );
+    opendir(DIR, $configdir);
+    my @files = grep (/.*\.pem$/, readdir(DIR));
+    @files = grep (!/_dh\d+\.pem$/, @files);
+    closedir(DIR);
 
-	opendir ( DIR, $configdir );
-	push ( @files, grep ( /.*\.csr$/, readdir ( DIR ) ) );
-	closedir ( DIR );
+    opendir(DIR, $configdir);
+    push(@files, grep (/.*\.csr$/, readdir(DIR)));
+    closedir(DIR);
 
-	return @files;
+    return @files;
 }
 
 =begin nd
@@ -80,16 +80,16 @@ Returns:
 
 sub getPemCertFiles    # ()
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $configdir = &getGlobalConfiguration( 'certdir' );
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $configdir = &getGlobalConfiguration('certdir');
 
-	opendir ( DIR, $configdir );
-	my @files = grep ( /.*\.pem$/, readdir ( DIR ) );
-	@files = grep ( !/_dh\d+\.pem$/, @files );
-	closedir ( DIR );
+    opendir(DIR, $configdir);
+    my @files = grep (/.*\.pem$/, readdir(DIR));
+    @files = grep (!/_dh\d+\.pem$/, @files);
+    closedir(DIR);
 
-	return @files;
+    return @files;
 }
 
 =begin nd
@@ -111,14 +111,14 @@ See Also:
 
 sub getCleanBlanc    # ($vartoclean)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $vartoclean ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($vartoclean) = @_;
 
-	$vartoclean =~ s/^\s+//;
-	$vartoclean =~ s/\s+$//;
+    $vartoclean =~ s/^\s+//;
+    $vartoclean =~ s/\s+$//;
 
-	return $vartoclean;
+    return $vartoclean;
 }
 
 =begin nd
@@ -145,21 +145,19 @@ See Also:
 
 sub getCertType    # ($certfile)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $certfile ) = @_;
-	my $certtype = "none";
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($certfile) = @_;
+    my $certtype = "none";
 
-	if ( $certfile =~ /\.pem/ || $certfile =~ /\.crt/ )
-	{
-		$certtype = "Certificate";
-	}
-	elsif ( $certfile =~ /\.csr/ )
-	{
-		$certtype = "CSR";
-	}
+    if ($certfile =~ /\.pem/ || $certfile =~ /\.crt/) {
+        $certtype = "Certificate";
+    }
+    elsif ($certfile =~ /\.csr/) {
+        $certtype = "CSR";
+    }
 
-	return $certtype;
+    return $certtype;
 }
 
 =begin nd
@@ -181,30 +179,29 @@ See Also:
 
 sub getCertCN    # ($certfile)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $certfile ) = @_;
-	my $certcn = "";
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($certfile) = @_;
+    my $certcn = "";
 
-	my $type = ( &getCertType( $certfile ) eq "Certificate" ) ? "x509" : "req";
-	my @eject = @{
-		&logAndGet( "$openssl $type -noout -in $certfile -text | grep Subject:",
-					"array" )
-	};
+    my $type  = (&getCertType($certfile) eq "Certificate") ? "x509" : "req";
+    my @eject = @{
+        &logAndGet("$openssl $type -noout -in $certfile -text | grep Subject:",
+            "array")
+    };
 
-	my $string = $eject[0];
-	chomp $string;
-	$string =~ s/Subject://;
+    my $string = $eject[0];
+    chomp $string;
+    $string =~ s/Subject://;
 
-	my @data = split ( /,/, $string );
+    my @data = split(/,/, $string);
 
-	foreach my $param ( @data )
-	{
-		$certcn = $1 if ( $param =~ /CN ?=(.+)/ );
-	}
-	$certcn = &getCleanBlanc( $certcn );
+    foreach my $param (@data) {
+        $certcn = $1 if ($param =~ /CN ?=(.+)/);
+    }
+    $certcn = &getCleanBlanc($certcn);
 
-	return $certcn;
+    return $certcn;
 }
 
 =begin nd
@@ -226,31 +223,28 @@ See Also:
 
 sub getCertIssuer    # ($certfile)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $certfile ) = @_;
-	my $certissu = "";
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($certfile) = @_;
+    my $certissu = "";
 
-	if ( &getCertType( $certfile ) eq "Certificate" )
-	{
-		my @eject = @{
-			&logAndGet(
-						"$openssl x509 -noout -in $certfile -text | grep Issuer:",
-						"array"
-			)
-		};
-		@eject = split ( /CN=/,             $eject[0] );
-		@eject = split ( /\/emailAddress=/, $eject[1] );
-		$certissu = $eject[0] // '';
-	}
-	else
-	{
-		$certissu = "NA";
-	}
+    if (&getCertType($certfile) eq "Certificate") {
+        my @eject = @{
+            &logAndGet(
+                "$openssl x509 -noout -in $certfile -text | grep Issuer:",
+                "array")
+        };
+        @eject    = split(/CN=/,             $eject[0]);
+        @eject    = split(/\/emailAddress=/, $eject[1]);
+        $certissu = $eject[0] // '';
+    }
+    else {
+        $certissu = "NA";
+    }
 
-	$certissu = &getCleanBlanc( $certissu );
+    $certissu = &getCleanBlanc($certissu);
 
-	return $certissu;
+    return $certissu;
 }
 
 =begin nd
@@ -272,28 +266,26 @@ See Also:
 
 sub getCertCreation    # ($certfile)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $certfile ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($certfile) = @_;
 
-	my $datecreation = "";
+    my $datecreation = "";
 
-	if ( &getCertType( $certfile ) eq "Certificate" )
-	{
-		my @eject =
-		  @{ &logAndGet( "$openssl x509 -noout -in $certfile -dates", "array" ) };
-		my @datefrom = split ( /=/, $eject[0] );
-		$datecreation = $datefrom[1];
-	}
-	else
-	{
-		my @eject = split ( / /, gmtime ( stat ( $certfile )->mtime ) );
-		splice ( @eject, 0, 1 );
-		push ( @eject, "GMT" );
-		$datecreation = join ( ' ', @eject );
-	}
+    if (&getCertType($certfile) eq "Certificate") {
+        my @eject =
+          @{ &logAndGet("$openssl x509 -noout -in $certfile -dates", "array") };
+        my @datefrom = split(/=/, $eject[0]);
+        $datecreation = $datefrom[1];
+    }
+    else {
+        my @eject = split(/ /, gmtime(stat($certfile)->mtime));
+        splice(@eject, 0, 1);
+        push(@eject, "GMT");
+        $datecreation = join(' ', @eject);
+    }
 
-	return $datecreation;
+    return $datecreation;
 }
 
 =begin nd
@@ -315,24 +307,22 @@ See Also:
 
 sub getCertExpiration    # ($certfile)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $certfile ) = @_;
-	my $dateexpiration = "";
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($certfile) = @_;
+    my $dateexpiration = "";
 
-	if ( &getCertType( $certfile ) eq "Certificate" )
-	{
-		my @eject =
-		  @{ &logAndGet( "$openssl x509 -noout -in $certfile -dates", "array" ) };
-		my @dateto = split ( /=/, $eject[1] );
-		$dateexpiration = $dateto[1];
-	}
-	else
-	{
-		$dateexpiration = "NA";
-	}
+    if (&getCertType($certfile) eq "Certificate") {
+        my @eject =
+          @{ &logAndGet("$openssl x509 -noout -in $certfile -dates", "array") };
+        my @dateto = split(/=/, $eject[1]);
+        $dateexpiration = $dateto[1];
+    }
+    else {
+        $dateexpiration = "NA";
+    }
 
-	return $dateexpiration;
+    return $dateexpiration;
 }
 
 =begin nd
@@ -354,31 +344,33 @@ See Also:
 
 sub getFarmCertUsed    #($cfile)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $cfile ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($cfile) = @_;
 
-	require Zevenet::Farm::Core;
+    require Zevenet::Farm::Core;
 
-	my $certdir   = &getGlobalConfiguration( 'certdir' );
-	my $configdir = &getGlobalConfiguration( 'configdir' );
-	my @farms     = &getFarmsByType( "https" );
-	my $output    = -1;
+    my $certdir   = &getGlobalConfiguration('certdir');
+    my $configdir = &getGlobalConfiguration('configdir');
+    my @farms     = &getFarmsByType("https");
+    my $output    = -1;
 
-	for ( @farms )
-	{
-		my $fname         = $_;
-		my $farm_filename = &getFarmFile( $fname );
+    for (@farms) {
+        my $fname         = $_;
+        my $farm_filename = &getFarmFile($fname);
 
-		use File::Grep qw( fgrep );
+        use File::Grep qw( fgrep );
 
-		if ( fgrep { /Cert \"$certdir\/\Q$cfile\E\"/ } "$configdir/$farm_filename" )
-		{
-			$output = 0;
-		}
-	}
+        if (
+            fgrep { /Cert \"$certdir\/\Q$cfile\E\"/ }
+            "$configdir/$farm_filename"
+          )
+        {
+            $output = 0;
+        }
+    }
 
-	return $output;
+    return $output;
 }
 
 =begin nd
@@ -396,30 +388,32 @@ Returns:
 
 sub getCertFarmsUsed    #($cfile)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $cfile ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($cfile) = @_;
 
-	require Zevenet::Farm::Core;
+    require Zevenet::Farm::Core;
 
-	my $certdir   = &getGlobalConfiguration( 'certdir' );
-	my $configdir = &getGlobalConfiguration( 'configdir' );
-	my @farms     = &getFarmsByType( "https" );
-	my $farms_ref = [];
+    my $certdir   = &getGlobalConfiguration('certdir');
+    my $configdir = &getGlobalConfiguration('configdir');
+    my @farms     = &getFarmsByType("https");
+    my $farms_ref = [];
 
-	foreach my $farm_name ( @farms )
-	{
-		my $farm_filename = &getFarmFile( $farm_name );
+    foreach my $farm_name (@farms) {
+        my $farm_filename = &getFarmFile($farm_name);
 
-		use File::Grep qw( fgrep );
+        use File::Grep qw( fgrep );
 
-		if ( fgrep { /Cert \"$certdir\/\Q$cfile\E\"/ } "$configdir/$farm_filename" )
-		{
-			push @{ $farms_ref }, $farm_name;
-		}
-	}
+        if (
+            fgrep { /Cert \"$certdir\/\Q$cfile\E\"/ }
+            "$configdir/$farm_filename"
+          )
+        {
+            push @{$farms_ref}, $farm_name;
+        }
+    }
 
-	return $farms_ref;
+    return $farms_ref;
 }
 
 =begin nd
@@ -441,29 +435,25 @@ See Also:
 
 sub checkFQDN    # ($certfqdn)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $certfqdn ) = @_;
-	my $valid = "true";
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($certfqdn) = @_;
+    my $valid = "true";
 
-	if ( $certfqdn =~ /^http:/ )
-	{
-		$valid = "false";
-	}
-	if ( $certfqdn =~ /^\./ )
-	{
-		$valid = "false";
-	}
-	if ( $certfqdn =~ /\.$/ )
-	{
-		$valid = "false";
-	}
-	if ( $certfqdn =~ /\// )
-	{
-		$valid = "false";
-	}
+    if ($certfqdn =~ /^http:/) {
+        $valid = "false";
+    }
+    if ($certfqdn =~ /^\./) {
+        $valid = "false";
+    }
+    if ($certfqdn =~ /\.$/) {
+        $valid = "false";
+    }
+    if ($certfqdn =~ /\//) {
+        $valid = "false";
+    }
 
-	return $valid;
+    return $valid;
 }
 
 =begin nd
@@ -486,51 +476,47 @@ See Also:
 
 sub delCert    # ($certname)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $certname ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($certname) = @_;
 
-	my $certdir = &getGlobalConfiguration( 'certdir' );
+    my $certdir = &getGlobalConfiguration('certdir');
 
-	# escaping special caracters
-	$certname =~ s/ /\ /g;
+    # escaping special caracters
+    $certname =~ s/ /\ /g;
 
-	my $files_removed;
+    my $files_removed;
 
-	# verify existance in config directory for security reasons
-	if ( -f "$certdir/$certname" )
-	{
-		$files_removed = unlink ( "$certdir/$certname" );
+    # verify existance in config directory for security reasons
+    if (-f "$certdir/$certname") {
+        $files_removed = unlink("$certdir/$certname");
 
-		my $key_file = $certname;
-		$key_file =~ s/\.pem$/\.key/;
+        my $key_file = $certname;
+        $key_file =~ s/\.pem$/\.key/;
 
-		if ( -f "$certdir/$key_file" )
-		{
-			unlink ( "$certdir/$key_file" );
-		}
+        if (-f "$certdir/$key_file") {
+            unlink("$certdir/$key_file");
+        }
 
-		# remove key file for CSR
-		if ( $certname =~ /.csr$/ )
-		{
-			my $key_file = $certname;
-			$key_file =~ s/\.csr$/\.key/;
+        # remove key file for CSR
+        if ($certname =~ /.csr$/) {
+            my $key_file = $certname;
+            $key_file =~ s/\.csr$/\.key/;
 
-			if ( -f "$certdir/$key_file" )
-			{
-				unlink "$certdir/$key_file";
-			}
-			else
-			{
-				&zenlog( "Key file was not found '$certdir/$key_file'", "error", "LSLB" );
-			}
-		}
-	}
+            if (-f "$certdir/$key_file") {
+                unlink "$certdir/$key_file";
+            }
+            else {
+                &zenlog("Key file was not found '$certdir/$key_file'",
+                    "error", "LSLB");
+            }
+        }
+    }
 
-	&zenlog( "Error removing certificate '$certdir/$certname'", "error", "LSLB" )
-	  if !$files_removed;
+    &zenlog("Error removing certificate '$certdir/$certname'", "error", "LSLB")
+      if !$files_removed;
 
-	return $files_removed;
+    return $files_removed;
 }
 
 =begin nd
@@ -564,62 +550,58 @@ See Also:
 
 sub createCSR # ($certname, $certfqdn, $certcountry, $certstate, $certlocality, $certorganization, $certdivision, $certmail, $certkey, $certpassword)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my (
-		 $certname,     $certfqdn,         $certcountry,  $certstate,
-		 $certlocality, $certorganization, $certdivision, $certmail,
-		 $certkey,      $certpassword
-	) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my (
+        $certname,     $certfqdn,         $certcountry,  $certstate,
+        $certlocality, $certorganization, $certdivision, $certmail,
+        $certkey,      $certpassword
+    ) = @_;
 
-	my $configdir = &getGlobalConfiguration( 'certdir' );
-	my $output;
+    my $configdir = &getGlobalConfiguration('certdir');
+    my $output;
 
-	my $subdomains = '';
+    my $subdomains = '';
 
-	my @alternatives = split ( /,/, $certfqdn );
-	my $cn_found = 0;
+    my @alternatives = split(/,/, $certfqdn);
+    my $cn_found     = 0;
 
-	for my $dns ( @alternatives )
-	{
-		next if $dns =~ /^\s*$/;
-		if ( not $cn_found )
-		{
-			$certfqdn = $dns;
-			$cn_found = 1;
-		}
-		$subdomains .= "DNS:$dns,";
-	}
+    for my $dns (@alternatives) {
+        next if $dns =~ /^\s*$/;
+        if (not $cn_found) {
+            $certfqdn = $dns;
+            $cn_found = 1;
+        }
+        $subdomains .= "DNS:$dns,";
+    }
 
-	chop ( $subdomains );
-	$subdomains = "-addext \"subjectAltName = $subdomains\"";
+    chop($subdomains);
+    $subdomains = "-addext \"subjectAltName = $subdomains\"";
 
-	return 1 if not $cn_found;
+    return 1 if not $cn_found;
 
-	##sustituir los espacios por guiones bajos en el nombre de archivo###
-	if ( $certpassword eq "" )
-	{
-		$output =
-		  &logAndRun(
-			"$openssl req -nodes -newkey rsa:$certkey -keyout $configdir/$certname.key $subdomains -out $configdir/$certname.csr -batch -subj \"/C=$certcountry\/ST=$certstate/L=$certlocality/O=$certorganization/OU=$certdivision/CN=$certfqdn/emailAddress=$certmail\"  2> /dev/null"
-		  );
-		&zenlog(
-			"Creating CSR: $openssl req -nodes -newkey rsa:$certkey -keyout $configdir/$certname.key $subdomains -out $configdir/$certname.csr -batch -subj \"/C=$certcountry\/ST=$certstate/L=$certlocality/O=$certorganization/OU=$certdivision/CN=$certfqdn/emailAddress=$certmail\"",
-			"info", "LSLB"
-		) if ( not $output );
-	}
-	else
-	{
-		$output =
-		  &logAndRun(
-			"$openssl req -passout pass:$certpassword -newkey rsa:$certkey -keyout $configdir/$certname.key $subdomains -out $configdir/$certname.csr $configdir/openssl.cnf -batch -subj \"/C=$certcountry/ST=$certstate/L=$certlocality/O=$certorganization/OU=$certdivision/CN=$certfqdn/emailAddress=$certmail\""
-		  );
-		&zenlog(
-			"Creating CSR: $openssl req -passout pass:$certpassword -newkey rsa:$certkey -keyout $configdir/$certname.key $subdomains -out $configdir/$certname.csr $configdir/openssl.cnf -batch -subj \"/C=$certcountry\/ST=$certstate/L=$certlocality/O=$certorganization/OU=$certdivision/CN=$certfqdn/emailAddress=$certmail\"",
-			"info", "LSLB"
-		) if ( not $output );
-	}
-	return $output;
+    ##sustituir los espacios por guiones bajos en el nombre de archivo###
+    if ($certpassword eq "") {
+        $output =
+          &logAndRun(
+"$openssl req -nodes -newkey rsa:$certkey -keyout $configdir/$certname.key $subdomains -out $configdir/$certname.csr -batch -subj \"/C=$certcountry\/ST=$certstate/L=$certlocality/O=$certorganization/OU=$certdivision/CN=$certfqdn/emailAddress=$certmail\"  2> /dev/null"
+          );
+        &zenlog(
+"Creating CSR: $openssl req -nodes -newkey rsa:$certkey -keyout $configdir/$certname.key $subdomains -out $configdir/$certname.csr -batch -subj \"/C=$certcountry\/ST=$certstate/L=$certlocality/O=$certorganization/OU=$certdivision/CN=$certfqdn/emailAddress=$certmail\"",
+            "info", "LSLB"
+        ) if (not $output);
+    }
+    else {
+        $output =
+          &logAndRun(
+"$openssl req -passout pass:$certpassword -newkey rsa:$certkey -keyout $configdir/$certname.key $subdomains -out $configdir/$certname.csr $configdir/openssl.cnf -batch -subj \"/C=$certcountry/ST=$certstate/L=$certlocality/O=$certorganization/OU=$certdivision/CN=$certfqdn/emailAddress=$certmail\""
+          );
+        &zenlog(
+"Creating CSR: $openssl req -passout pass:$certpassword -newkey rsa:$certkey -keyout $configdir/$certname.key $subdomains -out $configdir/$certname.csr $configdir/openssl.cnf -batch -subj \"/C=$certcountry\/ST=$certstate/L=$certlocality/O=$certorganization/OU=$certdivision/CN=$certfqdn/emailAddress=$certmail\"",
+            "info", "LSLB"
+        ) if (not $output);
+    }
+    return $output;
 }
 
 =begin nd
@@ -642,38 +624,34 @@ See Also:
 
 sub getCertData    # ($certfile)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $filepath, $check ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($filepath, $check) = @_;
 
-	my $cmd;
-	my $filepath_orig = $filepath;
-	$filepath = quotemeta ( $filepath );
+    my $cmd;
+    my $filepath_orig = $filepath;
+    $filepath = quotemeta($filepath);
 
-	if ( &getCertType( $filepath ) eq "Certificate" )
-	{
-		$cmd = "$openssl x509 -in $filepath -text";
-	}
-	else
-	{
-		$cmd = "$openssl req -in $filepath -text";
+    if (&getCertType($filepath) eq "Certificate") {
+        $cmd = "$openssl x509 -in $filepath -text";
+    }
+    else {
+        $cmd = "$openssl req -in $filepath -text";
 
-		# request Certs do not need to be checked
-		$check = 0;
-	}
+        # request Certs do not need to be checked
+        $check = 0;
+    }
 
-	my $cert = &logAndGet( $cmd );
-	$cert = $cert eq "" ? "This certificate is not valid." : $cert;
-	if ( $check )
-	{
-		my $status = checkCertPEMValid( $filepath_orig );
-		if ( $status and $status->{ code } )
-		{
-			$cert = $status->{ desc };
-		}
-	}
+    my $cert = &logAndGet($cmd);
+    $cert = $cert eq "" ? "This certificate is not valid." : $cert;
+    if ($check) {
+        my $status = checkCertPEMValid($filepath_orig);
+        if ($status and $status->{code}) {
+            $cert = $status->{desc};
+        }
+    }
 
-	return $cert;
+    return $cert;
 }
 
 =begin nd
@@ -690,16 +668,16 @@ Returns:
 
 sub getCertIsValid    # ($cert_filepath)
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $cert_filepath ) = shift;
-	my $rc = 1;
-	eval {
-		require Crypt::OpenSSL::X509;
-		Crypt::OpenSSL::X509->new_from_file( $cert_filepath );
-		$rc = 0;
-	};
-	return $rc;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($cert_filepath) = shift;
+    my $rc = 1;
+    eval {
+        require Crypt::OpenSSL::X509;
+        Crypt::OpenSSL::X509->new_from_file($cert_filepath);
+        $rc = 0;
+    };
+    return $rc;
 
 }
 
@@ -723,98 +701,89 @@ Returns:
 
 =cut
 
-sub getCertInfo
-{
-	my $filepath = shift;
-	my %response;
+sub getCertInfo {
+    my $filepath = shift;
+    my %response;
 
-	my $certfile = "";
-	if ( $filepath =~ /([^\/]+)$/ )
-	{
-		$certfile = $1;
-	}
+    my $certfile = "";
+    if ($filepath =~ /([^\/]+)$/) {
+        $certfile = $1;
+    }
 
-	# PEM
-	if ( $certfile =~ /\.pem$/ )
-	{
-		require Crypt::OpenSSL::X509;
-		my $status = "unknown";
-		my $CN     = "no CN";
-		my $ISSUER = "no issuer";
-		my $x509;
-		eval {
-			$x509 = Crypt::OpenSSL::X509->new_from_file( $filepath );
+    # PEM
+    if ($certfile =~ /\.pem$/) {
+        require Crypt::OpenSSL::X509;
+        my $status = "unknown";
+        my $CN     = "no CN";
+        my $ISSUER = "no issuer";
+        my $x509;
+        eval {
+            $x509 = Crypt::OpenSSL::X509->new_from_file($filepath);
 
-			my $time_offset = 60 * 60 * 24 * 15;    # 15 days
-			if ( $x509->checkend( 0 ) ) { $status = 'expired' }
-			else
-			{
-				$status = ( $x509->checkend( $time_offset ) ) ? 'about to expire' : 'valid';
-			}
+            my $time_offset = 60 * 60 * 24 * 15;    # 15 days
+            if ($x509->checkend(0)) { $status = 'expired' }
+            else {
+                $status =
+                  ($x509->checkend($time_offset)) ? 'about to expire' : 'valid';
+            }
 
-			if ( defined $x509->subject_name()->get_entry_by_type( 'CN' ) )
-			{
-				$CN = $x509->subject_name()->get_entry_by_type( 'CN' )->value;
-			}
-			if ( defined $x509->issuer_name()->get_entry_by_type( 'CN' ) )
-			{
-				$ISSUER = $x509->issuer_name()->get_entry_by_type( 'CN' )->value;
-			}
-		};
-		if ( $@ )
-		{
-			%response = (
-						  file       => $certfile,
-						  type       => 'Certificate',
-						  CN         => '-',
-						  issuer     => '-',
-						  creation   => '-',
-						  expiration => '-',
-						  status     => $status,
-			);
-		}
-		else
-		{
-			$status = "invalid" if ( &checkCertPEMValid( $filepath )->{ code } );
-			%response = (
-						  file       => $certfile,
-						  type       => 'Certificate',
-						  CN         => $CN,
-						  issuer     => $ISSUER,
-						  creation   => $x509->notBefore(),
-						  expiration => $x509->notAfter(),
-						  status     => $status,
-			);
-		}
-	}
+            if (defined $x509->subject_name()->get_entry_by_type('CN')) {
+                $CN = $x509->subject_name()->get_entry_by_type('CN')->value;
+            }
+            if (defined $x509->issuer_name()->get_entry_by_type('CN')) {
+                $ISSUER = $x509->issuer_name()->get_entry_by_type('CN')->value;
+            }
+        };
+        if ($@) {
+            %response = (
+                file       => $certfile,
+                type       => 'Certificate',
+                CN         => '-',
+                issuer     => '-',
+                creation   => '-',
+                expiration => '-',
+                status     => $status,
+            );
+        }
+        else {
+            $status   = "invalid" if (&checkCertPEMValid($filepath)->{code});
+            %response = (
+                file       => $certfile,
+                type       => 'Certificate',
+                CN         => $CN,
+                issuer     => $ISSUER,
+                creation   => $x509->notBefore(),
+                expiration => $x509->notAfter(),
+                status     => $status,
+            );
+        }
+    }
 
-	# CSR
-	else
-	{
-		require Zevenet::File;
+    # CSR
+    else {
+        require Zevenet::File;
 
-		my @cert_data =
-		  @{ &logAndGet( "$openssl req -in $filepath -text -noout", "array" ) };
+        my @cert_data =
+          @{ &logAndGet("$openssl req -in $filepath -text -noout", "array") };
 
-		my $cn = "";
-		my ( $string ) = grep ( /\sSubject: /, @cert_data );
-		if ( $string =~ /CN ?= ?([^,]+)/ )
-		{
-			$cn = $1;
-		}
+        my $cn = "";
+        my ($string) = grep (/\sSubject: /, @cert_data);
+        if ($string =~ /CN ?= ?([^,]+)/) {
+            $cn = $1;
+        }
 
-		%response = (
-					  file       => $certfile,
-					  type       => 'CSR',
-					  CN         => $cn,
-					  issuer     => "NA",
-					  creation   => &getFileDateGmt( $filepath ),
-					  expiration => "NA",
-					  status     => 'valid',
-		);
-	}
+        %response = (
+            file       => $certfile,
+            type       => 'CSR',
+            CN         => $cn,
+            issuer     => "NA",
+            creation   => &getFileDateGmt($filepath),
+            expiration => "NA",
+            status     => 'valid',
+        );
+    }
 
-	return \%response;
+    return \%response;
 }
 
 =begin nd
@@ -829,19 +798,18 @@ Returns:
 	Integer - Time in epoc time. "1594459893"
 =cut
 
-sub getDateEpoc
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $date_string = shift @_;
+sub getDateEpoc {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $date_string = shift @_;
 
-	# my @months      = qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
+    # my @months      = qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
 
-	my ( $year, $month, $day, $hours, $min, $sec ) = split /[ :-]+/, $date_string;
+    my ($year, $month, $day, $hours, $min, $sec) = split /[ :-]+/, $date_string;
 
-	# the range of the month is from 0 to 11
-	$month--;
-	return timegm( $sec, $min, $hours, $day, $month, $year );
+    # the range of the month is from 0 to 11
+    $month--;
+    return timegm($sec, $min, $hours, $day, $month, $year);
 }
 
 =begin nd
@@ -856,30 +824,27 @@ Returns:
 	Integer - Number of days to expire the certificate
 =cut
 
-sub getCertDaysToExpire
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $cert_ends ) = @_;
+sub getCertDaysToExpire {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($cert_ends) = @_;
 
-	use Time::Local;
+    use Time::Local;
 
-	my $end       = &getDateEpoc( $cert_ends );
-	my $days_left = ( $end - time () ) / 86400;
+    my $end       = &getDateEpoc($cert_ends);
+    my $days_left = ($end - time()) / 86400;
 
-	# leave only two decimals
-	if ( $days_left < 1 )
-	{
-		$days_left *= 100;
-		$days_left =~ s/\..*//g;
-		$days_left /= 100;
-	}
-	else
-	{
-		$days_left =~ s/\..*//g;
-	}
+    # leave only two decimals
+    if ($days_left < 1) {
+        $days_left *= 100;
+        $days_left =~ s/\..*//g;
+        $days_left /= 100;
+    }
+    else {
+        $days_left =~ s/\..*//g;
+    }
 
-	return $days_left;
+    return $days_left;
 }
 
 =begin nd
@@ -897,32 +862,28 @@ Returns:
 
 sub checkCertPEMFormat    # ( $cert_path )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $cert_path ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($cert_path) = @_;
 
-	my $rc = 1;
-	if ( -T $cert_path )
-	{
-		require Tie::File;
-		use Fcntl 'O_RDONLY';
-		tie my @cert_file, 'Tie::File', "$cert_path", mode => O_RDONLY;
-		my $found = 0;
-		my $begin = 0;
-		foreach ( @cert_file )
-		{
-			if ( $_ =~ /^-+BEGIN.*-+$/ )
-			{
-				$begin = 1;
-			}
-			if ( ( $_ =~ /^-+END.*-+$/ ) and ( $begin ) )
-			{
-				$found++;
-			}
-		}
-		$rc = 0 if $found;
-	}
-	return $rc;
+    my $rc = 1;
+    if (-T $cert_path) {
+        require Tie::File;
+        use Fcntl 'O_RDONLY';
+        tie my @cert_file, 'Tie::File', "$cert_path", mode => O_RDONLY;
+        my $found = 0;
+        my $begin = 0;
+        foreach (@cert_file) {
+            if ($_ =~ /^-+BEGIN.*-+$/) {
+                $begin = 1;
+            }
+            if (($_ =~ /^-+END.*-+$/) and ($begin)) {
+                $found++;
+            }
+        }
+        $rc = 0 if $found;
+    }
+    return $rc;
 }
 
 =begin nd
@@ -940,53 +901,45 @@ Returns:
 
 sub getCertPEM    # ( $cert_path )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $cert_path ) = @_;
-	my $pem_config;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($cert_path) = @_;
+    my $pem_config;
 
-	if ( -T $cert_path )
-	{
-		require Tie::File;
-		use Fcntl 'O_RDONLY';
-		tie my @cert_file, 'Tie::File', "$cert_path", mode => O_RDONLY;
-		my $key_boundary         = 0;
-		my $certificate_boundary = 0;
-		my $cert;
-		foreach ( @cert_file )
-		{
+    if (-T $cert_path) {
+        require Tie::File;
+        use Fcntl 'O_RDONLY';
+        tie my @cert_file, 'Tie::File', "$cert_path", mode => O_RDONLY;
+        my $key_boundary         = 0;
+        my $certificate_boundary = 0;
+        my $cert;
+        foreach (@cert_file) {
 
-			if ( $_ =~ /^-+BEGIN.*KEY-+/ )
-			{
-				$key_boundary = 1;
-			}
-			if ( $_ =~ /^-+BEGIN.*CERTIFICATE-+/ )
-			{
-				$certificate_boundary = 1;
-			}
-			if ( $key_boundary )
-			{
-				push @{ $pem_config->{ key } }, $_;
-			}
-			if ( $certificate_boundary )
-			{
-				push @{ $cert }, $_;
-			}
-			if ( ( $_ =~ /^-+END.*KEY-+/ ) and ( $key_boundary ) )
-			{
-				$key_boundary = 0;
-				next;
-			}
-			if ( ( $_ =~ /^-+END.*CERTIFICATE-+/ ) and ( $certificate_boundary ) )
-			{
-				push @{ $pem_config->{ fullchain } }, $cert;
-				$certificate_boundary = 0;
-				$cert                 = undef;
-				next;
-			}
-		}
-	}
-	return $pem_config;
+            if ($_ =~ /^-+BEGIN.*KEY-+/) {
+                $key_boundary = 1;
+            }
+            if ($_ =~ /^-+BEGIN.*CERTIFICATE-+/) {
+                $certificate_boundary = 1;
+            }
+            if ($key_boundary) {
+                push @{ $pem_config->{key} }, $_;
+            }
+            if ($certificate_boundary) {
+                push @{$cert}, $_;
+            }
+            if (($_ =~ /^-+END.*KEY-+/) and ($key_boundary)) {
+                $key_boundary = 0;
+                next;
+            }
+            if (($_ =~ /^-+END.*CERTIFICATE-+/) and ($certificate_boundary)) {
+                push @{ $pem_config->{fullchain} }, $cert;
+                $certificate_boundary = 0;
+                $cert                 = undef;
+                next;
+            }
+        }
+    }
+    return $pem_config;
 
 }
 
@@ -1005,40 +958,43 @@ Returns:
 
 sub checkCertPEMKeyEncrypted    # ( $cert_path )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $cert_path ) = @_;
-	my $rc            = -1;
-	my $pem_config    = &getCertPEM( $cert_path );
-	if ( ( $pem_config ) and ( $pem_config->{ key } ) )
-	{
-		$rc = 0;
-		use Net::SSLeay;
-		$Net::SSLeay::trace = 1;
-		my $bio_key = Net::SSLeay::BIO_new_file( $cert_path, 'r' );
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($cert_path) = @_;
+    my $rc          = -1;
+    my $pem_config  = &getCertPEM($cert_path);
+    if (($pem_config) and ($pem_config->{key})) {
+        $rc = 0;
+        use Net::SSLeay;
+        $Net::SSLeay::trace = 1;
+        my $bio_key = Net::SSLeay::BIO_new_file($cert_path, 'r');
 
-		# Loads PEM formatted private key via given BIO structure using empty password
-		unless ( Net::SSLeay::PEM_read_bio_PrivateKey( $bio_key, undef, "" ) )
-		{
-			my $error     = Net::SSLeay::ERR_error_string( Net::SSLeay::ERR_get_error() );
-			my @strerr    = split ( /:/, $error );
-			my $error_str = $strerr[4];
-			if ( $error_str eq "bad decrypt" )
-			{
-				&zenlog( "Private Key Encrypted was found in '$cert_path': " . $strerr[4],
-						 "debug", "LSLB" );
-				$rc = 1;
-			}
-			else
-			{
-				&zenlog( "Error checking Private Key Encrypted in '$cert_path': " . $strerr[4],
-						 "debug", "LSLB" );
-				$rc = -1;
-			}
-		}
-		Net::SSLeay::BIO_free( $bio_key );
-	}
-	return $rc;
+  # Loads PEM formatted private key via given BIO structure using empty password
+        unless (Net::SSLeay::PEM_read_bio_PrivateKey($bio_key, undef, "")) {
+            my $error =
+              Net::SSLeay::ERR_error_string(Net::SSLeay::ERR_get_error());
+            my @strerr    = split(/:/, $error);
+            my $error_str = $strerr[4];
+            if ($error_str eq "bad decrypt") {
+                &zenlog(
+                    "Private Key Encrypted was found in '$cert_path': "
+                      . $strerr[4],
+                    "debug", "LSLB"
+                );
+                $rc = 1;
+            }
+            else {
+                &zenlog(
+                    "Error checking Private Key Encrypted in '$cert_path': "
+                      . $strerr[4],
+                    "debug", "LSLB"
+                );
+                $rc = -1;
+            }
+        }
+        Net::SSLeay::BIO_free($bio_key);
+    }
+    return $rc;
 }
 
 =begin nd
@@ -1063,117 +1019,115 @@ Variable: $error_ref.
 
 sub checkCertPEMValid    # ( $cert_path )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my ( $cert_path ) = @_;
-	my $error_ref->{ code } = 0;
-	use Net::SSLeay;
-	$Net::SSLeay::trace = 1;
-	my $ctx = Net::SSLeay::CTX_new_with_method( Net::SSLeay::SSLv23_method() );
-	if ( !$ctx )
-	{
-		my $error_msg = "Error check PEM certificate";
-		$error_ref->{ code } = -1;
-		$error_ref->{ desc } = $error_msg;
-		my $error     = Net::SSLeay::ERR_error_string( Net::SSLeay::ERR_get_error() );
-		my @strerr    = split ( /:/, $error );
-		my $error_str = $strerr[4];
-		&zenlog( "$error_msg in '$cert_path': " . $error_str, "debug", "LSLB" );
-		return $error_ref;
-	}
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($cert_path) = @_;
+    my $error_ref->{code} = 0;
+    use Net::SSLeay;
+    $Net::SSLeay::trace = 1;
+    my $ctx = Net::SSLeay::CTX_new_with_method(Net::SSLeay::SSLv23_method());
+    if (!$ctx) {
+        my $error_msg = "Error check PEM certificate";
+        $error_ref->{code} = -1;
+        $error_ref->{desc} = $error_msg;
+        my $error = Net::SSLeay::ERR_error_string(Net::SSLeay::ERR_get_error());
+        my @strerr    = split(/:/, $error);
+        my $error_str = $strerr[4];
+        &zenlog("$error_msg in '$cert_path': " . $error_str, "debug", "LSLB");
+        return $error_ref;
+    }
 
-	if ( &checkCertPEMKeyEncrypted( $cert_path ) == 1 )
-	{
-		Net::SSLeay::CTX_free( $ctx );
-		my $error_msg = "PEM file private key is encrypted";
-		$error_ref->{ code } = 1;
-		$error_ref->{ desc } = $error_msg;
-		&zenlog( "$error_msg in '$cert_path'", "debug", "LSLB" );
-		return $error_ref;
-	}
+    if (&checkCertPEMKeyEncrypted($cert_path) == 1) {
+        Net::SSLeay::CTX_free($ctx);
+        my $error_msg = "PEM file private key is encrypted";
+        $error_ref->{code} = 1;
+        $error_ref->{desc} = $error_msg;
+        &zenlog("$error_msg in '$cert_path'", "debug", "LSLB");
+        return $error_ref;
+    }
 
-	unless ( Net::SSLeay::CTX_use_certificate_chain_file( $ctx, "$cert_path" ) )
-	{
-		my $error = Net::SSLeay::ERR_error_string( Net::SSLeay::ERR_get_error() );
-		my @strerr = split ( /:/, $error );
-		Net::SSLeay::CTX_free( $ctx );
-		my $error_str = $strerr[4];
-		if ( $error_str eq "no start line" )
-		{
-			my $error_msg = "No Certificate found";
-			$error_ref->{ code } = 2;
-			$error_ref->{ desc } = $error_msg;
-			&zenlog( "$error_msg in '$cert_path': " . $error_str, "debug", "LSLB" );
-			return $error_ref;
-		}
-		elsif ( $error_str eq "ca md too weak" )
-		{
-			my $error_msg = "Cipher weak found";
-			$error_ref->{ code } = 3;
-			$error_ref->{ desc } = $error_msg;
-			&zenlog( "$error_msg in '$cert_path': " . $error_str, "debug", "LSLB" );
-			return $error_ref;
-		}
-		else
-		{
-			my $error_msg = "Error using Certificate";
-			$error_ref->{ code } = 4;
-			$error_ref->{ desc } = $error_msg;
-			&zenlog( "$error_msg in '$cert_path': " . $error_str, "debug", "LSLB" );
-			return $error_ref;
-		}
-	}
+    unless (Net::SSLeay::CTX_use_certificate_chain_file($ctx, "$cert_path")) {
+        my $error = Net::SSLeay::ERR_error_string(Net::SSLeay::ERR_get_error());
+        my @strerr = split(/:/, $error);
+        Net::SSLeay::CTX_free($ctx);
+        my $error_str = $strerr[4];
+        if ($error_str eq "no start line") {
+            my $error_msg = "No Certificate found";
+            $error_ref->{code} = 2;
+            $error_ref->{desc} = $error_msg;
+            &zenlog("$error_msg in '$cert_path': " . $error_str,
+                "debug", "LSLB");
+            return $error_ref;
+        }
+        elsif ($error_str eq "ca md too weak") {
+            my $error_msg = "Cipher weak found";
+            $error_ref->{code} = 3;
+            $error_ref->{desc} = $error_msg;
+            &zenlog("$error_msg in '$cert_path': " . $error_str,
+                "debug", "LSLB");
+            return $error_ref;
+        }
+        else {
+            my $error_msg = "Error using Certificate";
+            $error_ref->{code} = 4;
+            $error_ref->{desc} = $error_msg;
+            &zenlog("$error_msg in '$cert_path': " . $error_str,
+                "debug", "LSLB");
+            return $error_ref;
+        }
+    }
 
-	unless (
-			 Net::SSLeay::CTX_use_PrivateKey_file( $ctx, "$cert_path",
-												   Net::SSLeay::FILETYPE_PEM() )
-	  )
-	{
-		my $error = Net::SSLeay::ERR_error_string( Net::SSLeay::ERR_get_error() );
-		my @strerr = split ( /:/, $error );
-		Net::SSLeay::CTX_free( $ctx );
-		my $error_str = $strerr[4];
-		if ( $error_str eq "no start line" )
-		{
-			my $error_msg = "No Private Key found";
-			$error_ref->{ code } = 5;
-			$error_ref->{ desc } = $error_msg;
-			&zenlog( "$error_msg in '$cert_path': " . $error_str, "debug", "LSLB" );
-			return $error_ref;
-		}
-		elsif ( $error_str eq "key values mismatch" )
-		{
-			my $error_msg = "Private Key is not valid for the first Certificate found";
-			$error_ref->{ code } = 6;
-			$error_ref->{ desc } = $error_msg;
-			&zenlog( "$error_msg in '$cert_path': " . $error_str, "debug", "LSLB" );
-			return $error_ref;
-		}
-		else
-		{
-			my $error_msg = "Error using Private Key";
-			$error_ref->{ code } = 7;
-			$error_ref->{ desc } = $error_msg;
-			&zenlog( "$error_msg in '$cert_path': " . $error_str, "debug", "LSLB" );
-			return $error_ref;
-		}
+    unless (
+        Net::SSLeay::CTX_use_PrivateKey_file(
+            $ctx, "$cert_path", Net::SSLeay::FILETYPE_PEM()
+        )
+      )
+    {
+        my $error = Net::SSLeay::ERR_error_string(Net::SSLeay::ERR_get_error());
+        my @strerr = split(/:/, $error);
+        Net::SSLeay::CTX_free($ctx);
+        my $error_str = $strerr[4];
+        if ($error_str eq "no start line") {
+            my $error_msg = "No Private Key found";
+            $error_ref->{code} = 5;
+            $error_ref->{desc} = $error_msg;
+            &zenlog("$error_msg in '$cert_path': " . $error_str,
+                "debug", "LSLB");
+            return $error_ref;
+        }
+        elsif ($error_str eq "key values mismatch") {
+            my $error_msg =
+              "Private Key is not valid for the first Certificate found";
+            $error_ref->{code} = 6;
+            $error_ref->{desc} = $error_msg;
+            &zenlog("$error_msg in '$cert_path': " . $error_str,
+                "debug", "LSLB");
+            return $error_ref;
+        }
+        else {
+            my $error_msg = "Error using Private Key";
+            $error_ref->{code} = 7;
+            $error_ref->{desc} = $error_msg;
+            &zenlog("$error_msg in '$cert_path': " . $error_str,
+                "debug", "LSLB");
+            return $error_ref;
+        }
 
-	}
-	unless ( Net::SSLeay::CTX_check_private_key( $ctx ) )
-	{
-		my $error = Net::SSLeay::ERR_error_string( Net::SSLeay::ERR_get_error() );
-		Net::SSLeay::CTX_free( $ctx );
-		my @strerr    = split ( /:/, $error );
-		my $error_str = $strerr[4];
-		my $error_msg = "Error checking Private Key";
-		$error_ref->{ code } = 8;
-		$error_ref->{ desc } = $error_msg;
-		&zenlog( "$error_msg in '$cert_path': " . $error_str, "debug", "LSLB" );
-		return $error_ref;
-	}
+    }
+    unless (Net::SSLeay::CTX_check_private_key($ctx)) {
+        my $error = Net::SSLeay::ERR_error_string(Net::SSLeay::ERR_get_error());
+        Net::SSLeay::CTX_free($ctx);
+        my @strerr    = split(/:/, $error);
+        my $error_str = $strerr[4];
+        my $error_msg = "Error checking Private Key";
+        $error_ref->{code} = 8;
+        $error_ref->{desc} = $error_msg;
+        &zenlog("$error_msg in '$cert_path': " . $error_str, "debug", "LSLB");
+        return $error_ref;
+    }
 
-	Net::SSLeay::CTX_free( $ctx );
-	return $error_ref;
+    Net::SSLeay::CTX_free($ctx);
+    return $error_ref;
 }
 
 =begin nd
@@ -1200,96 +1154,89 @@ Variable: $error_ref.
 
 sub createPEM    # ( $cert_name, $cert_key, $cert_ca, $cert_intermediates )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my ( $cert_name, $cert_key, $cert_ca, $cert_intermediates ) = @_;
-	my $error_ref->{ code } = 0;
+    my ($cert_name, $cert_key, $cert_ca, $cert_intermediates) = @_;
+    my $error_ref->{code} = 0;
 
-	if ( !$cert_name or !$cert_key or !$cert_ca )
-	{
-		my $error_msg = "A required parameter is missing";
-		$error_ref->{ code } = 1;
-		$error_ref->{ desc } = $error_msg;
-		return $error_ref;
-	}
+    if (!$cert_name or !$cert_key or !$cert_ca) {
+        my $error_msg = "A required parameter is missing";
+        $error_ref->{code} = 1;
+        $error_ref->{desc} = $error_msg;
+        return $error_ref;
+    }
 
-	# check certificate exists
-	my $configdir = &getGlobalConfiguration( 'certdir' );
-	my $cert_file = $configdir . "/" . $cert_name . ".pem";
+    # check certificate exists
+    my $configdir = &getGlobalConfiguration('certdir');
+    my $cert_file = $configdir . "/" . $cert_name . ".pem";
 
-	if ( -T $cert_file )
-	{
-		my $error_msg = "Certificate already exists";
-		$error_ref->{ code } = 2;
-		$error_ref->{ desc } = $error_msg;
-		return $error_ref;
-	}
+    if (-T $cert_file) {
+        my $error_msg = "Certificate already exists";
+        $error_ref->{code} = 2;
+        $error_ref->{desc} = $error_msg;
+        return $error_ref;
+    }
 
-	# create temp certificate
-	my $tmp_cert  = "/tmp/cert_$cert_name.tmp";
-	my $lock_file = &getLockFile( $tmp_cert );
-	my $lock_fh   = &openlock( $lock_file, 'w' );
-	my $fh        = &openlock( $tmp_cert, 'w' );
-	print $fh $cert_key . "\n";
-	print $fh $cert_ca . "\n";
-	print $fh $cert_intermediates . "\n" if ( defined $cert_intermediates );
-	close $fh;
+    # create temp certificate
+    my $tmp_cert  = "/tmp/cert_$cert_name.tmp";
+    my $lock_file = &getLockFile($tmp_cert);
+    my $lock_fh   = &openlock($lock_file, 'w');
+    my $fh        = &openlock($tmp_cert,  'w');
+    print $fh $cert_key . "\n";
+    print $fh $cert_ca . "\n";
+    print $fh $cert_intermediates . "\n" if (defined $cert_intermediates);
+    close $fh;
 
-	unless ( -T $tmp_cert )
-	{
-		close $lock_fh;
-		my $error_msg = "Error creating Temp Certificate File";
-		$error_ref->{ code } = 3;
-		$error_ref->{ desc } = $error_msg;
-		return $error_ref;
-	}
+    unless (-T $tmp_cert) {
+        close $lock_fh;
+        my $error_msg = "Error creating Temp Certificate File";
+        $error_ref->{code} = 3;
+        $error_ref->{desc} = $error_msg;
+        return $error_ref;
+    }
 
-	# check temp certificate
-	my $cert_conf = &getCertPEM( $tmp_cert );
-	if ( !$cert_conf->{ key } )
-	{
-		unlink $tmp_cert;
-		close $lock_fh;
-		my $error_msg = "No Private Key in PEM format found";
-		$error_ref->{ code } = 4;
-		$error_ref->{ desc } = $error_msg;
-		return $error_ref;
-	}
-	if ( !$cert_conf->{ fullchain } )
-	{
-		unlink $tmp_cert;
-		close $lock_fh;
-		my $error_msg = "No Certificate in PEM format found";
-		$error_ref->{ code } = 4;
-		$error_ref->{ desc } = $error_msg;
-		return $error_ref;
-	}
+    # check temp certificate
+    my $cert_conf = &getCertPEM($tmp_cert);
+    if (!$cert_conf->{key}) {
+        unlink $tmp_cert;
+        close $lock_fh;
+        my $error_msg = "No Private Key in PEM format found";
+        $error_ref->{code} = 4;
+        $error_ref->{desc} = $error_msg;
+        return $error_ref;
+    }
+    if (!$cert_conf->{fullchain}) {
+        unlink $tmp_cert;
+        close $lock_fh;
+        my $error_msg = "No Certificate in PEM format found";
+        $error_ref->{code} = 4;
+        $error_ref->{desc} = $error_msg;
+        return $error_ref;
+    }
 
-	my $error = &checkCertPEMValid( $tmp_cert );
-	if ( $error->{ code } )
-	{
-		unlink $tmp_cert;
-		close $lock_fh;
-		$error_ref->{ code } = 5;
-		$error_ref->{ desc } = $error->{ desc } . " in generated PEM";
-		return $error_ref;
-	}
+    my $error = &checkCertPEMValid($tmp_cert);
+    if ($error->{code}) {
+        unlink $tmp_cert;
+        close $lock_fh;
+        $error_ref->{code} = 5;
+        $error_ref->{desc} = $error->{desc} . " in generated PEM";
+        return $error_ref;
+    }
 
-	# copy temp certificate
-	if ( &copyLock( $tmp_cert, $cert_file ) )
-	{
-		unlink $tmp_cert;
-		close $lock_fh;
-		my $error_msg = "Error creating Certificate File";
-		$error_ref->{ code } = 5;
-		$error_ref->{ desc } = $error_msg;
-		return $error_ref;
-	}
+    # copy temp certificate
+    if (&copyLock($tmp_cert, $cert_file)) {
+        unlink $tmp_cert;
+        close $lock_fh;
+        my $error_msg = "Error creating Certificate File";
+        $error_ref->{code} = 5;
+        $error_ref->{desc} = $error_msg;
+        return $error_ref;
+    }
 
-	unlink $tmp_cert;
-	close $lock_fh;
-	return $error_ref;
+    unlink $tmp_cert;
+    close $lock_fh;
+    return $error_ref;
 }
 
 1;

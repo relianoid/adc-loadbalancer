@@ -38,16 +38,15 @@ See Also:
 	zapi/v3/system_stats.cgi
 =cut
 
-sub getTotalConnections
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $conntrack = &getGlobalConfiguration( "conntrack" );
-	my $conns     = &logAndGet( "$conntrack -C" );
-	$conns =~ s/(\d+)/$1/;
-	$conns += 0;
+sub getTotalConnections {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $conntrack = &getGlobalConfiguration("conntrack");
+    my $conns     = &logAndGet("$conntrack -C");
+    $conns =~ s/(\d+)/$1/;
+    $conns += 0;
 
-	return $conns;
+    return $conns;
 }
 
 =begin nd
@@ -66,39 +65,35 @@ See Also:
 	Zapi v3: <new_bond>
 =cut
 
-sub indexOfElementInArray
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $searched_element = shift;
-	my $array_ref        = shift;
+sub indexOfElementInArray {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $searched_element = shift;
+    my $array_ref        = shift;
 
-	if ( ref $array_ref ne 'ARRAY' )
-	{
-		return -2;
-	}
+    if (ref $array_ref ne 'ARRAY') {
+        return -2;
+    }
 
-	my @arrayOfElements = @{ $array_ref };
-	my $index           = 0;
+    my @arrayOfElements = @{$array_ref};
+    my $index           = 0;
 
-	for my $list_element ( @arrayOfElements )
-	{
-		if ( $list_element eq $searched_element )
-		{
-			last;
-		}
+    for my $list_element (@arrayOfElements) {
+        if ($list_element eq $searched_element) {
+            last;
+        }
 
-		$index++;
-	}
+        $index++;
+    }
 
-	# if $index is greater than the last element index
-	if ( $index > $#arrayOfElements )
-	{
-		# return an invalid index
-		$index = -1;
-	}
+    # if $index is greater than the last element index
+    if ($index > $#arrayOfElements) {
 
-	return $index;
+        # return an invalid index
+        $index = -1;
+    }
+
+    return $index;
 }
 
 =begin nd
@@ -114,36 +109,34 @@ Returns:
 
 =cut
 
-sub slurpFile
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $path = shift;
+sub slurpFile {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $path = shift;
 
-	# Slurp: store an entire file in a variable.
+    # Slurp: store an entire file in a variable.
 
-	require Zevenet::Log;
+    require Zevenet::Log;
 
-	my $file;
+    my $file;
 
-	open ( my $fh, '<', $path );
+    open(my $fh, '<', $path);
 
-	unless ( $fh )
-	{
-		my $msg = "Could not open $file: $!";
+    unless ($fh) {
+        my $msg = "Could not open $file: $!";
 
-		&zenlog( $msg );
-		die $msg;
-	}
+        &zenlog($msg);
+        die $msg;
+    }
 
-	{
-		local $/ = undef;
-		$file = <$fh>;
-	}
+    {
+        local $/ = undef;
+        $file = <$fh>;
+    }
 
-	close $fh;
+    close $fh;
 
-	return $file;
+    return $file;
 }
 
 =begin nd
@@ -160,24 +153,23 @@ Returns:
 
 =cut
 
-sub getSpaceFree
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+sub getSpaceFree {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my $dir      = shift;
-	my $df_bin   = &getGlobalConfiguration( "df_bin" );
-	my $sed_bin  = &getGlobalConfiguration( "sed_bin" );
-	my $cut_bin  = &getGlobalConfiguration( "cut_bin" );
-	my $grep_bin = &getGlobalConfiguration( "grep_bin" );
+    my $dir      = shift;
+    my $df_bin   = &getGlobalConfiguration("df_bin");
+    my $sed_bin  = &getGlobalConfiguration("sed_bin");
+    my $cut_bin  = &getGlobalConfiguration("cut_bin");
+    my $grep_bin = &getGlobalConfiguration("grep_bin");
 
-	my $cmd =
-	  "$df_bin -B1 $dir | $grep_bin -Ev '^(Filesystem|\$)' | $sed_bin -E 's/\\s+/ /g' | $cut_bin -d ' ' -f4";
-	my $size = &logAndGet( $cmd );
+    my $cmd =
+"$df_bin -B1 $dir | $grep_bin -Ev '^(Filesystem|\$)' | $sed_bin -E 's/\\s+/ /g' | $cut_bin -d ' ' -f4";
+    my $size = &logAndGet($cmd);
 
-	&zenlog( "Dir: $dir, Free space (Bytes): $size", "debug2" );
+    &zenlog("Dir: $dir, Free space (Bytes): $size", "debug2");
 
-	return $size;
+    return $size;
 }
 
 =begin nd
@@ -193,35 +185,31 @@ Returns:
 
 =cut
 
-sub getSpaceFormatHuman
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+sub getSpaceFormatHuman {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my $size = shift;
+    my $size = shift;
 
-	my $human = $size;
-	my $unit  = 'B';
+    my $human = $size;
+    my $unit  = 'B';
 
-	if ( $human > 1024 )
-	{
-		$human = $human / 1024;
-		$unit  = "KB";
-	}
-	if ( $human > 1024 )
-	{
-		$human = $human / 1024;
-		$unit  = "MB";
-	}
-	if ( $human > 1024 )
-	{
-		$human = $human / 1024;
-		$unit  = "GB";
-	}
+    if ($human > 1024) {
+        $human = $human / 1024;
+        $unit  = "KB";
+    }
+    if ($human > 1024) {
+        $human = $human / 1024;
+        $unit  = "MB";
+    }
+    if ($human > 1024) {
+        $human = $human / 1024;
+        $unit  = "GB";
+    }
 
-	$human = sprintf ( "%.2f", $human );
-	my $out = $human . $unit;
-	return $out;
+    $human = sprintf("%.2f", $human);
+    my $out = $human . $unit;
+    return $out;
 }
 
 =begin nd
@@ -239,19 +227,18 @@ Returns:
 
 =cut
 
-sub getSupportSaveSize
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+sub getSupportSaveSize {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my $offset = "20971520";                             # 20 MB
-	my $dirs   = "/usr/local/zevenet/config /var/log";
+    my $offset = "20971520";                             # 20 MB
+    my $dirs   = "/usr/local/zevenet/config /var/log";
 
-	my $tar_bin = &getGlobalConfiguration( 'tar' );
-	my $wc      = &getGlobalConfiguration( 'wc_bin' );
-	my $size    = &logAndGet( "$tar_bin cz - $dirs 2>/dev/null | $wc -c" );
+    my $tar_bin = &getGlobalConfiguration('tar');
+    my $wc      = &getGlobalConfiguration('wc_bin');
+    my $size    = &logAndGet("$tar_bin cz - $dirs 2>/dev/null | $wc -c");
 
-	return $offset + $size;
+    return $offset + $size;
 }
 
 =begin nd
@@ -267,34 +254,31 @@ Returns:
 
 =cut
 
-sub checkSupportSaveSpace
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+sub checkSupportSaveSpace {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my $dir = shift // "/tmp";
+    my $dir = shift // "/tmp";
 
-	my $supp_size = &getSupportSaveSize( $dir );
-	my $freeSpace = &getSpaceFree( $dir );
+    my $supp_size = &getSupportSaveSize($dir);
+    my $freeSpace = &getSpaceFree($dir);
 
-	my $out = ( $freeSpace > $supp_size ) ? 0 : $supp_size;
+    my $out = ($freeSpace > $supp_size) ? 0 : $supp_size;
 
-	if ( $out )
-	{
-		&zenlog(
-			"There is no enough free space ('$freeSpace') in the '$dir' partition. Supportsave needs '$supp_size' bytes",
-			"error", "system"
-		);
-	}
-	else
-	{
-		&zenlog(
-			"Checking free space ('$freeSpace') in the '$dir' partition. Supportsave needs '$supp_size' bytes",
-			"debug", "system"
-		);
-	}
+    if ($out) {
+        &zenlog(
+"There is no enough free space ('$freeSpace') in the '$dir' partition. Supportsave needs '$supp_size' bytes",
+            "error", "system"
+        );
+    }
+    else {
+        &zenlog(
+"Checking free space ('$freeSpace') in the '$dir' partition. Supportsave needs '$supp_size' bytes",
+            "debug", "system"
+        );
+    }
 
-	return $out;
+    return $out;
 }
 
 =begin nd
@@ -310,22 +294,21 @@ Returns:
 
 =cut
 
-sub getSupportSave
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $zbindir = &getGlobalConfiguration( 'zbindir' );
-	my @ss_output = @{ &logAndGet( "${zbindir}/supportsave", "array" ) };
+sub getSupportSave {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $zbindir   = &getGlobalConfiguration('zbindir');
+    my @ss_output = @{ &logAndGet("${zbindir}/supportsave", "array") };
 
-	# get the last "word" from the first line
-	my $first_line = shift @ss_output;
-	my $last_word = ( split ( ' ', $first_line ) )[-1];
+    # get the last "word" from the first line
+    my $first_line = shift @ss_output;
+    my $last_word  = (split(' ', $first_line))[-1];
 
-	my $ss_path = $last_word;
+    my $ss_path = $last_word;
 
-	my ( undef, $ss_filename ) = split ( '/tmp/', $ss_path );
+    my (undef, $ss_filename) = split('/tmp/', $ss_path);
 
-	return $ss_filename;
+    return $ss_filename;
 }
 
 =begin nd
@@ -346,34 +329,32 @@ Returns:
 
 =cut
 
-sub applyFactoryReset
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+sub applyFactoryReset {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my $if_name = shift;
-	my $reset_type = shift // '';
+    my $if_name    = shift;
+    my $reset_type = shift // '';
 
-	if ( !$if_name )
-	{
-		&zenlog( "Factory reset needs a interface", "error", "Factory" );
-		return -1;
-	}
+    if (!$if_name) {
+        &zenlog("Factory reset needs a interface", "error", "Factory");
+        return -1;
+    }
 
-	unless ( $reset_type =~ /^(?:remove-backups|hardware||hard-reset)$/ )
-	{
-		&zenlog( "Reset type do not recognized: $reset_type", "error", "Factory" );
-		return -2;
-	}
+    unless ($reset_type =~ /^(?:remove-backups|hardware||hard-reset)$/) {
+        &zenlog("Reset type do not recognized: $reset_type", "error",
+            "Factory");
+        return -2;
+    }
 
-	$reset_type = "--$reset_type" if ( $reset_type ne '' );
+    $reset_type = "--$reset_type" if ($reset_type ne '');
 
-	my $cmd =
-	  &getGlobalConfiguration( 'factory_reset_bin' ) . " -i $if_name $reset_type";
-	my $err = &logAndRunBG( $cmd )
-	  ;    # it has to be executed in background for being used from api
+    my $cmd =
+      &getGlobalConfiguration('factory_reset_bin') . " -i $if_name $reset_type";
+    my $err = &logAndRunBG($cmd)
+      ;    # it has to be executed in background for being used from api
 
-	return $err;
+    return $err;
 }
 
 =begin nd
@@ -391,12 +372,12 @@ Returns:
 
 sub checkPidRunning    #( $pid )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $pid = shift;
-	my $ret = 1;
-	$ret = 0 if ( -e "/proc/" . $pid );
-	return $ret;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $pid = shift;
+    my $ret = 1;
+    $ret = 0 if (-e "/proc/" . $pid);
+    return $ret;
 }
 
 =begin nd
@@ -414,14 +395,14 @@ Returns:
 
 sub checkPidFileRunning    #( $pid_file )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $pid_file = shift;
-	open my $fileh, $pid_file;
-	my $pid = <$fileh>;
-	chomp $pid;
-	close $fileh;
-	return &checkPidRunning( $pid );
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $pid_file = shift;
+    open my $fileh, $pid_file;
+    my $pid = <$fileh>;
+    chomp $pid;
+    close $fileh;
+    return &checkPidRunning($pid);
 }
 
 1;

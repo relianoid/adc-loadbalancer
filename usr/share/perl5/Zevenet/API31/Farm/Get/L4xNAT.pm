@@ -26,85 +26,82 @@ use Zevenet::Farm::Config;
 use Zevenet::Farm::L4xNAT::Backend;
 
 my $eload;
-if ( eval { require Zevenet::ELoad; } )
-{
-	$eload = 1;
+if (eval { require Zevenet::ELoad; }) {
+    $eload = 1;
 }
 
 # GET /farms/<farmname> Request info of a l4xnat Farm
 sub farms_name_l4    # ( $farmname )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $farmname = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $farmname = shift;
 
-	my $out_p;
-	my $out_b;
+    my $out_p;
+    my $out_b;
 
-	require Zevenet::Farm::L4xNAT::Config;
+    require Zevenet::Farm::L4xNAT::Config;
 
-	#	$output = &getL4FarmParam( $info, $farm_name );
+    #	$output = &getL4FarmParam( $info, $farm_name );
 
-	my $vip   = &getL4FarmParam( "vip",  $farmname );
-	my $vport = &getL4FarmParam( "vipp", $farmname );
+    my $vip   = &getL4FarmParam("vip",  $farmname);
+    my $vport = &getL4FarmParam("vipp", $farmname);
 
-	my @ttl = &getFarmMaxClientTime( $farmname, "" );
-	my $timetolimit = $ttl[0] + 0;
+    my @ttl         = &getFarmMaxClientTime($farmname, "");
+    my $timetolimit = $ttl[0] + 0;
 
-	# Farmguardian
-	my @fgconfig    = &getFarmGuardianConf( $farmname, "" );
-	my $fguse       = $fgconfig[3];
-	my $fgcommand   = $fgconfig[2];
-	my $fgtimecheck = $fgconfig[1];
-	my $fglog       = $fgconfig[4];
+    # Farmguardian
+    my @fgconfig    = &getFarmGuardianConf($farmname, "");
+    my $fguse       = $fgconfig[3];
+    my $fgcommand   = $fgconfig[2];
+    my $fgtimecheck = $fgconfig[1];
+    my $fglog       = $fgconfig[4];
 
-	if ( !$fgtimecheck ) { $fgtimecheck = 5; }
-	if ( !$fguse )       { $fguse       = "false"; }
-	if ( !$fglog )       { $fglog       = "false"; }
-	if ( !$fgcommand )   { $fgcommand   = ""; }
+    if (!$fgtimecheck) { $fgtimecheck = 5; }
+    if (!$fguse)       { $fguse       = "false"; }
+    if (!$fglog)       { $fglog       = "false"; }
+    if (!$fgcommand)   { $fgcommand   = ""; }
 
-	my $status = &getFarmVipStatus( $farmname );
+    my $status = &getFarmVipStatus($farmname);
 
-	$out_p = {
-			   status      => $status,
-			   vip         => $vip,
-			   vport       => $vport,
-			   algorithm   => &getL4FarmParam( 'alg', $farmname ),
-			   nattype     => &getL4FarmParam( 'mode', $farmname ),
-			   persistence => &getL4FarmParam( 'persist', $farmname ),
-			   protocol    => &getL4FarmParam( 'proto', $farmname ),
-			   ttl         => $timetolimit,
-			   fgenabled   => $fguse,
-			   fgtimecheck => $fgtimecheck + 0,
-			   fgscript    => $fgcommand,
-			   fglog       => $fglog,
-			   listener    => 'l4xnat',
-	};
+    $out_p = {
+        status      => $status,
+        vip         => $vip,
+        vport       => $vport,
+        algorithm   => &getL4FarmParam('alg',     $farmname),
+        nattype     => &getL4FarmParam('mode',    $farmname),
+        persistence => &getL4FarmParam('persist', $farmname),
+        protocol    => &getL4FarmParam('proto',   $farmname),
+        ttl         => $timetolimit,
+        fgenabled   => $fguse,
+        fgtimecheck => $fgtimecheck + 0,
+        fgscript    => $fgcommand,
+        fglog       => $fglog,
+        listener    => 'l4xnat',
+    };
 
-	# Backends
-	$out_b = &getL4FarmServers( $farmname );
-	&getAPIFarmBackends( $out_b, 'l4xnat' );
+    # Backends
+    $out_b = &getL4FarmServers($farmname);
+    &getAPIFarmBackends($out_b, 'l4xnat');
 
-	my $body = {
-				 description => "List farm $farmname",
-				 params      => $out_p,
-				 backends    => $out_b,
-	};
+    my $body = {
+        description => "List farm $farmname",
+        params      => $out_p,
+        backends    => $out_b,
+    };
 
-	if ( $eload )
-	{
-		$body->{ ipds } = &eload(
-								  module => 'Zevenet::IPDS::Core',
-								  func   => 'getIPDSfarmsRules',
-								  args   => [$farmname],
-		);
-		for my $blacklist ( @{ $body->{ ipds }->{ blacklists } } )
-		{
-			delete $blacklist->{ id };
-		}
-	}
+    if ($eload) {
+        $body->{ipds} = &eload(
+            module => 'Zevenet::IPDS::Core',
+            func   => 'getIPDSfarmsRules',
+            args   => [$farmname],
+        );
+        for my $blacklist (@{ $body->{ipds}->{blacklists} }) {
+            delete $blacklist->{id};
+        }
+    }
 
-	&httpResponse( { code => 200, body => $body } );
+    &httpResponse({ code => 200, body => $body });
 }
 
 1;

@@ -45,13 +45,12 @@ See Also:
 	zapi/v3/zapi.cgi, zapi/v3/certificates.cgi, zapi/v3/system.cgi, <downloadBackup>
 =cut
 
-sub getCGI
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	state $cgi = CGI::Simple->new();
+sub getCGI {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    state $cgi = CGI::Simple->new();
 
-	return $cgi;
+    return $cgi;
 }
 
 =begin nd
@@ -83,17 +82,16 @@ See Also:
 	zapi/v3/zapi.cgi
 =cut
 
-sub getCgiParam
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $variable = shift;
+sub getCgiParam {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $variable = shift;
 
-	my $cgi = getCGI();
+    my $cgi = getCGI();
 
-	return eval { $cgi->param( $variable ) } if $variable;
+    return eval { $cgi->param($variable) } if $variable;
 
-	return $cgi->Vars;
+    return $cgi->Vars;
 }
 
 1;

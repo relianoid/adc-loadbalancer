@@ -27,61 +27,59 @@ use Zevenet::Farm::Backend;
 use Zevenet::Farm::L4xNAT::Config;
 
 my $eload;
-if ( eval { require Zevenet::ELoad; } )
-{
-	$eload = 1;
+if (eval { require Zevenet::ELoad; }) {
+    $eload = 1;
 }
 
 # GET /farms/<farmname> Request info of a l4xnat Farm
 sub farms_name_l4    # ( $farmname )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $farmname = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $farmname = shift;
 
-	my $out_p;
+    my $out_p;
 
-	my $farm   = &getL4FarmStruct( $farmname );
-	my $status = &getFarmVipStatus( $farmname );
+    my $farm   = &getL4FarmStruct($farmname);
+    my $status = &getFarmVipStatus($farmname);
 
-	require Zevenet::Farm::L4xNAT::Sessions;
-	$out_p = {
-		status      => $status,
-		vip         => $farm->{ vip },
-		vport       => $farm->{ vport },
-		algorithm   => $farm->{ lbalg },
-		nattype     => $farm->{ nattype },
-		persistence => $farm->{ persist },
-		ttl         => $farm->{ ttl } + 0,
-		protocol    => $farm->{ vproto },
+    require Zevenet::Farm::L4xNAT::Sessions;
+    $out_p = {
+        status      => $status,
+        vip         => $farm->{vip},
+        vport       => $farm->{vport},
+        algorithm   => $farm->{lbalg},
+        nattype     => $farm->{nattype},
+        persistence => $farm->{persist},
+        ttl         => $farm->{ttl} + 0,
+        protocol    => $farm->{vproto},
 
-		farmguardian => &getFGFarm( $farmname ),
-		listener     => 'l4xnat',
-		sessions     => &listL4FarmSessions( $farmname )
-	};
+        farmguardian => &getFGFarm($farmname),
+        listener     => 'l4xnat',
+        sessions     => &listL4FarmSessions($farmname)
+    };
 
-	if ( $eload )
-	{
-		$out_p->{ logs } = $farm->{ logs };
-	}
+    if ($eload) {
+        $out_p->{logs} = $farm->{logs};
+    }
 
-	# Backends
-	my $out_b = &getFarmServers( $farmname );
-	&getAPIFarmBackends( $out_b, 'l4xnat' );
+    # Backends
+    my $out_b = &getFarmServers($farmname);
+    &getAPIFarmBackends($out_b, 'l4xnat');
 
-	my $body = {
-				 description => "List farm $farmname",
-				 params      => $out_p,
-				 backends    => $out_b,
-	};
+    my $body = {
+        description => "List farm $farmname",
+        params      => $out_p,
+        backends    => $out_b,
+    };
 
-	$body->{ ipds } = &eload(
-							  module => 'Zevenet::IPDS::Core',
-							  func   => 'getIPDSfarmsRules',
-							  args   => [$farmname],
-	) if ( $eload );
+    $body->{ipds} = &eload(
+        module => 'Zevenet::IPDS::Core',
+        func   => 'getIPDSfarmsRules',
+        args   => [$farmname],
+    ) if ($eload);
 
-	&httpResponse( { code => 200, body => $body } );
+    &httpResponse({ code => 200, body => $body });
 }
 
 1;

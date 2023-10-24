@@ -26,52 +26,48 @@ require JSON::XS;
 require Zevenet::Lock;
 
 JSON::XS->import;
-my $json = JSON::XS->new->utf8->pretty( 1 );
-$json->canonical( [1] );
+my $json = JSON::XS->new->utf8->pretty(1);
+$json->canonical([1]);
 
-sub decodeJSONFile
-{
-	my $file = shift;
+sub decodeJSONFile {
+    my $file = shift;
 
-	my $file_str;
-	my $fh = &openlock( $file, '<' );
-	return undef if !defined $fh;
+    my $file_str;
+    my $fh = &openlock($file, '<');
+    return undef if !defined $fh;
 
-	{
-		local $/ = undef;
-		$file_str = <$fh>;
-	}
-	close $fh;
+    {
+        local $/ = undef;
+        $file_str = <$fh>;
+    }
+    close $fh;
 
-	my $f_json;
-	eval { $f_json = $json->decode( $file_str ); };
-	if ( $@ )
-	{
-		&zenlog( "Error decoding the file $file", 'error' );
-		&zenlog( "json: $@",                      'debug' );
-	}
-	return $f_json;
+    my $f_json;
+    eval { $f_json = $json->decode($file_str); };
+    if ($@) {
+        &zenlog("Error decoding the file $file", 'error');
+        &zenlog("json: $@",                      'debug');
+    }
+    return $f_json;
 }
 
-sub encodeJSONFile
-{
-	my $f_json = shift;
-	my $file   = shift;
+sub encodeJSONFile {
+    my $f_json = shift;
+    my $file   = shift;
 
-	my $file_str;
-	eval { $file_str = $json->encode( $f_json ); };
-	if ( $@ )
-	{
-		&zenlog( "Error encoding the file $file" );
-		&zenlog( "json: $@", 'debug' );
-	}
+    my $file_str;
+    eval { $file_str = $json->encode($f_json); };
+    if ($@) {
+        &zenlog("Error encoding the file $file");
+        &zenlog("json: $@", 'debug');
+    }
 
-	my $fh = &openlock( $file, '>' );
-	return 1 if not defined $fh;
+    my $fh = &openlock($file, '>');
+    return 1 if not defined $fh;
 
-	print $fh $file_str;
-	close $fh;
-	return 0;
+    print $fh $file_str;
+    close $fh;
+    return 0;
 }
 
 1;

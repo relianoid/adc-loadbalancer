@@ -42,10 +42,9 @@ See Also:
 	Widely used.
 =cut
 
-sub debug
-{
-	require Zevenet::Config;
-	return &getGlobalConfiguration( 'debug' ) // 0;
+sub debug {
+    require Zevenet::Config;
+    return &getGlobalConfiguration('debug') // 0;
 }
 
 =begin nd
@@ -63,16 +62,15 @@ See Also:
 	Used in zapi.cgi
 =cut
 
-sub getMemoryUsage
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $mem_string = `grep RSS /proc/$$/status`;
+sub getMemoryUsage {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $mem_string = `grep RSS /proc/$$/status`;
 
-	chomp ( $mem_string );
-	$mem_string =~ s/:.\s+/: /;
+    chomp($mem_string);
+    $mem_string =~ s/:.\s+/: /;
 
-	return $mem_string;
+    return $mem_string;
 }
 
 1;

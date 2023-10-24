@@ -24,54 +24,52 @@
 use strict;
 
 # GET /system/dns
-sub get_dns
-{
-	&zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING" );
-	require Zevenet::System::DNS;
+sub get_dns {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    require Zevenet::System::DNS;
 
-	my $desc = "Get dns";
-	my $dns  = &getDns();
+    my $desc = "Get dns";
+    my $dns  = &getDns();
 
-	&httpResponse( { code => 200, body => { description => $desc, params => $dns } } );
+    &httpResponse(
+        { code => 200, body => { description => $desc, params => $dns } });
 }
 
 #  POST /system/dns
-sub set_dns
-{
-	&zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING" );
-	my $json_obj = shift;
+sub set_dns {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $json_obj = shift;
 
-	require Zevenet::System::DNS;
+    require Zevenet::System::DNS;
 
-	my $desc = "Post dns";
+    my $desc = "Post dns";
 
-	my @allowParams = ( "primary", "secondary" );
-	my $param_msg    = &getValidOptParams( $json_obj, \@allowParams );
+    my @allowParams = ("primary", "secondary");
+    my $param_msg   = &getValidOptParams($json_obj, \@allowParams);
 
-	if ( $param_msg )
-	{
-		&httpErrorResponse( code => 400, desc => $desc, msg => $param_msg );
-	}
+    if ($param_msg) {
+        &httpErrorResponse(code => 400, desc => $desc, msg => $param_msg);
+    }
 
-	foreach my $key ( keys %{ $json_obj } )
-	{
-		unless ( &getValidFormat( 'dns_nameserver', $json_obj->{ $key } )
-				 || ( $key eq 'secondary' && $json_obj->{ $key } eq '' ) )
-		{
-			my $msg = "Please, insert a correct nameserver.";
-			&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-		}
-	}
+    foreach my $key (keys %{$json_obj}) {
+        unless (&getValidFormat('dns_nameserver', $json_obj->{$key})
+            || ($key eq 'secondary' && $json_obj->{$key} eq ''))
+        {
+            my $msg = "Please, insert a correct nameserver.";
+            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        }
+    }
 
-	foreach my $key ( keys %{ $json_obj } )
-	{
-		my $msg = &setDns( $key, $json_obj->{ $key } );
-		&httpErrorResponse( code => 400, desc => $desc, msg => $msg ) if $msg;
-	}
+    foreach my $key (keys %{$json_obj}) {
+        my $msg = &setDns($key, $json_obj->{$key});
+        &httpErrorResponse(code => 400, desc => $desc, msg => $msg) if $msg;
+    }
 
-	my $dns = &getDns();
-	&httpResponse(
-			 { code => 200, body => { description => $desc, params => $dns } } );
+    my $dns = &getDns();
+    &httpResponse(
+        { code => 200, body => { description => $desc, params => $dns } });
 }
 
 1;

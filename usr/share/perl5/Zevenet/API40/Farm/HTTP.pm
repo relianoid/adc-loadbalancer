@@ -22,9 +22,8 @@
 
 use strict;
 my $eload;
-if ( eval { require Zevenet::ELoad; } )
-{
-	$eload = 1;
+if (eval { require Zevenet::ELoad; }) {
+    $eload = 1;
 }
 
 use Zevenet::API40::HTTP;
@@ -35,1506 +34,1376 @@ require Zevenet::Farm::HTTP::Config;
 # POST	/farms/<>/addheader
 sub add_addheader    # ( $json_obj, $farmname )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $json_obj = shift;
-	my $farmname = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $json_obj = shift;
+    my $farmname = shift;
 
-	my $desc = "Add addheader directive.";
+    my $desc = "Add addheader directive.";
 
-	# Check that the farm exists
-	if ( !&getFarmExists( $farmname ) )
-	{
-		my $msg = "The farm '$farmname' does not exist.";
-		return &httpErrorResponse( code => 404, desc => $desc, msg => $msg );
-	}
+    # Check that the farm exists
+    if (!&getFarmExists($farmname)) {
+        my $msg = "The farm '$farmname' does not exist.";
+        return &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+    }
 
-	if ( &getFarmType( $farmname ) !~ /http/ )
-	{
-		my $msg = "This feature is only for HTTP profiles.";
-		return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    if (&getFarmType($farmname) !~ /http/) {
+        my $msg = "This feature is only for HTTP profiles.";
+        return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	my $params = &getZAPIModel( "farm_http_header_request_add-create.json" );
+    my $params = &getZAPIModel("farm_http_header_request_add-create.json");
 
-	# Check allowed parameters
-	my $error_msg = &checkZAPIParams( $json_obj, $params, $desc );
-	return &httpErrorResponse( code => 400, desc => $desc, msg => $error_msg )
-	  if ( $error_msg );
+    # Check allowed parameters
+    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+      if ($error_msg);
 
-	# check if the header is already added
-	foreach my $header ( @{ &getHTTPAddReqHeader( $farmname ) } )
-	{
-		if ( $header->{ header } eq $json_obj->{ header } )
-		{
-			my $msg = "The header is already added.";
-			return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-		}
-	}
+    # check if the header is already added
+    foreach my $header (@{ &getHTTPAddReqHeader($farmname) }) {
+        if ($header->{header} eq $json_obj->{header}) {
+            my $msg = "The header is already added.";
+            return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        }
+    }
 
-	unless ( &addHTTPAddheader( $farmname, $json_obj->{ header } ) )
-	{
-		# success
-		my $message = "Added a new item to the addheader list";
-		my $body = {
-					 description => $desc,
-					 success     => "true",
-					 message     => $message,
-		};
+    unless (&addHTTPAddheader($farmname, $json_obj->{header})) {
 
-		if ( &getFarmStatus( $farmname ) ne 'down' )
-		{
-			require Zevenet::Farm::Action;
-			if ( &getGlobalConfiguration( 'proxy_ng' ) ne 'true' )
-			{
-				&setFarmRestart( $farmname );
-				$body->{ status } = 'needed restart';
-			}
-			else
-			{
-				require Zevenet::Farm::HTTP::Config;
-				my $config_error = &getHTTPFarmConfigErrorMessage( $farmname );
-				if ( $config_error ne "" )
-				{
-					$body->{ warning } = "Farm '$farmname' config error: $config_error";
-				}
-				else
-				{
-					&runFarmReload( $farmname );
-					&eload(
-							module => 'Zevenet::Cluster',
-							func   => 'runZClusterRemoteManager',
-							args   => ['farm', 'reload', $farmname],
-					) if ( $eload );
-				}
-			}
-		}
+        # success
+        my $message = "Added a new item to the addheader list";
+        my $body    = {
+            description => $desc,
+            success     => "true",
+            message     => $message,
+        };
 
-		return &httpResponse( { code => 200, body => $body } );
-	}
+        if (&getFarmStatus($farmname) ne 'down') {
+            require Zevenet::Farm::Action;
+            if (&getGlobalConfiguration('proxy_ng') ne 'true') {
+                &setFarmRestart($farmname);
+                $body->{status} = 'needed restart';
+            }
+            else {
+                require Zevenet::Farm::HTTP::Config;
+                my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
+                if ($config_error ne "") {
+                    $body->{warning} =
+                      "Farm '$farmname' config error: $config_error";
+                }
+                else {
+                    &runFarmReload($farmname);
+                    &eload(
+                        module => 'Zevenet::Cluster',
+                        func   => 'runZClusterRemoteManager',
+                        args   => [ 'farm', 'reload', $farmname ],
+                    ) if ($eload);
+                }
+            }
+        }
 
-	# error
-	my $msg = "Error adding a new addheader";
-	return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
+        return &httpResponse({ code => 200, body => $body });
+    }
+
+    # error
+    my $msg = "Error adding a new addheader";
+    return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
 }
 
 # PUT	/farms/<>/addheader/<id>
 sub modify_addheader    # ( $json_obj, $farmname, $index )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $json_obj = shift;
-	my $farmname = shift;
-	my $index    = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $json_obj = shift;
+    my $farmname = shift;
+    my $index    = shift;
 
-	my $desc = "Modify an addheader directive.";
+    my $desc = "Modify an addheader directive.";
 
-	# Check that the farm exists
-	if ( !&getFarmExists( $farmname ) )
-	{
-		my $msg = "The farm '$farmname' does not exist.";
-		return &httpErrorResponse( code => 404, desc => $desc, msg => $msg );
-	}
+    # Check that the farm exists
+    if (!&getFarmExists($farmname)) {
+        my $msg = "The farm '$farmname' does not exist.";
+        return &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+    }
 
-	if ( &getFarmType( $farmname ) !~ /http/ )
-	{
-		my $msg = "This feature is only for HTTP profiles.";
-		return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    if (&getFarmType($farmname) !~ /http/) {
+        my $msg = "This feature is only for HTTP profiles.";
+        return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	my $params = &getZAPIModel( "farm_http_header_request_add-modify.json" );
+    my $params = &getZAPIModel("farm_http_header_request_add-modify.json");
 
-	# Check allowed parameters
-	my $error_msg = &checkZAPIParams( $json_obj, $params, $desc );
-	return &httpErrorResponse( code => 400, desc => $desc, msg => $error_msg )
-	  if ( $error_msg );
+    # Check allowed parameters
+    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+      if ($error_msg);
 
-	my @directives = @{ &getHTTPAddReqHeader( $farmname ) };
+    my @directives = @{ &getHTTPAddReqHeader($farmname) };
 
-	# check if the header exists
-	if ( ( scalar @directives ) < $index + 1 )
-	{
-		my $msg = "The header with index $index not found.";
-		return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    # check if the header exists
+    if ((scalar @directives) < $index + 1) {
+        my $msg = "The header with index $index not found.";
+        return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	# check if the header is already added
-	foreach my $header ( @directives )
-	{
-		if ( $header->{ header } eq $json_obj->{ header } )
-		{
-			my $msg = "The header is already added.";
-			return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-		}
-	}
+    # check if the header is already added
+    foreach my $header (@directives) {
+        if ($header->{header} eq $json_obj->{header}) {
+            my $msg = "The header is already added.";
+            return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        }
+    }
 
-	unless ( &modifyHTTPAddheader( $farmname, $json_obj->{ header }, $index ) )
-	{
-		# success
-		my $message = "Modified an item from the addheader list";
-		my $body = {
-					 description => $desc,
-					 success     => "true",
-					 message     => $message,
-		};
+    unless (&modifyHTTPAddheader($farmname, $json_obj->{header}, $index)) {
 
-		if ( &getFarmStatus( $farmname ) ne 'down' )
-		{
-			require Zevenet::Farm::Action;
-			if ( &getGlobalConfiguration( 'proxy_ng' ) ne 'true' )
-			{
-				&setFarmRestart( $farmname );
-				$body->{ status } = 'needed restart';
-			}
-			else
-			{
-				require Zevenet::Farm::HTTP::Config;
-				my $config_error = &getHTTPFarmConfigErrorMessage( $farmname );
-				if ( $config_error ne "" )
-				{
-					$body->{ warning } = "Farm '$farmname' config error: $config_error";
-				}
-				else
-				{
-					&runFarmReload( $farmname );
-					&eload(
-							module => 'Zevenet::Cluster',
-							func   => 'runZClusterRemoteManager',
-							args   => ['farm', 'reload', $farmname],
-					) if ( $eload );
-				}
-			}
-		}
+        # success
+        my $message = "Modified an item from the addheader list";
+        my $body    = {
+            description => $desc,
+            success     => "true",
+            message     => $message,
+        };
 
-		return &httpResponse( { code => 200, body => $body } );
-	}
+        if (&getFarmStatus($farmname) ne 'down') {
+            require Zevenet::Farm::Action;
+            if (&getGlobalConfiguration('proxy_ng') ne 'true') {
+                &setFarmRestart($farmname);
+                $body->{status} = 'needed restart';
+            }
+            else {
+                require Zevenet::Farm::HTTP::Config;
+                my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
+                if ($config_error ne "") {
+                    $body->{warning} =
+                      "Farm '$farmname' config error: $config_error";
+                }
+                else {
+                    &runFarmReload($farmname);
+                    &eload(
+                        module => 'Zevenet::Cluster',
+                        func   => 'runZClusterRemoteManager',
+                        args   => [ 'farm', 'reload', $farmname ],
+                    ) if ($eload);
+                }
+            }
+        }
 
-	# error
-	my $msg = "Error modifying an addheader";
-	return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
+        return &httpResponse({ code => 200, body => $body });
+    }
+
+    # error
+    my $msg = "Error modifying an addheader";
+    return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
 }
 
 #  DELETE	/farms/<>/addheader/<>
-sub del_addheader
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $farmname = shift;
-	my $index    = shift;
+sub del_addheader {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $farmname = shift;
+    my $index    = shift;
 
-	my $desc = "Delete addheader directive.";
+    my $desc = "Delete addheader directive.";
 
-	# Check that the farm exists
-	if ( !&getFarmExists( $farmname ) )
-	{
-		my $msg = "The farm '$farmname' does not exist.";
-		return &httpErrorResponse( code => 404, desc => $desc, msg => $msg );
-	}
+    # Check that the farm exists
+    if (!&getFarmExists($farmname)) {
+        my $msg = "The farm '$farmname' does not exist.";
+        return &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+    }
 
-	if ( &getFarmType( $farmname ) !~ /http/ )
-	{
-		my $msg = "This feature is only for HTTP profiles.";
-		return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    if (&getFarmType($farmname) !~ /http/) {
+        my $msg = "This feature is only for HTTP profiles.";
+        return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	# check if the header is already added
-	if ( ( scalar @{ &getHTTPAddReqHeader( $farmname ) } ) < $index + 1 )
-	{
-		my $msg = "The index has not been found.";
-		return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    # check if the header is already added
+    if ((scalar @{ &getHTTPAddReqHeader($farmname) }) < $index + 1) {
+        my $msg = "The index has not been found.";
+        return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	unless ( &delHTTPAddheader( $farmname, $index ) )
-	{
-		# success
-		my $message = "The addheader $index was deleted successfully";
-		my $body = {
-					 description => $desc,
-					 success     => "true",
-					 message     => $message,
-		};
+    unless (&delHTTPAddheader($farmname, $index)) {
 
-		if ( &getFarmStatus( $farmname ) ne 'down' )
-		{
-			require Zevenet::Farm::Action;
-			if ( &getGlobalConfiguration( 'proxy_ng' ) ne 'true' )
-			{
-				&setFarmRestart( $farmname );
-				$body->{ status } = 'needed restart';
-			}
-			else
-			{
-				require Zevenet::Farm::HTTP::Config;
-				my $config_error = &getHTTPFarmConfigErrorMessage( $farmname );
-				if ( $config_error ne "" )
-				{
-					$body->{ warning } = "Farm '$farmname' config error: $config_error";
-				}
-				else
-				{
-					&runFarmReload( $farmname );
-					&eload(
-							module => 'Zevenet::Cluster',
-							func   => 'runZClusterRemoteManager',
-							args   => ['farm', 'reload', $farmname],
-					) if ( $eload );
-				}
-			}
-		}
+        # success
+        my $message = "The addheader $index was deleted successfully";
+        my $body    = {
+            description => $desc,
+            success     => "true",
+            message     => $message,
+        };
 
-		return &httpResponse( { code => 200, body => $body } );
-	}
+        if (&getFarmStatus($farmname) ne 'down') {
+            require Zevenet::Farm::Action;
+            if (&getGlobalConfiguration('proxy_ng') ne 'true') {
+                &setFarmRestart($farmname);
+                $body->{status} = 'needed restart';
+            }
+            else {
+                require Zevenet::Farm::HTTP::Config;
+                my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
+                if ($config_error ne "") {
+                    $body->{warning} =
+                      "Farm '$farmname' config error: $config_error";
+                }
+                else {
+                    &runFarmReload($farmname);
+                    &eload(
+                        module => 'Zevenet::Cluster',
+                        func   => 'runZClusterRemoteManager',
+                        args   => [ 'farm', 'reload', $farmname ],
+                    ) if ($eload);
+                }
+            }
+        }
 
-	# error
-	my $msg = "Error deleting the addheader $index";
-	return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
+        return &httpResponse({ code => 200, body => $body });
+    }
+
+    # error
+    my $msg = "Error deleting the addheader $index";
+    return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
 }
 
 # POST	/farms/<>/headremove
 sub add_headremove    # ( $json_obj, $farmname )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $json_obj = shift;
-	my $farmname = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $json_obj = shift;
+    my $farmname = shift;
 
-	my $desc = "Add headremove directive.";
+    my $desc = "Add headremove directive.";
 
-	# Check that the farm exists
-	if ( !&getFarmExists( $farmname ) )
-	{
-		my $msg = "The farm '$farmname' does not exist.";
-		return &httpErrorResponse( code => 404, desc => $desc, msg => $msg );
-	}
+    # Check that the farm exists
+    if (!&getFarmExists($farmname)) {
+        my $msg = "The farm '$farmname' does not exist.";
+        return &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+    }
 
-	if ( &getFarmType( $farmname ) !~ /http/ )
-	{
-		my $msg = "This feature is only for HTTP profiles.";
-		return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    if (&getFarmType($farmname) !~ /http/) {
+        my $msg = "This feature is only for HTTP profiles.";
+        return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	my $params = &getZAPIModel( "farm_http_header_request_remove-create.json" );
+    my $params = &getZAPIModel("farm_http_header_request_remove-create.json");
 
-	# Check allowed parameters
-	my $error_msg = &checkZAPIParams( $json_obj, $params, $desc );
-	return &httpErrorResponse( code => 400, desc => $desc, msg => $error_msg )
-	  if ( $error_msg );
+    # Check allowed parameters
+    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+      if ($error_msg);
 
-	# check if the header is already added
-	foreach my $header ( @{ &getHTTPRemReqHeader( $farmname ) } )
-	{
-		if ( $header->{ pattern } eq $json_obj->{ pattern } )
-		{
-			my $msg = "The pattern is already added.";
-			return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-		}
-	}
+    # check if the header is already added
+    foreach my $header (@{ &getHTTPRemReqHeader($farmname) }) {
+        if ($header->{pattern} eq $json_obj->{pattern}) {
+            my $msg = "The pattern is already added.";
+            return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        }
+    }
 
-	unless ( &addHTTPHeadremove( $farmname, $json_obj->{ pattern } ) )
-	{
-		# success
-		my $message = "Added a new item to the headremove list";
-		my $body = {
-					 description => $desc,
-					 success     => "true",
-					 message     => $message,
-		};
+    unless (&addHTTPHeadremove($farmname, $json_obj->{pattern})) {
 
-		if ( &getFarmStatus( $farmname ) ne 'down' )
-		{
-			require Zevenet::Farm::Action;
-			if ( &getGlobalConfiguration( 'proxy_ng' ) ne 'true' )
-			{
-				&setFarmRestart( $farmname );
-				$body->{ status } = 'needed restart';
-			}
-			else
-			{
-				require Zevenet::Farm::HTTP::Config;
-				my $config_error = &getHTTPFarmConfigErrorMessage( $farmname );
-				if ( $config_error ne "" )
-				{
-					$body->{ warning } = "Farm '$farmname' config error: $config_error";
-				}
-				else
-				{
-					&runFarmReload( $farmname );
-					&eload(
-							module => 'Zevenet::Cluster',
-							func   => 'runZClusterRemoteManager',
-							args   => ['farm', 'reload', $farmname],
-					) if ( $eload );
-				}
-			}
-		}
+        # success
+        my $message = "Added a new item to the headremove list";
+        my $body    = {
+            description => $desc,
+            success     => "true",
+            message     => $message,
+        };
 
-		return &httpResponse( { code => 200, body => $body } );
-	}
+        if (&getFarmStatus($farmname) ne 'down') {
+            require Zevenet::Farm::Action;
+            if (&getGlobalConfiguration('proxy_ng') ne 'true') {
+                &setFarmRestart($farmname);
+                $body->{status} = 'needed restart';
+            }
+            else {
+                require Zevenet::Farm::HTTP::Config;
+                my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
+                if ($config_error ne "") {
+                    $body->{warning} =
+                      "Farm '$farmname' config error: $config_error";
+                }
+                else {
+                    &runFarmReload($farmname);
+                    &eload(
+                        module => 'Zevenet::Cluster',
+                        func   => 'runZClusterRemoteManager',
+                        args   => [ 'farm', 'reload', $farmname ],
+                    ) if ($eload);
+                }
+            }
+        }
 
-	# error
-	my $msg = "Error adding a new headremove";
-	return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
+        return &httpResponse({ code => 200, body => $body });
+    }
+
+    # error
+    my $msg = "Error adding a new headremove";
+    return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
 }
 
 # PUT	/farms/<>/headremove/<id>
 sub modify_headremove    # ( $json_obj, $farmname, $index )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $json_obj = shift;
-	my $farmname = shift;
-	my $index    = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $json_obj = shift;
+    my $farmname = shift;
+    my $index    = shift;
 
-	my $desc = "Modify an headremove directive.";
+    my $desc = "Modify an headremove directive.";
 
-	# Check that the farm exists
-	if ( !&getFarmExists( $farmname ) )
-	{
-		my $msg = "The farm '$farmname' does not exist.";
-		return &httpErrorResponse( code => 404, desc => $desc, msg => $msg );
-	}
+    # Check that the farm exists
+    if (!&getFarmExists($farmname)) {
+        my $msg = "The farm '$farmname' does not exist.";
+        return &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+    }
 
-	if ( &getFarmType( $farmname ) !~ /http/ )
-	{
-		my $msg = "This feature is only for HTTP profiles.";
-		return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    if (&getFarmType($farmname) !~ /http/) {
+        my $msg = "This feature is only for HTTP profiles.";
+        return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	my $params = &getZAPIModel( "farm_http_header_request_remove-modify.json" );
+    my $params = &getZAPIModel("farm_http_header_request_remove-modify.json");
 
-	# Check allowed parameters
-	my $error_msg = &checkZAPIParams( $json_obj, $params, $desc );
-	return &httpErrorResponse( code => 400, desc => $desc, msg => $error_msg )
-	  if ( $error_msg );
+    # Check allowed parameters
+    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+      if ($error_msg);
 
-	my @directives = @{ &getHTTPRemReqHeader( $farmname ) };
+    my @directives = @{ &getHTTPRemReqHeader($farmname) };
 
-	# check if the header exists
-	if ( ( scalar @directives ) < $index + 1 )
-	{
-		my $msg = "The header with index $index not found.";
-		return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    # check if the header exists
+    if ((scalar @directives) < $index + 1) {
+        my $msg = "The header with index $index not found.";
+        return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	# check if the new pattern is already added
-	foreach my $header ( @directives )
-	{
-		if ( $header->{ pattern } eq $json_obj->{ pattern } )
-		{
-			my $msg = "The pattern is already added.";
-			return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-		}
-	}
+    # check if the new pattern is already added
+    foreach my $header (@directives) {
+        if ($header->{pattern} eq $json_obj->{pattern}) {
+            my $msg = "The pattern is already added.";
+            return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        }
+    }
 
-	unless ( &modifyHTTPHeadremove( $farmname, $json_obj->{ pattern }, $index ) )
-	{
-		# success
-		my $message = "Modified an item from the headremove list";
-		my $body = {
-					 description => $desc,
-					 success     => "true",
-					 message     => $message,
-		};
+    unless (&modifyHTTPHeadremove($farmname, $json_obj->{pattern}, $index)) {
 
-		if ( &getFarmStatus( $farmname ) ne 'down' )
-		{
-			require Zevenet::Farm::Action;
-			if ( &getGlobalConfiguration( 'proxy_ng' ) ne 'true' )
-			{
-				&setFarmRestart( $farmname );
-				$body->{ status } = 'needed restart';
-			}
-			else
-			{
-				require Zevenet::Farm::HTTP::Config;
-				my $config_error = &getHTTPFarmConfigErrorMessage( $farmname );
-				if ( $config_error ne "" )
-				{
-					$body->{ warning } = "Farm '$farmname' config error: $config_error";
-				}
-				else
-				{
-					&runFarmReload( $farmname );
-					&eload(
-							module => 'Zevenet::Cluster',
-							func   => 'runZClusterRemoteManager',
-							args   => ['farm', 'reload', $farmname],
-					) if ( $eload );
-				}
-			}
-		}
+        # success
+        my $message = "Modified an item from the headremove list";
+        my $body    = {
+            description => $desc,
+            success     => "true",
+            message     => $message,
+        };
 
-		return &httpResponse( { code => 200, body => $body } );
-	}
+        if (&getFarmStatus($farmname) ne 'down') {
+            require Zevenet::Farm::Action;
+            if (&getGlobalConfiguration('proxy_ng') ne 'true') {
+                &setFarmRestart($farmname);
+                $body->{status} = 'needed restart';
+            }
+            else {
+                require Zevenet::Farm::HTTP::Config;
+                my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
+                if ($config_error ne "") {
+                    $body->{warning} =
+                      "Farm '$farmname' config error: $config_error";
+                }
+                else {
+                    &runFarmReload($farmname);
+                    &eload(
+                        module => 'Zevenet::Cluster',
+                        func   => 'runZClusterRemoteManager',
+                        args   => [ 'farm', 'reload', $farmname ],
+                    ) if ($eload);
+                }
+            }
+        }
 
-	# error
-	my $msg = "Error modifying an headremove";
-	return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
+        return &httpResponse({ code => 200, body => $body });
+    }
+
+    # error
+    my $msg = "Error modifying an headremove";
+    return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
 }
 
 #  DELETE	/farms/<>/addheader/<>
-sub del_headremove
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $farmname = shift;
-	my $index    = shift;
+sub del_headremove {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $farmname = shift;
+    my $index    = shift;
 
-	my $desc = "Delete headremove directive.";
+    my $desc = "Delete headremove directive.";
 
-	# Check that the farm exists
-	if ( !&getFarmExists( $farmname ) )
-	{
-		my $msg = "The farm '$farmname' does not exist.";
-		return &httpErrorResponse( code => 404, desc => $desc, msg => $msg );
-	}
+    # Check that the farm exists
+    if (!&getFarmExists($farmname)) {
+        my $msg = "The farm '$farmname' does not exist.";
+        return &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+    }
 
-	if ( &getFarmType( $farmname ) !~ /http/ )
-	{
-		my $msg = "This feature is only for HTTP profiles.";
-		return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    if (&getFarmType($farmname) !~ /http/) {
+        my $msg = "This feature is only for HTTP profiles.";
+        return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	# check if the headremove is already added
-	if ( ( scalar @{ &getHTTPRemReqHeader( $farmname ) } ) < $index + 1 )
-	{
-		my $msg = "The index has not been found.";
-		return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    # check if the headremove is already added
+    if ((scalar @{ &getHTTPRemReqHeader($farmname) }) < $index + 1) {
+        my $msg = "The index has not been found.";
+        return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	unless ( &delHTTPHeadremove( $farmname, $index ) )
-	{
-		# success
-		my $message = "The headremove $index was deleted successfully";
-		my $body = {
-					 description => $desc,
-					 success     => "true",
-					 message     => $message,
-		};
+    unless (&delHTTPHeadremove($farmname, $index)) {
 
-		if ( &getFarmStatus( $farmname ) ne 'down' )
-		{
-			require Zevenet::Farm::Action;
-			if ( &getGlobalConfiguration( 'proxy_ng' ) ne 'true' )
-			{
-				&setFarmRestart( $farmname );
-				$body->{ status } = 'needed restart';
-			}
-			else
-			{
-				require Zevenet::Farm::HTTP::Config;
-				my $config_error = &getHTTPFarmConfigErrorMessage( $farmname );
-				if ( $config_error ne "" )
-				{
-					$body->{ warning } = "Farm '$farmname' config error: $config_error";
-				}
-				else
-				{
-					&runFarmReload( $farmname );
-					&eload(
-							module => 'Zevenet::Cluster',
-							func   => 'runZClusterRemoteManager',
-							args   => ['farm', 'reload', $farmname],
-					) if ( $eload );
-				}
-			}
-		}
+        # success
+        my $message = "The headremove $index was deleted successfully";
+        my $body    = {
+            description => $desc,
+            success     => "true",
+            message     => $message,
+        };
 
-		return &httpResponse( { code => 200, body => $body } );
-	}
+        if (&getFarmStatus($farmname) ne 'down') {
+            require Zevenet::Farm::Action;
+            if (&getGlobalConfiguration('proxy_ng') ne 'true') {
+                &setFarmRestart($farmname);
+                $body->{status} = 'needed restart';
+            }
+            else {
+                require Zevenet::Farm::HTTP::Config;
+                my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
+                if ($config_error ne "") {
+                    $body->{warning} =
+                      "Farm '$farmname' config error: $config_error";
+                }
+                else {
+                    &runFarmReload($farmname);
+                    &eload(
+                        module => 'Zevenet::Cluster',
+                        func   => 'runZClusterRemoteManager',
+                        args   => [ 'farm', 'reload', $farmname ],
+                    ) if ($eload);
+                }
+            }
+        }
 
-	# error
-	my $msg = "Error deleting the headremove $index";
-	return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
+        return &httpResponse({ code => 200, body => $body });
+    }
+
+    # error
+    my $msg = "Error deleting the headremove $index";
+    return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
 }
 
 # POST	/farms/<>/addheader
 sub add_addResponseheader    # ( $json_obj, $farmname )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $json_obj = shift;
-	my $farmname = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $json_obj = shift;
+    my $farmname = shift;
 
-	my $desc = "Add a header to the backend repsonse.";
+    my $desc = "Add a header to the backend repsonse.";
 
-	# Check that the farm exists
-	if ( !&getFarmExists( $farmname ) )
-	{
-		my $msg = "The farm '$farmname' does not exist.";
-		return &httpErrorResponse( code => 404, desc => $desc, msg => $msg );
-	}
+    # Check that the farm exists
+    if (!&getFarmExists($farmname)) {
+        my $msg = "The farm '$farmname' does not exist.";
+        return &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+    }
 
-	if ( &getFarmType( $farmname ) !~ /http/ )
-	{
-		my $msg = "This feature is only for HTTP profiles.";
-		return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    if (&getFarmType($farmname) !~ /http/) {
+        my $msg = "This feature is only for HTTP profiles.";
+        return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	my $params = &getZAPIModel( "farm_http_header_response_add-create.json" );
+    my $params = &getZAPIModel("farm_http_header_response_add-create.json");
 
-	# Check allowed parameters
-	my $error_msg = &checkZAPIParams( $json_obj, $params, $desc );
-	return &httpErrorResponse( code => 400, desc => $desc, msg => $error_msg )
-	  if ( $error_msg );
+    # Check allowed parameters
+    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+      if ($error_msg);
 
-	# check if the header is already added
-	foreach my $header ( @{ &getHTTPAddRespHeader( $farmname ) } )
-	{
-		if ( $header->{ header } eq $json_obj->{ header } )
-		{
-			my $msg = "The header is already added.";
-			return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-		}
-	}
+    # check if the header is already added
+    foreach my $header (@{ &getHTTPAddRespHeader($farmname) }) {
+        if ($header->{header} eq $json_obj->{header}) {
+            my $msg = "The header is already added.";
+            return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        }
+    }
 
-	unless ( &addHTTPAddRespheader( $farmname, $json_obj->{ header } ) )
-	{
-		# success
-		my $message = "Added a new header to the backend response";
-		my $body = {
-					 description => $desc,
-					 success     => "true",
-					 message     => $message,
-		};
+    unless (&addHTTPAddRespheader($farmname, $json_obj->{header})) {
 
-		if ( &getFarmStatus( $farmname ) ne 'down' )
-		{
-			require Zevenet::Farm::Action;
-			if ( &getGlobalConfiguration( 'proxy_ng' ) ne 'true' )
-			{
-				&setFarmRestart( $farmname );
-				$body->{ status } = 'needed restart';
-			}
-			else
-			{
-				require Zevenet::Farm::HTTP::Config;
-				my $config_error = &getHTTPFarmConfigErrorMessage( $farmname );
-				if ( $config_error ne "" )
-				{
-					$body->{ warning } = "Farm '$farmname' config error: $config_error";
-				}
-				else
-				{
-					&runFarmReload( $farmname );
-					&eload(
-							module => 'Zevenet::Cluster',
-							func   => 'runZClusterRemoteManager',
-							args   => ['farm', 'reload', $farmname],
-					) if ( $eload );
-				}
-			}
-		}
+        # success
+        my $message = "Added a new header to the backend response";
+        my $body    = {
+            description => $desc,
+            success     => "true",
+            message     => $message,
+        };
 
-		return &httpResponse( { code => 200, body => $body } );
-	}
+        if (&getFarmStatus($farmname) ne 'down') {
+            require Zevenet::Farm::Action;
+            if (&getGlobalConfiguration('proxy_ng') ne 'true') {
+                &setFarmRestart($farmname);
+                $body->{status} = 'needed restart';
+            }
+            else {
+                require Zevenet::Farm::HTTP::Config;
+                my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
+                if ($config_error ne "") {
+                    $body->{warning} =
+                      "Farm '$farmname' config error: $config_error";
+                }
+                else {
+                    &runFarmReload($farmname);
+                    &eload(
+                        module => 'Zevenet::Cluster',
+                        func   => 'runZClusterRemoteManager',
+                        args   => [ 'farm', 'reload', $farmname ],
+                    ) if ($eload);
+                }
+            }
+        }
 
-	# error
-	my $msg = "Error adding a new response header";
-	return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
+        return &httpResponse({ code => 200, body => $body });
+    }
+
+    # error
+    my $msg = "Error adding a new response header";
+    return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
 }
 
 # PUT	/farms/<>/addresponseheader/<id>
 sub modify_addResponseheader    # ( $json_obj, $farmname, $index )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $json_obj = shift;
-	my $farmname = shift;
-	my $index    = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $json_obj = shift;
+    my $farmname = shift;
+    my $index    = shift;
 
-	my $desc = "Modify an addresponseheader directive.";
+    my $desc = "Modify an addresponseheader directive.";
 
-	# Check that the farm exists
-	if ( !&getFarmExists( $farmname ) )
-	{
-		my $msg = "The farm '$farmname' does not exist.";
-		return &httpErrorResponse( code => 404, desc => $desc, msg => $msg );
-	}
+    # Check that the farm exists
+    if (!&getFarmExists($farmname)) {
+        my $msg = "The farm '$farmname' does not exist.";
+        return &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+    }
 
-	if ( &getFarmType( $farmname ) !~ /http/ )
-	{
-		my $msg = "This feature is only for HTTP profiles.";
-		return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    if (&getFarmType($farmname) !~ /http/) {
+        my $msg = "This feature is only for HTTP profiles.";
+        return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	my $params = &getZAPIModel( "farm_http_header_response_add-modify.json" );
+    my $params = &getZAPIModel("farm_http_header_response_add-modify.json");
 
-	# Check allowed parameters
-	my $error_msg = &checkZAPIParams( $json_obj, $params, $desc );
-	return &httpErrorResponse( code => 400, desc => $desc, msg => $error_msg )
-	  if ( $error_msg );
+    # Check allowed parameters
+    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+      if ($error_msg);
 
-	my @directives = @{ &getHTTPAddRespHeader( $farmname ) };
+    my @directives = @{ &getHTTPAddRespHeader($farmname) };
 
-	# check if the header exists
-	if ( ( scalar @directives ) < $index + 1 )
-	{
-		my $msg = "The header with index $index not found.";
-		return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    # check if the header exists
+    if ((scalar @directives) < $index + 1) {
+        my $msg = "The header with index $index not found.";
+        return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	# check if the header is already added
-	foreach my $header ( @directives )
-	{
-		if ( $header->{ header } eq $json_obj->{ header } )
-		{
-			my $msg = "The header is already added.";
-			return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-		}
-	}
+    # check if the header is already added
+    foreach my $header (@directives) {
+        if ($header->{header} eq $json_obj->{header}) {
+            my $msg = "The header is already added.";
+            return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        }
+    }
 
-	unless ( &modifyHTTPAddRespheader( $farmname, $json_obj->{ header }, $index ) )
-	{
-		# success
-		my $message = "Modified an item from the addresponseheader list";
-		my $body = {
-					 description => $desc,
-					 success     => "true",
-					 message     => $message,
-		};
+    unless (&modifyHTTPAddRespheader($farmname, $json_obj->{header}, $index)) {
 
-		if ( &getFarmStatus( $farmname ) ne 'down' )
-		{
-			require Zevenet::Farm::Action;
-			if ( &getGlobalConfiguration( 'proxy_ng' ) ne 'true' )
-			{
-				&setFarmRestart( $farmname );
-				$body->{ status } = 'needed restart';
-			}
-			else
-			{
-				require Zevenet::Farm::HTTP::Config;
-				my $config_error = &getHTTPFarmConfigErrorMessage( $farmname );
-				if ( $config_error ne "" )
-				{
-					$body->{ warning } = "Farm '$farmname' config error: $config_error";
-				}
-				else
-				{
-					&runFarmReload( $farmname );
-					&eload(
-							module => 'Zevenet::Cluster',
-							func   => 'runZClusterRemoteManager',
-							args   => ['farm', 'reload', $farmname],
-					) if ( $eload );
-				}
-			}
-		}
+        # success
+        my $message = "Modified an item from the addresponseheader list";
+        my $body    = {
+            description => $desc,
+            success     => "true",
+            message     => $message,
+        };
 
-		return &httpResponse( { code => 200, body => $body } );
-	}
+        if (&getFarmStatus($farmname) ne 'down') {
+            require Zevenet::Farm::Action;
+            if (&getGlobalConfiguration('proxy_ng') ne 'true') {
+                &setFarmRestart($farmname);
+                $body->{status} = 'needed restart';
+            }
+            else {
+                require Zevenet::Farm::HTTP::Config;
+                my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
+                if ($config_error ne "") {
+                    $body->{warning} =
+                      "Farm '$farmname' config error: $config_error";
+                }
+                else {
+                    &runFarmReload($farmname);
+                    &eload(
+                        module => 'Zevenet::Cluster',
+                        func   => 'runZClusterRemoteManager',
+                        args   => [ 'farm', 'reload', $farmname ],
+                    ) if ($eload);
+                }
+            }
+        }
 
-	# error
-	my $msg = "Error modifying an addresponseheader";
-	return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
+        return &httpResponse({ code => 200, body => $body });
+    }
+
+    # error
+    my $msg = "Error modifying an addresponseheader";
+    return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
 }
 
 #  DELETE	/farms/<>/addresponseheader/<>
-sub del_addResponseheader
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $farmname = shift;
-	my $index    = shift;
+sub del_addResponseheader {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $farmname = shift;
+    my $index    = shift;
 
-	my $desc = "Delete a header previously added to the backend response.";
+    my $desc = "Delete a header previously added to the backend response.";
 
-	# Check that the farm exists
-	if ( !&getFarmExists( $farmname ) )
-	{
-		my $msg = "The farm '$farmname' does not exist.";
-		return &httpErrorResponse( code => 404, desc => $desc, msg => $msg );
-	}
+    # Check that the farm exists
+    if (!&getFarmExists($farmname)) {
+        my $msg = "The farm '$farmname' does not exist.";
+        return &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+    }
 
-	if ( &getFarmType( $farmname ) !~ /http/ )
-	{
-		my $msg = "This feature is only for HTTP profiles.";
-		return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    if (&getFarmType($farmname) !~ /http/) {
+        my $msg = "This feature is only for HTTP profiles.";
+        return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	# check if the header is already added
-	if ( ( scalar @{ &getHTTPAddRespHeader( $farmname ) } ) < $index + 1 )
-	{
-		my $msg = "The index has not been found.";
-		return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    # check if the header is already added
+    if ((scalar @{ &getHTTPAddRespHeader($farmname) }) < $index + 1) {
+        my $msg = "The index has not been found.";
+        return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	unless ( &delHTTPAddRespheader( $farmname, $index ) )
-	{
-		# success
-		my $message = "The header $index was deleted successfully";
-		my $body = {
-					 description => $desc,
-					 success     => "true",
-					 message     => $message,
-		};
+    unless (&delHTTPAddRespheader($farmname, $index)) {
 
-		if ( &getFarmStatus( $farmname ) ne 'down' )
-		{
-			require Zevenet::Farm::Action;
-			if ( &getGlobalConfiguration( 'proxy_ng' ) ne 'true' )
-			{
-				&setFarmRestart( $farmname );
-				$body->{ status } = 'needed restart';
-			}
-			else
-			{
-				require Zevenet::Farm::HTTP::Config;
-				my $config_error = &getHTTPFarmConfigErrorMessage( $farmname );
-				if ( $config_error ne "" )
-				{
-					$body->{ warning } = "Farm '$farmname' config error: $config_error";
-				}
-				else
-				{
-					&runFarmReload( $farmname );
-					&eload(
-							module => 'Zevenet::Cluster',
-							func   => 'runZClusterRemoteManager',
-							args   => ['farm', 'reload', $farmname],
-					) if ( $eload );
-				}
-			}
-		}
+        # success
+        my $message = "The header $index was deleted successfully";
+        my $body    = {
+            description => $desc,
+            success     => "true",
+            message     => $message,
+        };
 
-		return &httpResponse( { code => 200, body => $body } );
-	}
+        if (&getFarmStatus($farmname) ne 'down') {
+            require Zevenet::Farm::Action;
+            if (&getGlobalConfiguration('proxy_ng') ne 'true') {
+                &setFarmRestart($farmname);
+                $body->{status} = 'needed restart';
+            }
+            else {
+                require Zevenet::Farm::HTTP::Config;
+                my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
+                if ($config_error ne "") {
+                    $body->{warning} =
+                      "Farm '$farmname' config error: $config_error";
+                }
+                else {
+                    &runFarmReload($farmname);
+                    &eload(
+                        module => 'Zevenet::Cluster',
+                        func   => 'runZClusterRemoteManager',
+                        args   => [ 'farm', 'reload', $farmname ],
+                    ) if ($eload);
+                }
+            }
+        }
 
-	# error
-	my $msg = "Error deleting the response header $index";
-	return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
+        return &httpResponse({ code => 200, body => $body });
+    }
+
+    # error
+    my $msg = "Error deleting the response header $index";
+    return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
 }
 
 # POST	/farms/<>/replacerequestheader
 sub add_replaceRequestHeader    # ( $json_obj, $farmname )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my $json_obj = shift;
-	my $farmname = shift;
+    my $json_obj = shift;
+    my $farmname = shift;
 
-	my $type = "Request";
-	return &add_replaceheader( $json_obj, $farmname, $type );
+    my $type = "Request";
+    return &add_replaceheader($json_obj, $farmname, $type);
 }
 
 # POST	/farms/<>/replaceresponseheader
 sub add_replaceResponseHeader    # ( $json_obj, $farmname )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my $json_obj = shift;
-	my $farmname = shift;
+    my $json_obj = shift;
+    my $farmname = shift;
 
-	my $type = "Response";
-	return &add_replaceheader( $json_obj, $farmname, $type );
+    my $type = "Response";
+    return &add_replaceheader($json_obj, $farmname, $type);
 }
 
 sub add_replaceheader            # ( $json_obj, $farmname, $type )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $json_obj = shift;
-	my $farmname = shift;
-	my $type     = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $json_obj = shift;
+    my $farmname = shift;
+    my $type     = shift;
 
-	my $desc = "Add a Replace Header.";
+    my $desc = "Add a Replace Header.";
 
-	if ( &getGlobalConfiguration( 'proxy_ng' ) ne 'true' )
-	{
-		my $msg = "ReplaceHeader is only available for zproxy.";
-		return &httpErrorResponse( code => 404, desc => $desc, msg => $msg );
-	}
+    if (&getGlobalConfiguration('proxy_ng') ne 'true') {
+        my $msg = "ReplaceHeader is only available for zproxy.";
+        return &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+    }
 
-	# Check that the farm exists
-	if ( !&getFarmExists( $farmname ) )
-	{
-		my $msg = "The farm '$farmname' does not exist.";
-		return &httpErrorResponse( code => 404, desc => $desc, msg => $msg );
-	}
+    # Check that the farm exists
+    if (!&getFarmExists($farmname)) {
+        my $msg = "The farm '$farmname' does not exist.";
+        return &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+    }
 
-	my $params =
-	  &getZAPIModel( "farm_http_header_" . lc ( $type ) . "_replace-create.json" );
+    my $params =
+      &getZAPIModel("farm_http_header_" . lc($type) . "_replace-create.json");
 
-	# Check allowed parameters
-	my $error_msg = &checkZAPIParams( $json_obj, $params, $desc );
-	return &httpErrorResponse( code => 400, desc => $desc, msg => $error_msg )
-	  if ( $error_msg );
+    # Check allowed parameters
+    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+      if ($error_msg);
 
-	# check if the header is already added
-	foreach my $header ( @{ &getHTTPReplaceHeaders( $farmname, $type ) } )
-	{
-		if (    $header->{ header } eq $json_obj->{ header }
-			 && $header->{ match } eq $json_obj->{ match } )
-		{
-			my $msg = "The header is already added.";
-			return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-		}
-	}
+    # check if the header is already added
+    foreach my $header (@{ &getHTTPReplaceHeaders($farmname, $type) }) {
+        if (   $header->{header} eq $json_obj->{header}
+            && $header->{match} eq $json_obj->{match})
+        {
+            my $msg = "The header is already added.";
+            return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        }
+    }
 
-	$json_obj->{ type } = $type;
+    $json_obj->{type} = $type;
 
-	unless (
-			 &addHTTPReplaceHeaders(
-									 $farmname,
-									 $json_obj->{ type },
-									 $json_obj->{ header },
-									 $json_obj->{ match },
-									 $json_obj->{ replace }
-			 )
-	  )
-	{
-		# success
-		my $message = "Added a new replace header";
-		my $body = {
-					 description => $desc,
-					 success     => "true",
-					 message     => $message,
-		};
+    unless (
+        &addHTTPReplaceHeaders(
+            $farmname,          $json_obj->{type}, $json_obj->{header},
+            $json_obj->{match}, $json_obj->{replace}
+        )
+      )
+    {
 
-		if ( &getFarmStatus( $farmname ) ne 'down' )
-		{
-			require Zevenet::Farm::Action;
-			if ( &getGlobalConfiguration( 'proxy_ng' ) ne 'true' )
-			{
-				&setFarmRestart( $farmname );
-				$body->{ status } = 'needed restart';
-			}
-			else
-			{
-				require Zevenet::Farm::HTTP::Config;
-				my $config_error = &getHTTPFarmConfigErrorMessage( $farmname );
-				if ( $config_error ne "" )
-				{
-					$body->{ warning } = "Farm '$farmname' config error: $config_error";
-				}
-				else
-				{
-					&runFarmReload( $farmname );
-					&eload(
-							module => 'Zevenet::Cluster',
-							func   => 'runZClusterRemoteManager',
-							args   => ['farm', 'reload', $farmname],
-					) if ( $eload );
-				}
-			}
-		}
+        # success
+        my $message = "Added a new replace header";
+        my $body    = {
+            description => $desc,
+            success     => "true",
+            message     => $message,
+        };
 
-		return &httpResponse( { code => 200, body => $body } );
-	}
+        if (&getFarmStatus($farmname) ne 'down') {
+            require Zevenet::Farm::Action;
+            if (&getGlobalConfiguration('proxy_ng') ne 'true') {
+                &setFarmRestart($farmname);
+                $body->{status} = 'needed restart';
+            }
+            else {
+                require Zevenet::Farm::HTTP::Config;
+                my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
+                if ($config_error ne "") {
+                    $body->{warning} =
+                      "Farm '$farmname' config error: $config_error";
+                }
+                else {
+                    &runFarmReload($farmname);
+                    &eload(
+                        module => 'Zevenet::Cluster',
+                        func   => 'runZClusterRemoteManager',
+                        args   => [ 'farm', 'reload', $farmname ],
+                    ) if ($eload);
+                }
+            }
+        }
 
-	# error
-	my $msg = "Error adding a new replace header";
-	return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
+        return &httpResponse({ code => 200, body => $body });
+    }
+
+    # error
+    my $msg = "Error adding a new replace header";
+    return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
 }
 
 #  PUT	/farms/<>/replacerequestheader/<>
-sub modify_replaceRequestHeader
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+sub modify_replaceRequestHeader {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my $json_obj = shift;
-	my $farmname = shift;
-	my $index    = shift;
+    my $json_obj = shift;
+    my $farmname = shift;
+    my $index    = shift;
 
-	my $type = "Request";
-	return &modify_replaceHeader( $json_obj, $farmname, $type, $index );
+    my $type = "Request";
+    return &modify_replaceHeader($json_obj, $farmname, $type, $index);
 }
 
 #  PUT	/farms/<>/replaceresponseheader/<>
-sub modify_replaceResponseHeader
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+sub modify_replaceResponseHeader {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my $json_obj = shift;
-	my $farmname = shift;
-	my $index    = shift;
+    my $json_obj = shift;
+    my $farmname = shift;
+    my $index    = shift;
 
-	my $type = "Response";
-	return &modify_replaceHeader( $json_obj, $farmname, $type, $index );
+    my $type = "Response";
+    return &modify_replaceHeader($json_obj, $farmname, $type, $index);
 }
 
 # PUT	/farms/<>/replaceHeader/<id>
 sub modify_replaceHeader    # ( $json_obj, $farmname, $type, $index )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $json_obj = shift;
-	my $farmname = shift;
-	my $type     = shift;
-	my $index    = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $json_obj = shift;
+    my $farmname = shift;
+    my $type     = shift;
+    my $index    = shift;
 
-	my $desc = "Modify a replaceHeader directive.";
+    my $desc = "Modify a replaceHeader directive.";
 
-	# Check that the farm exists
-	if ( !&getFarmExists( $farmname ) )
-	{
-		my $msg = "The farm '$farmname' does not exist.";
-		return &httpErrorResponse( code => 404, desc => $desc, msg => $msg );
-	}
+    # Check that the farm exists
+    if (!&getFarmExists($farmname)) {
+        my $msg = "The farm '$farmname' does not exist.";
+        return &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+    }
 
-	if ( &getFarmType( $farmname ) !~ /http/ )
-	{
-		my $msg = "This feature is only for HTTP profiles.";
-		return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    if (&getFarmType($farmname) !~ /http/) {
+        my $msg = "This feature is only for HTTP profiles.";
+        return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	my $params =
-	  &getZAPIModel( "farm_http_header_" . lc ( $type ) . "_replace-modify.json" );
+    my $params =
+      &getZAPIModel("farm_http_header_" . lc($type) . "_replace-modify.json");
 
-	# Check allowed parameters
-	my $error_msg = &checkZAPIParams( $json_obj, $params, $desc );
-	return &httpErrorResponse( code => 400, desc => $desc, msg => $error_msg )
-	  if ( $error_msg );
+    # Check allowed parameters
+    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+      if ($error_msg);
 
-	my @headers = @{ &getHTTPReplaceHeaders( $farmname, $type ) };
+    my @headers = @{ &getHTTPReplaceHeaders($farmname, $type) };
 
-	# check if the header exists
-	if ( ( scalar @headers ) < $index + 1 )
-	{
-		my $msg = "The header with index $index not found.";
-		return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    # check if the header exists
+    if ((scalar @headers) < $index + 1) {
+        my $msg = "The header with index $index not found.";
+        return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	# check if the header is already added
-	if (    $headers[$index]->{ header } ne $json_obj->{ header }
-		 && $headers[$index]->{ match } ne $json_obj->{ match } )
-	{
-		foreach my $header ( @{ &getHTTPReplaceHeaders( $farmname, $type ) } )
-		{
-			if (    $header->{ header } eq $json_obj->{ header }
-				 && $header->{ match } eq $json_obj->{ match } )
-			{
-				my $msg = "The header is already added.";
-				return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-			}
-		}
-	}
+    # check if the header is already added
+    if (   $headers[$index]->{header} ne $json_obj->{header}
+        && $headers[$index]->{match} ne $json_obj->{match})
+    {
+        foreach my $header (@{ &getHTTPReplaceHeaders($farmname, $type) }) {
+            if (   $header->{header} eq $json_obj->{header}
+                && $header->{match} eq $json_obj->{match})
+            {
+                my $msg = "The header is already added.";
+                return &httpErrorResponse(
+                    code => 400,
+                    desc => $desc,
+                    msg  => $msg
+                );
+            }
+        }
+    }
 
-	# Get directive data
-	my $header = $headers[$index];
+    # Get directive data
+    my $header = $headers[$index];
 
-	unless (
-			 &modifyHTTPReplaceHeaders(
-										$farmname,
-										$type,
-										$json_obj->{ header }  // $header->{ header },
-										$json_obj->{ match }   // $header->{ match },
-										$json_obj->{ replace } // $header->{ replace },
-										$index
-			 )
-	  )
-	{
-		# success
-		my $message = "Modified an item from the replaceHeader list";
-		my $body = {
-					 description => $desc,
-					 success     => "true",
-					 message     => $message,
-		};
+    unless (
+        &modifyHTTPReplaceHeaders(
+            $farmname,
+            $type,
+            $json_obj->{header}  // $header->{header},
+            $json_obj->{match}   // $header->{match},
+            $json_obj->{replace} // $header->{replace},
+            $index
+        )
+      )
+    {
 
-		if ( &getFarmStatus( $farmname ) ne 'down' )
-		{
-			require Zevenet::Farm::Action;
-			if ( &getGlobalConfiguration( 'proxy_ng' ) ne 'true' )
-			{
-				&setFarmRestart( $farmname );
-				$body->{ status } = 'needed restart';
-			}
-			else
-			{
-				require Zevenet::Farm::HTTP::Config;
-				my $config_error = &getHTTPFarmConfigErrorMessage( $farmname );
-				if ( $config_error ne "" )
-				{
-					$body->{ warning } = "Farm '$farmname' config error: $config_error";
-				}
-				else
-				{
-					&runFarmReload( $farmname );
-					&eload(
-							module => 'Zevenet::Cluster',
-							func   => 'runZClusterRemoteManager',
-							args   => ['farm', 'reload', $farmname],
-					) if ( $eload );
-				}
-			}
-		}
+        # success
+        my $message = "Modified an item from the replaceHeader list";
+        my $body    = {
+            description => $desc,
+            success     => "true",
+            message     => $message,
+        };
 
-		return &httpResponse( { code => 200, body => $body } );
-	}
+        if (&getFarmStatus($farmname) ne 'down') {
+            require Zevenet::Farm::Action;
+            if (&getGlobalConfiguration('proxy_ng') ne 'true') {
+                &setFarmRestart($farmname);
+                $body->{status} = 'needed restart';
+            }
+            else {
+                require Zevenet::Farm::HTTP::Config;
+                my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
+                if ($config_error ne "") {
+                    $body->{warning} =
+                      "Farm '$farmname' config error: $config_error";
+                }
+                else {
+                    &runFarmReload($farmname);
+                    &eload(
+                        module => 'Zevenet::Cluster',
+                        func   => 'runZClusterRemoteManager',
+                        args   => [ 'farm', 'reload', $farmname ],
+                    ) if ($eload);
+                }
+            }
+        }
 
-	# error
-	my $msg = "Error modifying a replaceHeader";
-	return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
+        return &httpResponse({ code => 200, body => $body });
+    }
+
+    # error
+    my $msg = "Error modifying a replaceHeader";
+    return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
 }
 
 #  DELETE	/farms/<>/replacerequestheader/<>
-sub del_replaceRequestHeader
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+sub del_replaceRequestHeader {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my $farmname = shift;
-	my $index    = shift;
+    my $farmname = shift;
+    my $index    = shift;
 
-	my $type = "Request";
-	return &del_replaceheader( $farmname, $index, $type );
+    my $type = "Request";
+    return &del_replaceheader($farmname, $index, $type);
 }
 
 #  DELETE	/farms/<>/replaceresponseheader/<>
-sub del_replaceResponseHeader
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+sub del_replaceResponseHeader {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my $farmname = shift;
-	my $index    = shift;
+    my $farmname = shift;
+    my $index    = shift;
 
-	my $type = "Response";
-	return &del_replaceheader( $farmname, $index, $type );
+    my $type = "Response";
+    return &del_replaceheader($farmname, $index, $type);
 }
 
-sub del_replaceheader
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $farmname = shift;
-	my $index    = shift;
-	my $type     = shift;
+sub del_replaceheader {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $farmname = shift;
+    my $index    = shift;
+    my $type     = shift;
 
-	my $desc = "Delete a replace header directive.";
+    my $desc = "Delete a replace header directive.";
 
-	# Check that the farm exists
-	if ( !&getFarmExists( $farmname ) )
-	{
-		my $msg = "The farm '$farmname' does not exist.";
-		return &httpErrorResponse( code => 404, desc => $desc, msg => $msg );
-	}
+    # Check that the farm exists
+    if (!&getFarmExists($farmname)) {
+        my $msg = "The farm '$farmname' does not exist.";
+        return &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+    }
 
-	# check if the header is already added
-	if ( ( scalar @{ &getHTTPReplaceHeaders( $farmname, $type ) } ) < $index + 1 )
-	{
-		my $msg = "The index has not been found.";
-		return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    # check if the header is already added
+    if ((scalar @{ &getHTTPReplaceHeaders($farmname, $type) }) < $index + 1) {
+        my $msg = "The index has not been found.";
+        return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	unless ( &delHTTPReplaceHeaders( $farmname, $index, $type ) )
-	{
-		# success
-		my $message = "The replace header $index was deleted successfully";
-		my $body = {
-					 description => $desc,
-					 success     => "true",
-					 message     => $message,
-		};
+    unless (&delHTTPReplaceHeaders($farmname, $index, $type)) {
 
-		if ( &getFarmStatus( $farmname ) ne 'down' )
-		{
-			require Zevenet::Farm::Action;
-			if ( &getGlobalConfiguration( 'proxy_ng' ) ne 'true' )
-			{
-				&setFarmRestart( $farmname );
-				$body->{ status } = 'needed restart';
-			}
-			else
-			{
-				require Zevenet::Farm::HTTP::Config;
-				my $config_error = &getHTTPFarmConfigErrorMessage( $farmname );
-				if ( $config_error ne "" )
-				{
-					$body->{ warning } = "Farm '$farmname' config error: $config_error";
-				}
-				else
-				{
-					&runFarmReload( $farmname );
-					&eload(
-							module => 'Zevenet::Cluster',
-							func   => 'runZClusterRemoteManager',
-							args   => ['farm', 'reload', $farmname],
-					) if ( $eload );
-				}
-			}
-		}
+        # success
+        my $message = "The replace header $index was deleted successfully";
+        my $body    = {
+            description => $desc,
+            success     => "true",
+            message     => $message,
+        };
 
-		return &httpResponse( { code => 200, body => $body } );
-	}
+        if (&getFarmStatus($farmname) ne 'down') {
+            require Zevenet::Farm::Action;
+            if (&getGlobalConfiguration('proxy_ng') ne 'true') {
+                &setFarmRestart($farmname);
+                $body->{status} = 'needed restart';
+            }
+            else {
+                require Zevenet::Farm::HTTP::Config;
+                my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
+                if ($config_error ne "") {
+                    $body->{warning} =
+                      "Farm '$farmname' config error: $config_error";
+                }
+                else {
+                    &runFarmReload($farmname);
+                    &eload(
+                        module => 'Zevenet::Cluster',
+                        func   => 'runZClusterRemoteManager',
+                        args   => [ 'farm', 'reload', $farmname ],
+                    ) if ($eload);
+                }
+            }
+        }
 
-	# error
-	my $msg = "Error deleting the response header $index";
-	return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
+        return &httpResponse({ code => 200, body => $body });
+    }
+
+    # error
+    my $msg = "Error deleting the response header $index";
+    return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
 }
 
 #  POST	/farms/<>/replacerequestheader/<>/actions
-sub move_replacerequestheader
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+sub move_replacerequestheader {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my $json_obj = shift;
-	my $farmname = shift;
-	my $index    = shift;
+    my $json_obj = shift;
+    my $farmname = shift;
+    my $index    = shift;
 
-	my $type  = "Request";
-	my $regex = '\s*ReplaceHeader\s+Request\s+(.+)';
+    my $type  = "Request";
+    my $regex = '\s*ReplaceHeader\s+Request\s+(.+)';
 
-	return &move_replaceheader( $json_obj, $type, $regex, $farmname, $index );
+    return &move_replaceheader($json_obj, $type, $regex, $farmname, $index);
 }
 
 #  POST	/farms/<>/replaceresponseheader/<>/actions
-sub move_replaceresponseheader
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+sub move_replaceresponseheader {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my $json_obj = shift;
-	my $farmname = shift;
-	my $index    = shift;
+    my $json_obj = shift;
+    my $farmname = shift;
+    my $index    = shift;
 
-	my $type  = "Response";
-	my $regex = '\s*ReplaceHeader\s+Response\s+(.+)';
+    my $type  = "Response";
+    my $regex = '\s*ReplaceHeader\s+Response\s+(.+)';
 
-	return &move_replaceheader( $json_obj, $type, $regex, $farmname, $index );
+    return &move_replaceheader($json_obj, $type, $regex, $farmname, $index);
 }
 
 sub move_replaceheader    # ( $json_obj, $type, $regex, $farmname, $index )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-	my $json_obj = shift;
-	my $type     = shift;
-	my $regex    = shift;
-	my $farmname = shift;
-	my $index    = shift;
+    my $json_obj = shift;
+    my $type     = shift;
+    my $regex    = shift;
+    my $farmname = shift;
+    my $index    = shift;
 
-	my $desc = "Move a replace header directive";
+    my $desc = "Move a replace header directive";
 
-	# validate FARM NAME
-	if ( !&getFarmExists( $farmname ) )
-	{
-		my $msg = "The farmname $farmname does not exist.";
-		return &httpErrorResponse( code => 404, desc => $desc, msg => $msg );
-	}
+    # validate FARM NAME
+    if (!&getFarmExists($farmname)) {
+        my $msg = "The farmname $farmname does not exist.";
+        return &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+    }
 
-	my @headers = @{ &getHTTPReplaceHeaders( $farmname, $type ) };
+    my @headers = @{ &getHTTPReplaceHeaders($farmname, $type) };
 
-	my $params =
-	  &getZAPIModel( "farm_http_header_" . lc ( $type ) . "_replace-move.json" );
-	$params->{ position }->{ "interval" } = "0," . scalar @headers - 1;
+    my $params =
+      &getZAPIModel("farm_http_header_" . lc($type) . "_replace-move.json");
+    $params->{position}->{"interval"} = "0," . scalar @headers - 1;
 
-	# Check allowed parameters
-	my $error_msg = &checkZAPIParams( $json_obj, $params, $desc );
-	return &httpErrorResponse( code => 400, desc => $desc, msg => $error_msg )
-	  if ( $error_msg );
+    # Check allowed parameters
+    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+      if ($error_msg);
 
-	# check if the header exists
-	if ( ( scalar @headers ) < $index + 1 )
-	{
-		my $msg = "The header with index $index not found.";
-		return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    # check if the header exists
+    if ((scalar @headers) < $index + 1) {
+        my $msg = "The header with index $index not found.";
+        return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	unless ( &moveHeader( $farmname, $regex, $json_obj->{ position }, $index ) )
-	{
-		# success
-		my $msg = "Header was moved successfully.";
-		my $body = { description => $desc, params => $json_obj, message => $msg };
+    unless (&moveHeader($farmname, $regex, $json_obj->{position}, $index)) {
 
-		if ( &getFarmStatus( $farmname ) ne 'down' )
-		{
-			require Zevenet::Farm::Action;
-			if ( &getGlobalConfiguration( 'proxy_ng' ) ne 'true' )
-			{
-				&setFarmRestart( $farmname );
-				$body->{ status } = 'needed restart';
-			}
-			else
-			{
-				require Zevenet::Farm::HTTP::Config;
-				my $config_error = &getHTTPFarmConfigErrorMessage( $farmname );
-				if ( $config_error ne "" )
-				{
-					$body->{ warning } = "Farm '$farmname' config error: $config_error";
-				}
-				else
-				{
-					&runFarmReload( $farmname );
-					&eload(
-							module => 'Zevenet::Cluster',
-							func   => 'runZClusterRemoteManager',
-							args   => ['farm', 'reload', $farmname],
-					) if ( $eload );
-				}
-			}
-		}
+        # success
+        my $msg = "Header was moved successfully.";
+        my $body =
+          { description => $desc, params => $json_obj, message => $msg };
 
-		return &httpResponse( { code => 200, body => $body } );
-	}
+        if (&getFarmStatus($farmname) ne 'down') {
+            require Zevenet::Farm::Action;
+            if (&getGlobalConfiguration('proxy_ng') ne 'true') {
+                &setFarmRestart($farmname);
+                $body->{status} = 'needed restart';
+            }
+            else {
+                require Zevenet::Farm::HTTP::Config;
+                my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
+                if ($config_error ne "") {
+                    $body->{warning} =
+                      "Farm '$farmname' config error: $config_error";
+                }
+                else {
+                    &runFarmReload($farmname);
+                    &eload(
+                        module => 'Zevenet::Cluster',
+                        func   => 'runZClusterRemoteManager',
+                        args   => [ 'farm', 'reload', $farmname ],
+                    ) if ($eload);
+                }
+            }
+        }
 
-	# error
-	my $msg = "Error moving a replaceHeader";
-	return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
+        return &httpResponse({ code => 200, body => $body });
+    }
+
+    # error
+    my $msg = "Error moving a replaceHeader";
+    return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
 }
 
 # POST	/farms/<>/removeresponseheader
 sub add_removeResponseheader    # ( $json_obj, $farmname )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $json_obj = shift;
-	my $farmname = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $json_obj = shift;
+    my $farmname = shift;
 
-	my $desc = "Remove a header from the backend response.";
+    my $desc = "Remove a header from the backend response.";
 
-	# Check that the farm exists
-	if ( !&getFarmExists( $farmname ) )
-	{
-		my $msg = "The farm '$farmname' does not exist.";
-		return &httpErrorResponse( code => 404, desc => $desc, msg => $msg );
-	}
+    # Check that the farm exists
+    if (!&getFarmExists($farmname)) {
+        my $msg = "The farm '$farmname' does not exist.";
+        return &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+    }
 
-	if ( &getFarmType( $farmname ) !~ /http/ )
-	{
-		my $msg = "This feature is only for HTTP profiles.";
-		return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    if (&getFarmType($farmname) !~ /http/) {
+        my $msg = "This feature is only for HTTP profiles.";
+        return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	my $params = &getZAPIModel( "farm_http_header_response_remove-create.json" );
+    my $params = &getZAPIModel("farm_http_header_response_remove-create.json");
 
-	# Check allowed parameters
-	my $error_msg = &checkZAPIParams( $json_obj, $params, $desc );
-	return &httpErrorResponse( code => 400, desc => $desc, msg => $error_msg )
-	  if ( $error_msg );
+    # Check allowed parameters
+    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+      if ($error_msg);
 
-	# check if the header is already added
-	foreach my $header ( @{ &getHTTPRemRespHeader( $farmname ) } )
-	{
-		if ( $header->{ pattern } eq $json_obj->{ pattern } )
-		{
-			my $msg = "The pattern is already added.";
-			return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-		}
-	}
+    # check if the header is already added
+    foreach my $header (@{ &getHTTPRemRespHeader($farmname) }) {
+        if ($header->{pattern} eq $json_obj->{pattern}) {
+            my $msg = "The pattern is already added.";
+            return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        }
+    }
 
-	unless ( &addHTTPRemRespHeader( $farmname, $json_obj->{ pattern } ) )
-	{
-		# success
-		my $message = "Added a patter to remove reponse headers";
-		my $body = {
-					 description => $desc,
-					 success     => "true",
-					 message     => $message,
-		};
+    unless (&addHTTPRemRespHeader($farmname, $json_obj->{pattern})) {
 
-		if ( &getFarmStatus( $farmname ) ne 'down' )
-		{
-			require Zevenet::Farm::Action;
-			if ( &getGlobalConfiguration( 'proxy_ng' ) ne 'true' )
-			{
-				&setFarmRestart( $farmname );
-				$body->{ status } = 'needed restart';
-			}
-			else
-			{
-				require Zevenet::Farm::HTTP::Config;
-				my $config_error = &getHTTPFarmConfigErrorMessage( $farmname );
-				if ( $config_error ne "" )
-				{
-					$body->{ warning } = "Farm '$farmname' config error: $config_error";
-				}
-				else
-				{
-					&runFarmReload( $farmname );
-					&eload(
-							module => 'Zevenet::Cluster',
-							func   => 'runZClusterRemoteManager',
-							args   => ['farm', 'reload', $farmname],
-					) if ( $eload );
-				}
-			}
-		}
+        # success
+        my $message = "Added a patter to remove reponse headers";
+        my $body    = {
+            description => $desc,
+            success     => "true",
+            message     => $message,
+        };
 
-		return &httpResponse( { code => 200, body => $body } );
-	}
+        if (&getFarmStatus($farmname) ne 'down') {
+            require Zevenet::Farm::Action;
+            if (&getGlobalConfiguration('proxy_ng') ne 'true') {
+                &setFarmRestart($farmname);
+                $body->{status} = 'needed restart';
+            }
+            else {
+                require Zevenet::Farm::HTTP::Config;
+                my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
+                if ($config_error ne "") {
+                    $body->{warning} =
+                      "Farm '$farmname' config error: $config_error";
+                }
+                else {
+                    &runFarmReload($farmname);
+                    &eload(
+                        module => 'Zevenet::Cluster',
+                        func   => 'runZClusterRemoteManager',
+                        args   => [ 'farm', 'reload', $farmname ],
+                    ) if ($eload);
+                }
+            }
+        }
 
-	# error
-	my $msg = "Error adding the remove pattern";
-	return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
+        return &httpResponse({ code => 200, body => $body });
+    }
+
+    # error
+    my $msg = "Error adding the remove pattern";
+    return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
 }
 
 # PUT	/farms/<>/removeresponseheader/<id>
 sub modify_removeResponseheader    # ( $json_obj, $farmname )
 {
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $json_obj = shift;
-	my $farmname = shift;
-	my $index    = shift;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $json_obj = shift;
+    my $farmname = shift;
+    my $index    = shift;
 
-	my $desc = "Modify a remove response header directive.";
+    my $desc = "Modify a remove response header directive.";
 
-	# Check that the farm exists
-	if ( !&getFarmExists( $farmname ) )
-	{
-		my $msg = "The farm '$farmname' does not exist.";
-		return &httpErrorResponse( code => 404, desc => $desc, msg => $msg );
-	}
+    # Check that the farm exists
+    if (!&getFarmExists($farmname)) {
+        my $msg = "The farm '$farmname' does not exist.";
+        return &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+    }
 
-	if ( &getFarmType( $farmname ) !~ /http/ )
-	{
-		my $msg = "This feature is only for HTTP profiles.";
-		return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    if (&getFarmType($farmname) !~ /http/) {
+        my $msg = "This feature is only for HTTP profiles.";
+        return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	my $params = &getZAPIModel( "farm_http_header_response_remove-modify.json" );
+    my $params = &getZAPIModel("farm_http_header_response_remove-modify.json");
 
-	# Check allowed parameters
-	my $error_msg = &checkZAPIParams( $json_obj, $params, $desc );
-	return &httpErrorResponse( code => 400, desc => $desc, msg => $error_msg )
-	  if ( $error_msg );
+    # Check allowed parameters
+    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+      if ($error_msg);
 
-	my @directices = @{ &getHTTPRemRespHeader( $farmname ) };
+    my @directices = @{ &getHTTPRemRespHeader($farmname) };
 
-	# check if the header exists
-	if ( ( scalar @directices ) < $index + 1 )
-	{
-		my $msg = "The header with index $index not found.";
-		return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    # check if the header exists
+    if ((scalar @directices) < $index + 1) {
+        my $msg = "The header with index $index not found.";
+        return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	# check if the header is already added
-	foreach my $header ( @directices )
-	{
-		if ( $header->{ pattern } eq $json_obj->{ pattern } )
-		{
-			my $msg = "The pattern is already added.";
-			return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-		}
-	}
+    # check if the header is already added
+    foreach my $header (@directices) {
+        if ($header->{pattern} eq $json_obj->{pattern}) {
+            my $msg = "The pattern is already added.";
+            return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        }
+    }
 
-	unless ( &modifyHTTPRemRespHeader( $farmname, $json_obj->{ header }, $index ) )
-	{
-		# success
-		my $message = "Modified an item from the removeresponseheader list";
-		my $body = {
-					 description => $desc,
-					 success     => "true",
-					 message     => $message,
-		};
+    unless (&modifyHTTPRemRespHeader($farmname, $json_obj->{header}, $index)) {
 
-		if ( &getFarmStatus( $farmname ) ne 'down' )
-		{
-			require Zevenet::Farm::Action;
-			if ( &getGlobalConfiguration( 'proxy_ng' ) ne 'true' )
-			{
-				&setFarmRestart( $farmname );
-				$body->{ status } = 'needed restart';
-			}
-			else
-			{
-				require Zevenet::Farm::HTTP::Config;
-				my $config_error = &getHTTPFarmConfigErrorMessage( $farmname );
-				if ( $config_error ne "" )
-				{
-					$body->{ warning } = "Farm '$farmname' config error: $config_error";
-				}
-				else
-				{
-					&runFarmReload( $farmname );
-					&eload(
-							module => 'Zevenet::Cluster',
-							func   => 'runZClusterRemoteManager',
-							args   => ['farm', 'reload', $farmname],
-					) if ( $eload );
-				}
-			}
-		}
+        # success
+        my $message = "Modified an item from the removeresponseheader list";
+        my $body    = {
+            description => $desc,
+            success     => "true",
+            message     => $message,
+        };
 
-		return &httpResponse( { code => 200, body => $body } );
-	}
+        if (&getFarmStatus($farmname) ne 'down') {
+            require Zevenet::Farm::Action;
+            if (&getGlobalConfiguration('proxy_ng') ne 'true') {
+                &setFarmRestart($farmname);
+                $body->{status} = 'needed restart';
+            }
+            else {
+                require Zevenet::Farm::HTTP::Config;
+                my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
+                if ($config_error ne "") {
+                    $body->{warning} =
+                      "Farm '$farmname' config error: $config_error";
+                }
+                else {
+                    &runFarmReload($farmname);
+                    &eload(
+                        module => 'Zevenet::Cluster',
+                        func   => 'runZClusterRemoteManager',
+                        args   => [ 'farm', 'reload', $farmname ],
+                    ) if ($eload);
+                }
+            }
+        }
 
-	# error
-	my $msg = "Error modifying an removeresponseheader";
-	return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
+        return &httpResponse({ code => 200, body => $body });
+    }
+
+    # error
+    my $msg = "Error modifying an removeresponseheader";
+    return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
 }
 
 #  DELETE	/farms/<>/addheader/<>
-sub del_removeResponseHeader
-{
-	&zenlog( __FILE__ . ":" . __LINE__ . ":" . ( caller ( 0 ) )[3] . "( @_ )",
-			 "debug", "PROFILING" );
-	my $farmname = shift;
-	my $index    = shift;
+sub del_removeResponseHeader {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $farmname = shift;
+    my $index    = shift;
 
-	my $desc = "Delete a pattern to remove response headers.";
+    my $desc = "Delete a pattern to remove response headers.";
 
-	# Check that the farm exists
-	if ( !&getFarmExists( $farmname ) )
-	{
-		my $msg = "The farm '$farmname' does not exist.";
-		return &httpErrorResponse( code => 404, desc => $desc, msg => $msg );
-	}
+    # Check that the farm exists
+    if (!&getFarmExists($farmname)) {
+        my $msg = "The farm '$farmname' does not exist.";
+        return &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+    }
 
-	if ( &getFarmType( $farmname ) !~ /http/ )
-	{
-		my $msg = "This feature is only for HTTP profiles.";
-		return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    if (&getFarmType($farmname) !~ /http/) {
+        my $msg = "This feature is only for HTTP profiles.";
+        return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	# check if the headremove is already added
-	if ( ( scalar @{ &getHTTPRemRespHeader( $farmname ) } ) < $index + 1 )
-	{
-		my $msg = "The index has not been found.";
-		return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-	}
+    # check if the headremove is already added
+    if ((scalar @{ &getHTTPRemRespHeader($farmname) }) < $index + 1) {
+        my $msg = "The index has not been found.";
+        return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    }
 
-	unless ( &delHTTPRemRespHeader( $farmname, $index ) )
-	{
-		# success
-		my $message = "The pattern $index was deleted successfully";
-		my $body = {
-					 description => $desc,
-					 success     => "true",
-					 message     => $message,
-		};
+    unless (&delHTTPRemRespHeader($farmname, $index)) {
 
-		if ( &getFarmStatus( $farmname ) ne 'down' )
-		{
-			require Zevenet::Farm::Action;
-			if ( &getGlobalConfiguration( 'proxy_ng' ) ne 'true' )
-			{
-				&setFarmRestart( $farmname );
-				$body->{ status } = 'needed restart';
-			}
-			else
-			{
-				require Zevenet::Farm::HTTP::Config;
-				my $config_error = &getHTTPFarmConfigErrorMessage( $farmname );
-				if ( $config_error ne "" )
-				{
-					$body->{ warning } = "Farm '$farmname' config error: $config_error";
-				}
-				else
-				{
-					&runFarmReload( $farmname );
-					&eload(
-							module => 'Zevenet::Cluster',
-							func   => 'runZClusterRemoteManager',
-							args   => ['farm', 'reload', $farmname],
-					) if ( $eload );
-				}
-			}
-		}
+        # success
+        my $message = "The pattern $index was deleted successfully";
+        my $body    = {
+            description => $desc,
+            success     => "true",
+            message     => $message,
+        };
 
-		return &httpResponse( { code => 200, body => $body } );
-	}
+        if (&getFarmStatus($farmname) ne 'down') {
+            require Zevenet::Farm::Action;
+            if (&getGlobalConfiguration('proxy_ng') ne 'true') {
+                &setFarmRestart($farmname);
+                $body->{status} = 'needed restart';
+            }
+            else {
+                require Zevenet::Farm::HTTP::Config;
+                my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
+                if ($config_error ne "") {
+                    $body->{warning} =
+                      "Farm '$farmname' config error: $config_error";
+                }
+                else {
+                    &runFarmReload($farmname);
+                    &eload(
+                        module => 'Zevenet::Cluster',
+                        func   => 'runZClusterRemoteManager',
+                        args   => [ 'farm', 'reload', $farmname ],
+                    ) if ($eload);
+                }
+            }
+        }
 
-	# error
-	my $msg = "Error deleting the pattern $index";
-	return &httpErrorResponse( code => 400, desc => $desc, msg => $msg );
+        return &httpResponse({ code => 200, body => $body });
+    }
+
+    # error
+    my $msg = "Error deleting the pattern $index";
+    return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
 }
