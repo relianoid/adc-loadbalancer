@@ -21,38 +21,52 @@
 #
 ###############################################################################
 
-use 5.36;
-use autodie;
+use strict;
 
-## Zevenet to Relianoid ##
-my $local_path = "/usr/local";
-my $share_path = "/usr/share/perl5";
-if (-d "${local_path}/zevenet") {
-    rename "${local_path}/zevenet", "${local_path}/relianoid";
-    symlink "relianoid", "${local_path}/zevenet";
-}
-if (-d "${share_path}/Zevenet") {
-    rename "${share_path}/Zevenet", "${share_path}/Relianoid";
-    symlink "Relianoid", "${share_path}/Zevenet";
-}
-## Zevenet to Relianoid ##
-
-# Save zlb-stop and zlb-start to a temporal directory
-my $zvn_start = "/usr/local/relianoid/config/zlb-start";
-my $zvn_stop  = "/usr/local/relianoid/config/zlb-stop";
-my $tmp_start = "/tmp/zlb-start";
-my $tmp_stop  = "/tmp/zlb-stop";
-
-if (-f $zvn_start and) {
-    rename $zvn_start, $tmp_start;
+my $eload;
+if (eval { require Relianoid::ELoad; }) {
+    $eload = 1;
 }
 
-if (-f $zvn_stop) {
-    rename $zvn_stop, $tmp_stop;
+my $configdir = &getGlobalConfiguration('configdir');
+
+=begin nd
+Function: getFarmServices
+
+	Get a list of services name for a farm
+	
+Parameters:
+	farmname - Farm name
+
+Returns:
+	Array - list of service names 
+	
+=cut
+
+sub getFarmServices    # ($farm_name)
+{
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my ($farm_name) = @_;
+
+    my $farm_type = &getFarmType($farm_name);
+    my @output    = ();
+
+    if ($farm_type eq "http" || $farm_type eq "https") {
+        require Relianoid::Farm::HTTP::Service;
+        @output = &getHTTPFarmServices($farm_name);
+    }
+
+    if ($farm_type eq "gslb") {
+        @output = &eload(
+            module => 'Relianoid::Farm::GSLB::Service',
+            func   => 'getGSLBFarmServices',
+            args   => [$farm_name],
+        ) if $eload;
+    }
+
+    return @output;
 }
 
-# Create the new GUI system group
-system "groupadd -f webgui";
-system "usermod -a -G webgui root";
+1;
 
-exit 0;

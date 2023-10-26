@@ -2,7 +2,7 @@
 This is the repository of **RELIANOID Load Balancer** Community Edition (**ZEVENET Load Balancer** & **Zen Load Balancer** CE next generation) and it'll guide you to install a development and testing instance of load balancer.
 
 ## Repository Contents
-In this repository you'll find the source code usually placed into the folder `/usr/local/zevenet/` with the following structure:
+In this repository you'll find the source code usually placed into the folder `/usr/local/relianoid/` with the following structure:
 - **app/**: Applications, binaries and libraries that RELIANOID Load Balancer requires.
 - **bin/**: Additional application binaries directory. 
 - **backups/**: Default folder where the configuration backups will be placed.
@@ -12,7 +12,7 @@ In this repository you'll find the source code usually placed into the folder `/
 - **share/**: Folder for templates and other data.
 - **www/**: Backend API source files of RELIANOID Load Balancer.
 - *other*: License and this readme information.
-And `/usr/share/perl5/Zevenet` with the entire RELIANOID backend core.
+And `/usr/share/perl5/Relianoid` with the entire RELIANOID backend core.
 
 ## RELIANOID Load Balancer Installation
 

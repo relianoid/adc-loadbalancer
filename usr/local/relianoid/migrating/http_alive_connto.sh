@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/bash
 ###############################################################################
 #
 #    RELIANOID Software License
@@ -21,38 +21,24 @@
 #
 ###############################################################################
 
-use 5.36;
-use autodie;
+# Param Alive has to be grater than ConnTO in zproxy configuration file.
 
-## Zevenet to Relianoid ##
-my $local_path = "/usr/local";
-my $share_path = "/usr/share/perl5";
-if (-d "${local_path}/zevenet") {
-    rename "${local_path}/zevenet", "${local_path}/relianoid";
-    symlink "relianoid", "${local_path}/zevenet";
-}
-if (-d "${share_path}/Zevenet") {
-    rename "${share_path}/Zevenet", "${share_path}/Relianoid";
-    symlink "Relianoid", "${share_path}/Zevenet";
-}
-## Zevenet to Relianoid ##
+source /usr/local/relianoid/bin/load_global_conf
+load_global_conf
 
-# Save zlb-stop and zlb-start to a temporal directory
-my $zvn_start = "/usr/local/relianoid/config/zlb-start";
-my $zvn_stop  = "/usr/local/relianoid/config/zlb-stop";
-my $tmp_start = "/tmp/zlb-start";
-my $tmp_stop  = "/tmp/zlb-stop";
-
-if (-f $zvn_start and) {
-    rename $zvn_start, $tmp_start;
-}
-
-if (-f $zvn_stop) {
-    rename $zvn_stop, $tmp_stop;
-}
-
-# Create the new GUI system group
-system "groupadd -f webgui";
-system "usermod -a -G webgui root";
-
-exit 0;
+for i in $(find /usr/local/relianoid/config/ -name "*_proxy.cfg");
+do
+	if [[ "$proxy_ng" == 'true' ]]; then
+		if [[ ! `grep -E "^Alive " $i` ]]; then
+			if [[ ! `grep -E "^ConnTO " $i` ]]; then
+				alive_param=`grep -E "^Alive" $i | cut -f3`
+				connto_param=`grep -E "^ConnTO" $i | cut -f3`
+				if [ $alive_param -le $connto_param ]; then
+					alive_param=$((connto_param + 1)) 
+					echo "Replacing directive 'Alive' to farm $i"
+					sed -Ei "s/^Alive\s+[0-9]+/Alive\t\t$alive_param/" $i
+				fi
+			fi
+		fi
+	fi
+done

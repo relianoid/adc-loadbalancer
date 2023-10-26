@@ -1,0 +1,591 @@
+#::INI Global information
+
+
+## version RELIANOID
+$version="_VERSION_";#update
+
+
+## Variables
+# debug level
+$debug="0";
+# nftlb debug level
+$nftlb_debug="5";
+#ZAPI Versions
+$zapi_versions="3 3.1 3.2 4.0.2";#update
+# API model path
+$zapi_model_path="/usr/local/relianoid/zapi-model";
+#ZAPI KEY
+$zapikey="";
+#proxy
+$http_proxy="";
+$https_proxy="";
+# connection logs for farms. If this parameter is "true" all traffic will be logged
+# else only the new connections will be logged
+$full_farm_logs="false";
+# cors devel mode. If this parameter is "true", the http response header Access-Control-Allow-Origin
+# will be the same as the http request header Origin
+$cors_devel_mode = "false";
+# Minutes for Gui Session Timeout.
+$session_timeout="30";
+
+## Relianoid Paths
+#Relianoid root directory
+$zdir="/usr/local/relianoid";#update
+#Relianoid lib directory
+$zlibdir="/usr/share/perl5/Relianoid";#update
+#Relianoid bin directory
+$zbindir="$zdir/bin";#update
+#Document Root for Web Aplication directory
+$basedir="$zdir/www";#update
+#configuration directory.In this section all config files are saved.
+$configdir="$zdir/config";#update
+#certificates directory
+$certdir="$zdir/config/certificates";#update
+# directory for local configurations, it is not sync by the cluster
+$localconfig="$configdir/local";#update
+#Directory where is check script. In this directory you can save your own check scripts.
+$libexec_dir="/usr/lib/nagios/plugins";
+#Relianoid bin directory
+$templatedir="$zdir/share";#update
+#Save backups on
+$backupdir="$zdir/backups";#update
+#Log directory
+$logdir="/var/log";#update
+#piddir
+$piddir="/var/run";
+#relianoid activation certificate path
+$zlbcertfile_path="$basedir/zlbcertfile.pem";#update
+# directory of the zapi binaries
+$zapi_directory="$basedir/zapi";
+#first boot flag
+$first_boot_flag="/etc/firstzlbboot";
+#zna migration flag
+$migration_flag="/etc/zlbmigration";
+#relianoid service
+$relianoid_service="/etc/init.d/relianoid";
+#relianoid no restart service flag
+$relianoid_service_norestart_flag="/etc/zlbnorestart";
+# directory of the migration scripts
+$mig_dir="$zdir/migrating";
+
+# System files
+#rt tables file
+$rttables="/etc/iproute2/rt_tables";
+$rttables_tpl="$templatedir/rt_tables.template";#update
+#HTPASSWD file
+$htpass="/etc/passwd";#update
+#shadow file
+$shadow_file="/etc/shadow";
+#dns file server?
+$filedns="/etc/resolv.conf";
+# apt sources configuration file
+$fileapt="/etc/apt/sources.list";
+# apt Relianoid source
+$apt_source_relianoid="/etc/apt/sources.list.d/relianoid.list";
+# apt user conf
+$apt_conf_file="/etc/apt/apt.conf";
+# apt updates dir
+$update_dir="/usr/local/relianoid/updates";
+# Relianoid URL repo
+$repo_url_relianoid="repo.relianoid.com";#update
+# Relianoid GPG key
+$gpg_key_relianoid="ee.relianoid.com.gpg.key";
+# Bios version
+$bios_version="/sys/devices/virtual/dmi/id/bios_version";
+
+# networking service
+$networking_service="/etc/init.d/networking";
+
+#SNMP Service
+$snmpdconfig_tpl="$templatedir/snmpd.conf.template";
+$snmpdconfig_file="/etc/snmp/snmpd.conf";
+$snmpd_service="/etc/init.d/snmpd";
+
+# start / stop scripts
+$zlb_start_script="$configdir/zlb-start";
+$zlb_stop_script="$configdir/zlb-stop";
+$zlb_start_tpl="$templatedir/zlb-start.template";
+$zlb_stop_tpl="$templatedir/zlb-stop.template";
+
+## Relianoid Files
+#appliance version file
+$applianceVersionFile="/etc/relianoid_version";
+#this file
+$globalcfg="$configdir/global.conf";#update
+$globalcfg_tpl="$templatedir/global.conf.template";
+# Zen license
+$licenseFileTxt="$zdir/license.txt";#update
+# Zen license
+$licenseFileHtml="$zdir/license.html";#update
+#File configuration Zen Cluster
+$filecluster="$configdir/cluster.conf";#update
+
+#let's encrypt configuration
+$temp_farm="letsencryptRelianoid";
+$le_farm="LetsencryptRelianoid";
+$le_service="LetsencryptZ";
+$le_binary="/usr/local/relianoid/bin/certbot-auto --no-self-upgrade";#update
+$le_certbot_bin="/usr/bin/certbot";
+$le_fullchain_path="/usr/local/relianoid/config/letsencrypt/";
+$le_webroot_path="/usr/local/relianoid/app/letsencryptz/webroot/";
+$le_webserver_config_file="/usr/local/relianoid/app/letsencryptz/etc/cherokee_localhost.conf";
+$le_config_path="/usr/local/relianoid/config/letsencrypt/";
+$le_manual_auth_hook="$zbindir/le_dns_auth_hook";
+$le_manual_cleanup_hook="$zbindir/le_dns_cleanup_hook";
+$le_acme_bin="/usr/local/relianoid/app/letsencryptz/acme/acme.sh";
+$le_acme_config_path="$le_config_path/acme";
+$le_acme_cert_path="$le_acme_config_path/live";
+$le_email="";
+$le_cron_file="/etc/cron.d/letsencryptz";
+$le_renewal_bin="$zbindir/letsencryptz-autorenew";
+$le_renewal_timeout="120";
+
+#File configuration GUI
+$http_server_dir="$zdir/app/cherokee";
+$http_server_service="/etc/init.d/cherokee";
+$confhttp="$http_server_dir/etc/cherokee/cherokee.conf";#update
+$confhttp_tpl="$templatedir/cherokee.conf.template";#update
+$http_server_cert="$certdir/zencert.pem";#update
+$http_server_key="$certdir/zencert-c.key";#update
+$http_server_cert_tpl="$templatedir/zencert.pem";
+$http_server_key_tpl="$templatedir/zencert-c.key";
+$http_bin="$http_server_dir/sbin/cherokee";
+
+#Where is temperature file?
+$temperatureFile="/proc/acpi/thermal_zone/THRM/temperature";
+# network files
+$sys_net_dir="/sys/class/net";
+
+
+## binaries
+#Where is netstat binary?
+$netstat_bin="/bin/netstat";#update
+#Where is file binary?
+$file_bin="/usr/bin/file";
+#Where is cat binary?
+$aws_cat_bin="/bin/cat";#update
+$default_cat_bin="/usr/bin/cat";#update
+#This variable is modified from postinst
+$cat_bin="/bin/cat";#update
+#Where is hostname binary?
+$hostname="/bin/hostname";
+#Where is kill binary?
+$kill_bin="/bin/kill";
+#Where is uname binary?
+$uname="/bin/uname";
+#Where is tar binary?
+$tar="/bin/tar";
+#where is ifconfig binary?
+$aws_ifconfig_bin="/sbin/ifconfig";#update
+$default_ifconfig_bin="/usr/sbin/ifconfig";#update
+#This variable is modified from postinst
+$ifconfig_bin="/usr/sbin/ifconfig";
+#Where is ip bynary?
+$ip_bin="/bin/ip";#update
+#Where is wc binary?
+$wc_bin="/usr/bin/wc";
+#Where is fdisk binary?
+$aws_fdisk_bin="/sbin/fdisk";#update
+$default_fdisk_bin="/usr/sbin/fdisk";#update
+#This variable is modified from postinst
+$fdisk_bin="/usr/sbin/fdisk";
+#Where is df binary?
+$df_bin="/bin/df";
+#Where is ssh-keygen binary?
+$sshkeygen="/usr/bin/ssh-keygen";
+#Where is the logrotate binary?
+$logrotate_bin="/usr/sbin/logrotate";
+#Where is ssh client?
+$ssh="/usr/bin/ssh";
+#Where is scp binary?
+$scp="/usr/bin/scp";
+#Where is rsync binary?
+$rsync="/usr/bin/rsync";
+#Where is pidof binary?
+$pidof="/bin/pidof";
+#Where is ps binary?
+$ps="/bin/ps";
+#Where is tail binary?
+$tail="/usr/bin/tail";
+#Where is zcat binary?
+$zcat="/bin/zcat";
+#Where is ntpserver?
+$datentp="/usr/sbin/ntpdate";
+#Where is date?
+$aws_date_bin="/bin/date";#update
+$default_date_bin="/usr/bin/date";#update
+#This variable is modified from postinst
+$date="/usr/bin/date";
+#Where is arping?
+$arping_bin="/usr/bin/arping";
+#Where is ping?
+$ping_bin="/bin/ping";
+#Where is apt?
+$apt_bin="/usr/bin/apt";
+#Where is apt-get?
+$aptget_bin="/usr/bin/apt-get";
+#Where is apt-key?
+$aptkey_bin="/usr/bin/apt-key";
+#Where is apt-cache?
+$aptcache_bin="/usr/bin/apt-cache";
+#Where is checkupgrades?
+$checkupgrades_bin="/usr/local/relianoid/bin/checkupgrades";#update
+$checkupdates_bin="/usr/local/relianoid/bin/checkupdates";#update
+#Where is openssl?
+$openssl="/usr/bin/openssl";
+#Where is unzip?
+$unzip="/usr/bin/unzip";
+#Where is mv?
+$mv="/bin/mv";
+#Where is mkdir?
+$mkdir="/bin/mkdir";
+#Where is awk binary?
+$awk="/usr/bin/awk";
+#Where is logger?
+$logger="/usr/bin/logger";
+#Where is sec?
+$sec="/usr/bin/sec";
+#Where is touch?
+$touch="/usr/bin/touch";
+#Where is sed?
+$sed_bin="/bin/sed";
+#Where is cut?
+$aws_cut_bin="/usr/bin/cut";#update
+$default_cut_bin="/bin/cut";#update
+#This variable is modified from postinst
+$cut_bin="/bin/cut";
+#Where is ls?
+$ls="/bin/ls";
+#Where is pgrep?
+$pgrep="/usr/bin/pgrep";
+#Where is stat?
+$stat="/usr/bin/stat";
+#Where is cp?
+$cp="/bin/cp";
+#Where is rm?
+$rm="/bin/rm";
+#Where is find?
+$find="/bin/find";
+#Where is modprobe?
+$aws_modprobe="/sbin/modprobe";#update
+$default_modprobe="/sbin/modprobe";#update
+#This variable is modified from postinst
+$modprobe="/usr/sbin/modprobe";
+#Where is lsmod?
+$aws_lsmod="/sbin/lsmod";#update
+$default_lsmod="/usr/sbin/lsmod";#update
+#This variable is modified from postinst
+$lsmod="/usr/sbin/lsmod";
+#Where is gdnsd?
+#Where is gdnsd plugins?
+#Where is l4sd?
+$l4sd="$zbindir/l4sd";#update
+#Where is factory_reset?
+$factory_reset_bin="$zbindir/factory_reset.sh";
+#Where is id binary?
+$bin_id="/usr/bin/id";
+#Where is wget binary?
+$wget="/usr/bin/wget";
+#Where is conntrack binary?
+$conntrack="/usr/sbin/conntrack";
+#systemctl
+$systemctl="/bin/systemctl";
+#Where is insserv?
+$insserv="/sbin/insserv";
+#Where is update-rc.d?
+$updatercd="/usr/sbin/update-rc.d";
+#Where is packetbl?
+#Where is adduser?
+$adduser_bin="/usr/sbin/adduser";
+#Where is deluser?
+$deluser_bin="/usr/sbin/deluser";
+#Where is groupadd?
+#Where is groupdel?
+#Where is groups?
+#Where is echo?
+$echo_bin="/bin/echo";
+#Where is dpkg?
+$dpkg_bin="/usr/bin/dpkg";
+#Where is dpkg-query?
+$dpkg_query ="/usr/bin/dpkg-query";
+#Where is nproc?
+$nproc_bin="/usr/bin/nproc";
+#Where is grep?
+$grep_bin="/bin/grep";
+#Where is nft?
+$nft_bin="/usr/local/sbin/nft";#update
+#Where is nftlb?
+$nftlb_bin="/usr/local/relianoid/app/nftlb/sbin/nftlb";
+#Where is the nftlb service?
+$nftlb_svc="$zbindir/nftlbd";
+#Where is poweroff
+$aws_poweroff_bin="/sbin/poweroff";#update
+$default_poweroff_bin="/usr/sbin/poweroff";#update
+#This variable is modified from postinst
+$poweroff_bin="/usr/sbin/poweroff";
+#Where is reboot
+$aws_reboot_bin="/sbin/reboot";#update
+$default_reboot_bin="/usr/sbin/reboot";#update
+#This variable is modified from postinst
+$reboot_bin="/usr/sbin/reboot";
+#Where is arpsend
+$arpsend_bin="/usr/sbin/arpsend";
+#Where is dhclient
+$aws_dhcp_bin="/sbin/dhclient";#update
+$default_dhcp_bin="/usr/sbin/dhclient";#update
+#This variable is modified from postinst
+$dhcp_bin="/usr/sbin/dhclient";
+#Where is netcat
+$aws_netcat_bin="/bin/nc.openbsd";#update
+$default_netcat_bin="/usr/bin/nc.openbsd";#update
+#This variable is modified from postinst
+$netcat_bin="/usr/bin/nc.openbsd";
+#Where is dmidecode
+$dmidecode_bin="/usr/sbin/dmidecode";
+#Where is expect binary?
+$expect_bin="/usr/bin/expect";
+#Where is dig binary?
+$dig_bin="/usr/bin/dig";
+#Where is lshw?
+
+# zproxy
+#where is zproxy dir?
+#where is zproxy binary?
+#where is zproxy ctl?
+#where is zproxy configuration template?
+$zproxytpl="$templatedir/proxytpl.cfg";#update
+
+# Pound
+#where is pound binary?
+#where is pound binary?
+#where is pound ctl?
+#where is pound configuration template?
+$poundtpl="$templatedir/poundtpl.cfg";#update
+
+# l7 proxy
+# Set the l7 binary: NG = true => zproxy, NG = false => pound
+$proxy_ng="true";#update
+
+#where is l7 proxy dir?
+$base_proxy="$zdir/app/zproxy";#update
+#where is l7 proxy binary?
+$proxy="$base_proxy/bin/zproxy";#update
+#where is l7 proxy ctl?
+$proxyctl="$base_proxy/bin/zproxyctl";#update
+#l7 file configuration template?
+$proxytpl="$templatedir/proxytpl.cfg";#update
+
+#maximum value of http body to pass to modsecurity
+$waf_max_body="32000";
+#Where is modsec rules check
+#time to ensure that the farm has been stopped completaly
+$http_farm_stop_grace_time="2";
+
+#Cipher PCI
+$cipher_pci="kEECDH+ECDSA+AES128:kEECDH+ECDSA+AES256:kEECDH+AES128:kEECDH+AES256:kEDH+AES128:kEDH+AES256:DES-CBC3-SHA:+SHA:!aNULL:!eNULL:!LOW:!kECDH:!DSS:!MD5:!EXP:!PSK:!SRP:!CAMELLIA:!SEED";#update
+#Cipher ssloffloading
+$cipher_ssloffloading="AES";
+#ntp server
+$ntp="pool.ntp.org";
+
+
+## Network global configuration options ##
+$fwmarksconf="$configdir/fwmarks.conf";
+#System Default Gateway
+$defaultgw="";
+#Interface Default Gateway
+$defaultgwif="";
+#System Default IPv6 Gateway
+$defaultgw6="";
+#Interface Default IPv6 Gateway
+$defaultgwif6="";
+#Number of gratuitous pings
+$pingc="1";
+#routing options
+$routeparams="";
+# HTTP marked traffic routing
+$mark_routing_L7="true";#update
+# HTTP floating ip
+#IPv6
+$ipv6_enabled="false";
+
+
+## L4xNat - netfilter
+# Maximum recent ip list
+# Recent ip hash
+# SIP Module Parameters
+$l4xnat_sip_params="";#update
+
+
+#FarmGuardian binary, create advanced check for backend servers
+$farmguardian="$zbindir/farmguardian";#update
+$fgmark="$zbindir/mark.so";#update
+
+# files to save the status of the system packages
+$apt_msg="$localconfig/apt_message.txt";
+$apt_outdated_list="$localconfig/apt_outdated_list.txt";
+
+#maintenance status under human action, flag
+
+#Where is ZenRRD Directory?. There is a perl script that create rrd database and images from Monitoring section
+$rrdap_dir="$zdir/app/zenrrd";#update
+#Relative path in Web Root directory ($basedir) where is graphs from ZenRRD *no modify
+$img_dir="/tmp";#update
+#Relative path where is rrd databases from ZenRRD * no modify
+$rrd_dir="rrd";#update
+
+
+#Service for configure Zen directory replication
+$zenino="$zbindir/enterprise.bin zeninotify";#update
+#Zen Inotify pid file
+$zeninopid="/var/run/zeninotify.pid";
+#Rsync replication parameters
+$zenrsync="-azvr --delete";#update
+#ARP unsolicited
+$arp_unsolicited="";
+#ARP announcement, true / false (default)
+$arp_announce="";
+#Where is the script ARP announcement?
+$arp_announce_bin="/usr/local/relianoid/bin/arp_announce";
+#path for cron task of arp announcement
+$arp_announce_cron_path="/etc/cron.d/arp_announce";
+
+#Network duplicated net. It is used to include the route of a virtual interface in all of interfaces where this networking segment is defined
+$duplicated_net="false";
+
+
+
+
+
+# Cron service
+$cron_service="/etc/init.d/cron";
+$cron_conf="/etc/cron.d/relianoid";
+$cron_tpl="$templatedir/relianoid.cron";
+
+# Netplug service
+$netplug_init_tpl="$templatedir/netplug.template";
+$netplugd_conf_tpl="$templatedir/netplugd.conf.template";
+$netplug_init="/etc/netplug/netplug";
+$netplugd_conf="/etc/netplug/netplugd.conf";
+$netplugd_srv="/etc/init.d/netplug";
+
+
+#syslog service
+#File rsyslog configuration file
+
+
+# keepalived configuration file
+# conntrackd configuration file
+$conntrackd_conf="/etc/conntrackd/conntrackd.conf";
+#Where is curl binary?
+$curl_bin="/usr/bin/curl";
+# cluster floating interfaces configuration file path
+# node_status file path
+
+# zcluster-manager command path
+# ssh-copy-id file path
+# primary-backup conntrackd script
+$primary_backup="$zbindir/primary-backup.sh";#update
+
+# sshd file
+$sshConf="/etc/ssh/sshd_config";
+# ssh service
+$sshService="/etc/init.d/ssh";
+# sshkey file path
+$key_path="/root/.ssh";
+# sshkey file path
+$key_id="id_rsa";
+# ssh keygen command
+$keygen_cmd="ssh-keygen -t rsa -f $key_path/$key_id -N '' -q";#update
+
+#Zen backup
+$zenbackup="$zbindir/zenbackup.pl";#update
+
+#Do backup to
+$backupfor="$configdir $basedir/*.pem $confhttp $rttables $sshConf $snmpdconfig_file /etc/hostname $filedns /etc/cron.d/relianoid $applianceVersionFile";#update
+
+#Bonding interfaces
+$bonding_hwaddr_filename="bonding_slave/perm_hwaddr";
+
+#Notifications Module
+# How time wait to execute the logs rotate
+
+#IPDS Module
+
+#WAF Assistant
+
+# IPDS stats
+# How time wait to execute the stats rotate
+# hours to keep the ipds stats database
+
+# Rabc Module
+
+# VPN Module
+#ipsec_ike_svc
+#ipsec_ike_ctl
+#ipsec_ike_table_route
+#ipsec_ike_table_route_prio
+#where is ipsec binary?
+#l2tp_ctl_dir
+#l2tp_bin
+#l2tp_ctl_bin
+#l2tp_ppp_secret
+
+# Ssyncd for pound
+#where is pound ssyncd base?
+#where is pound ssyncd binary?
+#where is pound ssyncd ctl?
+
+# Ssyncd for zproxy
+#where is zproxy ssyncd base?
+#where is zproxy ssyncd binary?
+#where is zproxy ssyncd ctl?
+
+#Ssyncd
+#where is ssyncd dir?
+#where ssyncd binary?
+#where is ssyncd ctl?
+
+#L4sd configuration
+$l4sdpid="/var/run/l4sd.pid";#update
+$l4sdcfg="$configdir/l4sd.cfg";#update
+
+# routing
+# VPN prio
+# L4 farm prio
+$routingRulePrioFarmL4="25000";
+# datalink farm prio
+$routingRulePrioFarmDatalink="26000";
+# Min prio for rules created by the user. It must be greater than all farms rules
+$routingRulePrioUserMin="29000";
+# Maximum prio for rules created by the user. It must be lower than ifaces priority
+$routingRulePrioUserMax="30999";
+# Prio for virtual interfaces that have the networking segmend defined in two interfaces
+$routingRulePrioIfacesDuplicated="31000";
+# initial interface tables prio
+$routingRulePrioIfaces="32000";
+# deafult priority for routing entries
+$routingRoutePrio="5";
+
+# time period to get the interface throughput stats
+
+$doc_v4_0="https://www.relianoid.com/zapidoc/v4.0_ee/";
+
+# language used for the webgui
+$lang="";
+
+# cloud
+$cloud_provider="nocloud";
+$cloud_address_metadata="169.254.169.254";
+$aws_bin="/usr/bin/aws";
+$aws_credentials="$configdir/cloud/.aws/credentials";
+$aws_config="$configdir/cloud/.aws/config";
+
+$az_bin="/usr/bin/az";
+$network_role="Network Contributor";#update
+$vm_user_role="Virtual Machine User Login";#update
+
+# docker
+$docker_flag="/.dockerenv";
+
+#::END Global Section

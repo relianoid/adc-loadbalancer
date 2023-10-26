@@ -21,38 +21,57 @@
 #
 ###############################################################################
 
-use 5.36;
-use autodie;
+use strict;
+use feature 'state';
 
-## Zevenet to Relianoid ##
-my $local_path = "/usr/local";
-my $share_path = "/usr/share/perl5";
-if (-d "${local_path}/zevenet") {
-    rename "${local_path}/zevenet", "${local_path}/relianoid";
-    symlink "relianoid", "${local_path}/zevenet";
-}
-if (-d "${share_path}/Zevenet") {
-    rename "${share_path}/Zevenet", "${share_path}/Relianoid";
-    symlink "Relianoid", "${share_path}/Zevenet";
-}
-## Zevenet to Relianoid ##
+=begin nd
+Function: debug
 
-# Save zlb-stop and zlb-start to a temporal directory
-my $zvn_start = "/usr/local/relianoid/config/zlb-start";
-my $zvn_stop  = "/usr/local/relianoid/config/zlb-stop";
-my $tmp_start = "/tmp/zlb-start";
-my $tmp_stop  = "/tmp/zlb-stop";
+	Get debugging level.
 
-if (-f $zvn_start and) {
-    rename $zvn_start, $tmp_start;
-}
+Parameters:
+	none - .
 
-if (-f $zvn_stop) {
-    rename $zvn_stop, $tmp_stop;
+Returns:
+	integer - Debugging level.
+
+Bugs:
+	The debugging level should be stored as a variable.
+
+See Also:
+	Widely used.
+=cut
+
+sub debug {
+    require Relianoid::Config;
+    return &getGlobalConfiguration('debug') // 0;
 }
 
-# Create the new GUI system group
-system "groupadd -f webgui";
-system "usermod -a -G webgui root";
+=begin nd
+Function: getMemoryUsage
 
-exit 0;
+	Get the resident memory usage of the current perl process.
+
+Parameters:
+	none - .
+
+Returns:
+	scalar - String with the memory usage.
+
+See Also:
+	Used in zapi.cgi
+=cut
+
+sub getMemoryUsage {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $mem_string = `grep RSS /proc/$$/status`;
+
+    chomp($mem_string);
+    $mem_string =~ s/:.\s+/: /;
+
+    return $mem_string;
+}
+
+1;
+

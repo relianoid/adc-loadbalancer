@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/bash
 ###############################################################################
 #
 #    RELIANOID Software License
@@ -21,38 +21,13 @@
 #
 ###############################################################################
 
-use 5.36;
-use autodie;
+#Add DH param to 2048 in cherokee conf
 
-## Zevenet to Relianoid ##
-my $local_path = "/usr/local";
-my $share_path = "/usr/share/perl5";
-if (-d "${local_path}/zevenet") {
-    rename "${local_path}/zevenet", "${local_path}/relianoid";
-    symlink "relianoid", "${local_path}/zevenet";
-}
-if (-d "${share_path}/Zevenet") {
-    rename "${share_path}/Zevenet", "${share_path}/Relianoid";
-    symlink "Relianoid", "${share_path}/Zevenet";
-}
-## Zevenet to Relianoid ##
+cherokee_conf="/usr/local/relianoid/app/cherokee/etc/cherokee/cherokee.conf"
 
-# Save zlb-stop and zlb-start to a temporal directory
-my $zvn_start = "/usr/local/relianoid/config/zlb-start";
-my $zvn_stop  = "/usr/local/relianoid/config/zlb-stop";
-my $tmp_start = "/tmp/zlb-start";
-my $tmp_stop  = "/tmp/zlb-stop";
+if [[ ! `grep "^vserver\!1\!ssl_dh_length.*" $cherokee_conf` ]]; then
+	echo "DH param not found in cherokee conf, adding"
+	sed -i '/server!user = root/a vserver!1!ssl_dh_length = 2048' $cherokee_conf
+fi
 
-if (-f $zvn_start and) {
-    rename $zvn_start, $tmp_start;
-}
 
-if (-f $zvn_stop) {
-    rename $zvn_stop, $tmp_stop;
-}
-
-# Create the new GUI system group
-system "groupadd -f webgui";
-system "usermod -a -G webgui root";
-
-exit 0;

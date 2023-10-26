@@ -21,38 +21,24 @@
 #
 ###############################################################################
 
-use 5.36;
-use autodie;
+use strict;
+use warnings;
+use Relianoid::Core;
+use Relianoid::Log;
+use Relianoid::Config;
+use Relianoid::Validate;
+use Relianoid::Debug;
+use Relianoid::Netfilter;
+use Relianoid::Net::Interface;
+use Relianoid::FarmGuardian;
+use Relianoid::Backup;
+use Relianoid::RRD;
+use Relianoid::SNMP;
+use Relianoid::Stats;
+use Relianoid::SystemInfo;
+use Relianoid::System;
+use Relianoid::Zapi;
 
-## Zevenet to Relianoid ##
-my $local_path = "/usr/local";
-my $share_path = "/usr/share/perl5";
-if (-d "${local_path}/zevenet") {
-    rename "${local_path}/zevenet", "${local_path}/relianoid";
-    symlink "relianoid", "${local_path}/zevenet";
-}
-if (-d "${share_path}/Zevenet") {
-    rename "${share_path}/Zevenet", "${share_path}/Relianoid";
-    symlink "Relianoid", "${share_path}/Zevenet";
-}
-## Zevenet to Relianoid ##
+require Relianoid::CGI if defined $ENV{GATEWAY_INTERFACE};
 
-# Save zlb-stop and zlb-start to a temporal directory
-my $zvn_start = "/usr/local/relianoid/config/zlb-start";
-my $zvn_stop  = "/usr/local/relianoid/config/zlb-stop";
-my $tmp_start = "/tmp/zlb-start";
-my $tmp_stop  = "/tmp/zlb-stop";
-
-if (-f $zvn_start and) {
-    rename $zvn_start, $tmp_start;
-}
-
-if (-f $zvn_stop) {
-    rename $zvn_stop, $tmp_stop;
-}
-
-# Create the new GUI system group
-system "groupadd -f webgui";
-system "usermod -a -G webgui root";
-
-exit 0;
+1;

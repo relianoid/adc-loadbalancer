@@ -1,4 +1,3 @@
-#!/usr/bin/perl
 ###############################################################################
 #
 #    RELIANOID Software License
@@ -21,38 +20,43 @@
 #
 ###############################################################################
 
-use 5.36;
-use autodie;
+use strict;
+use Relianoid::Farm::HTTP::Config;
 
-## Zevenet to Relianoid ##
-my $local_path = "/usr/local";
-my $share_path = "/usr/share/perl5";
-if (-d "${local_path}/zevenet") {
-    rename "${local_path}/zevenet", "${local_path}/relianoid";
-    symlink "relianoid", "${local_path}/zevenet";
-}
-if (-d "${share_path}/Zevenet") {
-    rename "${share_path}/Zevenet", "${share_path}/Relianoid";
-    symlink "Relianoid", "${share_path}/Zevenet";
-}
-## Zevenet to Relianoid ##
+# farm parameters
+sub getHTTPOutFarm {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    require Relianoid::Farm::Config;
+    my $farmname = shift;
+    my $farm_ref = &getFarmStruct($farmname);
 
-# Save zlb-stop and zlb-start to a temporal directory
-my $zvn_start = "/usr/local/relianoid/config/zlb-start";
-my $zvn_stop  = "/usr/local/relianoid/config/zlb-stop";
-my $tmp_start = "/tmp/zlb-start";
-my $tmp_stop  = "/tmp/zlb-stop";
-
-if (-f $zvn_start and) {
-    rename $zvn_start, $tmp_start;
+    # Remove useless fields
+    delete($farm_ref->{name});
+    return $farm_ref;
 }
 
-if (-f $zvn_stop) {
-    rename $zvn_stop, $tmp_stop;
+sub getHTTPOutService {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+
+    require Relianoid::Farm::HTTP::Service;
+    my $farmname      = shift;
+    my @services_list = ();
+
+    foreach my $service (&getHTTPFarmServices($farmname)) {
+        my $service_ref = &getHTTPServiceStruct($farmname, $service);
+        push @services_list, $service_ref;
+    }
+
+    return \@services_list;
 }
 
-# Create the new GUI system group
-system "groupadd -f webgui";
-system "usermod -a -G webgui root";
+sub getHTTPOutBackend {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
 
-exit 0;
+}
+
+1;
+

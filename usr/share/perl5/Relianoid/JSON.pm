@@ -21,38 +21,54 @@
 #
 ###############################################################################
 
-use 5.36;
-use autodie;
+use strict;
+require JSON::XS;
+require Relianoid::Lock;
 
-## Zevenet to Relianoid ##
-my $local_path = "/usr/local";
-my $share_path = "/usr/share/perl5";
-if (-d "${local_path}/zevenet") {
-    rename "${local_path}/zevenet", "${local_path}/relianoid";
-    symlink "relianoid", "${local_path}/zevenet";
+JSON::XS->import;
+my $json = JSON::XS->new->utf8->pretty(1);
+$json->canonical([1]);
+
+sub decodeJSONFile {
+    my $file = shift;
+
+    my $file_str;
+    my $fh = &openlock($file, '<');
+    return undef if !defined $fh;
+
+    {
+        local $/ = undef;
+        $file_str = <$fh>;
+    }
+    close $fh;
+
+    my $f_json;
+    eval { $f_json = $json->decode($file_str); };
+    if ($@) {
+        &zenlog("Error decoding the file $file", 'error');
+        &zenlog("json: $@",                      'debug');
+    }
+    return $f_json;
 }
-if (-d "${share_path}/Zevenet") {
-    rename "${share_path}/Zevenet", "${share_path}/Relianoid";
-    symlink "Relianoid", "${share_path}/Zevenet";
+
+sub encodeJSONFile {
+    my $f_json = shift;
+    my $file   = shift;
+
+    my $file_str;
+    eval { $file_str = $json->encode($f_json); };
+    if ($@) {
+        &zenlog("Error encoding the file $file");
+        &zenlog("json: $@", 'debug');
+    }
+
+    my $fh = &openlock($file, '>');
+    return 1 if not defined $fh;
+
+    print $fh $file_str;
+    close $fh;
+    return 0;
 }
-## Zevenet to Relianoid ##
 
-# Save zlb-stop and zlb-start to a temporal directory
-my $zvn_start = "/usr/local/relianoid/config/zlb-start";
-my $zvn_stop  = "/usr/local/relianoid/config/zlb-stop";
-my $tmp_start = "/tmp/zlb-start";
-my $tmp_stop  = "/tmp/zlb-stop";
+1;
 
-if (-f $zvn_start and) {
-    rename $zvn_start, $tmp_start;
-}
-
-if (-f $zvn_stop) {
-    rename $zvn_stop, $tmp_stop;
-}
-
-# Create the new GUI system group
-system "groupadd -f webgui";
-system "usermod -a -G webgui root";
-
-exit 0;

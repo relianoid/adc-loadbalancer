@@ -21,38 +21,25 @@
 #
 ###############################################################################
 
-use 5.36;
-use autodie;
+use strict;
 
-## Zevenet to Relianoid ##
-my $local_path = "/usr/local";
-my $share_path = "/usr/share/perl5";
-if (-d "${local_path}/zevenet") {
-    rename "${local_path}/zevenet", "${local_path}/relianoid";
-    symlink "relianoid", "${local_path}/zevenet";
-}
-if (-d "${share_path}/Zevenet") {
-    rename "${share_path}/Zevenet", "${share_path}/Relianoid";
-    symlink "Relianoid", "${share_path}/Zevenet";
-}
-## Zevenet to Relianoid ##
+require Relianoid::Ids;
 
-# Save zlb-stop and zlb-start to a temporal directory
-my $zvn_start = "/usr/local/relianoid/config/zlb-start";
-my $zvn_stop  = "/usr/local/relianoid/config/zlb-stop";
-my $tmp_start = "/tmp/zlb-start";
-my $tmp_stop  = "/tmp/zlb-stop";
+# GET /ids
+sub list_ids {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
+        "debug", "PROFILING");
+    my $desc = "Get a load balancer object IDs";
 
-if (-f $zvn_start and) {
-    rename $zvn_start, $tmp_start;
+    my $tree = &getIdsTree();
+
+    my $body = {
+        description => $desc,
+        params      => $tree,
+    };
+
+    return &httpResponse({ code => 200, body => $body });
 }
 
-if (-f $zvn_stop) {
-    rename $zvn_stop, $tmp_stop;
-}
+1;
 
-# Create the new GUI system group
-system "groupadd -f webgui";
-system "usermod -a -G webgui root";
-
-exit 0;
