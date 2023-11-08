@@ -16,45 +16,49 @@ And `/usr/share/perl5/Relianoid` with the entire RELIANOID backend core.
 
 ## RELIANOID Load Balancer Installation
 
-Currently, there is only available package for Debian Buster, the installation is not supported out of this operating system.
+Currently, there is only available package for Debian 12 Bookworm, the installation is not supported out of this operating system.
 
-There are two options to deploy a RELIANOID load balancer: The first is deploying the RELIANOID CE ISO, and the other is deploying a Debian Buster image and installing RELIANOID with its dependencies.
+There are two options to deploy a RELIANOID load balancer: The first is deploying the RELIANOID CE ISO, and the other is deploying a Debian 12 Bookworm image and installing RELIANOID with its dependencies.
 
 ### ISO
 
-RELIANOID CE ISO is a Debian Buster template with RELIANOID already installed. It can be got from the following link, clicking on the "Download ISO image" button.
+RELIANOID Community Edition ISO is a Debian 12 Bookworm template with RELIANOID already installed. It can be got from the following link, clicking on the "Download ISO image" button.
 
 https://www.relianoid.com/products/community/
 
 
-### Installation on Debian Buster
+### Installation on Debian 12 Bookworm
 
 If you prefer install RELIANOID yourself, you should get a Debian ISO installable from [debian.org](https://www.debian.org/distrib/). This installation process has been only tested with the 64 bits version.
 
 Please, take into account these **requirements** before installing the load balancer:
 
-1. You'll need at least 1,5 GB of storage.
+1. Uses 1,6 GB of disk space after installation.
 
-2. Install a fresh and basic Debian Buster (64 bits) system with *openssh* and the basic system tools package recommended during the distribution installation.
+2. Install a fresh and basic Debian 12 Bookworm (64 bits) system with *openssh* and the basic system tools package recommended during the distribution installation.
 
 3. Configure the load balancer with a static IP address. RELIANOID Load Balancer doesn't support DHCP yet.
 
 4. Configure the *apt* repositories in order to be able to install some dependencies.
 
 
-This git repository only contains the source code, the installable packages based in this code are updated in our RELIANOID APT repos, you can use them configuring your Debian Buster system as follows:
+This git repository only contains the source code, the installable packages based in this code are updated in our RELIANOID APT repos, you can use them configuring your Debian 12 Bookworm system as follows:
 
 ```
-root@noid-ce-01# echo "deb http://repo.relianoid.com/ce/v5 buster main" >> /etc/apt/sources.list.d/zevenet.list
-root@noid-ce-01# wget -O - http://repo.relianoid.com/zevenet.com.gpg.key | apt-key add -
+root@noid-ce-01# echo "deb http://repo.relianoid.com/ce/v7 bookworm main" > /etc/apt/sources.list.d/relianoid.list
+root@noid-ce-01# wget -O - https://repo.relianoid.com/public/relianoid.asc > /etc/apt/trusted.gpg.d/relianoid.asc
 ```
+
 Now, update the local APT database
+
 ```
 root@noid-ce-01# apt-get update
 ```
-And finally, install the RELIANOID CE
+
+And finally, install RELIANOID load balancer Community Edition
+
 ```
-root@noid-ce-01# apt-get install zevenet
+root@noid-ce-01# apt-get install relianoid relianoid-gui
 ```
 
 ## Updates
