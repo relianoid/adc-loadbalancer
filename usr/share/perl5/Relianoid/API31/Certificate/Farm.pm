@@ -35,8 +35,7 @@ unless ($eload) { require Relianoid::Farm::HTTP::HTTPS; }
 # POST /farms/FARM/certificates (Add certificate to farm)
 sub add_farm_certificate    # ( $json_obj, $farmname )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $farmname = shift;
 
@@ -92,18 +91,17 @@ sub add_farm_certificate    # ( $json_obj, $farmname )
 
     if ($status) {
         my $msg =
-"It's not possible to add the certificate with name $json_obj->{file} for the $farmname farm";
+          "It's not possible to add the certificate with name $json_obj->{file} for the $farmname farm";
 
         &zenlog("It's not possible to add the certificate.", "warning", "LSLB");
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
     # no errors found, return succesful response
-    &zenlog("Success, trying to add a certificate to the farm.", "info",
-        "LSLB");
+    &zenlog("Success, trying to add a certificate to the farm.", "info", "LSLB");
 
     my $message =
-"The certificate $json_obj->{file} has been added to the farm $farmname, you need restart the farm to apply";
+      "The certificate $json_obj->{file} has been added to the farm $farmname, you need restart the farm to apply";
 
     my $body = {
         description => $desc,
@@ -134,8 +132,7 @@ sub add_farm_certificate    # ( $json_obj, $farmname )
 # DELETE /farms/FARM/certificates/CERTIFICATE
 sub delete_farm_certificate    # ( $farmname, $certfilename )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farmname     = shift;
     my $certfilename = shift;
 
@@ -173,7 +170,7 @@ sub delete_farm_certificate    # ( $farmname, $certfilename )
 
     my $status;
 
-# This is a BUGFIX: delete the certificate all times that it appears in config file
+    # This is a BUGFIX: delete the certificate all times that it appears in config file
     for (my $it = 0 ; $it < $number ; $it++) {
         $status = &eload(
             module => 'Relianoid::Farm::HTTP::HTTPS::Ext',
@@ -185,23 +182,20 @@ sub delete_farm_certificate    # ( $farmname, $certfilename )
 
     # check if the certificate could not be removed
     if ($status == -1) {
-        &zenlog("It's not possible to delete the certificate.",
-            "warning", "LSLB");
+        &zenlog("It's not possible to delete the certificate.", "warning", "LSLB");
 
         my $msg =
-"It isn't possible to delete the selected certificate $certfilename from the SNI list";
+          "It isn't possible to delete the selected certificate $certfilename from the SNI list";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-# check if removing the certificate would leave the SNI list empty, not supported
+    # check if removing the certificate would leave the SNI list empty, not supported
     if ($status == 1) {
-        &zenlog(
-"It's not possible to delete all certificates, at least one is required for HTTPS.",
-            "warning", "LSLB"
-        );
+        &zenlog("It's not possible to delete all certificates, at least one is required for HTTPS.",
+            "warning", "LSLB");
 
         my $msg =
-"It isn't possible to delete all certificates, at least one is required for HTTPS profiles";
+          "It isn't possible to delete all certificates, at least one is required for HTTPS profiles";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
@@ -230,8 +224,7 @@ sub delete_farm_certificate    # ( $farmname, $certfilename )
         }
     }
 
-    &zenlog("Success, trying to delete a certificate to the SNI list.",
-        "info", "LSLB");
+    &zenlog("Success, trying to delete a certificate to the SNI list.", "info", "LSLB");
     &httpResponse({ code => 200, body => $body });
 }
 

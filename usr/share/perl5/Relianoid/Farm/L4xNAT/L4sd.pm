@@ -37,8 +37,7 @@ Returns:
 =cut
 
 sub runL4sdDaemon {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $l4sdbin = &getGlobalConfiguration('l4sd');
     my $pidfile = &getGlobalConfiguration('l4sdpid');
@@ -63,8 +62,7 @@ Returns:
 =cut
 
 sub sendL4sdSignal {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $output  = -1;
     my $pidfile = &getGlobalConfiguration('l4sdpid');
@@ -95,8 +93,7 @@ Returns:
 =cut
 
 sub getL4sdType {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $farm_name = shift;
     my $output    = "";
@@ -129,8 +126,7 @@ Returns:
 =cut
 
 sub setL4sdType {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $farm_name = shift;
     my $type      = shift;

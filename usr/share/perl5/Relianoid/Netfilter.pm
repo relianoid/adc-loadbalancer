@@ -32,8 +32,7 @@ if (eval { require Relianoid::ELoad; }) {
 #
 sub loadNfModule    # ($modname,$params)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($modname, $params) = @_;
 
     my $status  = 0;
@@ -54,8 +53,7 @@ sub loadNfModule    # ($modname,$params)
 #
 sub removeNfModule    # ($modname)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $modname = shift;
 
     my $modprobe         = &getGlobalConfiguration('modprobe');
@@ -69,8 +67,7 @@ sub removeNfModule    # ($modname)
 #
 sub getNewMark    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm_name = shift;
 
     require Tie::File;
@@ -104,8 +101,7 @@ sub getNewMark    # ($farm_name)
 #
 sub delMarks    # ($farm_name,$mark)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $mark) = @_;
 
     require Relianoid::Lock;
@@ -132,8 +128,7 @@ sub delMarks    # ($farm_name,$mark)
 #
 sub renameMarks    # ( $farm_name, $newfname )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $farm_name = shift;
     my $newfname  = shift;

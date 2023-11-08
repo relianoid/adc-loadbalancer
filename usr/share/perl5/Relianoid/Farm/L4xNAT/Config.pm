@@ -66,8 +66,7 @@ Returns:
 =cut
 
 sub getL4FarmParam {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($param, $farm_name) = @_;
 
     require Relianoid::Farm::Core;
@@ -129,8 +128,7 @@ Returns:
 =cut
 
 sub setL4FarmParam {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($param, $value, $farm_name) = @_;
 
     require Relianoid::Farm::Core;
@@ -191,8 +189,7 @@ sub setL4FarmParam {
         $prev_config = &getFarmStruct($farm_name);
         require Relianoid::Net::Validate;
         my $vip_family = "ipv" . &ipversion($value);
-        $parameters =
-          qq(, "virtual-addr" : "$value", "family" : "$vip_family" );
+        $parameters = qq(, "virtual-addr" : "$value", "family" : "$vip_family" );
     }
     elsif ($param eq "vipp" or $param eq "vport") {
         $value =~ s/\:/\-/g;
@@ -315,7 +312,7 @@ sub setL4FarmParam {
         $value      = "l4:$farm_name ";
         $parameters = qq(, "$srvparam" : "$value");
 
-# TODO: put a warning msg when farm name is longer than nftables reserved log size
+        # TODO: put a warning msg when farm name is longer than nftables reserved log size
     }
     else {
         return -1;
@@ -327,9 +324,9 @@ sub setL4FarmParam {
         {
             farm          => $farm_name,
             farm_new_name => $farm_req,
-            file => ($param ne 'status') ? "$configdir/$farm_filename" : undef,
-            method => "PUT",
-            body   => qq({"farms" : [ { "name" : "$farm_name"$parameters } ] })
+            file          => ($param ne 'status') ? "$configdir/$farm_filename" : undef,
+            method        => "PUT",
+            body          => qq({"farms" : [ { "name" : "$farm_name"$parameters } ] })
         }
     );
 
@@ -364,8 +361,7 @@ Returns:
 sub _getL4ParseFarmConfig {
     {
         no warnings;
-        &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-            "debug", "PROFILING");
+        &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
         use warnings;
     }
     my ($param, $value, $config) = @_;
@@ -538,8 +534,7 @@ Returns:
 =cut
 
 sub modifyLogsParam {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farmname  = shift;
     my $logsValue = shift;
 
@@ -574,8 +569,7 @@ Returns:
 =cut
 
 sub getL4FarmStatus {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm_name = shift;
 
     require Relianoid::Farm::L4xNAT::Action;
@@ -609,8 +603,7 @@ Returns:
 =cut
 
 sub getL4FarmStruct {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my %farm;
 
     $farm{name} = shift;
@@ -647,8 +640,8 @@ sub getL4FarmStruct {
     $farm{proto}      = &getL4ProtocolTransportLayer($farm{vproto});
     $farm{bootstatus} = &_getL4ParseFarmConfig('bootstatus', undef, $config);
     $farm{status}     = &getL4FarmStatus($farm{name});
-    $farm{logs}    = &_getL4ParseFarmConfig('logs', undef, $config) if ($eload);
-    $farm{servers} = &_getL4FarmParseServers($config);
+    $farm{logs}       = &_getL4ParseFarmConfig('logs', undef, $config) if ($eload);
+    $farm{servers}    = &_getL4FarmParseServers($config);
 
     if ($farm{lbalg} eq 'weight') {
         &getL4BackendsWeightProbability(\%farm);
@@ -671,8 +664,7 @@ Returns:
 =cut
 
 sub getL4FarmsPorts {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $protocol = shift;
 
     my $port_list       = "";
@@ -719,8 +711,7 @@ Returns:
 =cut
 
 sub loadL4Modules {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $protocol = shift;
 
     require Relianoid::Netfilter;
@@ -752,8 +743,7 @@ Returns:
 =cut
 
 sub unloadL4Modules {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $protocol = shift;
     my $status   = 0;
 
@@ -791,8 +781,7 @@ Returns:
 =cut
 
 sub validL4ExtPort {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_protocol, $ports) = @_;
 
     my $status = 0;
@@ -822,8 +811,7 @@ Returns:
 =cut
 
 sub getFarmPortList {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $fvipp = shift;
 
     my @portlist    = split(',', $fvipp);
@@ -864,8 +852,7 @@ Returns:
 =cut
 
 sub getL4ProtocolTransportLayer {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $vproto = shift;
 
     return
@@ -888,8 +875,7 @@ Returns:
 =cut
 
 sub doL4FarmProbability {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm = shift;
 
     $$farm{prob} = 0;
@@ -917,8 +903,7 @@ Returns:
 =cut
 
 sub doL4FarmRules {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $action        = shift;
     my $farm_name     = shift;
     my $prev_farm_ref = shift;
@@ -952,8 +937,7 @@ Returns:
 =cut
 
 sub writeL4NlbConfigFile {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $nftfile = shift;
     my $cfgfile = shift;
@@ -983,8 +967,7 @@ sub writeL4NlbConfigFile {
             $line =~ s/\n//g;
         }
         print $fo $line
-          if ($line !~
-            /new-rtlimit|rst-rtlimit|tcp-strict|queue|^[\s]{24}.est-connlimit/
+          if ( $line !~ /new-rtlimit|rst-rtlimit|tcp-strict|queue|^[\s]{24}.est-connlimit/
             && $write == 1);
 
         if ($write == 0 && $line =~ /\]/) {
@@ -1020,8 +1003,7 @@ Returns:
 =cut
 
 sub resetL4FarmConntrack {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm_name = shift;
     my $error     = 0;
 

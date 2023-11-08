@@ -32,8 +32,7 @@ if (eval { require Relianoid::ELoad; }) {
 my $ip_bin = &getGlobalConfiguration('ip_bin');
 
 sub getInterfaceConfigFile {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $if_name   = shift;
     my $configdir = &getGlobalConfiguration('configdir');
     return "$configdir/if_${if_name}_conf";
@@ -87,13 +86,11 @@ See Also:
 
 sub getInterfaceConfig    # \%iface ($if_name, $ip_version)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($if_name) = @_;
 
     unless (defined $if_name) {
-        &zenlog('getInterfaceConfig got undefined interface name',
-            'debug2', 'network');
+        &zenlog('getInterfaceConfig got undefined interface name', 'debug2', 'network');
     }
 
     #~ &zenlog( "[CALL] getInterfaceConfig( $if_name )" );
@@ -107,12 +104,10 @@ sub getInterfaceConfig    # \%iface ($if_name, $ip_version)
       if (-f $config_filename);
 
     #Return undef if the file doesn't exists and the iface is not a NIC
-    return undef
-      if (!-f $config_filename and $if_name =~ /\.|\:/);
+    return if (!-f $config_filename and $if_name =~ /\.|\:/);
 
     #Return undef if the file doesn't exists and the iface is a gre Tunnel
-    return undef
-      if (!-f $config_filename and &getInterfaceType($if_name) eq 'gre');
+    return if (!-f $config_filename and &getInterfaceType($if_name) eq 'gre');
 
     require IO::Socket;
     my $socket = IO::Socket::INET->new(Proto => 'udp');
@@ -170,18 +165,11 @@ sub getInterfaceConfig    # \%iface ($if_name, $ip_version)
     if ($eload) {
 
         # complex check to avoid warnings
-        if (
-            (
-                   !exists($iface->{vini})
-                || !defined($iface->{vini})
-                || $iface->{vini} eq ''
-            )
-            && $iface->{addr}
-          )
+        if ((!exists($iface->{vini}) || !defined($iface->{vini}) || $iface->{vini} eq '')
+            && $iface->{addr})
         {
             require Config::Tiny;
-            my $float =
-              Config::Tiny->read(&getGlobalConfiguration('floatfile'));
+            my $float = Config::Tiny->read(&getGlobalConfiguration('floatfile'));
             $iface->{float} = $float->{_}->{ $iface->{name} } // '';
         }
     }
@@ -235,19 +223,17 @@ Returns:
 
 sub getInterfaceConfigParam    # ($if_name, $params_ref)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($if_name, $params_ref) = @_;
     my $config_ref;
 
     my $config_filename = &getInterfaceConfigFile($if_name);
 
     #Return undef if the file doesn't exists and the iface is not a NIC
-    return undef if (!-f $config_filename and $if_name =~ /\.|\:/);
+    return if (!-f $config_filename and $if_name =~ /\.|\:/);
 
     #Return undef if the file doesn't exists and the iface is a gre Tunnel
-    return undef
-      if (!-f $config_filename and &getInterfaceType($if_name) eq 'gre');
+    return if (!-f $config_filename and &getInterfaceType($if_name) eq 'gre');
 
     require Relianoid::Config;
     my $if_config = &getTiny($config_filename);
@@ -284,21 +270,18 @@ See Also:
 
 sub setInterfaceConfig    # $bool ($if_ref)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $if_ref = shift;
     require Config::Tiny;
     my $fileHandle = Config::Tiny->new;
     if (ref $if_ref ne 'HASH') {
-        &zenlog("Input parameter is not a hash reference", "warning",
-            "NETWORK");
+        &zenlog("Input parameter is not a hash reference", "warning", "NETWORK");
         return;
     }
     use Data::Dumper;
     &zenlog("setInterfaceConfig: " . Dumper($if_ref), "debug", "NETWORK")
       if &debug() > 2;
-    my @if_params =
-      ('status', 'name', 'addr', 'mask', 'gateway', 'mac', 'dhcp', 'isolate');
+    my @if_params = ('status', 'name', 'addr', 'mask', 'gateway', 'mac', 'dhcp', 'isolate');
 
     my $configdir       = &getGlobalConfiguration('configdir');
     my $config_filename = "$configdir/if_$$if_ref{ name }_conf";
@@ -340,8 +323,7 @@ Returns:
 =cut
 
 sub cleanInterfaceConfig {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $if_ref    = shift;
     my $configdir = &getGlobalConfiguration('configdir');
     my $file      = "$configdir/if_$$if_ref{name}\_conf";
@@ -392,8 +374,7 @@ See Also:
 
 sub getDevVlanVini    # ($if_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my %if;
     $if{dev} = shift;
 
@@ -426,8 +407,7 @@ See Also:
 =cut
 
 sub getConfigInterfaceList {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($params_ref) = @_;
     my @configured_interfaces;
     my $configdir = &getGlobalConfiguration('configdir');
@@ -476,8 +456,7 @@ See Also:
 
 sub getInterfaceSystemStatus    # ($if_ref)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $if_ref = shift;
 
     my $parent_if_name = &getParentInterfaceName($if_ref->{name});
@@ -552,15 +531,13 @@ Returns:
 
 sub getInterfaceSystemStatusAll    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $ip_bin    = &getGlobalConfiguration('ip_bin');
     my $ip_output = &logAndGet("$ip_bin -o link", "array");
     my $links_ref;
     foreach my $link (@{$ip_output}) {
         if ($link =~
-/^\d+: ([a-zA-Z0-9\-]+(?:\.\d{1,4})?)(?:@[a-zA-Z0-9\-]+)?: <(.+)> .+ state (\w+) /
-          )
+            /^\d+: ([a-zA-Z0-9\-]+(?:\.\d{1,4})?)(?:@[a-zA-Z0-9\-]+)?: <(.+)> .+ state (\w+) /)
         {
             my $interface = $1;
             my $flag      = $2;
@@ -589,7 +566,7 @@ sub getInterfaceSystemStatusAll    # ()
     my $addr_ref;
     foreach my $addr (@{$ip_output}) {
         if ($addr =~
-/^\d+: ([a-zA-Z0-9\-]+)(?:\.\d{1,4})?\s+(inet(?:\d)? (.*) (?:brd .*)?) scope .+ ([a-zA-Z0-9\-]+(?:\.\d{1,4})?:[a-zA-Z0-9\-]+)\\ /
+            /^\d+: ([a-zA-Z0-9\-]+)(?:\.\d{1,4})?\s+(inet(?:\d)? (.*) (?:brd .*)?) scope .+ ([a-zA-Z0-9\-]+(?:\.\d{1,4})?:[a-zA-Z0-9\-]+)\\ /
           )
         {
             my $parent  = $1;
@@ -619,8 +596,7 @@ See Also:
 
 sub getParentInterfaceName    # ($if_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $if_name = shift;
 
     my $if_ref = &getDevVlanVini($if_name);
@@ -668,8 +644,7 @@ See Also:
 =cut
 
 sub getActiveInterfaceList {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my @configured_interfaces = @{ &getConfigInterfaceList() };
 
     # sort list
@@ -700,8 +675,7 @@ sub getActiveInterfaceList {
     # make padding
     for my $iface (@configured_interfaces) {
         my $dev_ip_padded =
-          sprintf("%-${max_dev_length}s -> %-${max_ip_length}s",
-            $$iface{name}, $$iface{addr});
+          sprintf("%-${max_dev_length}s -> %-${max_ip_length}s", $$iface{name}, $$iface{addr});
         $dev_ip_padded =~ s/ +$//;
         $dev_ip_padded =~ s/ /&nbsp;/g;
 
@@ -727,8 +701,7 @@ See Also:
 =cut
 
 sub getSystemInterfaceList {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     use IO::Interface qw(:flags);
 
     my @interfaces;    # output
@@ -837,8 +810,7 @@ See Also:
 
 sub getSystemInterface    # ($if_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $if_ref = {};
     $$if_ref{name} = shift;
 
@@ -910,8 +882,7 @@ See Also:
 #
 # Interface types: nic, virtual, vlan, bond
 sub getInterfaceType {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $if_name = shift;
 
     my $type;
@@ -943,14 +914,13 @@ sub getInterfaceType {
 
     if (!-d "/sys/class/net/$if_name") {
         my $configdir = &getGlobalConfiguration('configdir');
-        my $found =
-          (-f "$configdir/if_${if_name}_conf" && $if_name =~ /^.+\:.+$/);
+        my $found     = (-f "$configdir/if_${if_name}_conf" && $if_name =~ /^.+\:.+$/);
 
         if (!$found) {
             my ($parent_if) = split(':', $if_name);
             my $quoted_if   = quotemeta $if_name;
             my $ip_bin      = &getGlobalConfiguration('ip_bin');
-            my @out = @{ &logAndGet("$ip_bin addr show $parent_if", "array") };
+            my @out         = @{ &logAndGet("$ip_bin addr show $parent_if", "array") };
             $found =
               grep (/inet .+ $quoted_if$/, @out);
         }
@@ -984,22 +954,22 @@ sub getInterfaceType {
             $type = 'bond';
         }
 
-#elsif ( -d "/sys/class/net/$if_name/wireless" || -l "/sys/class/net/$if_name/phy80211" )
-#{
-#	$type = 'wlan';
-#}
-#elsif ( -d "/sys/class/net/$if_name/bridge" )
-#{
-#	$type = 'bridge';
-#}
-#elsif ( -f "/sys/class/net/$if_name/tun_flags" )
-#{
-#	$type = 'tap';
-#}
-#elsif ( -d "/sys/devices/virtual/net/$if_name" )
-#{
-#	$type = 'dummy' if $if_name =~ /^dummy/;
-#}
+        #elsif ( -d "/sys/class/net/$if_name/wireless" || -l "/sys/class/net/$if_name/phy80211" )
+        #{
+        #	$type = 'wlan';
+        #}
+        #elsif ( -d "/sys/class/net/$if_name/bridge" )
+        #{
+        #	$type = 'bridge';
+        #}
+        #elsif ( -f "/sys/class/net/$if_name/tun_flags" )
+        #{
+        #	$type = 'tap';
+        #}
+        #elsif ( -d "/sys/devices/virtual/net/$if_name" )
+        #{
+        #	$type = 'dummy' if $if_name =~ /^dummy/;
+        #}
     }
     elsif ($code == 24) {
         $type = 'nic';    # firewire ;; # IEEE 1394 IPv4 - RFC 2734
@@ -1082,8 +1052,7 @@ See Also:
 =cut
 
 sub getInterfaceTypeList {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $list_type  = shift;
     my $iface_name = shift;
 
@@ -1170,8 +1139,7 @@ See Also:
 # Get vlan or virtual interfaces appended from a interface
 sub getAppendInterfaces    # ( $iface_name, $type )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($if_parent, $type) = @_;
     my @output = ();
 
@@ -1211,8 +1179,7 @@ See Also:
 =cut
 
 sub getInterfaceList {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my @if_list = ();
 
     #Get link interfaces
@@ -1237,8 +1204,7 @@ Returns:
 =cut
 
 sub getVirtualInterfaceNameList {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     require Relianoid::Validate;
 
     opendir(my $conf_dir, &getGlobalConfiguration('configdir'));
@@ -1267,8 +1233,7 @@ Returns:
 =cut
 
 sub getLinkNameList {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $sys_net_dir = &getGlobalConfiguration('sys_net_dir');
 
     # Get link interfaces (nic, bond and vlan)
@@ -1292,8 +1257,7 @@ Returns:
 =cut
 
 sub getInterfaceNameStruct {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $if_type = shift;
 
     my $interfaces_ref;
@@ -1312,9 +1276,7 @@ sub getInterfaceNameStruct {
 
     opendir(my $conf_dir, &getGlobalConfiguration('configdir'));
     foreach my $filename (readdir($conf_dir)) {
-        if ($filename =~
-            /^if_([a-zA-Z0-9\-]+)(?:\.(\d{1,4}))?(?:\:([a-zA-Z0-9\-]+))?_conf$/)
-        {
+        if ($filename =~ /^if_([a-zA-Z0-9\-]+)(?:\.(\d{1,4}))?(?:\:([a-zA-Z0-9\-]+))?_conf$/) {
             my $interface = $1;
             my $tag       = $2;
             my $virtual   = $3;
@@ -1332,16 +1294,12 @@ sub getInterfaceNameStruct {
                       if ($if_type eq "virtual");
                 }
                 elsif (defined $tag) {
-                    $interfaces_ref->{$type}->{$interface}->{vlan}->{$tag}
-                      ->{virtual}->{$virtual} = undef;
+                    $interfaces_ref->{$type}->{$interface}->{vlan}->{$tag}->{virtual}->{$virtual} =
+                      undef;
                 }
                 else {
-                    if (
-                        not exists $interfaces_ref->{$type}->{$interface}
-                        ->{virtual}->{$virtual})
-                    {
-                        $interfaces_ref->{$type}->{$interface}->{virtual}
-                          ->{$virtual} = undef;
+                    if (not exists $interfaces_ref->{$type}->{$interface}->{virtual}->{$virtual}) {
+                        $interfaces_ref->{$type}->{$interface}->{virtual}->{$virtual} = undef;
                     }
                 }
             }
@@ -1352,13 +1310,8 @@ sub getInterfaceNameStruct {
                           if ($if_type eq "vlan");
                         next;
                     }
-                    elsif (
-                        not
-                        exists $interfaces_ref->{$type}->{$interface}->{vlan}
-                        ->{$tag})
-                    {
-                        $interfaces_ref->{$type}->{$interface}->{vlan}->{$tag}
-                          = undef;
+                    elsif (not exists $interfaces_ref->{$type}->{$interface}->{vlan}->{$tag}) {
+                        $interfaces_ref->{$type}->{$interface}->{vlan}->{$tag} = undef;
                     }
                 }
                 else {
@@ -1393,8 +1346,7 @@ Returns:
 =cut
 
 sub getInterfaceByIp {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $ip = shift;
 
     require Relianoid::Net::Validate;
@@ -1441,8 +1393,7 @@ Returns:
 =cut
 
 sub getIpAddressExists {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $ip = shift;
 
     require Relianoid::Net::Validate;
@@ -1488,8 +1439,7 @@ Returns:
 =cut
 
 sub getIpAddressList {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my @out = ();
 
     my $params = ["addr"];
@@ -1523,8 +1473,7 @@ See Also:
 =cut
 
 sub getInterfaceChild {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $if_name = shift;
 
     my @output      = ();
@@ -1535,8 +1484,7 @@ sub getInterfaceChild {
     if ($if_type eq 'virtual') {
         if ($eload) {
             require Config::Tiny;
-            my $float =
-              Config::Tiny->read(&getGlobalConfiguration('floatfile'));
+            my $float = Config::Tiny->read(&getGlobalConfiguration('floatfile'));
 
             foreach my $iface (keys %{ $float->{_} }) {
                 push @output, $iface if ($float->{_}->{$iface} eq $if_name);
@@ -1547,16 +1495,14 @@ sub getInterfaceChild {
     # the other type of interfaces can have virtual interfaces as child
     # vlan, bond and nic
     else {
-        push @output,
-          grep (/^$if_name:$virtual_tag$/, &getVirtualInterfaceNameList());
+        push @output, grep (/^$if_name:$virtual_tag$/, &getVirtualInterfaceNameList());
     }
 
     return @output;
 }
 
 sub getAddressNetwork {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($addr, $mask, $ip_v) = @_;
 
     require NetAddr::IP;
@@ -1579,8 +1525,7 @@ sub getAddressNetwork {
 }
 
 sub get_interface_list_struct {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     require Relianoid::User;
 
     my @output_list;
@@ -1662,10 +1607,7 @@ sub get_interface_list_struct {
             $if_conf->{is_slave} =
               (grep { $$if_ref{name} eq $_ } @bond_slaves) ? 'true' : 'false';
 
-            if (
-                exists $interfaces_ref->{ $if_ref->{type} }
-                ->{ $if_ref->{name} }->{vlan})
-            {
+            if (exists $interfaces_ref->{ $if_ref->{type} }->{ $if_ref->{name} }->{vlan}) {
                 $if_conf->{has_vlan} = 'true';
             }
             $if_conf->{has_vlan} = 'false' unless $if_conf->{has_vlan};
@@ -1690,8 +1632,7 @@ sub get_interface_list_struct {
 }
 
 sub get_nic_struct {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $nic = shift;
 
     my $interface;
@@ -1732,8 +1673,7 @@ sub get_nic_struct {
 }
 
 sub get_nic_list_struct {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my @output_list;
 
     my $interface_ref = &getInterfaceNameStruct();
@@ -1793,8 +1733,7 @@ sub get_nic_list_struct {
 }
 
 sub get_vlan_struct {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($vlan) = @_;
 
     my @vlan_list = &getInterfaceTypeList('vlan', $vlan);
@@ -1834,8 +1773,7 @@ sub get_vlan_struct {
 }
 
 sub get_vlan_list_struct {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my @output_list;
     my $cluster_if;
@@ -1889,8 +1827,7 @@ sub get_vlan_list_struct {
 }
 
 sub get_virtual_struct {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($virtual) = @_;
 
     my @virtual_list = &getInterfaceTypeList('virtual', $virtual);
@@ -1929,8 +1866,7 @@ sub get_virtual_struct {
 }
 
 sub get_virtual_list_struct {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my @output_list = ();
     my $all_status  = &getInterfaceSystemStatusAll();
@@ -1985,8 +1921,7 @@ Returns:
 
 sub setVlan    # if_ref
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $if_ref = shift;
     my $params = shift;
     my $err    = 0;
@@ -2093,8 +2028,7 @@ sub setVlan    # if_ref
 }
 
 sub createVlan {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $if_ref = shift;
 
     require Relianoid::Net::Core;
@@ -2113,12 +2047,10 @@ sub createVlan {
     }
 
     if ($err) {
-        &zenlog("The vlan $if_ref->{name} could not be created",
-            "error", "NETWORK");
+        &zenlog("The vlan $if_ref->{name} could not be created", "error", "NETWORK");
     }
     else {
-        &zenlog("The vlan $if_ref->{name} was created properly",
-            "info", "NETWORK");
+        &zenlog("The vlan $if_ref->{name} was created properly", "info", "NETWORK");
     }
 
     return $err;

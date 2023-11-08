@@ -58,8 +58,7 @@ Returns:
 =cut
 
 sub setL4FarmServer {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $ids, $ip, $port, $weight, $priority, $max_conns) = @_;
 
     require Relianoid::Farm::L4xNAT::Config;
@@ -174,7 +173,7 @@ sub setL4FarmServer {
             file   => "$configdir/$farm_filename",
             method => "PUT",
             body   =>
-qq({"farms" : [ { "name" : "$farm_name", "backends" : [ { "name" : "bck$ids"$json } ] } ] })
+              qq({"farms" : [ { "name" : "$farm_name", "backends" : [ { "name" : "bck$ids"$json } ] } ] })
         }
     );
 
@@ -206,8 +205,7 @@ Returns:
 =cut
 
 sub runL4FarmServerDelete {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($ids, $farm_name) = @_;
 
     require Relianoid::Farm::L4xNAT::Config;
@@ -264,16 +262,13 @@ Returns:
 =cut
 
 sub setL4FarmBackendsSessionsRemove {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $backend_ref, $farm_mode) = @_;
 
     my $output = -1;
     if (not defined $backend_ref) {
-        &zenlog(
-"Warning removing sessions for backend id farm '$farm_name': Backend id not found",
-            "warning", "lslb"
-        );
+        &zenlog("Warning removing sessions for backend id farm '$farm_name': Backend id not found",
+            "warning", "lslb");
         return $output;
     }
 
@@ -298,11 +293,10 @@ sub setL4FarmBackendsSessionsRemove {
         $value_regex = qr/0x0*(\d+)/;
     }
 
-    my $nft_bin  = &getGlobalConfiguration('nft_bin');
-    my $map_name = "persist-$farm_name";
-    my @persistmap =
-      @{ &logAndGet("$nft_bin list map $table nftlb $map_name", "array") };
-    my $data = 0;
+    my $nft_bin    = &getGlobalConfiguration('nft_bin');
+    my $map_name   = "persist-$farm_name";
+    my @persistmap = @{ &logAndGet("$nft_bin list map $table nftlb $map_name", "array") };
+    my $data       = 0;
 
     my $sessions;
     my $n_sessions_deleted;
@@ -311,8 +305,7 @@ sub setL4FarmBackendsSessionsRemove {
         $data = 1 if ($line =~ /elements = /);
         next      if (!$data);
 
-        my ($key, $value) =
-          ($line =~ /,?\s+([\w\.\s\:]+) expires \w+ : $value_regex[\s,]/);
+        my ($key, $value) = ($line =~ /,?\s+([\w\.\s\:]+) expires \w+ : $value_regex[\s,]/);
         if ($value eq $value_check) {
             $sessions .= " $key,";
             $n_sessions_deleted++;
@@ -323,19 +316,18 @@ sub setL4FarmBackendsSessionsRemove {
 
     if (defined $sessions) {
         chop $sessions;
-        my $error = &logAndRun(
-"/usr/local/sbin/nft delete element $table nftlb $map_name { $sessions }"
-        );
+        my $error =
+          &logAndRun("/usr/local/sbin/nft delete element $table nftlb $map_name { $sessions }");
         if ($error) {
             &zenlog(
-"Error removing '$n_sessions_deleted' sessions for backend id '$backend_ref->{ id }' in farm '$farm_name'",
+                "Error removing '$n_sessions_deleted' sessions for backend id '$backend_ref->{ id }' in farm '$farm_name'",
                 "error", "lslb"
             );
             $output = 1;
         }
         else {
             &zenlog(
-"Removing '$n_sessions_deleted' sessions for backend id '$backend_ref->{ id }' in farm '$farm_name'",
+                "Removing '$n_sessions_deleted' sessions for backend id '$backend_ref->{ id }' in farm '$farm_name'",
                 "info", "lslb"
             );
             $output = 0;
@@ -370,8 +362,7 @@ Returns:
 =cut
 
 sub setL4FarmBackendStatus {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $backend, $status, $cutmode) = @_;
 
     require Relianoid::Farm::L4xNAT::Config;
@@ -388,8 +379,8 @@ sub setL4FarmBackendStatus {
     $status = 'off'  if ($status eq "maintenance");
     $status = 'down' if ($status eq "fgDOWN");
 
-#the following actions are only needed if a high priority backend turns up after being down/off and
-#a lower priority backend(s) turned active during the time the other backends was down/off
+    #the following actions are only needed if a high priority backend turns up after being down/off and
+    #a lower priority backend(s) turned active during the time the other backends was down/off
     if ($status eq 'up' and @{ $$farm{servers} } > 1) {
         my $i = 0;
         my $bk_index;
@@ -420,28 +411,26 @@ sub setL4FarmBackendStatus {
             file   => "$configdir/$farm_filename",
             method => "PUT",
             body   =>
-qq({"farms" : [ { "name" : "$farm_name", "backends" : [ { "name" : "bck$backend", "state" : "$status" } ] } ] })
+              qq({"farms" : [ { "name" : "$farm_name", "backends" : [ { "name" : "bck$backend", "state" : "$status" } ] } ] })
         }
     );
 
     if ($output) {
-        $msg =
-"Status of backend $backend in farm '$farm_name' was not changed to $status";
+        $msg = "Status of backend $backend in farm '$farm_name' was not changed to $status";
         &zenlog($msg, "error", "LSLB");
         $error_ref->{code} = 1;
         $error_ref->{desc} = $msg;
         return $error_ref;
     }
     else {
-        $msg =
-"Status of backend $backend in farm '$farm_name' was changed to $status";
+        $msg = "Status of backend $backend in farm '$farm_name' was changed to $status";
         &zenlog($msg, "info", "LSLB");
         $error_ref->{code} = 0;
         $error_ref->{desc} = $msg;
     }
 
-#compare priority status of all backends and delete sessions and connections of backends
-#that have had their priority status changed from true to false.
+    #compare priority status of all backends and delete sessions and connections of backends
+    #that have had their priority status changed from true to false.
     my $i = 0;
     foreach my $bk (@bks_updated_prio_status) {
         if ($bk ne $bks_prio_status[$i]) {
@@ -450,8 +439,7 @@ qq({"farms" : [ { "name" : "$farm_name", "backends" : [ { "name" : "bck$backend"
 
                     # delete backend session
                     $output =
-                      &setL4FarmBackendsSessionsRemove($farm_name,
-                        @{ $farm->{servers} }[$i],
+                      &setL4FarmBackendsSessionsRemove($farm_name, @{ $farm->{servers} }[$i],
                         $farm->{mode});
                     if ($output) {
                         $error_ref->{code} = 2;
@@ -462,29 +450,27 @@ qq({"farms" : [ { "name" : "$farm_name", "backends" : [ { "name" : "bck$backend"
                 $output =
                   &resetL4FarmBackendConntrackMark(@{ $farm->{servers} }[$i]);
                 if ($output) {
-                    $msg =
-"Connections for unused backends in farm '$farm_name' were not deleted";
+                    $msg = "Connections for unused backends in farm '$farm_name' were not deleted";
                     $error_ref->{code} = 3;
                     $error_ref->{desc} = $msg;
                 }
 
                 if ($farm->{persist} ne '') {
 
-              # delete backend session again in case new connections are created
+                    # delete backend session again in case new connections are created
                     $output =
-                      &setL4FarmBackendsSessionsRemove($farm_name,
-                        @{ $farm->{servers} }[$i],
+                      &setL4FarmBackendsSessionsRemove($farm_name, @{ $farm->{servers} }[$i],
                         $farm->{mode});
                     if ($output) {
                         if ($error_ref->{code} == 3) {
                             $msg =
-"Connections and sessions of unused backends in farm '$farm_name' were not deleted";
+                              "Connections and sessions of unused backends in farm '$farm_name' were not deleted";
                             $error_ref->{code} = 4;
                             $error_ref->{desc} = $msg;
                         }
                         else {
                             $msg =
-"Sessions for unused backends in farm '$farm_name' were not deleted";
+                              "Sessions for unused backends in farm '$farm_name' were not deleted";
                             $error_ref->{code} = 2;
                             $error_ref->{desc} = $msg;
                         }
@@ -512,9 +498,7 @@ qq({"farms" : [ { "name" : "$farm_name", "backends" : [ { "name" : "bck$backend"
         if ($farm->{persist} ne '') {
 
             #delete backend session
-            $output =
-              &setL4FarmBackendsSessionsRemove($farm_name, $server,
-                $farm->{mode});
+            $output = &setL4FarmBackendsSessionsRemove($farm_name, $server, $farm->{mode});
             if ($output) {
                 $error_ref->{code} = 2;
             }
@@ -524,7 +508,7 @@ qq({"farms" : [ { "name" : "$farm_name", "backends" : [ { "name" : "bck$backend"
         $output = &resetL4FarmBackendConntrackMark($server);
         if ($output) {
             $msg =
-"Connections for backend $server->{ ip }:$server->{ port } in farm '$farm_name' were not deleted";
+              "Connections for backend $server->{ ip }:$server->{ port } in farm '$farm_name' were not deleted";
             $error_ref->{code} = 3;
             $error_ref->{desc} = $msg;
         }
@@ -532,19 +516,17 @@ qq({"farms" : [ { "name" : "$farm_name", "backends" : [ { "name" : "bck$backend"
         if ($farm->{persist} ne '') {
 
             # delete backend session again in case new connections are created
-            $output =
-              &setL4FarmBackendsSessionsRemove($farm_name, $server,
-                $farm->{mode});
+            $output = &setL4FarmBackendsSessionsRemove($farm_name, $server, $farm->{mode});
             if ($output) {
                 if ($error_ref->{code} == 3) {
                     $msg =
-"Error deleting connections and sessions on backend $server->{ ip }:$server->{ port } in farm '$farm_name'";
+                      "Error deleting connections and sessions on backend $server->{ ip }:$server->{ port } in farm '$farm_name'";
                     $error_ref->{code} = 4;
                     $error_ref->{desc} = $msg;
                 }
                 else {
                     $msg =
-"Sessions for backend $server->{ ip }:$server->{ port } in farm '$farm_name' were not deleted";
+                      "Sessions for backend $server->{ ip }:$server->{ port } in farm '$farm_name' were not deleted";
                     $error_ref->{code} = 2;
                     $error_ref->{desc} = $msg;
                 }
@@ -586,8 +568,7 @@ Returns:
 =cut
 
 sub getL4FarmServers {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm_name = shift;
 
     my $farm_filename = &getFarmFile($farm_name);
@@ -614,8 +595,7 @@ Returns:
 =cut
 
 sub _getL4FarmParseServers {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $config = shift;
     my $stage  = 0;
     my $server;
@@ -711,7 +691,7 @@ sub _getL4FarmParseServers {
               if ($server->{status} eq "config_error");
             $server->{status} = "maintenance" if ($server->{status} eq "off");
             $server->{status} = "fgDOWN"      if ($server->{status} eq "down");
-            $server->{status} = "up" if ($server->{status} eq "available");
+            $server->{status} = "up"          if ($server->{status} eq "available");
         }
     }
 
@@ -732,8 +712,7 @@ Returns:
 =cut
 
 sub getL4ServerWithLowestPriority {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm = shift;
 
     my $prio_server;
@@ -765,8 +744,7 @@ Returns:
 =cut
 
 sub getL4BackendsWeightProbability {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm = shift;
 
     my $weight_sum = 0;
@@ -800,8 +778,7 @@ Returns:
 =cut
 
 sub resetL4FarmBackendConntrackMark {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $server = shift;
 
     my $conntrack = &getGlobalConfiguration('conntrack');
@@ -830,8 +807,7 @@ sub resetL4FarmBackendConntrackMark {
 
     if (&debug()) {
         if ($return_code) {
-            &zenlog(
-                "Connection tracking for " . $server->{ip} . " not removed.");
+            &zenlog("Connection tracking for " . $server->{ip} . " not removed.");
         }
         else {
             &zenlog("Connection tracking for " . $server->{ip} . " removed.");
@@ -855,8 +831,7 @@ Returns:
 =cut
 
 sub getL4FarmBackendAvailableID {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farmname = shift;
 
     require Relianoid::Farm::Backend;
@@ -887,8 +862,7 @@ Returns:
 =cut
 
 sub getL4ServerByMark {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $servers_ref = shift;
     my $mark        = shift;
 
@@ -918,8 +892,7 @@ Returns:
 
 sub getL4FarmPriorities    # ( $farmname )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farmname) = shift;
     my @priorities;
     my $backends = &getL4FarmServers($farmname);

@@ -31,8 +31,7 @@ if (eval { require Relianoid::ELoad; }) {
 # GET /farms/<farmname> Request info of a http|https Farm
 sub farms_name_http    # ( $farmname )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farmname = shift;
 
     # Get farm reference
@@ -63,8 +62,7 @@ sub farms_name_http    # ( $farmname )
 
 # GET /farms/<farmname>/summary
 sub farms_name_http_summary {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farmname = shift;
 
     # Get farm reference

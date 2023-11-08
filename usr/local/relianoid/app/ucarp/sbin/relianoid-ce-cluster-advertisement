@@ -1,0 +1,6 @@
+#!/usr/bin/bash
+
+echo "Executing RELIANOID Cluster ADVERTISEMENT..."
+
+# execute arping in all IPs/Interfaces now
+

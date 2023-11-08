@@ -32,8 +32,7 @@ my $CSR_KEY_SIZE = 2048;
 # GET /certificates
 sub certificates    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     require Relianoid::Certificate;
 
     my $desc         = "List certificates";
@@ -56,8 +55,7 @@ sub certificates    # ()
 # GET /certificates/CERTIFICATE/info
 sub get_certificate_info    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $cert_filename = shift;
 
     require Relianoid::Certificate;
@@ -85,8 +83,7 @@ sub get_certificate_info    # ()
 # GET /certificates/CERTIFICATE
 sub download_certificate    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $cert_filename = shift;
 
     my $desc      = "Download certificate";
@@ -108,8 +105,7 @@ sub download_certificate    # ()
 # DELETE /certificates/CERTIFICATE
 sub delete_certificate    # ( $cert_filename )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $cert_filename = shift;
 
     require Relianoid::Certificate;
@@ -140,8 +136,7 @@ sub delete_certificate    # ( $cert_filename )
         );
 
         if ($status == 0) {
-            my $msg =
-              "File can't be deleted because it's in use by HTTPS server";
+            my $msg = "File can't be deleted because it's in use by HTTPS server";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
     }
@@ -197,8 +192,7 @@ sub delete_certificate    # ( $cert_filename )
 
 # POST /certificates (Create CSR)
 sub create_csr {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
 
     require Relianoid::Certificate;
@@ -220,11 +214,10 @@ sub create_csr {
       if ($error_msg);
 
     my $error = &createCSR(
-        $json_obj->{name},     $json_obj->{fqdn},
-        $json_obj->{country},  $json_obj->{state},
-        $json_obj->{locality}, $json_obj->{organization},
-        $json_obj->{division}, $json_obj->{mail},
-        $CSR_KEY_SIZE,         ""
+        $json_obj->{name},     $json_obj->{fqdn},     $json_obj->{country},
+        $json_obj->{state},    $json_obj->{locality}, $json_obj->{organization},
+        $json_obj->{division}, $json_obj->{mail},     $CSR_KEY_SIZE,
+        ""
     );
 
     if ($error) {
@@ -245,8 +238,7 @@ sub create_csr {
 # POST /certificates/CERTIFICATE (Upload PEM)
 sub upload_certificate    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $upload_data = shift;
     my $filename    = shift;
 
@@ -284,8 +276,7 @@ sub upload_certificate    # ()
 # GET /ciphers
 sub ciphers_available    # ( $json_obj, $farmname )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $desc = "Get the ciphers available";
 
     my @out = (
@@ -315,8 +306,7 @@ sub ciphers_available    # ( $json_obj, $farmname )
 # POST /farms/FARM/certificates (Add certificate to farm)
 sub add_farm_certificate    # ( $json_obj, $farmname )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $farmname = shift;
 
@@ -385,7 +375,7 @@ sub add_farm_certificate    # ( $json_obj, $farmname )
 
     if ($status) {
         my $msg =
-"It's not possible to add the certificate with name $json_obj->{file} for the $farmname farm";
+          "It's not possible to add the certificate with name $json_obj->{file} for the $farmname farm";
 
         &zenlog("It's not possible to add the certificate.", "error", "LSLB");
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
@@ -395,7 +385,7 @@ sub add_farm_certificate    # ( $json_obj, $farmname )
     &zenlog("Success trying to add a certificate to the farm.", "info", "LSLB");
 
     my $message =
-"The certificate $json_obj->{file} has been added to the farm $farmname, you need restart the farm to apply";
+      "The certificate $json_obj->{file} has been added to the farm $farmname, you need restart the farm to apply";
 
     my $body = {
         description => $desc,
@@ -413,8 +403,7 @@ sub add_farm_certificate    # ( $json_obj, $farmname )
             require Relianoid::Farm::HTTP::Config;
             my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
             if ($config_error ne "") {
-                $body->{warning} =
-                  "Farm '$farmname' config error: $config_error";
+                $body->{warning} = "Farm '$farmname' config error: $config_error";
             }
             else {
                 &runFarmReload($farmname);
@@ -433,8 +422,7 @@ sub add_farm_certificate    # ( $json_obj, $farmname )
 # DELETE /farms/FARM/certificates/CERTIFICATE
 sub delete_farm_certificate    # ( $farmname, $certfilename )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farmname     = shift;
     my $certfilename = shift;
 
@@ -475,13 +463,13 @@ sub delete_farm_certificate    # ( $farmname, $certfilename )
 
     if (@certSNI == 1 or ($number == @certSNI)) {
         my $msg =
-"The certificate '$certfilename' could not be deleted, the farm needs one certificate at least.";
+          "The certificate '$certfilename' could not be deleted, the farm needs one certificate at least.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
     my $status;
 
-# This is a BUGFIX: delete the certificate all times that it appears in config file
+    # This is a BUGFIX: delete the certificate all times that it appears in config file
     for (my $it = 0 ; $it < $number ; $it++) {
         $status = &eload(
             module => 'Relianoid::Farm::HTTP::HTTPS::Ext',
@@ -493,23 +481,20 @@ sub delete_farm_certificate    # ( $farmname, $certfilename )
 
     # check if the certificate could not be removed
     if ($status == -1) {
-        &zenlog("It's not possible to delete the certificate.", "error",
-            "LSLB");
+        &zenlog("It's not possible to delete the certificate.", "error", "LSLB");
 
         my $msg =
-"It isn't possible to delete the selected certificate $certfilename from the SNI list";
+          "It isn't possible to delete the selected certificate $certfilename from the SNI list";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-# check if removing the certificate would leave the SNI list empty, not supported
+    # check if removing the certificate would leave the SNI list empty, not supported
     if ($status == 1) {
-        &zenlog(
-"It's not possible to delete all certificates, at least one is required for HTTPS.",
-            "error", "LSLB"
-        );
+        &zenlog("It's not possible to delete all certificates, at least one is required for HTTPS.",
+            "error", "LSLB");
 
         my $msg =
-"It isn't possible to delete all certificates, at least one is required for HTTPS profiles";
+          "It isn't possible to delete all certificates, at least one is required for HTTPS profiles";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
@@ -531,8 +516,7 @@ sub delete_farm_certificate    # ( $farmname, $certfilename )
             require Relianoid::Farm::HTTP::Config;
             my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
             if ($config_error ne "") {
-                $body->{warning} =
-                  "Farm '$farmname' config error: $config_error";
+                $body->{warning} = "Farm '$farmname' config error: $config_error";
             }
             else {
                 &runFarmReload($farmname);
@@ -545,16 +529,14 @@ sub delete_farm_certificate    # ( $farmname, $certfilename )
         }
     }
 
-    &zenlog("Success trying to delete a certificate to the SNI list.",
-        "info", "LSLB");
+    &zenlog("Success trying to delete a certificate to the SNI list.", "info", "LSLB");
     &httpResponse({ code => 200, body => $body });
 }
 
 # POST /certificates/pem (Create PEM)
 sub create_certificate    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $desc     = "Create certificate";
 
@@ -574,10 +556,8 @@ sub create_certificate    # ()
     }
 
     require Relianoid::Certificate;
-    my $error = &createPEM(
-        $json_obj->{name}, $json_obj->{key},
-        $json_obj->{ca},   $json_obj->{intermediates}
-    );
+    my $error =
+      &createPEM($json_obj->{name}, $json_obj->{key}, $json_obj->{ca}, $json_obj->{intermediates});
 
     if ($error->{code}) {
         &httpErrorResponse(code => 400, desc => $desc, msg => $error->{desc});

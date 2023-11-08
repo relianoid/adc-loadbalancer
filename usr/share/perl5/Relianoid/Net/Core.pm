@@ -49,8 +49,7 @@ See Also:
 # create network interface
 sub createIf    # ($if_ref)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $if_ref = shift;
 
     my $status = 1;
@@ -59,7 +58,7 @@ sub createIf    # ($if_ref)
         &zenlog("Creating vlan $$if_ref{name}", "info", "NETWORK");
 
         my $ip_cmd =
-"$ip_bin link add link $$if_ref{dev} name $$if_ref{name} type vlan id $$if_ref{vlan}";
+          "$ip_bin link add link $$if_ref{dev} name $$if_ref{name} type vlan id $$if_ref{vlan}";
         $status = &logAndRun($ip_cmd);
     }
 
@@ -85,8 +84,7 @@ See Also:
 # up network interface
 sub upIf    # ($if_ref, $writeconf)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $if_ref    = shift;
     my $writeconf = shift;
 
@@ -101,20 +99,17 @@ sub upIf    # ($if_ref, $writeconf)
     # not check virtual interfaces
     if ($if_ref->{type} ne "virtual") {
 
-#check if link is up after ip link up; checks /sys/class/net/$$if_ref{name}/operstate
-        my $cat = &getGlobalConfiguration('cat_bin');
-        my $status_if =
-          &logAndGet("$cat /sys/class/net/$$if_ref{name}/operstate");
-        &zenlog("Link status for $$if_ref{name} is $status_if",
-            "info", "NETWORK");
+        #check if link is up after ip link up; checks /sys/class/net/$$if_ref{name}/operstate
+        my $cat       = &getGlobalConfiguration('cat_bin');
+        my $status_if = &logAndGet("$cat /sys/class/net/$$if_ref{name}/operstate");
+        &zenlog("Link status for $$if_ref{name} is $status_if", "info", "NETWORK");
         if ($status_if =~ /down/) {
             &zenlog("Waiting link up for $$if_ref{name}", "info", "NETWORK");
             use Time::HiRes qw(usleep);
             my $max_retry = 50;
             my $retry     = 0;
             while ($status_if =~ /down/ and $retry < $max_retry) {
-                $status_if =
-                  &logAndGet("$cat /sys/class/net/$$if_ref{name}/operstate");
+                $status_if = &logAndGet("$cat /sys/class/net/$$if_ref{name}/operstate");
                 if ($status_if !~ /down/) {
                     &zenlog("Link up for $$if_ref{name}", "info", "NETWORK");
                     last;
@@ -176,14 +171,12 @@ See Also:
 # down network interface in system and configuration file
 sub downIf    # ($if_ref, $writeconf)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $if_ref    = shift;
     my $writeconf = shift;
     my $status;
     if (ref $if_ref ne 'HASH') {
-        &zenlog("Wrong argument putting down the interface", "error",
-            "NETWORK");
+        &zenlog("Wrong argument putting down the interface", "error", "NETWORK");
         return -1;
     }
 
@@ -206,8 +199,7 @@ sub downIf    # ($if_ref, $writeconf)
     else {
         my ($routed_iface) = split(":", $$if_ref{name});
 
-        $ip_cmd =
-          "$ip_bin addr del $$if_ref{addr}/$$if_ref{mask} dev $routed_iface";
+        $ip_cmd = "$ip_bin addr del $$if_ref{addr}/$$if_ref{mask} dev $routed_iface";
 
         &eload(
             module => 'Relianoid::Net::Routing',
@@ -266,8 +258,7 @@ See Also:
 # stop network interface
 sub stopIf    # ($if_ref)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $if_ref = shift;
 
     &zenlog("Stopping interface $$if_ref{ name }", "info", "NETWORK");
@@ -316,8 +307,7 @@ sub stopIf    # ($if_ref)
         if ($ip =~ /\./) {
             use Net::IPv4Addr qw(ipv4_network);
             my (undef, $mask) = ipv4_network("$ip / $$if_ref{mask}");
-            my $cmd =
-              "$ip_bin addr del $ip/$mask brd + dev $ifphysic[0] label $if";
+            my $cmd = "$ip_bin addr del $ip/$mask brd + dev $ifphysic[0] label $if";
 
             &logAndRun("$cmd");
 
@@ -350,8 +340,7 @@ See Also:
 # delete network interface configuration and from the system
 sub delIf    # ($if_ref)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($if_ref) = @_;
 
     my $status;
@@ -386,8 +375,7 @@ sub delIf    # ($if_ref)
             if ($if_ref->{dhcp} ne 'true') {
 
                 # If $if is a Interface, delete that IP
-                $ip_cmd =
-"$ip_bin addr del $$if_ref{addr}/$$if_ref{mask} dev $$if_ref{name}";
+                $ip_cmd = "$ip_bin addr del $$if_ref{addr}/$$if_ref{mask} dev $$if_ref{name}";
                 $status = &logAndRun($ip_cmd)
                   if (length $if_ref->{addr} && length $if_ref->{mask});
             }
@@ -470,8 +458,7 @@ See Also:
 # Execute command line to delete an IP from an interface
 sub delIp    # 	($if, $ip ,$netmask)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($if, $ip, $netmask) = @_;
 
     return 0 if (!defined $ip or $ip eq '');
@@ -513,10 +500,7 @@ sub isIp {
     $routed_iface .= ".$$if_ref{vlan}"
       if defined $$if_ref{vlan} && $$if_ref{vlan} ne '';
 
-    my @ip_output = @{
-        &logAndGet("$ip_bin -$$if_ref{ip_v} addr show dev $routed_iface",
-            "array")
-    };
+    my @ip_output = @{ &logAndGet("$ip_bin -$$if_ref{ip_v} addr show dev $routed_iface", "array") };
 
     if (grep /$$if_ref{addr}\//, @ip_output) {
         &zenlog("The IP '$$if_ref{addr}' already is applied in '$routed_iface'",
@@ -545,13 +529,11 @@ See Also:
 # Execute command line to add an IPv4 to an Interface, Vlan or Vini
 sub addIp    # ($if_ref)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($if_ref) = @_;
     my $if_announce = "";
 
-    &zenlog(
-        "Adding IP $$if_ref{addr}/$$if_ref{mask} to interface $$if_ref{name}",
+    &zenlog("Adding IP $$if_ref{addr}/$$if_ref{mask} to interface $$if_ref{name}",
         "info", "NETWORK");
 
     if ($$if_ref{addr} eq "") {
@@ -577,14 +559,14 @@ sub addIp    # ($if_ref)
         my ($toif) = split(':', $$if_ref{name});
 
         $ip_cmd =
-"$ip_bin addr add $$if_ref{addr}/$$if_ref{mask} $broadcast_opt dev $toif label $$if_ref{name} $extra_params";
+          "$ip_bin addr add $$if_ref{addr}/$$if_ref{mask} $broadcast_opt dev $toif label $$if_ref{name} $extra_params";
         $if_announce = $toif;
     }
 
     # $if is a Network Interface
     else {
         $ip_cmd =
-"$ip_bin addr add $$if_ref{addr}/$$if_ref{mask} $broadcast_opt dev $$if_ref{name} $extra_params";
+          "$ip_bin addr add $$if_ref{addr}/$$if_ref{mask} $broadcast_opt dev $$if_ref{name} $extra_params";
         $if_announce = "$$if_ref{name}";
     }
 
@@ -634,8 +616,7 @@ Returns:
 =cut
 
 sub setRuleIPtoTable {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my ($iface, $ip, $action) = @_;
 
@@ -651,8 +632,7 @@ sub setRuleIPtoTable {
 
     #In case <if>:<name> is sent
     my @ifname = split(/:/, $iface);
-    my $ip_cmd =
-      "$ip_bin rule $action from $ip/32 lookup table_$ifname[0] prio $prio";
+    my $ip_cmd = "$ip_bin rule $action from $ip/32 lookup table_$ifname[0] prio $prio";
     return (&execIpCmd($ip_cmd) > 0);
 }
 
@@ -673,7 +653,7 @@ Returns:
 sub execIpCmd {
     my $command = shift;
 
-# do not use the logAndGet function, this function is managing the error output and error code
+    # do not use the logAndGet function, this function is managing the error output and error code
     my @cmd_output  = `$command 2>&1`;
     my $return_code = $?;
 

@@ -32,8 +32,7 @@ require Relianoid::System;
 
 # show license
 sub get_license {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $format = shift;
 
     my $desc = "Get license";
@@ -56,15 +55,14 @@ sub get_license {
 }
 
 sub get_supportsave {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $desc = "Get supportsave file";
 
     my $req_size = &checkSupportSaveSpace();
     if ($req_size) {
         my $space = &getSpaceFormatHuman($req_size);
         my $msg =
-"Supportsave cannot be generated because '/tmp' needs '$space' Bytes of free space";
+          "Supportsave cannot be generated because '/tmp' needs '$space' Bytes of free space";
         return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
@@ -75,12 +73,11 @@ sub get_supportsave {
 
 # GET /system/version
 sub get_version {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     require Relianoid::SystemInfo;
 
     my $desc       = "Get version";
-    my $relianoid    = &getGlobalConfiguration('version');
+    my $relianoid  = &getGlobalConfiguration('version');
     my $kernel     = &getKernelVersion();
     my $hostname   = &getHostname();
     my $date       = &getDate();
@@ -88,7 +85,7 @@ sub get_version {
 
     my $params = {
         'kernel_version'    => $kernel,
-        'relianoid_version'   => $relianoid,
+        'zevenet_version'   => $relianoid,
         'hostname'          => $hostname,
         'system_date'       => $date,
         'appliance_version' => $applicance,
@@ -100,8 +97,7 @@ sub get_version {
 
 # GET /system/info
 sub get_system_info {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     require Relianoid::SystemInfo;
     require Relianoid::User;
@@ -109,7 +105,7 @@ sub get_system_info {
 
     my $desc = "Get the system information";
 
-    my $relianoid       = &getGlobalConfiguration('version');
+    my $relianoid     = &getGlobalConfiguration('version');
     my $lang          = &getGlobalConfiguration('lang');
     my $kernel        = &getKernelVersion();
     my $hostname      = &getHostname();
@@ -124,7 +120,7 @@ sub get_system_info {
         'system_date'             => $date,
         'appliance_version'       => $applicance,
         'kernel_version'          => $kernel,
-        'relianoid_version'         => $relianoid,
+        'zevenet_version'         => $relianoid,
         'hostname'                => $hostname,
         'user'                    => $user,
         'supported_zapi_versions' => \@zapi_versions,
@@ -148,8 +144,7 @@ sub get_system_info {
 
 #  POST /system/language
 sub set_language {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
 
     my $desc = "Modify the WebGUI language";
@@ -170,8 +165,7 @@ sub set_language {
             body => {
                 description => $desc,
                 params      => { language => &getGlobalConfiguration('lang') },
-                message     =>
-                  "The WebGui language has been configured successfully"
+                message     => "The WebGui language has been configured successfully"
             }
         }
     );
@@ -179,8 +173,7 @@ sub set_language {
 
 #  GET /system/language
 sub get_language {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $desc = "List the WebGUI language";
     my $lang = &getGlobalConfiguration('lang') // 'en';
@@ -198,8 +191,7 @@ sub get_language {
 
 # GET /system/packages
 sub get_packages_info {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     require Relianoid::System::Packages;
     my $desc = "Relianoid packages list info";
@@ -209,8 +201,7 @@ sub get_packages_info {
 
     $output->{number} += 0 if (defined $output->{number});
 
-    return &httpResponse(
-        { code => 200, body => { description => $desc, params => $output } });
+    return &httpResponse({ code => 200, body => { description => $desc, params => $output } });
 }
 
 1;

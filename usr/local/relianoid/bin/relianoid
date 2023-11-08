@@ -21,6 +21,7 @@
 #
 ###############################################################################
 
+use 5.036;
 use strict;
 use warnings;
 
@@ -35,7 +36,7 @@ use Relianoid::Net::Route;
 use Relianoid::Net::Util;
 use Relianoid::Lock;
 
-$ENV{SCRIPT_NAME} = 'relianoid';
+local $ENV{SCRIPT_NAME} = 'relianoid';
 
 my $eload;
 if (eval { require Relianoid::ELoad; }) {
@@ -59,9 +60,10 @@ if ($action !~ /^(start|stop|restart)$/) {
     exit 0;
 }
 
-sub printAndLog {
-    print("@_\n");
-    zenlog(@_);
+sub printAndLog (@params) {
+    print("@params\n");
+    zenlog(@params);
+    return;
 }
 
 # Read interfaces data blocks
@@ -110,6 +112,7 @@ sub local_http_service {
       unless $command =~ /^(?:start|stop|restart)$/;
 
     &logAndRunBG("/etc/init.d/cherokee $command");
+    return;
 }
 
 if ($action eq "restart") {
@@ -166,7 +169,7 @@ if ($action eq "start") {
 
     &zenlog("RELIANOID: Modules loaded");
 
-    # import system interface to zen if configured
+    # import system interface to RELIANOID if configured
     #testing interface configured on the installation and gw
     if (-e '/etc/network/interfaces') {
         open my $fr, '<', '/etc/network/interfaces';
@@ -174,7 +177,7 @@ if ($action eq "start") {
         close $fr;
 
         # FIXME: Make function of this procedure
-        if (!grep (/zenmodified/, @file)) {
+        if (!grep { /zenmodified/ } @file) {
             my @blocks = &getInterfaceBlocks(@file);
 
             for my $block (@blocks) {
@@ -281,10 +284,8 @@ if ($action eq "start") {
         if ($$iface{name} eq $$iface{dev}) {
 
             # check if it is an existent device
-            if (!grep (/^$$iface{ name }$/, @system_interfaces)) {
-                &zenlog(
-"RELIANOID: Nonexistent NIC interface $$iface{ name } Config found!."
-                );
+            if (!grep { /^$$iface{ name }$/ } @system_interfaces) {
+                &zenlog("RELIANOID: Nonexistent NIC interface $$iface{ name } Config found!.");
 
                 # skip ethX types, ethA1 for example
                 next if ($$iface{name} =~ /eth(?:[a-z]|[A-Z])+/);
@@ -292,9 +293,7 @@ if ($action eq "start") {
                 # remove interface config
                 my $if_file = &getInterfaceConfigFile($$iface{name});
                 if (-f $if_file) {
-                    &zenlog(
-"RELIANOID: Deleting Nonexistent NIC interface Config File $if_file."
-                    );
+                    &zenlog("RELIANOID: Deleting Nonexistent NIC interface Config File $if_file.");
                     unlink $if_file;
                 }
 
@@ -316,8 +315,7 @@ if ($action eq "start") {
                     &setGlobalConfiguration('defaultgw',   '');
                     &setGlobalConfiguration('defaultgwif', '');
                 }
-                elsif ($$iface{name} eq &getGlobalConfiguration('defaultgwif6'))
-                {
+                elsif ($$iface{name} eq &getGlobalConfiguration('defaultgwif6')) {
                     &setGlobalConfiguration('defaultgw6',   '');
                     &setGlobalConfiguration('defaultgwif6', '');
                 }
@@ -340,11 +338,10 @@ if ($action eq "start") {
                     my $return_code = &addIp($iface);
 
                     if ($return_code) {
-                        my @ip_output = @{
-                            &logAndGet("$ip_bin address show dev $$iface{name}",
-                                "array")
-                        };
-                        $return_code = 0 if (grep /$$iface{addr}/, @ip_output);
+                        my @ip_output =
+                          @{ &logAndGet("$ip_bin address show dev $$iface{name}", "array") };
+                        $return_code = 0
+                          if (grep { /$$iface{addr}/ } @ip_output);
                     }
 
                     # kept in case it is required for first interface
@@ -403,11 +400,9 @@ if ($action eq "start") {
                 &upIf($iface);
 
                 if ($return_code) {
-                    my @ip_output = @{
-                        &logAndGet("$ip_bin address show dev $$iface{name}",
-                            "array")
-                    };
-                    $return_code = 0 if (grep /$$iface{addr}/, @ip_output);
+                    my @ip_output =
+                      @{ &logAndGet("$ip_bin address show dev $$iface{name}", "array") };
+                    $return_code = 0 if (grep { /$$iface{addr}/ } @ip_output);
                 }
 
                 if ($return_code == 0) {
@@ -456,12 +451,9 @@ if ($action eq "start") {
                 if ($return_code) {
                     my $toif = &getParentInterfaceName($$iface{name});
                     &zenlog("failed addIp");
-                    my @ip_output = @{
-                        &logAndGet(
-                            "$ip_bin -$$iface{ip_v} address list dev $toif",
-                            "array")
-                    };
-                    $return_code = 0 if (grep /$$iface{addr}/, @ip_output);
+                    my @ip_output =
+                      @{ &logAndGet("$ip_bin -$$iface{ip_v} address list dev $toif", "array") };
+                    $return_code = 0 if (grep { /$$iface{addr}/ } @ip_output);
                 }
 
                 &applyRoutes("local", $iface);
@@ -520,7 +512,7 @@ if ($action eq "start") {
             }
         }
     }
-    if (!$eload or !&eload(module => $mod, func => 'service_start_farms')) {
+    if (not $eload or not &eload(module => $mod, func => 'service_start_farms')) {
         print("* Starting Farms:\n");
         &getGlobalConfiguration(undef, 1);
 
@@ -625,8 +617,7 @@ if ($action eq "start") {
     }
     else {
         my $ls = &getGlobalConfiguration('ls');
-        $snmpdstatus =
-          &logAndGet("$ls /etc/rc*.d/S*snmpd") ? 'enabled' : 'disabled';
+        $snmpdstatus = &logAndGet("$ls /etc/rc*.d/S*snmpd") ? 'enabled' : 'disabled';
     }
 
     if ($snmpdstatus eq 'enabled') {
@@ -649,8 +640,10 @@ if ($action eq "start") {
             &zenlog("Local node detected as primary", "debug", "cluster");
             &eload(module => 'Relianoid::Cluster', func => 'enableZCluster');
         }
-        my $node_status =
-          &eload(module => 'Relianoid::Cluster', func => 'getZClusterNodeStatus');
+        my $node_status = &eload(
+            module => 'Relianoid::Cluster',
+            func   => 'getZClusterNodeStatus'
+        );
         if (defined $node_status and $node_status eq "backup") {
             &zenlog("conntrackd Synchronization against master");
             my $primary_backup = &getGlobalConfiguration('primary_backup');
@@ -723,7 +716,7 @@ if ($action eq "stop") {
     &logAndRun("$nftlb_svc stop");
     my $status   = &logAndGet("$nftlb_svc status");
     my $rtn_code = 1;
-    $rtn_code = 0 if (grep /nftlb is not running/, $status);
+    $rtn_code = 0 if (grep { /nftlb is not running/ } $status);
 
     if ($rtn_code == 0) {
         print(" \033[1;32m OK \033[0m \n");

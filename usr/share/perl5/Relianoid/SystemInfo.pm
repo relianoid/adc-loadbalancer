@@ -44,8 +44,7 @@ See Also:
 =cut
 
 sub getDate {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     return scalar CORE::localtime();
 }
 
@@ -73,8 +72,7 @@ See Also:
 =cut
 
 sub getHostname {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $uname = &getGlobalConfiguration('uname');
     state $hostname = &logAndGet("$uname -n");
@@ -100,8 +98,7 @@ See Also:
 =cut
 
 sub getApplianceVersion {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $version;
     my $hyperv;
     my $applianceFile = &getGlobalConfiguration('applianceVersionFile');
@@ -127,8 +124,7 @@ sub getApplianceVersion {
         my $ifconfig = &getGlobalConfiguration('ifconfig');
 
         # look for mgmt interface
-        my @ifaces =
-          @{ &logAndGet("$ifconfig -s | $awk '{print $1}'", "array") };
+        my @ifaces = @{ &logAndGet("$ifconfig -s | $awk '{print $1}'", "array") };
 
         # Network appliance
         if (grep (/mgmt/, @ifaces)) {
@@ -140,7 +136,7 @@ sub getApplianceVersion {
             if    ($kernel =~ /3\.2\.0\-4/)      { $version = "3110"; }
             elsif ($kernel =~ /3\.16\.0\-4/)     { $version = "4000"; }
             elsif ($kernel =~ /3\.16\.7\-ckt20/) { $version = "4100"; }
-            else { $version = "System version not detected"; }
+            else                                 { $version = "System version not detected"; }
 
             # virtual appliance
             if ($hypervisor[0] =~ /(xen|vm|hv|kvm)_/) {
@@ -171,7 +167,7 @@ sub getApplianceVersion {
         $hyperv = 'KVM'    if ($hyperv eq 'kvm');
     }
 
-# before relianoid versions had hypervisor in appliance version file, so not inclue it in the chain
+    # before relianoid versions had hypervisor in appliance version file, so not inclue it in the chain
     if ($hyperv && $version !~ /hypervisor/) {
         $version = "$version, hypervisor: $hyperv";
     }
@@ -195,8 +191,7 @@ See Also:
 =cut
 
 sub getCpuCores {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $cpuinfo_filename = '/proc/stat';
     my $cores            = 1;
 
@@ -227,8 +222,7 @@ Returns:
 =cut
 
 sub getCPUSecondToJiffy {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $sec   = shift // 1;
     my $ticks = &getCPUTicks();
 
@@ -251,8 +245,7 @@ Returns:
 =cut
 
 sub getCPUJiffiesNow {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $jiffies = -1;
     my $file    = '/proc/timer_list';
     open my $fh, '<', $file or return -1;
@@ -283,8 +276,7 @@ Returns:
 =cut
 
 sub getCPUTicks {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $ticks = -1;
     my $file  = '/boot/config-';    # end file with the kernel version
 
@@ -318,23 +310,20 @@ Returns:
 =cut
 
 sub setEnv {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     use Relianoid::Config;
     $ENV{http_proxy}  = &getGlobalConfiguration('http_proxy')  // "";
     $ENV{https_proxy} = &getGlobalConfiguration('https_proxy') // "";
 
     my $provider = &getGlobalConfiguration('cloud_provider');
     if ($provider eq 'aws') {
-        $ENV{AWS_SHARED_CREDENTIALS_FILE} =
-          &getGlobalConfiguration('aws_credentials') // "";
-        $ENV{AWS_CONFIG_FILE} = &getGlobalConfiguration('aws_config') // "";
+        $ENV{AWS_SHARED_CREDENTIALS_FILE} = &getGlobalConfiguration('aws_credentials') // "";
+        $ENV{AWS_CONFIG_FILE}             = &getGlobalConfiguration('aws_config')      // "";
     }
 }
 
 sub getKernelVersion {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     require Relianoid::Config;
 
     my $uname   = &getGlobalConfiguration('uname');

@@ -31,8 +31,7 @@ if (eval { require Relianoid::ELoad; }) {
 #  POST /addvlan/<interface> Create a new vlan network interface
 sub new_vlan    # ( $json_obj )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
 
     require Relianoid::Net::Util;
@@ -78,8 +77,7 @@ sub new_vlan    # ( $json_obj )
     }
 
     if ($is_slave eq 'true') {
-        my $msg =
-          "It is not possible create a VLAN interface from a NIC slave.";
+        my $msg = "It is not possible create a VLAN interface from a NIC slave.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
@@ -130,11 +128,11 @@ sub new_vlan    # ( $json_obj )
     }
 
     ## Check netmask errors for IPv6
-#if ( $json_obj->{ ip_v } == 6 && ( $json_obj->{netmask} !~ /^\d+$/ || $json_obj->{netmask} > 128 || $json_obj->{netmask} < 0 ) )
-#{
-#	my $msg = "Netmask Address $json_obj->{netmask} structure is not ok. Must be numeric [0-128].";
-#	&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-#}
+    #if ( $json_obj->{ ip_v } == 6 && ( $json_obj->{netmask} !~ /^\d+$/ || $json_obj->{netmask} > 128 || $json_obj->{netmask} < 0 ) )
+    #{
+    #	my $msg = "Netmask Address $json_obj->{netmask} structure is not ok. Must be numeric [0-128].";
+    #	&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
+    #}
 
     # Check gateway errors
     if (exists $json_obj->{gateway}) {
@@ -162,12 +160,7 @@ sub new_vlan    # ( $json_obj )
     };
 
     if ($if_ref->{gateway}) {
-        unless (
-            &validateGateway(
-                $if_ref->{addr}, $if_ref->{mask}, $if_ref->{gateway}
-            )
-          )
-        {
+        unless (&validateGateway($if_ref->{addr}, $if_ref->{mask}, $if_ref->{gateway})) {
             my $msg = "The gateway is not valid for the network.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
@@ -194,8 +187,7 @@ sub new_vlan    # ( $json_obj )
     };
 
     if ($@) {
-        my $msg =
-          "The $json_obj->{ name } vlan network interface can't be created";
+        my $msg = "The $json_obj->{ name } vlan network interface can't be created";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
@@ -215,8 +207,7 @@ sub new_vlan    # ( $json_obj )
 
 sub delete_interface_vlan    # ( $vlan )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $vlan = shift;
 
     my $desc = "Delete VLAN interface";
@@ -236,7 +227,7 @@ sub delete_interface_vlan    # ( $vlan )
     if (@child) {
         my $child_string = join(', ', @child);
         my $msg =
-"Before of removing $vlan interface, delete de virtual interfaces: $child_string.";
+          "Before of removing $vlan interface, delete de virtual interfaces: $child_string.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
@@ -266,8 +257,7 @@ sub delete_interface_vlan    # ( $vlan )
 
 sub get_vlan_list    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     require Relianoid::Net::Interface;
 
     my $desc = "List VLAN interfaces";
@@ -321,8 +311,7 @@ sub get_vlan_list    # ()
 
 sub get_vlan    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $vlan = shift;
 
     require Relianoid::Net::Interface;
@@ -368,8 +357,7 @@ sub get_vlan    # ()
 
 sub actions_interface_vlan    # ( $json_obj, $vlan )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $vlan     = shift;
 
@@ -422,7 +410,7 @@ sub actions_interface_vlan    # ( $json_obj, $vlan )
         # validate PARENT INTERFACE STATUS
         unless ($parent_if_status eq 'up') {
             my $msg =
-"The interface $if_ref->{name} has a parent interface DOWN, check the interfaces status";
+              "The interface $if_ref->{name} has a parent interface DOWN, check the interfaces status";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
 
@@ -465,8 +453,7 @@ sub actions_interface_vlan    # ( $json_obj, $vlan )
 
 sub modify_interface_vlan    # ( $json_obj, $vlan )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $vlan     = shift;
 
@@ -488,7 +475,7 @@ sub modify_interface_vlan    # ( $json_obj, $vlan )
         if (@child) {
             my $child_string = join(', ', @child);
             my $msg =
-"It is not possible to modify $vlan because there are virtual interfaces using it: $child_string.";
+              "It is not possible to modify $vlan because there are virtual interfaces using it: $child_string.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
     }
@@ -516,8 +503,7 @@ sub modify_interface_vlan    # ( $json_obj, $vlan )
         if ($json_obj->{ip} ne $if_ref->{addr}) {
             require Relianoid::Net::Util;
             if (grep (/^$json_obj->{ ip }$/, &listallips())) {
-                my $msg =
-                  "The IP address is already in use for other interface.";
+                my $msg = "The IP address is already in use for other interface.";
                 return &httpErrorResponse(
                     code => 400,
                     desc => $desc,
@@ -533,17 +519,17 @@ sub modify_interface_vlan    # ( $json_obj, $vlan )
             && &getValidFormat('IPv4_mask', $json_obj->{netmask}))
         {
             my $msg =
-"Netmask Address $json_obj->{netmask} structure is not ok. Must be IPv4 structure or numeric.";
+              "Netmask Address $json_obj->{netmask} structure is not ok. Must be IPv4 structure or numeric.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
     }
 
     ## Check netmask errors for IPv6
-#if ( $ip_v == 6 && ( $json_obj->{netmask} !~ /^\d+$/ || $json_obj->{netmask} > 128 || $json_obj->{netmask} < 0 ) )
-#{
-#	my $msg = "Netmask Address $json_obj->{netmask} structure is not ok. Must be numeric.";
-#	&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
-#}
+    #if ( $ip_v == 6 && ( $json_obj->{netmask} !~ /^\d+$/ || $json_obj->{netmask} > 128 || $json_obj->{netmask} < 0 ) )
+    #{
+    #	my $msg = "Netmask Address $json_obj->{netmask} structure is not ok. Must be numeric.";
+    #	&httpErrorResponse( code => 400, desc => $desc, msg => $msg );
+    #}
 
     # Check gateway errors
     if (exists $json_obj->{gateway}) {
@@ -553,8 +539,7 @@ sub modify_interface_vlan    # ( $json_obj, $vlan )
                 || &getValidFormat('IPv4_mask', $json_obj->{gateway}))
           )
         {
-            my $msg =
-              "Gateway Address $json_obj->{gateway} structure is not ok.";
+            my $msg = "Gateway Address $json_obj->{gateway} structure is not ok.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
     }
@@ -567,12 +552,7 @@ sub modify_interface_vlan    # ( $json_obj, $vlan )
 
     if ($new_if->{gateway}) {
         require Relianoid::Net::Validate;
-        unless (
-            &validateGateway(
-                $new_if->{addr}, $new_if->{mask}, $new_if->{gateway}
-            )
-          )
-        {
+        unless (&validateGateway($new_if->{addr}, $new_if->{mask}, $new_if->{gateway})) {
             my $msg = "The gateway is not valid for the network.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }

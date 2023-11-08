@@ -59,8 +59,7 @@ Returns:
 =cut
 
 sub listL7FarmSessions {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $farmname = shift;
     my $service  = shift;
@@ -117,8 +116,7 @@ sub listL7FarmSessions {
           floor(($ttl - ($time - $ss->{'last-seen'})) % 60);
 
         my $type = $ss->{'last-seen'} eq 0 ? 'static' : 'dynamic';
-        my $ttl =
-          $type eq 'static' ? undef : $min_rem . 'm' . $sec_rem . 's' . '0ms';
+        my $ttl  = $type eq 'static'       ? undef    : $min_rem . 'm' . $sec_rem . 's' . '0ms';
 
         my $sessionHash = {
             session => $ss->{id},
@@ -147,8 +145,7 @@ Returns:
 =cut
 
 sub getSessionsFileName {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm = shift;
 
     my $configdir = &getGlobalConfiguration("configdir");
@@ -181,16 +178,14 @@ Returns:
 =cut
 
 sub listConfL7FarmSessions {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my ($farmname, $servicename, $backendId) = @_;
 
     my $filepath = &getSessionsFileName($farmname);
 
     unless ($filepath && -e $filepath) {
-        &zenlog("$farmname" . "_sessions.cfg configuration file not found",
-            "error", "HTTP");
+        &zenlog("$farmname" . "_sessions.cfg configuration file not found", "error", "HTTP");
         return 1;
     }
 
@@ -203,8 +198,7 @@ sub listConfL7FarmSessions {
         next
           if ($servicename && $servicename ne "" && $service ne $servicename);
         next if ($backendId && $backendId ne "" && $backendId ne $backend);
-        push(@output,
-            { service => $service, backend => $backend, client => $client });
+        push(@output, { service => $service, backend => $backend, client => $client });
     }
 
     untie @file;
@@ -228,8 +222,7 @@ Returns:
 =cut
 
 sub addConfL7FarmSession {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $farmname = shift;
     my $service  = shift;
@@ -247,7 +240,7 @@ sub addConfL7FarmSession {
     foreach my $line (@file) {
         if ($line =~ /$service\s+$backend\s+$client/) {
             &zenlog(
-"A configuration line for the session $service $backend $client already exists in $filepath.",
+                "A configuration line for the session $service $backend $client already exists in $filepath.",
                 "error", "HTTP"
             );
             untie @file;
@@ -277,8 +270,7 @@ Returns:
 =cut
 
 sub deleteConfL7FarmSession {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $farmname = shift;
     my $service  = shift;
@@ -287,8 +279,7 @@ sub deleteConfL7FarmSession {
     my $filepath = &getSessionsFileName($farmname);
 
     unless ($filepath && -e $filepath) {
-        &zenlog("$farmname" . "_sessions.cfg configuration file not found",
-            "error", "HTTP");
+        &zenlog("$farmname" . "_sessions.cfg configuration file not found", "error", "HTTP");
         return 1;
     }
 
@@ -318,8 +309,7 @@ Returns:
 =cut
 
 sub deleteConfL7FarmAllSession {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $farmname = shift;
     my $service  = shift;
@@ -328,8 +318,7 @@ sub deleteConfL7FarmAllSession {
     my $filepath = &getSessionsFileName($farmname);
 
     unless ($filepath && -e $filepath) {
-        &zenlog("$farmname" . "_sessions.cfg configuration file not found",
-            "error", "HTTP");
+        &zenlog("$farmname" . "_sessions.cfg configuration file not found", "error", "HTTP");
         return 1;
     }
 

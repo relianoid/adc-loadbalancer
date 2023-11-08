@@ -1,1 +1,1 @@
-usr/local/zevenet/license.txt
+usr/local/relianoid/license.txt

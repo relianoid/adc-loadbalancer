@@ -27,8 +27,7 @@ require Relianoid::Ids;
 
 # GET /ids
 sub list_ids {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $desc = "Get a load balancer object IDs";
 
     my $tree = &getIdsTree();

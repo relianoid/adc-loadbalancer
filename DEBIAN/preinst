@@ -21,21 +21,46 @@
 #
 ###############################################################################
 
-use 5.36;
+use 5.036;
 use autodie;
+use File::Copy;
 
-## Zevenet to Relianoid ##
+### Zevenet to Relianoid
 my $local_path = "/usr/local";
 my $share_path = "/usr/share/perl5";
-if (-d "${local_path}/zevenet") {
-    rename "${local_path}/zevenet", "${local_path}/relianoid";
+if (-d "${local_path}/zevenet" && !-l "${local_path}/zevenet") {
+    rename "${local_path}/zevenet/config", "${local_path}/relianoid/config";
+    if (-d "${local_path}/zevenet/backups") {
+        rename "${local_path}/zevenet/backups", "${local_path}/relianoid/backups";
+    }
+    system "rm -rf ${local_path}/zevenet";
+}
+
+# create symlink for backups compatibility
+if (!-e "${local_path}/zevenet") {
     symlink "relianoid", "${local_path}/zevenet";
 }
-if (-d "${share_path}/Zevenet") {
+
+if (-d "${share_path}/Zevenet" && !-l "${share_path}/Zevenet") {
     rename "${share_path}/Zevenet", "${share_path}/Relianoid";
     symlink "Relianoid", "${share_path}/Zevenet";
 }
-## Zevenet to Relianoid ##
+## Cluster CE
+my $old_cluster_config = "/usr/local/relianoid/app/ucarp/etc/zevenet-cluster.conf";
+my $new_cluster_config = "/usr/local/relianoid/app/ucarp/etc/cluster.conf";
+
+if (-f $old_cluster_config) {
+    rename "${old_cluster_config}", "${new_cluster_config}";
+}
+
+my $old_cluster_status = "/etc/zevenet-ce-cluster.status";
+my $new_cluster_status = "/etc/relianoid-ce-cluster.status";
+
+if (-f "${old_cluster_status}") {
+    rename "${old_cluster_status}", "${new_cluster_status}";
+    symlink "${new_cluster_status}", "${old_cluster_status}";
+}
+### Zevenet to Relianoid
 
 # Save zlb-stop and zlb-start to a temporal directory
 my $zvn_start = "/usr/local/relianoid/config/zlb-start";
@@ -43,12 +68,12 @@ my $zvn_stop  = "/usr/local/relianoid/config/zlb-stop";
 my $tmp_start = "/tmp/zlb-start";
 my $tmp_stop  = "/tmp/zlb-stop";
 
-if (-f $zvn_start and) {
-    rename $zvn_start, $tmp_start;
+if (-f $zvn_start) {
+    move($zvn_start, $tmp_start);
 }
 
 if (-f $zvn_stop) {
-    rename $zvn_stop, $tmp_stop;
+    move($zvn_stop, $tmp_stop);
 }
 
 # Create the new GUI system group

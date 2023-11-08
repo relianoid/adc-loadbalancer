@@ -34,8 +34,7 @@ if (eval { require Relianoid::ELoad; }) {
 
 sub new_farm_backend    # ( $json_obj, $farmname )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $farmname = shift;
 
@@ -77,8 +76,7 @@ sub new_farm_backend    # ( $json_obj, $farmname )
         unless (&getValidFormat('port', $json_obj->{port})
             || $json_obj->{port} eq '')
         {
-            my $msg =
-              "Invalid IP address and port for a backend, it can't be blank.";
+            my $msg = "Invalid IP address and port for a backend, it can't be blank.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
 
@@ -86,8 +84,7 @@ sub new_farm_backend    # ( $json_obj, $farmname )
         if ($json_obj->{priority} !~ /^\d$/
             && exists $json_obj->{priority})    # (0-9)
         {
-            my $msg =
-"Invalid backend priority value, please insert a value within the range 0-9.";
+            my $msg = "Invalid backend priority value, please insert a value within the range 0-9.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
 
@@ -95,8 +92,7 @@ sub new_farm_backend    # ( $json_obj, $farmname )
         if ($json_obj->{weight} !~ /^[1-9]$/
             && exists $json_obj->{weight})      # 1 or higher
         {
-            my $msg =
-"Invalid backend weight value, please insert a value form 1 to 9.";
+            my $msg = "Invalid backend weight value, please insert a value form 1 to 9.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
 
@@ -105,8 +101,7 @@ sub new_farm_backend    # ( $json_obj, $farmname )
 
         if ($json_obj->{max_conns} !~ /^[0-9]+$/)    # (0 or higher)
         {
-            my $msg =
-"Invalid backend connection limit value, accepted values are 0 or higher.";
+            my $msg = "Invalid backend connection limit value, accepted values are 0 or higher.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
 
@@ -118,7 +113,7 @@ sub new_farm_backend    # ( $json_obj, $farmname )
 
         if ($status == -1) {
             my $msg =
-"It's not possible to create the backend with ip $json_obj->{ ip }"
+                "It's not possible to create the backend with ip $json_obj->{ ip }"
               . " and port $json_obj->{ port } for the $farmname farm";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
@@ -127,9 +122,7 @@ sub new_farm_backend    # ( $json_obj, $farmname )
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
 
-        &zenlog(
-            "New backend created in farm $farmname with IP $json_obj->{ip}.",
-            "info", "FARMS");
+        &zenlog("New backend created in farm $farmname with IP $json_obj->{ip}.", "info", "FARMS");
 
         $json_obj->{port}     += 0 if defined $json_obj->{port};
         $json_obj->{weight}   += 0 if defined $json_obj->{weight};
@@ -182,21 +175,14 @@ sub new_farm_backend    # ( $json_obj, $farmname )
         }
 
         if (!$valid_interface) {
-            my $msg =
-"Invalid interface value, please insert any non-virtual interface.";
+            my $msg = "Invalid interface value, please insert any non-virtual interface.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
 
         require Relianoid::Net::Validate;
         my $iface_ref = &getInterfaceConfig($json_obj->{interface});
-        if (
-            !&validateGateway(
-                $iface_ref->{addr}, $iface_ref->{mask}, $json_obj->{ip}
-            )
-          )
-        {
-            my $msg =
-              "The IP must be in the same network than the local interface.";
+        if (!&validateGateway($iface_ref->{addr}, $iface_ref->{mask}, $json_obj->{ip})) {
+            my $msg = "The IP must be in the same network than the local interface.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
 
@@ -204,8 +190,7 @@ sub new_farm_backend    # ( $json_obj, $farmname )
         unless ($json_obj->{weight} =~ &getValidFormat('natural_num')
             || $json_obj->{weight} == undef)    # 1 or higher or undef
         {
-            my $msg =
-              "Invalid weight value, please insert a valid weight value.";
+            my $msg = "Invalid weight value, please insert a valid weight value.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
 
@@ -213,32 +198,28 @@ sub new_farm_backend    # ( $json_obj, $farmname )
         unless ($json_obj->{priority} =~ /^[1-9]$/
             || $json_obj->{priority} == undef)    # (1-9)
         {
-            my $msg =
-              "Invalid priority value, please insert a valid priority value.";
+            my $msg = "Invalid priority value, please insert a valid priority value.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
 
         # Create backend
-        my $status =
-          &setDatalinkFarmServer($id, $json_obj->{ip}, $json_obj->{interface},
+        my $status = &setDatalinkFarmServer($id, $json_obj->{ip}, $json_obj->{interface},
             $json_obj->{weight}, $json_obj->{priority}, $farmname,);
 
         # check error adding a new backend
         if ($status == -1) {
-            &zenlog("It's not possible to create the backend.",
-                "warning", "FARMS");
+            &zenlog("It's not possible to create the backend.", "warning", "FARMS");
 
             my $msg =
-"It's not possible to create the backend with ip $json_obj->{ ip }"
+                "It's not possible to create the backend with ip $json_obj->{ ip }"
               . " and port $json_obj->{ port } for the $farmname farm";
 
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
 
         &zenlog(
-"Success, a new backend has been created in farm $farmname with IP $json_obj->{ip}.",
-            "info", "FARMS"
-        );
+            "Success, a new backend has been created in farm $farmname with IP $json_obj->{ip}.",
+            "info", "FARMS");
 
         my $message = "Backend added";
         my $weight =
@@ -276,8 +257,7 @@ sub new_farm_backend    # ( $json_obj, $farmname )
 
 sub new_service_backend    # ( $json_obj, $farmname, $service )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $farmname = shift;
     my $service  = shift;
@@ -362,12 +342,11 @@ sub new_service_backend    # ( $json_obj, $farmname, $service )
     unless (!defined($json_obj->{timeout})
         || ($json_obj->{timeout} =~ /^\d+$/ && $json_obj->{timeout} != 0))
     {
-        my $msg =
-"Invalid timeout value for a backend, it must be empty or greater than 0.";
+        my $msg = "Invalid timeout value for a backend, it must be empty or greater than 0.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-# First param ($id) is an empty string to let function autogenerate the id for the new backend
+    # First param ($id) is an empty string to let function autogenerate the id for the new backend
     my $status = &setHTTPFarmServer("", $json_obj->{ip}, $json_obj->{port},
         $json_obj->{weight}, $json_obj->{timeout}, $farmname, $service,);
 
@@ -381,7 +360,7 @@ sub new_service_backend    # ( $json_obj, $farmname, $service )
 
     # no error found, return successful response
     &zenlog(
-"Success, a new backend has been created in farm $farmname in service $service with IP $json_obj->{ip}.",
+        "Success, a new backend has been created in farm $farmname in service $service with IP $json_obj->{ip}.",
         "info", "FARMS"
     );
 
@@ -407,7 +386,7 @@ sub new_service_backend    # ( $json_obj, $farmname, $service )
         if (&getGlobalConfiguration('proxy_ng') ne 'true') {
             &setFarmRestart($farmname);
             $body->{info} =
-"There're changes that need to be applied, stop and start farm to apply them!";
+              "There're changes that need to be applied, stop and start farm to apply them!";
         }
         else {
             &runFarmReload($farmname);
@@ -426,8 +405,7 @@ sub new_service_backend    # ( $json_obj, $farmname, $service )
 
 #GET /farms/<name>/backends
 sub backends {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farmname = shift;
 
     my $desc = "List backends";
@@ -464,16 +442,14 @@ sub backends {
         &httpResponse({ code => 200, body => $body });
     }
     else {
-        my $msg =
-"The farm $farmname with profile $type does not support this request.";
+        my $msg = "The farm $farmname with profile $type does not support this request.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 }
 
 #GET /farms/<name>/services/<service>/backends
 sub service_backends {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farmname, $service) = @_;
 
     my $desc = "List service backends";
@@ -529,8 +505,7 @@ sub service_backends {
 
 sub modify_backends    #( $json_obj, $farmname, $id_server )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($json_obj, $farmname, $id_server) = @_;
 
     my $desc = "Modify backend";
@@ -591,8 +566,7 @@ sub modify_backends    #( $json_obj, $farmname, $id_server )
             unless ($json_obj->{weight} =~ /^[1-9]$/
                 || $json_obj->{weight} == undef)    # 1 or higher
             {
-                my $msg =
-"Invalid backend weight value, please insert a value form 1 to 9.";
+                my $msg = "Invalid backend weight value, please insert a value form 1 to 9.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
 
@@ -605,7 +579,7 @@ sub modify_backends    #( $json_obj, $farmname, $id_server )
                 || $json_obj->{priority} == undef)    # (0-9)
             {
                 my $msg =
-"Error, trying to modify the backends in the farm $farmname, invalid priority. The higher value is 9.";
+                  "Error, trying to modify the backends in the farm $farmname, invalid priority. The higher value is 9.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
 
@@ -617,7 +591,7 @@ sub modify_backends    #( $json_obj, $farmname, $id_server )
             unless ($json_obj->{max_conns} =~ /^\d+$/)    # (0 or higher)
             {
                 my $msg =
-"Error, trying to modify the connection limit in the farm $farmname, invalid value.";
+                  "Error, trying to modify the connection limit in the farm $farmname, invalid value.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
 
@@ -627,12 +601,10 @@ sub modify_backends    #( $json_obj, $farmname, $id_server )
 
         my $status =
           &setL4FarmServer($farmname, $backend->{id}, $backend->{vip},
-            $backend->{vport}, $backend->{weight}, $backend->{priority},
-            $backend->{max_conns},);
+            $backend->{vport}, $backend->{weight}, $backend->{priority}, $backend->{max_conns},);
 
         if ($status == -1) {
-            my $msg =
-"It's not possible to modify the backend with ip $json_obj->{ip}.";
+            my $msg = "It's not possible to modify the backend with ip $json_obj->{ip}.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
         if ($status == -2) {
@@ -692,20 +664,13 @@ sub modify_backends    #( $json_obj, $farmname, $id_server )
         # check that IP is in network than interface
         require Relianoid::Net::Validate;
         my $iface_ref = &getInterfaceConfig($be->{interface});
-        if (
-            !&validateGateway(
-                $iface_ref->{addr}, $iface_ref->{mask}, $be->{ip}
-            )
-          )
-        {
-            my $msg =
-              "The IP must be in the same network than the local interface.";
+        if (!&validateGateway($iface_ref->{addr}, $iface_ref->{mask}, $be->{ip})) {
+            my $msg = "The IP must be in the same network than the local interface.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
 
         if (exists($json_obj->{weight})) {
-            if (!&getValidFormat('natural_num', $json_obj->{weight})
-              )    # 1 or higher
+            if (!&getValidFormat('natural_num', $json_obj->{weight}))    # 1 or higher
             {
                 my $msg = "Invalid weight.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
@@ -716,7 +681,7 @@ sub modify_backends    #( $json_obj, $farmname, $id_server )
         }
 
         if (exists($json_obj->{priority})) {
-            if ($json_obj->{priority} !~ /^[1-9]$/)    # (1-9)
+            if ($json_obj->{priority} !~ /^[1-9]$/)                      # (1-9)
             {
                 my $msg = "Invalid priority.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
@@ -732,7 +697,7 @@ sub modify_backends    #( $json_obj, $farmname, $id_server )
 
         if ($status == -1) {
             my $msg =
-"It's not possible to modify the backend with IP $json_obj->{ip} and interface $json_obj->{interface}.";
+              "It's not possible to modify the backend with IP $json_obj->{ip} and interface $json_obj->{interface}.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
     }
@@ -742,9 +707,8 @@ sub modify_backends    #( $json_obj, $farmname, $id_server )
     }
 
     &zenlog(
-"Success, some parameters have been changed in the backend $id_server in farm $farmname.",
-        "info", "FARMS"
-    );
+        "Success, some parameters have been changed in the backend $id_server in farm $farmname.",
+        "info", "FARMS");
 
     require Relianoid::Farm::Base;
     my $message = "Backend modified";
@@ -766,8 +730,7 @@ sub modify_backends    #( $json_obj, $farmname, $id_server )
 
 sub modify_service_backends    #( $json_obj, $farmname, $service, $id_server )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($json_obj, $farmname, $service, $id_server) = @_;
 
     my $desc = "Modify service backend";
@@ -878,13 +841,13 @@ sub modify_service_backends    #( $json_obj, $farmname, $service, $id_server )
     # check if there was an error modifying the backend
     if ($status == -1) {
         my $msg =
-"It's not possible to modify the backend with IP $json_obj->{ip} in service $service.";
+          "It's not possible to modify the backend with IP $json_obj->{ip} in service $service.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
     # no error found, return successful response
     &zenlog(
-"Success, some parameters have been changed in the backend $id_server in service $service in farm $farmname.",
+        "Success, some parameters have been changed in the backend $id_server in service $service in farm $farmname.",
         "info", "FARMS"
     );
 
@@ -918,8 +881,7 @@ sub modify_service_backends    #( $json_obj, $farmname, $service, $id_server )
 # DELETE /farms/<farmname>/backends/<backendid> Delete a backend of a Farm
 sub delete_backend    # ( $farmname, $id_server )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farmname, $id_server) = @_;
 
     my $desc = "Delete backend";
@@ -951,13 +913,11 @@ sub delete_backend    # ( $farmname, $id_server )
 
     if ($status == -1) {
         my $msg =
-"It's not possible to delete the backend with ID $id_server of the $farmname farm.";
+          "It's not possible to delete the backend with ID $id_server of the $farmname farm.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-    &zenlog(
-        "Success, the backend $id_server in farm $farmname has been deleted.",
-        "info", "FARMS");
+    &zenlog("Success, the backend $id_server in farm $farmname has been deleted.", "info", "FARMS");
 
     &eload(
         module => 'Relianoid::Cluster',
@@ -986,8 +946,7 @@ sub delete_backend    # ( $farmname, $id_server )
 #  DELETE /farms/<farmname>/services/<servicename>/backends/<backendid> Delete a backend of a Service
 sub delete_service_backend    # ( $farmname, $service, $id_server )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farmname, $service, $id_server) = @_;
 
     my $desc = "Delete service backend";
@@ -1047,16 +1006,14 @@ sub delete_service_backend    # ( $farmname, $service, $id_server )
     if ($status == -1) {
         &zenlog("It's not possible to delete the backend.", "warning", "FARMS");
 
-        my $msg =
-"Could not find the backend with ID $id_server of the $farmname farm.";
+        my $msg = "Could not find the backend with ID $id_server of the $farmname farm.";
         &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
     }
 
     # no error found, return successful response
     &zenlog(
-"Success, the backend $id_server in service $service in farm $farmname has been deleted.",
-        "info", "FARMS"
-    );
+        "Success, the backend $id_server in service $service in farm $farmname has been deleted.",
+        "info", "FARMS");
 
     my $message = "Backend removed";
     my $body    = {

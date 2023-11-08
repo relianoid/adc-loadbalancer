@@ -46,16 +46,15 @@ See Also:
 =cut
 
 sub getLogs {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my @logs;
     my $logdir = &getGlobalConfiguration('logdir');
 
     require Relianoid::File;
 
-    opendir(DIR, $logdir);
-    my @files = readdir(DIR);
-    closedir(DIR);
+    opendir(my $directory, $logdir);
+    my @files = readdir($directory);
+    closedir($directory);
 
     foreach my $line (@files) {
 
@@ -88,8 +87,7 @@ See Also:
 =cut
 
 sub getLogLines {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($logFile, $lines_number) = @_;
 
     my @lines;
@@ -98,14 +96,10 @@ sub getLogLines {
 
     if ($logFile =~ /\.gz$/) {
         my $zcat = &getGlobalConfiguration('zcat');
-        @lines = @{
-            &logAndGet("$zcat ${path}/$logFile | $tail -n $lines_number",
-                "array")
-        };
+        @lines = @{ &logAndGet("$zcat ${path}/$logFile | $tail -n $lines_number", "array") };
     }
     else {
-        @lines =
-          @{ &logAndGet("$tail -n $lines_number ${path}/$logFile", "array") };
+        @lines = @{ &logAndGet("$tail -n $lines_number ${path}/$logFile", "array") };
     }
 
     return \@lines;

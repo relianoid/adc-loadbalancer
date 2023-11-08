@@ -48,8 +48,7 @@ FIXME:
 
 sub getFarmCertificate    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name) = @_;
 
     my $output = -1;
@@ -90,8 +89,7 @@ FIXME:
 
 sub setFarmCertificate    # ($cfile,$farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($cfile, $farm_name) = @_;
 
     require Tie::File;
@@ -105,14 +103,12 @@ sub setFarmCertificate    # ($cfile,$farm_name)
 
     my $certdir = &getGlobalConfiguration('certdir');
 
-    &zenlog("Setting 'Certificate $cfile' for $farm_name farm https",
-        "info", "LSLB");
+    &zenlog("Setting 'Certificate $cfile' for $farm_name farm https", "info", "LSLB");
 
     require Relianoid::Certificate;
     my $error = &checkCertPEMValid("$certdir/$cfile");
     if ($error->{code}) {
-        &zenlog("'Certificate $cfile' for $farm_name farm https is not valid",
-            "error", "LSLB");
+        &zenlog("'Certificate $cfile' for $farm_name farm https is not valid", "error", "LSLB");
         return $output;
     }
     tie my @array, 'Tie::File', "$configdir/$farm_filename";
@@ -144,8 +140,7 @@ Returns:
 
 sub setFarmCipherList    # ($farm_name,$ciphers,$cipherc)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     # assign first/second/third argument or take global value
     my $farm_name = shift;
@@ -221,8 +216,7 @@ Returns:
 
 sub getFarmCipherList    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm_name = shift;
     my $output    = -1;
 
@@ -259,8 +253,7 @@ Returns:
 
 sub getFarmCipherSet    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm_name = shift;
 
     my $output = -1;
@@ -300,8 +293,7 @@ Returns:
 
 sub getHTTPFarmDisableSSL    # ($farm_name, $protocol)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $protocol) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
@@ -338,8 +330,7 @@ Returns:
 
 sub setHTTPFarmDisableSSL    # ($farm_name, $protocol, $action )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $protocol, $action) = @_;
 
     require Tie::File;

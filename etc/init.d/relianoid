@@ -31,12 +31,9 @@
 #
 ###############################################################################
 
-use 5.36;
+use 5.036;
 use strict;
 use warnings;
-use Readonly;
-
-Readonly my $SLEEP_SECONDS => 5;
 
 my $bin    = "/usr/local/relianoid/bin/relianoid";
 my $action = $ARGV[0];
@@ -51,7 +48,7 @@ if ("$action" eq "stop") {
 
 if ("$action" eq "restart") {
     system "$bin stop > /dev/console";
-    sleep $SLEEP_SECONDS;
+    sleep 5;
     exit system "$bin start > /dev/console";
 }
 

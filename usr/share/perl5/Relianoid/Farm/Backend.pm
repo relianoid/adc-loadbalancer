@@ -47,8 +47,7 @@ Returns:
 =cut
 
 sub getFarmServerIds {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $service) = @_;
     my @servers   = ();
     my $farm_type = &getFarmType($farm_name);
@@ -120,8 +119,7 @@ FIXME:
 
 sub getFarmServers    # ($farm_name, $service)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $service) = @_;
 
     my $farm_type = &getFarmType($farm_name);
@@ -167,8 +165,7 @@ Returns:
 
 sub getFarmServer    # ( $bcks_ref, $value, $param )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $bcks_ref = shift;
     my $value    = shift;
     my $param    = shift // "id";
@@ -185,7 +182,7 @@ sub getFarmServer    # ( $bcks_ref, $value, $param )
     }
 
     # Error, not found so return undef
-    return undef;
+    return;
 }
 
 =begin nd
@@ -207,22 +204,20 @@ Returns:
 
 sub setFarmServer    # $output ($farm_name,$service,$bk_id,$bk_params)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $service, $ids, $bk) = @_;
 
     my $farm_type = &getFarmType($farm_name);
     my $output    = -1;
 
     &zenlog(
-"setting 'Server $ids ip:$bk->{ip} port:$bk->{port} max:$bk->{max_conns} weight:$bk->{weight} prio:$bk->{priority} timeout:$bk->{timeout}' for $farm_name farm, $service service of type $farm_type",
+        "setting 'Server $ids ip:$bk->{ip} port:$bk->{port} max:$bk->{max_conns} weight:$bk->{weight} prio:$bk->{priority} timeout:$bk->{timeout}' for $farm_name farm, $service service of type $farm_type",
         "info", "FARMS"
     );
 
     if ($farm_type eq "datalink") {
         require Relianoid::Farm::Datalink::Backend;
-        $output =
-          &setDatalinkFarmServer($ids, $bk->{ip}, $bk->{interface},
+        $output = &setDatalinkFarmServer($ids, $bk->{ip}, $bk->{interface},
             $bk->{weight}, $bk->{priority}, $farm_name);
     }
     elsif ($farm_type eq "l4xnat") {
@@ -266,15 +261,13 @@ Returns:
 
 sub runFarmServerDelete    # ($ids,$farm_name,$service)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($ids, $farm_name, $service) = @_;
 
     my $farm_type = &getFarmType($farm_name);
     my $output    = -1;
 
-    &zenlog("running 'ServerDelete $ids' for $farm_name farm $farm_type",
-        "info", "FARMS");
+    &zenlog("running 'ServerDelete $ids' for $farm_name farm $farm_type", "info", "FARMS");
 
     if ($farm_type eq "datalink") {
         require Relianoid::Farm::Datalink::Backend;
@@ -313,8 +306,7 @@ Returns:
 =cut
 
 sub getFarmBackendAvailableID {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farmname = shift;
     my $nbackends;
 
@@ -347,8 +339,7 @@ Returns:
 =cut
 
 sub setBackendRule {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $action    = shift;
     my $farm_ref  = shift;
     my $mark      = shift;
@@ -402,8 +393,7 @@ Variable:
 =cut
 
 sub getPriorityAlgorithmStatus {
-    &zenlog(__FILE__ . q{:} . __LINE__ . q{:} . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . q{:} . __LINE__ . q{:} . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($backends_ref, $bk_index) = @_;
 
     my $alg_status_ref;
@@ -421,9 +411,9 @@ sub getPriorityAlgorithmStatus {
     my $alg_prio         = 1;
     while ($current_alg_prio <= $alg_prio) {
 
-     #when the level of priority matches the number of down backends, loop stops
-     #and $alg_prio indicates the lowest level of prio being used.
-     #else, keep increasing the level of priority checked in the next iteration.
+        #when the level of priority matches the number of down backends, loop stops
+        #and $alg_prio indicates the lowest level of prio being used.
+        #else, keep increasing the level of priority checked in the next iteration.
         if (defined $sum_prio_ref->{$current_alg_prio}) {
             $alg_prio += $sum_prio_ref->{$current_alg_prio};
         }

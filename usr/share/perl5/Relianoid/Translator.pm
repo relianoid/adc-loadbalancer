@@ -25,8 +25,7 @@ use strict;
 
 # expects a hash. the keys are the zapi parameters and the value the lib parameters
 sub createTRANSLATE {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $dictionary = shift;
     my %translator = ();
 
@@ -40,8 +39,7 @@ sub createTRANSLATE {
 }
 
 sub getTRANSLATEInputs {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $tr     = shift;
     my @values = sort keys(%{ $tr->{api} });
     return \@values;

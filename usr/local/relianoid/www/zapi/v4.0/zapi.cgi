@@ -21,6 +21,7 @@
 #
 ###############################################################################
 
+use 5.036;
 use strict;
 use warnings;
 
@@ -89,8 +90,7 @@ require Relianoid::API40::Session if ($q->path_info eq '/session');
 unless ((exists $ENV{HTTP_ZAPI_KEY} && &validZapiKey())
     or (exists $ENV{HTTP_COOKIE} && &validCGISession()))
 {
-    &httpResponse(
-        { code => 401, body => { message => 'Authorization required' } });
+    &httpResponse({ code => 401, body => { message => 'Authorization required' } });
 }
 
 ##### Load API routes ################################################

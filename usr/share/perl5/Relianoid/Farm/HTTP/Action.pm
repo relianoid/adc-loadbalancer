@@ -46,8 +46,7 @@ Returns:
 
 sub _runHTTPFarmStart    # ($farm_name, $writeconf)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $writeconf) = @_;
 
     require Relianoid::System;
@@ -74,8 +73,7 @@ sub _runHTTPFarmStart    # ($farm_name, $writeconf)
         $args = '-s' if ($ssyncd_enabled eq 'true');
     }
 
-    my $cmd =
-"$proxy $args -f $configdir\/$farm_filename -p $piddir\/$farm_name\_proxy.pid";
+    my $cmd = "$proxy $args -f $configdir\/$farm_filename -p $piddir\/$farm_name\_proxy.pid";
     $status = &zsystem("$cmd");
 
     if ($status) {
@@ -106,7 +104,7 @@ sub _runHTTPFarmStart    # ($farm_name, $writeconf)
             }
 
             my $body =
-qq({"farms" : [ { "name" : "$farm_name", "virtual-addr" : "$farm_vip", "virtual-ports" : "$farm_vport", "mode" : "local", "state": "up", "family" : "$vip_family" }]});
+              qq({"farms" : [ { "name" : "$farm_name", "virtual-addr" : "$farm_vip", "virtual-ports" : "$farm_vport", "mode" : "local", "state": "up", "family" : "$vip_family" }]});
 
             require Relianoid::Nft;
             my $error = &httpNlbRequest(
@@ -118,10 +116,8 @@ qq({"farms" : [ { "name" : "$farm_name", "virtual-addr" : "$farm_vip", "virtual-
                 }
             );
             if ($error) {
-                &zenlog(
-"L4xnat Farm Type local for '$farm_name' can not be created.",
-                    "warning", "LSLB"
-                );
+                &zenlog("L4xnat Farm Type local for '$farm_name' can not be created.",
+                    "warning", "LSLB");
             }
         }
 
@@ -156,8 +152,7 @@ Returns:
 
 sub _runHTTPFarmStop    # ($farm_name, $writeconf)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $writeconf) = @_;
 
     require Relianoid::FarmGuardian;
@@ -179,8 +174,7 @@ sub _runHTTPFarmStop    # ($farm_name, $writeconf)
         }
         else {
             my $pid = join(', ', @pids);
-            &zenlog("Stopping HTTP farm $farm_name with PID $pid",
-                "info", "LSLB");
+            &zenlog("Stopping HTTP farm $farm_name with PID $pid", "info", "LSLB");
             kill 9, @pids;
             sleep($time);
         }
@@ -213,10 +207,8 @@ sub _runHTTPFarmStop    # ($farm_name, $writeconf)
 
     }
     else {
-        &zenlog(
-"Farm $farm_name can't be stopped, check the logs and modify the configuration",
-            "info", "LSLB"
-        );
+        &zenlog("Farm $farm_name can't be stopped, check the logs and modify the configuration",
+            "info", "LSLB");
         return 1;
     }
 
@@ -241,42 +233,33 @@ Returns:
 
 sub copyHTTPFarm    # ($farm_name,$new_farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $new_farm_name, $del) = @_;
 
     use File::Copy qw(copy);
 
     my $output           = 0;
     my @farm_configfiles = (
-        "$configdir\/$farm_name\_status.cfg",
-        "$configdir\/$farm_name\_proxy.cfg",
-        "$configdir\/$farm_name\_ErrWAF.html",
-        "$configdir\/$farm_name\_Err414.html",
-        "$configdir\/$farm_name\_Err500.html",
-        "$configdir\/$farm_name\_Err501.html",
-        "$configdir\/$farm_name\_Err503.html",
-        "$configdir\/$farm_name\_sessions.cfg",
+        "$configdir\/$farm_name\_status.cfg",  "$configdir\/$farm_name\_proxy.cfg",
+        "$configdir\/$farm_name\_ErrWAF.html", "$configdir\/$farm_name\_Err414.html",
+        "$configdir\/$farm_name\_Err500.html", "$configdir\/$farm_name\_Err501.html",
+        "$configdir\/$farm_name\_Err503.html", "$configdir\/$farm_name\_sessions.cfg",
     );
     my @new_farm_configfiles = (
-        "$configdir\/$new_farm_name\_status.cfg",
-        "$configdir\/$new_farm_name\_proxy.cfg",
-        "$configdir\/$new_farm_name\_ErrWAF.html",
-        "$configdir\/$new_farm_name\_Err414.html",
-        "$configdir\/$new_farm_name\_Err500.html",
-        "$configdir\/$new_farm_name\_Err501.html",
-        "$configdir\/$new_farm_name\_Err503.html",
-        "$configdir\/$new_farm_name\_sessions.cfg",
+        "$configdir\/$new_farm_name\_status.cfg",  "$configdir\/$new_farm_name\_proxy.cfg",
+        "$configdir\/$new_farm_name\_ErrWAF.html", "$configdir\/$new_farm_name\_Err414.html",
+        "$configdir\/$new_farm_name\_Err500.html", "$configdir\/$new_farm_name\_Err501.html",
+        "$configdir\/$new_farm_name\_Err503.html", "$configdir\/$new_farm_name\_sessions.cfg",
     );
 
     foreach my $farm_filename (@farm_configfiles) {
+        my $new_farm_filename = shift @new_farm_configfiles;
         if (-e "$farm_filename") {
-            copy("$farm_filename", "$new_farm_configfiles[0]") or $output = -1;
+            copy("$farm_filename", "$new_farm_filename") or $output = -1;
 
             if ($farm_filename eq "$configdir\/$farm_name\_proxy.cfg") {
-
                 require Tie::File;
-                tie my @configfile, 'Tie::File', "$new_farm_configfiles[0]";
+                tie my @configfile, 'Tie::File', "$new_farm_filename";
 
                 # Lines to change:
                 #Name		BasekitHTTP
@@ -287,25 +270,23 @@ sub copyHTTPFarm    # ($farm_name,$new_farm_name)
                 #\tErr503 "/usr/local/relianoid/config/BasekitHTTP_Err503.html"
                 #\t#Service "BasekitHTTP"
                 #NfMarks (for each backend)
-                grep { s/^(\s*Name\s+"?)$farm_name/$1$new_farm_name/ }
-                  @configfile;
+                grep { s/^(\s*Name\s+"?)$farm_name/$1$new_farm_name/ } @configfile;
                 grep {
-s/\tErrWAF "\/usr\/local\/relianoid\/config\/${farm_name}_ErrWAF.html"/\tErrWAF "\/usr\/local\/relianoid\/config\/${new_farm_name}_ErrWAF.html"/
+                    s/\tErrWAF "\/usr\/local\/relianoid\/config\/${farm_name}_ErrWAF.html"/\tErrWAF "\/usr\/local\/relianoid\/config\/${new_farm_name}_ErrWAF.html"/
                 } @configfile;
                 grep {
-s/\tErr414 "\/usr\/local\/relianoid\/config\/${farm_name}_Err414.html"/\tErr414 "\/usr\/local\/relianoid\/config\/${new_farm_name}_Err414.html"/
+                    s/\tErr414 "\/usr\/local\/relianoid\/config\/${farm_name}_Err414.html"/\tErr414 "\/usr\/local\/relianoid\/config\/${new_farm_name}_Err414.html"/
                 } @configfile;
                 grep {
-s/\tErr500 "\/usr\/local\/relianoid\/config\/${farm_name}_Err500.html"/\tErr500 "\/usr\/local\/relianoid\/config\/${new_farm_name}_Err500.html"/
+                    s/\tErr500 "\/usr\/local\/relianoid\/config\/${farm_name}_Err500.html"/\tErr500 "\/usr\/local\/relianoid\/config\/${new_farm_name}_Err500.html"/
                 } @configfile;
                 grep {
-s/\tErr501 "\/usr\/local\/relianoid\/config\/${farm_name}_Err501.html"/\tErr501 "\/usr\/local\/relianoid\/config\/${new_farm_name}_Err501.html"/
+                    s/\tErr501 "\/usr\/local\/relianoid\/config\/${farm_name}_Err501.html"/\tErr501 "\/usr\/local\/relianoid\/config\/${new_farm_name}_Err501.html"/
                 } @configfile;
                 grep {
-s/\tErr503 "\/usr\/local\/relianoid\/config\/${farm_name}_Err503.html"/\tErr503 "\/usr\/local\/relianoid\/config\/${new_farm_name}_Err503.html"/
+                    s/\tErr503 "\/usr\/local\/relianoid\/config\/${farm_name}_Err503.html"/\tErr503 "\/usr\/local\/relianoid\/config\/${new_farm_name}_Err503.html"/
                 } @configfile;
-                grep { s/\t#Service "$farm_name"/\t#Service "$new_farm_name"/ }
-                  @configfile;
+                grep { s/\t#Service "$farm_name"/\t#Service "$new_farm_name"/ } @configfile;
 
                 if (&getGlobalConfiguration("proxy_ng") eq 'true') {
 
@@ -315,7 +296,7 @@ s/\tErr503 "\/usr\/local\/relianoid\/config\/${farm_name}_Err503.html"/\tErr503 
                 }
                 else {
                     grep {
-s/Control \t"\/tmp\/${farm_name}_proxy.socket"/Control \t"\/tmp\/${new_farm_name}_proxy.socket"/
+                        s/Control \t"\/tmp\/${farm_name}_proxy.socket"/Control \t"\/tmp\/${new_farm_name}_proxy.socket"/
                     } @configfile;
                 }
 
@@ -328,13 +309,11 @@ s/Control \t"\/tmp\/${farm_name}_proxy.socket"/Control \t"\/tmp\/${new_farm_name
                     &setHTTPFarmBackendsMarks($new_farm_name);
                 }
 
-                unlink("$farm_filename") if ($del eq 'del');
-
-                &zenlog("Configuration saved in $new_farm_configfiles[0] file",
-                    "info", "LSLB");
+                &zenlog("Configuration saved in $new_farm_filename file", "info", "LSLB");
             }
+
+            unlink("$farm_filename") if ($del eq 'del');
         }
-        shift(@new_farm_configfiles);
     }
 
     if (-e "\/tmp\/$farm_name\_pound.socket" and $del eq 'del') {
@@ -368,8 +347,7 @@ Returns:
 =cut
 
 sub sendL7ZproxyCmd {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $self = shift;
 
     if (&getGlobalConfiguration('proxy_ng') ne 'true') {
@@ -390,13 +368,12 @@ sub sendL7ZproxyCmd {
 
     my $method = defined $self->{method} ? "-X $self->{ method } " : "";
     my $url    = "http://localhost/$self->{ uri }";
-    my $body =
-      defined $self->{body} ? "--data-ascii '" . $self->{body} . "' " : "";
+    my $body   = defined $self->{body} ? "--data-ascii '" . $self->{body} . "' " : "";
 
-# i.e: curl --unix-socket /tmp/webfarm_proxy.socket  http://localhost/listener/0
+    # i.e: curl --unix-socket /tmp/webfarm_proxy.socket  http://localhost/listener/0
     my $curl_bin = &getGlobalConfiguration('curl_bin');
     my $socket   = &getHTTPFarmSocket($self->{farm});
-    my $cmd = "$curl_bin " . $method . $body . "--unix-socket $socket $url";
+    my $cmd      = "$curl_bin " . $method . $body . "--unix-socket $socket $url";
 
     my $resp = &logAndGet($cmd, 'string');
     return 1 unless (defined $resp && $resp ne '');
@@ -426,8 +403,7 @@ Returns:
 
 sub checkFarmHTTPSystemStatus    # ($farm_name, $status, $fix)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $status, $fix) = @_;
     if ($status eq "down") {
         my $pid_file = getHTTPFarmPidFile($farm_name);
@@ -441,8 +417,7 @@ sub checkFarmHTTPSystemStatus    # ($farm_name, $status, $fix)
         my $proxy        = &getGlobalConfiguration("proxy");
         my @pids_running = @{
             &logAndGet(
-"$pgrep -f \"$proxy (-s )?-f $config_dir/$farm_file -p $pid_file\"",
-                "array"
+                "$pgrep -f \"$proxy (-s )?-f $config_dir/$farm_file -p $pid_file\"", "array"
             )
         };
 

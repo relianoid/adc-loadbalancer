@@ -59,12 +59,11 @@ for ($it = 0 ; $it < $net_size ; $it++) {
 
     if (!-f "$rrdap_dir/$rrd_dir/$if_name$db_if") {
         print
-"$0: Info: Creating the rrd database $if_name $rrdap_dir/$rrd_dir/$if_name$db_if ...\n";
+          "$0: Info: Creating the rrd database $if_name $rrdap_dir/$rrd_dir/$if_name$db_if ...\n";
         RRDs::create "$rrdap_dir/$rrd_dir/$if_name$db_if",
           "--step", "300",
           "DS:in:DERIVE:600:0:12500000",
-          "DS:out:DERIVE:600:0:12500000",
-          "RRA:LAST:0.5:1:288",         # daily - every 5 min - 288 reg
+          "DS:out:DERIVE:600:0:12500000", "RRA:LAST:0.5:1:288",    # daily - every 5 min - 288 reg
           "RRA:MIN:0.5:1:288",          # daily - every 5 min - 288 reg
           "RRA:AVERAGE:0.5:1:288",      # daily - every 5 min - 288 reg
           "RRA:MAX:0.5:1:288",          # daily - every 5 min - 288 reg
@@ -82,8 +81,7 @@ for ($it = 0 ; $it < $net_size ; $it++) {
           "RRA:MAX:0.5:288:372";        # yearly - every 1 day - 372 reg
 
         if ($ERROR = RRDs::error) {
-            print
-"$0: Error: Unable to generate the rrd database for interface $if_name: $ERROR\n";
+            print "$0: Error: Unable to generate the rrd database for interface $if_name: $ERROR\n";
         }
     }
 
@@ -93,11 +91,9 @@ for ($it = 0 ; $it < $net_size ; $it++) {
 
     print "$0: Info: Updating data in $rrdap_dir/$rrd_dir/$if_name$db_if ...\n";
 
-    RRDs::update "$rrdap_dir/$rrd_dir/$if_name$db_if", "-t", "in:out",
-      "N:$in:$out";
+    RRDs::update "$rrdap_dir/$rrd_dir/$if_name$db_if", "-t", "in:out", "N:$in:$out";
 
     if ($ERROR = RRDs::error) {
-        print
-"$0: Error: Unable to update the rrd database for interface $if_name: $ERROR\n";
+        print "$0: Error: Unable to update the rrd database for interface $if_name: $ERROR\n";
     }
 }

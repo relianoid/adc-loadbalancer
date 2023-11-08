@@ -22,16 +22,17 @@
 ###############################################################################
 
 # this script run all pl files with -rrd.pl regexh in $rrdap_dir,
-# this -rrd.pl files will create the rrd graphs that zen load balancer gui
+# this -rrd.pl files will create the rrd graphs that RELIANOID load balancer gui
 # will paint in Monitoring section
 # USE:
 # you have to include in the cron user this next line for example:
 # execution over 2 minutes
 # */2 * * * * /usr/local/relianoid/app/rrd/zenrrd
 # Fell free to create next graphs, in files type
-# name-rrd.pl, the system going to include automatically to execute
-# and viewing in Zen load balancer GUI (Monitoring secction)
+# name-rrd.pl, the system will include them automatically to run them
+# and view them in RELIANOID load balancer GUI (Monitoring section)
 
+use 5.036;
 use strict;
 use warnings;
 use Relianoid::Config;

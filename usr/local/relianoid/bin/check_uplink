@@ -21,6 +21,7 @@
 #
 ###############################################################################
 
+use 5.036;
 use strict;
 use warnings;
 use Relianoid::Config;
@@ -51,18 +52,14 @@ if (-e "$configdir/$filename" and $type eq "datalink") {
 
             if ($output ne 0 and $status eq "up") {
                 &zenlog(
-"disabling datalink backend $index with ip $backend for the $farmname farm"
-                );
-                &setFarmBackendStatus($farmname, $index, "down")
-                  ;    # disable backend
+                    "disabling datalink backend $index with ip $backend for the $farmname farm");
+                &setFarmBackendStatus($farmname, $index, "down");    # disable backend
                 &runFarmStop($farmname, "true");
                 &runFarmStart($farmname, "true");
             }
             if ($output eq 0 and $status eq "down") {
-                &zenlog(
-"enabling datalink backend $index with ip $backend for the $farmname farm"
-                );
-                &setFarmBackendStatus($farmname, $index, "up"); # enable backend
+                &zenlog("enabling datalink backend $index with ip $backend for the $farmname farm");
+                &setFarmBackendStatus($farmname, $index, "up");      # enable backend
                 &runFarmStop($farmname, "true");
                 &runFarmStart($farmname, "true");
             }

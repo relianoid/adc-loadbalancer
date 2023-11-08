@@ -1,0 +1,12 @@
+#!/usr/bin/bash
+
+echo "Executing RELIANOID Cluster transition to BACKUP...\n"
+
+# stop RELIANOID replication service
+kill -9 `pidof -x zeninotify.pl` 2>/dev/null
+
+# stop RELIANOID service
+/etc/init.d/relianoid stop
+
+# update cluster status
+echo backup > /etc/relianoid-ce-cluster.status

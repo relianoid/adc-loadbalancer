@@ -13,7 +13,7 @@ $nftlb_debug="5";
 #ZAPI Versions
 $zapi_versions="3 3.1 3.2 4.0.2";#update
 # API model path
-$zapi_model_path="/usr/local/relianoid/zapi-model";
+$zapi_model_path="/usr/local/relianoid/zapi-model";#update
 #ZAPI KEY
 $zapikey="";
 #proxy
@@ -62,9 +62,9 @@ $first_boot_flag="/etc/firstzlbboot";
 #zna migration flag
 $migration_flag="/etc/zlbmigration";
 #relianoid service
-$relianoid_service="/etc/init.d/relianoid";
+$relianoid_service="/etc/init.d/relianoid";#update
 #relianoid no restart service flag
-$relianoid_service_norestart_flag="/etc/zlbnorestart";
+$relianoid_service_norestart_flag="/etc/zlbnorestart";#update
 # directory of the migration scripts
 $mig_dir="$zdir/migrating";
 
@@ -81,15 +81,15 @@ $filedns="/etc/resolv.conf";
 # apt sources configuration file
 $fileapt="/etc/apt/sources.list";
 # apt Relianoid source
-$apt_source_relianoid="/etc/apt/sources.list.d/relianoid.list";
+$apt_source_relianoid="/etc/apt/sources.list.d/relianoid.list";#update
 # apt user conf
 $apt_conf_file="/etc/apt/apt.conf";
 # apt updates dir
-$update_dir="/usr/local/relianoid/updates";
+$update_dir="/usr/local/relianoid/updates";#update
 # Relianoid URL repo
 $repo_url_relianoid="repo.relianoid.com";#update
 # Relianoid GPG key
-$gpg_key_relianoid="ee.relianoid.com.gpg.key";
+$gpg_key_relianoid="relianoid.gpg";#update
 # Bios version
 $bios_version="/sys/devices/virtual/dmi/id/bios_version";
 
@@ -109,30 +109,30 @@ $zlb_stop_tpl="$templatedir/zlb-stop.template";
 
 ## Relianoid Files
 #appliance version file
-$applianceVersionFile="/etc/relianoid_version";
+$applianceVersionFile="/etc/relianoid_version";#update
 #this file
 $globalcfg="$configdir/global.conf";#update
 $globalcfg_tpl="$templatedir/global.conf.template";
-# Zen license
+# RELIANOID license
 $licenseFileTxt="$zdir/license.txt";#update
-# Zen license
+# RELIANOID license
 $licenseFileHtml="$zdir/license.html";#update
-#File configuration Zen Cluster
+#File configuration RELIANOID Cluster
 $filecluster="$configdir/cluster.conf";#update
 
 #let's encrypt configuration
-$temp_farm="letsencryptRelianoid";
-$le_farm="LetsencryptRelianoid";
+$temp_farm="letsencryptRelianoid";#update
+$le_farm="LetsencryptRelianoid";#update
 $le_service="LetsencryptZ";
 $le_binary="/usr/local/relianoid/bin/certbot-auto --no-self-upgrade";#update
 $le_certbot_bin="/usr/bin/certbot";
-$le_fullchain_path="/usr/local/relianoid/config/letsencrypt/";
-$le_webroot_path="/usr/local/relianoid/app/letsencryptz/webroot/";
-$le_webserver_config_file="/usr/local/relianoid/app/letsencryptz/etc/cherokee_localhost.conf";
-$le_config_path="/usr/local/relianoid/config/letsencrypt/";
+$le_fullchain_path="/usr/local/relianoid/config/letsencrypt/";#update
+$le_webroot_path="/usr/local/relianoid/app/letsencryptz/webroot/";#update
+$le_webserver_config_file="/usr/local/relianoid/app/letsencryptz/etc/cherokee_localhost.conf";#update
+$le_config_path="/usr/local/relianoid/config/letsencrypt/";#update
 $le_manual_auth_hook="$zbindir/le_dns_auth_hook";
 $le_manual_cleanup_hook="$zbindir/le_dns_cleanup_hook";
-$le_acme_bin="/usr/local/relianoid/app/letsencryptz/acme/acme.sh";
+$le_acme_bin="/usr/local/relianoid/app/letsencryptz/acme/acme.sh";#update
 $le_acme_config_path="$le_config_path/acme";
 $le_acme_cert_path="$le_acme_config_path/live";
 $le_email="";
@@ -152,7 +152,7 @@ $http_server_key_tpl="$templatedir/zencert-c.key";
 $http_bin="$http_server_dir/sbin/cherokee";
 
 #Where is temperature file?
-$temperatureFile="/proc/acpi/thermal_zone/THRM/temperature";
+$temperatureFile="/sys/class/thermal/thermal_zone0/temp";
 # network files
 $sys_net_dir="/sys/class/net";
 
@@ -290,8 +290,6 @@ $wget="/usr/bin/wget";
 $conntrack="/usr/sbin/conntrack";
 #systemctl
 $systemctl="/bin/systemctl";
-#Where is insserv?
-$insserv="/sbin/insserv";
 #Where is update-rc.d?
 $updatercd="/usr/sbin/update-rc.d";
 #Where is packetbl?
@@ -313,9 +311,9 @@ $nproc_bin="/usr/bin/nproc";
 #Where is grep?
 $grep_bin="/bin/grep";
 #Where is nft?
-$nft_bin="/usr/local/sbin/nft";#update
+$nft_bin="/usr/sbin/nft";#update
 #Where is nftlb?
-$nftlb_bin="/usr/local/relianoid/app/nftlb/sbin/nftlb";
+$nftlb_bin="/usr/local/relianoid/app/nftlb/sbin/nftlb";#update
 #Where is the nftlb service?
 $nftlb_svc="$zbindir/nftlbd";
 #Where is poweroff
@@ -353,27 +351,29 @@ $dig_bin="/usr/bin/dig";
 #where is zproxy binary?
 #where is zproxy ctl?
 #where is zproxy configuration template?
-$zproxytpl="$templatedir/proxytpl.cfg";#update
 
 # Pound
 #where is pound binary?
+$base_pound="$zdir/app/pound";#update
 #where is pound binary?
+$pound="$base_pound/sbin/pound";#update
 #where is pound ctl?
+$poundctl="$base_pound/sbin/poundctl";#update
 #where is pound configuration template?
 $poundtpl="$templatedir/poundtpl.cfg";#update
 
 # l7 proxy
 # Set the l7 binary: NG = true => zproxy, NG = false => pound
-$proxy_ng="true";#update
+$proxy_ng="false";
 
 #where is l7 proxy dir?
-$base_proxy="$zdir/app/zproxy";#update
+$base_proxy="$base_pound";
 #where is l7 proxy binary?
-$proxy="$base_proxy/bin/zproxy";#update
+$proxy="$pound";
 #where is l7 proxy ctl?
-$proxyctl="$base_proxy/bin/zproxyctl";#update
+$proxyctl="$poundctl";
 #l7 file configuration template?
-$proxytpl="$templatedir/proxytpl.cfg";#update
+$proxytpl="$poundtpl";
 
 #maximum value of http body to pass to modsecurity
 $waf_max_body="32000";
@@ -404,7 +404,7 @@ $pingc="1";
 #routing options
 $routeparams="";
 # HTTP marked traffic routing
-$mark_routing_L7="true";#update
+$mark_routing_L7="true";
 # HTTP floating ip
 #IPv6
 $ipv6_enabled="false";
@@ -435,9 +435,9 @@ $img_dir="/tmp";#update
 $rrd_dir="rrd";#update
 
 
-#Service for configure Zen directory replication
+#Service to configure RELIANOID replication directory 
 $zenino="$zbindir/enterprise.bin zeninotify";#update
-#Zen Inotify pid file
+#RELIANOID Inotify pid file
 $zeninopid="/var/run/zeninotify.pid";
 #Rsync replication parameters
 $zenrsync="-azvr --delete";#update
@@ -446,7 +446,7 @@ $arp_unsolicited="";
 #ARP announcement, true / false (default)
 $arp_announce="";
 #Where is the script ARP announcement?
-$arp_announce_bin="/usr/local/relianoid/bin/arp_announce";
+$arp_announce_bin="/usr/local/relianoid/bin/arp_announce";#update
 #path for cron task of arp announcement
 $arp_announce_cron_path="/etc/cron.d/arp_announce";
 
@@ -459,8 +459,8 @@ $duplicated_net="false";
 
 # Cron service
 $cron_service="/etc/init.d/cron";
-$cron_conf="/etc/cron.d/relianoid";
-$cron_tpl="$templatedir/relianoid.cron";
+$cron_conf="/etc/cron.d/relianoid";#update
+$cron_tpl="$templatedir/relianoid.cron";#update
 
 # Netplug service
 $netplug_init_tpl="$templatedir/netplug.template";
@@ -498,7 +498,7 @@ $key_id="id_rsa";
 # ssh keygen command
 $keygen_cmd="ssh-keygen -t rsa -f $key_path/$key_id -N '' -q";#update
 
-#Zen backup
+#RELIANOID backup
 $zenbackup="$zbindir/zenbackup.pl";#update
 
 #Do backup to
@@ -569,7 +569,7 @@ $routingRoutePrio="5";
 
 # time period to get the interface throughput stats
 
-$doc_v4_0="https://www.relianoid.com/zapidoc/v4.0_ee/";
+$doc_v4_0="https://www.relianoid.com/zapidoc/v4.0_ce/";
 
 # language used for the webgui
 $lang="";

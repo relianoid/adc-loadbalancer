@@ -33,6 +33,7 @@
 #fileconfig_penguardian structure:
 #[farmname]:::[timeout]:::[timetocheck]:::[script args]:::[logs]
 
+use 5.036;
 use strict;
 use warnings;
 
@@ -111,7 +112,7 @@ $pidfile = "${farmname}_${fservice}guardian.pid";
 
 my $fgname = &getFGFarm($farmname, $service);
 if (not $fgname) {
-    my $ms = ($service) ? "farm $farmname, service $service" : "farm $farmname";
+    my $ms  = ($service) ? "farm $farmname, service $service" : "farm $farmname";
     my $msg = "Abort: Configuration for farm $ms was not found";
 
     if ($logging eq 'enabled') {
@@ -231,10 +232,9 @@ while (1) {
             $backendid[$i]   = $subbe[1];
             $backendserv[$i] =
               ($useAlias eq 'true') ? &getFGAlias($subbe[3]) : $subbe[3];
-            $backendip[$i]   = $subbe[3];
-            $backendport[$i] = $subbe[5];
-            $backendstatus[$i] =
-              &getHTTPBackendStatusFromFile($farmname, $i, $service);
+            $backendip[$i]     = $subbe[3];
+            $backendport[$i]   = $subbe[5];
+            $backendstatus[$i] = &getHTTPBackendStatusFromFile($farmname, $i, $service);
             if ($proxy_ng eq 'true') {
                 $bk_prio_proxyng[$i] = ($subbe[9] eq '-') ? 1 : $subbe[9];
             }
@@ -280,8 +280,8 @@ while (1) {
               ? &getFGAlias($l_serv->{ip})
               : $l_serv->{ip};
             $backendmark[$i] = hex($l_serv->{tag}) if $usemark;
-            $backendport[$i] = $l_serv->{port} // $farm_st->{vport}
-              ;    # use farm port if backend port is not defined
+            $backendport[$i] = $l_serv->{port}
+              // $farm_st->{vport};    # use farm port if backend port is not defined
             $backendport[$i]   = $farm_st->{vport} if ($backendport[$i] eq "");
             $backendprio[$i]   = $l_serv->{priority};
             $backendstatus[$i] = $l_serv->{status};
@@ -347,9 +347,7 @@ while (1) {
                 if ($backendprio[$j] <= $svc_prio) {
                     $svc_prio++;
                     if ($logging eq 'enabled') {
-                        &zenlog(
-"$logheader increasing service priority to $svc_prio"
-                        );
+                        &zenlog("$logheader increasing service priority to $svc_prio");
                     }
                 }
                 $logline .= "service priority $svc_prio";
@@ -413,8 +411,7 @@ while (1) {
             {
                 $svc_prio++;
                 if ($logging eq 'enabled') {
-                    &zenlog(
-                        "$logheader increasing service priority to $svc_prio");
+                    &zenlog("$logheader increasing service priority to $svc_prio");
                 }
             }
         }
@@ -431,11 +428,7 @@ while (1) {
         my $auxLog;
         if (
             (
-                (
-                        $timedout == 0
-                    and $errorcode == 0
-                    and $backendstatus[$j] =~ /down/i
-                )
+                ($timedout == 0 and $errorcode == 0 and $backendstatus[$j] =~ /down/i)
                 or $first_exec
             )
             and $http_prio_enable
@@ -443,7 +436,7 @@ while (1) {
         {
             if ($logging eq 'enabled') {
                 &zenlog(
-"**execution OK in server $j - errorcode:$errorcode - timedout:$timedout - backend state:$backendstatus[$j]"
+                    "**execution OK in server $j - errorcode:$errorcode - timedout:$timedout - backend state:$backendstatus[$j]"
                 );
             }
 
@@ -451,8 +444,7 @@ while (1) {
             if ($type eq 'http') {
                 if ($first_exec) {
                     $status_error =
-                      &setHTTPFarmBackendStatus($farmname, $service,
-                        $backendid[$j], 'up', "");
+                      &setHTTPFarmBackendStatus($farmname, $service, $backendid[$j], 'up', "");
                 }
                 else {
                     my @backends;
@@ -478,36 +470,28 @@ while (1) {
                 $auxLog = " in farm: '$farmname', service: '$service'";
             }
             elsif ($type eq 'l4xnat') {
-                $auxLog = " in farm: '$farmname'";
-                $status_error =
-                  &setL4FarmBackendStatus($farmname, $backendid[$j], 'up');
+                $auxLog       = " in farm: '$farmname'";
+                $status_error = &setL4FarmBackendStatus($farmname, $backendid[$j], 'up');
             }
 
             $backendstatus[$j] = 'active';
 
             # WARNING: This message format is expected by 'sec'
-            &zenlog(
-                "BackEnd $backendserv[$j]:$backendport[$j] resurrect$auxLog")
-              if (
-                not $first_exec
-                and ($status_error->{code} != 1 and $status_error->{code} != -1)
-              );
+            &zenlog("BackEnd $backendserv[$j]:$backendport[$j] resurrect$auxLog")
+              if (not $first_exec
+                and ($status_error->{code} != 1 and $status_error->{code} != -1));
         }
         ### Disable backend
         elsif (
             (
-                (
-                    ($timedout == 1 or $errorcode != 0)
-                    and $backendstatus[$j] ne 'fgDOWN'
-                )
+                (($timedout == 1 or $errorcode != 0) and $backendstatus[$j] ne 'fgDOWN')
                 or $first_exec
             )
             or $http_prio_disable
           )
         {
             if ($logging eq 'enabled') {
-                &zenlog(
-                    "**execution error in ' $command ', output::**\n@output");
+                &zenlog("**execution error in ' $command ', output::**\n@output");
             }
 
             # Disabling backend for every type of farm supported
@@ -520,21 +504,18 @@ while (1) {
                 }
                 else {
                     $status_error =
-                      &setHTTPFarmBackendStatus($farmname, $service,
-                        $backendid[$j], 'fgDOWN', "");
+                      &setHTTPFarmBackendStatus($farmname, $service, $backendid[$j], 'fgDOWN', "");
                 }
                 $auxLog = " in farm: '$farmname', service: '$service'";
             }
             elsif ($type eq 'l4xnat') {
                 if ($cutConns eq 'true') {
                     $status_error =
-                      &setL4FarmBackendStatus($farmname, $backendid[$j],
-                        'fgDOWN', 'cut');
+                      &setL4FarmBackendStatus($farmname, $backendid[$j], 'fgDOWN', 'cut');
                 }
                 else {
                     $status_error =
-                      &setL4FarmBackendStatus($farmname, $backendid[$j],
-                        'fgDOWN', "");
+                      &setL4FarmBackendStatus($farmname, $backendid[$j], 'fgDOWN', "");
                 }
 
                 $auxLog = " in farm: '$farmname'";
@@ -542,8 +523,7 @@ while (1) {
             if (defined $backendprio[$j] and ($backendprio[$j] <= $svc_prio)) {
                 $svc_prio++;
                 if ($logging eq 'enabled') {
-                    &zenlog(
-                        "$logheader increasing service priority to $svc_prio");
+                    &zenlog("$logheader increasing service priority to $svc_prio");
                 }
             }
 
@@ -551,10 +531,8 @@ while (1) {
 
             # WARNING: This message format is expected by 'sec'
             &zenlog("BackEnd $backendserv[$j]:$backendport[$j] down$auxLog")
-              if (
-                not $first_exec
-                and ($status_error->{code} != 1 and $status_error->{code} != -1)
-              );
+              if (not $first_exec
+                and ($status_error->{code} != 1 and $status_error->{code} != -1));
         }
         $backendidx++;
     }
@@ -571,15 +549,14 @@ while (1) {
 
 sub printHelp {
     print
-"FarmGuardian v4.1. Check Backends Servers in a Farm and enable or disable the load balancing\n";
+      "FarmGuardian v4.1. Check Backends Servers in a Farm and enable or disable the load balancing\n";
     print "\thelp: farmguardian <farmname> [-s <service>] [-l]";
     print " [-a]" if ($eload);
     print "\n";
-    print
-"\t\t-s <service>\t: Launch FarmGuardian for a certain HTTP/S farm service\n";
+    print "\t\t-s <service>\t: Launch FarmGuardian for a certain HTTP/S farm service\n";
     print "\t\t-l\t\t: Enable logs\n";
     print
-"\t\t-a\t\t: Use the backend alias to do the farmguardian check, the alias has to be resolved\n"
+      "\t\t-a\t\t: Use the backend alias to do the farmguardian check, the alias has to be resolved\n"
       if ($eload);
 }
 

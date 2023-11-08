@@ -63,8 +63,7 @@ See Also:
 =cut
 
 sub getMemoryUsage {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $mem_string = `grep RSS /proc/$$/status`;
 
     chomp($mem_string);

@@ -38,8 +38,7 @@ Returns:
 =cut
 
 sub getNlbPid {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $nlbpidfile = &getNlbPidFile();
     my $nlbpid     = -1;
@@ -73,8 +72,7 @@ Returns:
 =cut
 
 sub getNlbPidFile {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $piddir     = &getGlobalConfiguration('piddir');
     my $nlbpidfile = "$piddir/nftlb.pid";
@@ -97,8 +95,7 @@ Returns:
 =cut
 
 sub startNlb {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $nftlbd         = &getGlobalConfiguration('zbindir') . "/nftlbd";
     my $pidof          = &getGlobalConfiguration('pidof');
     my $nlbpidfile     = &getNlbPidFile();
@@ -138,8 +135,7 @@ Returns:
 =cut
 
 sub stopNlb {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $nftlbd = &getGlobalConfiguration('zbindir') . "/nftlbd";
     my $nlbpid = &getNlbPid();
@@ -171,8 +167,7 @@ Returns:
 =cut
 
 sub httpNlbRequest {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $self     = shift;
     my $curl_cmd = &getGlobalConfiguration('curl_bin');
     my $body     = "";
@@ -189,7 +184,7 @@ sub httpNlbRequest {
       if (defined $self->{body} && $self->{body} ne "");
 
     my $execmd =
-qq($curl_cmd -w "%{http_code}" --noproxy "*" -s -H "Key: HoLa" -X "$self->{ method }" $body http://127.0.0.1:27$self->{ uri });
+      qq($curl_cmd -w "%{http_code}" --noproxy "*" -s -H "Key: HoLa" -X "$self->{ method }" $body http://127.0.0.1:27$self->{ uri });
 
     my $file_tmp = "/tmp/nft_$$";
     my $file     = $file_tmp;
@@ -254,8 +249,7 @@ Returns:
 =cut
 
 sub execNft {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $action    = shift;
     my $table     = shift;
     my $chain_def = shift;
@@ -280,13 +274,11 @@ sub execNft {
             $output = &logAndRun("$nft delete chain $table $chain");
         }
         else {
-            my @rules =
-              @{ &logAndGet("$nft -a list chain $table $chain", 'array') };
+            my @rules = @{ &logAndGet("$nft -a list chain $table $chain", 'array') };
             foreach my $r (@rules) {
                 my ($handle) = $r =~ / $rule.* \# handle (\d)$/;
                 if ($handle ne "") {
-                    $output = &logAndRun(
-                        "$nft delete rule $table $chain handle $handle");
+                    $output = &logAndRun("$nft delete rule $table $chain handle $handle");
                     last;
                 }
             }
@@ -300,8 +292,7 @@ sub execNft {
             return $output;
         }
         else {
-            my @rules =
-              @{ &logAndGet("$nft list chain $table $chain", 'array') };
+            my @rules = @{ &logAndGet("$nft list chain $table $chain", 'array') };
             foreach my $r (@rules) {
                 if ($r =~ / $rule /) {
                     $output = 1;

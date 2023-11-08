@@ -25,8 +25,7 @@ use Relianoid::Farm::HTTP::Config;
 
 # farm parameters
 sub getHTTPOutFarm {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     require Relianoid::Farm::Config;
     my $farmname = shift;
     my $farm_ref = &getFarmStruct($farmname);
@@ -37,8 +36,7 @@ sub getHTTPOutFarm {
 }
 
 sub getHTTPOutService {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     require Relianoid::Farm::HTTP::Service;
     my $farmname      = shift;
@@ -53,8 +51,7 @@ sub getHTTPOutService {
 }
 
 sub getHTTPOutBackend {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
 }
 

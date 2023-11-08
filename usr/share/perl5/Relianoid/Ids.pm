@@ -39,8 +39,7 @@ $eload = 1 if (eval { require Relianoid::ELoad; });
 my $FIN = undef;
 
 sub getIdsTree {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     require Relianoid::Farm::Core;
     require Relianoid::FarmGuardian;
@@ -76,12 +75,10 @@ sub getIdsTree {
                 my $bks = &getFarmServerIds($f, $s);
 
                 foreach my $b (@{$bks}) {
-                    $tree->{'farms'}->{$f}->{'services'}->{$s}->{'backends'}
-                      ->{$b} = $FIN;
+                    $tree->{'farms'}->{$f}->{'services'}->{$s}->{'backends'}->{$b} = $FIN;
                 }
 
-                my $fg =
-                  &getFGFarm($f, ($type =~ /datalink|l4xnat/) ? undef : $s);
+                my $fg = &getFGFarm($f, ($type =~ /datalink|l4xnat/) ? undef : $s);
                 $tree->{'farms'}->{$f}->{'services'}->{$s}->{'fg'}->{$fg} = $FIN
                   if ($fg ne '');
             }

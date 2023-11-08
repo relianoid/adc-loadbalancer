@@ -45,8 +45,7 @@ See Also:
 
 sub getZAPI    #($name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($name) = @_;
 
     use File::Grep 'fgrep';
@@ -94,8 +93,7 @@ See Also:
 
 sub setZAPI    #($name,$value)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($name, $value) = @_;
 
     my $globalcfg = &getGlobalConfiguration('globalcfg');
@@ -182,21 +180,18 @@ See Also:
 
 sub setZAPIKey    #()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $passwordsize = shift;
 
     my @alphanumeric = ('a' .. 'z', 'A' .. 'Z', 0 .. 9);
-    my $randpassword = join '', map $alphanumeric[ rand @alphanumeric ],
-      0 .. $passwordsize;
+    my $randpassword = join '', map $alphanumeric[ rand @alphanumeric ], 0 .. $passwordsize;
 
     return $randpassword;
 }
 
 sub validZapiKey    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $validKey = 0;                 # output
     my $key      = "HTTP_ZAPI_KEY";
@@ -231,10 +226,10 @@ sub validZapiKey    # ()
 }
 
 sub listZapiVersions {
-    my $version_st = &getGlobalConfiguration("zapi_versions");
-    my @versions   = split(' ', $version_st);
-
-    return sort @versions;
+    my $version_st     = &getGlobalConfiguration("zapi_versions");
+    my @versions       = split(' ', $version_st);
+    my @versions_array = sort @versions;
+    return @versions_array;
 }
 
 sub setZapiVersion {

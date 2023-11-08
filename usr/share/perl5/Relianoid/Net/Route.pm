@@ -49,8 +49,7 @@ Returns:
 # create table route identification, complemented in delIf()
 sub writeRoutes    # ($if_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $if_name = shift;
 
     my $rttables = &getGlobalConfiguration('rttables');
@@ -102,8 +101,7 @@ Returns:
 =cut
 
 sub deleteRoutesTable {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $if_name = shift;
 
     my $rttables = &getGlobalConfiguration('rttables');
@@ -152,12 +150,11 @@ sub applyRoutingCmd {
     my $ip_local  = new NetAddr::IP($$if_ref{addr}, $$if_ref{mask});
     my $net_local = $ip_local->network();
 
-    &zenlog("addlocalnet: $action route for $$if_ref{name} in table $table",
-        "debug", "NETWORK")
+    &zenlog("addlocalnet: $action route for $$if_ref{name} in table $table", "debug", "NETWORK")
       if &debug();
 
     my $ip_cmd =
-"$ip_bin -$$if_ref{ip_v} route $action $net_local dev $$if_ref{name} src $$if_ref{addr} table $table $routeparams";
+      "$ip_bin -$$if_ref{ip_v} route $action $net_local dev $$if_ref{name} src $$if_ref{addr} table $table $routeparams";
 
     my $err = &logAndRun($ip_cmd);
     return $err;
@@ -180,14 +177,12 @@ See Also:
 
 sub addlocalnet    # ($if_ref)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $if_ref = shift;
 
-    &zenlog(
-"addlocalnet( name: $$if_ref{ name }, addr: $$if_ref{ addr }, mask: $$if_ref{ mask } )",
-        "debug", "NETWORK"
-    ) if &debug();
+    &zenlog("addlocalnet( name: $$if_ref{ name }, addr: $$if_ref{ addr }, mask: $$if_ref{ mask } )",
+        "debug", "NETWORK")
+      if &debug();
 
     # Get network
     use NetAddr::IP;
@@ -231,7 +226,7 @@ sub addlocalnet    # ($if_ref)
 
             if ($net_local_table eq $net_local && $$if_ref{name} ne $link) {
                 &zenlog(
-"The network $net_local of dev $$if_ref{name} is the same than the network for $link, route is not going to be applied in table $table",
+                    "The network $net_local of dev $$if_ref{name} is the same than the network for $link, route is not going to be applied in table $table",
                     "error", "network"
                 );
                 $skip_route = 1;
@@ -277,10 +272,8 @@ sub addlocalnet    # ($if_ref)
         }
         next if (grep (/^(?:\*|table_$$if_ref{name})$/, @isolates));
 
-        &zenlog(
-"addlocalnet: into current interface: name $$iface{name} type $$iface{type}",
-            "debug", "NETWORK"
-        );
+        &zenlog("addlocalnet: into current interface: name $$iface{name} type $$iface{type}",
+            "debug", "NETWORK");
 
         #if duplicated network, next
         my $ip    = new NetAddr::IP($$iface{addr}, $$iface{mask});
@@ -289,7 +282,7 @@ sub addlocalnet    # ($if_ref)
 
         if ($net eq $net_local && $$iface{name} ne $$if_ref{name}) {
             &zenlog(
-"The network $net of dev $$iface{name} is the same than the network for $$if_ref{name}, the route is not going to be applied in table $table",
+                "The network $net of dev $$iface{name} is the same than the network for $$if_ref{name}, the route is not going to be applied in table $table",
                 "error", "network"
             );
             next;
@@ -329,8 +322,7 @@ Returns:
 
 sub dellocalnet    # ($if_ref)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $if_ref = shift;
 
     if (defined $$if_ref{addr}) {
@@ -351,9 +343,8 @@ sub dellocalnet    # ($if_ref)
 
             next if (!grep (/^$table$/, @rtables_id));
 
-# TODO: use the function 'buildRouteCmd' to create this command and use it here and with 'applyRoutingCmd'
-            my $cmd_param =
-              "$net dev $$if_ref{name} src $$if_ref{addr} table $table";
+            # TODO: use the function 'buildRouteCmd' to create this command and use it here and with 'applyRoutingCmd'
+            my $cmd_param = "$net dev $$if_ref{name} src $$if_ref{addr} table $table";
 
             next if (!&isRoute($cmd_param, $$if_ref{ip_v}));
 
@@ -386,8 +377,7 @@ Returns:
 =cut
 
 sub isRoute {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $route = shift;
     my $ipv   = shift // '';
@@ -434,8 +424,7 @@ Returns:
 =cut
 
 sub existRoute {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $route = shift;
     my $via   = shift;
@@ -475,8 +464,7 @@ Returns:
 =cut
 
 sub buildRuleCmd {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $action = shift;
     my $conf   = shift;
@@ -484,7 +472,7 @@ sub buildRuleCmd {
 
     my $ipv = (exists $conf->{ip_v}) ? "-$conf->{ip_v}" : "";
 
-# ip rule { add | del } [ priority PRIO ] [ not ] from IP/NETMASK [ to IP/NETMASK ] [ fwmark FW_MARK ] lookup TABLE_ID
+    # ip rule { add | del } [ priority PRIO ] [ not ] from IP/NETMASK [ to IP/NETMASK ] [ fwmark FW_MARK ] lookup TABLE_ID
     $cmd .= "$ip_bin $ipv rule $action" if (defined $action);
     if (    (defined $action and $action ne 'list')
         and (exists $conf->{priority} and $conf->{priority} =~ /\d/))
@@ -519,8 +507,7 @@ Todo:
 =cut
 
 sub isRule {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $conf = shift;
 
     my $ipv = (exists $conf->{ip_v}) ? "-$conf->{ip_v}" : "";
@@ -576,8 +563,7 @@ Bugs:
 =cut
 
 sub applyRule {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $action = shift;
     my $rule   = shift;
@@ -613,8 +599,7 @@ Returns:
 =cut
 
 sub genRoutingRulesPrio {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $type = shift;    # user, farm, ifaces
 
@@ -683,8 +668,7 @@ Returns:
 =cut
 
 sub listRoutingRulesPrio {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $rules = &listRoutingRules();
     my @list;
@@ -715,8 +699,7 @@ Returns:
 =cut
 
 sub getRuleFromIface {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $if_ref = shift;
     my $from   = "";
@@ -754,8 +737,7 @@ Bugs:
 =cut
 
 sub setRule {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $action = shift;
     my $rule   = shift;
@@ -805,8 +787,7 @@ See Also:
 
 sub applyRoutes    # ($table,$if_ref,$gateway)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($table, $if_ref, $gateway) = @_;
     my $if_announce = "";
 
@@ -830,7 +811,7 @@ sub applyRoutes    # ($table,$if_ref,$gateway)
     if (!defined $$if_ref{vini} || $$if_ref{vini} eq '') {
         if ($table eq "local") {
             &zenlog(
-"Applying $table routes in stack IPv$$if_ref{ip_v} to $$if_ref{name} with gateway \"$$if_ref{gateway}\"",
+                "Applying $table routes in stack IPv$$if_ref{ip_v} to $$if_ref{name} with gateway \"$$if_ref{gateway}\"",
                 "info", "NETWORK"
             );
 
@@ -839,7 +820,7 @@ sub applyRoutes    # ($table,$if_ref,$gateway)
             if ($$if_ref{gateway}) {
                 my $routeparams = &getGlobalConfiguration('routeparams');
                 my $ip_cmd =
-"$ip_bin -$$if_ref{ip_v} route replace default via $$if_ref{gateway} dev $$if_ref{name} table table_$$if_ref{name} $routeparams";
+                  "$ip_bin -$$if_ref{ip_v} route replace default via $$if_ref{gateway} dev $$if_ref{name} table table_$$if_ref{name} $routeparams";
                 $status = &logAndRun("$ip_cmd");
             }
 
@@ -869,24 +850,19 @@ sub applyRoutes    # ($table,$if_ref,$gateway)
                     $action = "add";
                 }
 
-                if (
-                    &existRoute(
-                        "default via $gateway dev $$if_ref{name}", 1, 0
-                    )
-                  )
-                {
+                if (&existRoute("default via $gateway dev $$if_ref{name}", 1, 0)) {
                     &zenlog(
-"Gateway \"$gateway\" is already applied in $table routes in stack IPv$$if_ref{ip_v}",
+                        "Gateway \"$gateway\" is already applied in $table routes in stack IPv$$if_ref{ip_v}",
                         "info", "NETWORK"
                     );
                 }
                 else {
                     &zenlog(
-"Applying $table routes in stack IPv$$if_ref{ip_v} with gateway \"$gateway\"",
+                        "Applying $table routes in stack IPv$$if_ref{ip_v} with gateway \"$gateway\"",
                         "info", "NETWORK"
                     );
                     my $ip_cmd =
-"$ip_bin -$$if_ref{ip_v} route $action default via $gateway dev $$if_ref{name} $routeparams";
+                      "$ip_bin -$$if_ref{ip_v} route $action default via $gateway dev $$if_ref{name} $routeparams";
                     $status = &logAndRun("$ip_cmd");
                 }
                 if ($$if_ref{ip_v} == 6) {
@@ -963,16 +939,13 @@ See Also:
 
 sub delRoutes    # ($table,$if_ref)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($table, $if_ref) = @_;
 
     my $status = 0;
 
-    &zenlog(
-"Deleting $table routes for IPv$$if_ref{ip_v} in interface $$if_ref{name}",
-        "info", "NETWORK"
-    );
+    &zenlog("Deleting $table routes for IPv$$if_ref{ip_v} in interface $$if_ref{name}",
+        "info", "NETWORK");
 
     if (!defined $$if_ref{vini} || $$if_ref{vini} eq '') {
 
@@ -984,15 +957,12 @@ sub delRoutes    # ($table,$if_ref)
 
             # exists if the tables does not exist
             if (!grep (/^table_$if_ref->{name}/, &listRoutingTablesNames())) {
-                &zenlog(
-"The table table_$if_ref->{name} was not flushed because it was not found",
-                    "debug2", "net"
-                );
+                &zenlog("The table table_$if_ref->{name} was not flushed because it was not found",
+                    "debug2", "net");
                 return 0;
             }
 
-            my $ip_cmd =
-              "$ip_bin -$$if_ref{ip_v} route flush table table_$$if_ref{name}";
+            my $ip_cmd = "$ip_bin -$$if_ref{ip_v} route flush table table_$$if_ref{name}";
             $status = &logAndRun("$ip_cmd");
 
             my $rule = &getRuleFromIface($if_ref);
@@ -1041,8 +1011,7 @@ See Also:
 # get default gw for interface
 sub getDefaultGW    # ($if)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $if = shift;    # optional argument
 
     my @line;
@@ -1060,8 +1029,7 @@ sub getDefaultGW    # ($if)
         open(my $rt_fd, '<', &getGlobalConfiguration('rttables'));
 
         if (grep { /^...\ttable_$cif$/ } <$rt_fd>) {
-            @routes =
-              @{ &logAndGet("$ip_bin route list table table_$cif", "array") };
+            @routes = @{ &logAndGet("$ip_bin route list table table_$cif", "array") };
         }
 
         close $rt_fd;
@@ -1096,8 +1064,7 @@ See Also:
 
 sub getIPv6DefaultGW    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my @routes = @{ &logAndGet("$ip_bin -6 route list", "array") };
     my ($default_line) = grep { /^default/ } @routes;
 
@@ -1126,8 +1093,7 @@ See Also:
 
 sub getIPv6IfDefaultGW    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my @routes = @{ &logAndGet("$ip_bin -6 route list", "array") };
     my ($default_line) = grep { /^default/ } @routes;
 
@@ -1157,8 +1123,7 @@ See Also:
 # get interface for default gw
 sub getIfDefaultGW    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my @routes = @{ &logAndGet("$ip_bin route list", "array") };
     my @defgw  = grep (/^default/, @routes);
     my @line   = split(/ /, $defgw[0]);
@@ -1184,8 +1149,7 @@ See Also:
 # from bin/relianoid, almost exactly
 sub configureDefaultGW    #()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $defaultgw    = &getGlobalConfiguration('defaultgw');
     my $defaultgwif  = &getGlobalConfiguration('defaultgwif');
     my $defaultgw6   = &getGlobalConfiguration('defaultgw6');
@@ -1222,8 +1186,7 @@ Returns:
 =cut
 
 sub listRoutingTablesNames {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $rttables = &getGlobalConfiguration('rttables');
 
@@ -1261,8 +1224,7 @@ Returns:
 =cut
 
 sub listRoutingRulesSys {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $filter = shift;
     my $filter_param;
     my @rules = ();
@@ -1328,8 +1290,7 @@ Returns:
 =cut
 
 sub listRoutingRules {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my @rules_conf = ();
     if ($eload) {
@@ -1367,8 +1328,7 @@ Returns:
 =cut
 
 sub getRoutingTableExists {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $table = shift;
     my $rc    = 1;
@@ -1406,8 +1366,7 @@ Variable: $route_ref
 
 sub getRoutingOutgoing    # ( $ip, $mark )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($ip, $mark) = @_;
     my $outgoing_ref;
 
@@ -1431,8 +1390,7 @@ sub getRoutingOutgoing    # ( $ip, $mark )
     my $ip_re = &getValidFormat("ip_addr");
 
     if ($data =~
-/^.* \Q$ip\E (?:via .* )?dev (.*) table (.*) src ($ip_re)(?: $mark_option)? uid (.*)/
-      )
+        /^.* \Q$ip\E (?:via .* )?dev (.*) table (.*) src ($ip_re)(?: $mark_option)? uid (.*)/)
     {
         my $iface      = $1;
         my $table      = $2;

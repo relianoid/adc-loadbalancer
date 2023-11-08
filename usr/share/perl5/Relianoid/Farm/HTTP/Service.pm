@@ -49,8 +49,7 @@ FIXME:
 
 sub setFarmHTTPNewService    # ($farm_name,$service)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $service) = @_;
 
     use File::Grep 'fgrep';
@@ -68,8 +67,7 @@ sub setFarmHTTPNewService    # ($farm_name,$service)
         return $output;
     }
 
-    if (!fgrep { /^\s*Service "$service"/ } "$configdir/$farm_name\_proxy.cfg")
-    {
+    if (!fgrep { /^\s*Service "$service"/ } "$configdir/$farm_name\_proxy.cfg") {
 
         #create service
         my @newservice;
@@ -160,8 +158,7 @@ Returns:
 
 sub setFarmHTTPNewServiceFirst    # ($farm_name,$service)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $service) = @_;
 
     use File::Grep 'fgrep';
@@ -179,8 +176,7 @@ sub setFarmHTTPNewServiceFirst    # ($farm_name,$service)
         return $output;
     }
 
-    if (!fgrep { /^\s*Service "$service"/ } "$configdir/$farm_name\_proxy.cfg")
-    {
+    if (!fgrep { /^\s*Service "$service"/ } "$configdir/$farm_name\_proxy.cfg") {
 
         #create service
         my @newservice;
@@ -271,8 +267,7 @@ Returns:
 
 sub delHTTPFarmService    # ($farm_name,$service)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $service) = @_;
 
     require Tie::File;
@@ -364,7 +359,7 @@ sub delHTTPFarmService    # ($farm_name,$service)
         &deleteConfL7FarmAllSession($farm_name, $service);
     }
 
-# change the ID value of services with an ID higher than the service deleted (value - 1)
+    # change the ID value of services with an ID higher than the service deleted (value - 1)
     tie my @contents, 'Tie::File', "$configdir\/$farm_name\_status.cfg";
     foreach my $line (@contents) {
         my @params = split("\ ", $line);
@@ -372,7 +367,7 @@ sub delHTTPFarmService    # ($farm_name,$service)
 
         if ($params[2] > $sindex) {
             $line =~
-s/$params[0]\ $params[1]\ $params[2]\ $params[3]\ $params[4]/$params[0]\ $params[1]\ $newval\ $params[3]\ $params[4]/g;
+              s/$params[0]\ $params[1]\ $params[2]\ $params[3]\ $params[4]/$params[0]\ $params[1]\ $newval\ $params[3]\ $params[4]/g;
         }
     }
     untie @contents;
@@ -404,8 +399,7 @@ FIXME:
 =cut
 
 sub getHTTPFarmServices {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $service_name) = @_;
 
     require Relianoid::Farm::Core;
@@ -508,8 +502,7 @@ Returns:
 =cut
 
 sub getHTTPServiceBlocks {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm = shift;
     my $srv  = shift;
     my $out  = {
@@ -609,8 +602,7 @@ Notes:
 =cut
 
 sub getHTTPServiceStruct {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farmname, $service_name) = @_;
 
     require Relianoid::FarmGuardian;
@@ -634,12 +626,10 @@ sub getHTTPServiceStruct {
     my $sesid        = &getHTTPFarmVS($farmname, $service_name, "sessionid");
     my $dyns         = &getHTTPFarmVS($farmname, $service_name, "dynscale");
     my $httpsbe      = &getHTTPFarmVS($farmname, $service_name, "httpsbackend");
-    my $pinnedConn =
-      &getHTTPFarmVS($farmname, $service_name, "pinnedConnection");
-    my $routingPol = &getHTTPFarmVS($farmname, $service_name, "routingPolicy");
+    my $pinnedConn   = &getHTTPFarmVS($farmname, $service_name, "pinnedConnection");
+    my $routingPol   = &getHTTPFarmVS($farmname, $service_name, "routingPolicy");
 
-    my $rewriteLocation =
-      &getHTTPFarmVS($farmname, $service_name, "rewriteLocation");
+    my $rewriteLocation = &getHTTPFarmVS($farmname, $service_name, "rewriteLocation");
 
     $dyns    = "false" if $dyns eq '';
     $httpsbe = "false" if $httpsbe eq '';
@@ -684,10 +674,8 @@ sub getHTTPServiceStruct {
 
     if ($eload) {
         if ($proxy_ng eq 'true') {
-            my $addRequestHeader =
-              &getHTTPFarmVS($farmname, $service_name, "addRequestHeader");
-            my $addResponseHeader =
-              &getHTTPFarmVS($farmname, $service_name, "addResponseHeader");
+            my $addRequestHeader  = &getHTTPFarmVS($farmname, $service_name, "addRequestHeader");
+            my $addResponseHeader = &getHTTPFarmVS($farmname, $service_name, "addResponseHeader");
             my $removeRequestHeader =
               &getHTTPFarmVS($farmname, $service_name, "removeRequestHeader");
             my $removeResponseHeader =
@@ -696,8 +684,7 @@ sub getHTTPServiceStruct {
               &getHTTPFarmVS($farmname, $service_name, "replaceRequestHeader");
             my $replaceResponseHeader =
               &getHTTPFarmVS($farmname, $service_name, "replaceResponseHeader");
-            my $rewriteUrl =
-              &getHTTPFarmVS($farmname, $service_name, "rewriteUrl");
+            my $rewriteUrl = &getHTTPFarmVS($farmname, $service_name, "rewriteUrl");
 
             $service_ref->{replacerequestheader}  = $replaceRequestHeader;
             $service_ref->{replaceresponseheader} = $replaceResponseHeader;
@@ -738,8 +725,7 @@ sub getHTTPServiceStruct {
 }
 
 sub getHTTPServiceId {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farmname, $service_name) = @_;
     my $id = undef;
 
@@ -755,7 +741,7 @@ sub getHTTPServiceId {
         }
         $index++;
     }
-    return undef unless ($exist);
+    return unless ($exist);
     return $id;
 }
 
@@ -778,8 +764,7 @@ FIXME:
 
 sub getHTTPFarmVS    # ($farm_name,$service,$tag)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $service, $tag) = @_;
 
     $service = "" unless $service;
@@ -1000,8 +985,7 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
         if ($tag eq "replaceRequestHeader") {
             if ($proxy_mode eq "true") {
 
-                if ($line =~
-                    /^\t\t(#?)ReplaceHeader\s+(.+)\s+"(.+)"\s+"(.+)"\s+"(.*)"/
+                if (   $line =~ /^\t\t(#?)ReplaceHeader\s+(.+)\s+"(.+)"\s+"(.+)"\s+"(.*)"/
                     && $sw == 1)
                 {
                     if ($1 eq "#") {
@@ -1035,8 +1019,7 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
         if ($tag eq "replaceResponseHeader") {
             if ($proxy_mode eq "true") {
 
-                if ($line =~
-                    /^\t\t(#?)ReplaceHeader\s+(.+)\s+"(.+)"\s+"(.+)"\s+"(.*)"/
+                if (   $line =~ /^\t\t(#?)ReplaceHeader\s+(.+)\s+"(.+)"\s+"(.+)"\s+"(.*)"/
                     && $sw == 1)
                 {
                     if ($1 eq "#") {
@@ -1069,7 +1052,7 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
         #RewriteUrl tag
         if ($tag eq "rewriteUrl") {
             if ($proxy_mode eq "true") {
-                if ($line =~ /^\t\t(#?)RewriteUrl\s+"(.+)"\s+"(.*)"(\s+last)?/
+                if (   $line =~ /^\t\t(#?)RewriteUrl\s+"(.+)"\s+"(.*)"(\s+last)?/
                     && $sw == 1)
                 {
                     if ($1 eq "#") {
@@ -1270,7 +1253,7 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
                     }
 
                     $output =
-"$output $outputa $outputp $output_ti $output_pr $output_w $output_co $output_tag\n";
+                      "$output $outputa $outputp $output_ti $output_pr $output_w $output_co $output_tag\n";
                     $output_ti = "";
                     $output_pr = "";
                     $sw_ti     = 0;
@@ -1354,8 +1337,7 @@ Returns:
 
 sub setHTTPFarmVS    # ($farm_name,$service,$tag,$string)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $service, $tag, $string) = @_;
 
     my $farm_filename  = &getFarmFile($farm_name);
@@ -1442,9 +1424,8 @@ sub setHTTPFarmVS    # ($farm_name,$service,$tag,$string)
         #client redirect default
         if ($tag eq "redirecttype") {
             if ($line =~ /^\t\tRedirect(?:Append)? (.*)/) {
-                my $rest = $1;
-                my $policy =
-                  ($string eq 'append') ? 'RedirectAppend' : 'Redirect';
+                my $rest   = $1;
+                my $policy = ($string eq 'append') ? 'RedirectAppend' : 'Redirect';
 
                 $line = "\t\t${policy} $rest";
                 last;
@@ -1569,8 +1550,7 @@ sub setHTTPFarmVS    # ($farm_name,$service,$tag,$string)
 
         #PinnedConnection
         if ($tag eq "pinnedConnection") {
-            if ($line =~ /^\t\t#?PinnedConnection/ && $sw == 1 && $string ne "")
-            {
+            if ($line =~ /^\t\t#?PinnedConnection/ && $sw == 1 && $string ne "") {
                 $line = "\t\tPinnedConnection $string";
                 last;
             }
@@ -1596,8 +1576,7 @@ sub setHTTPFarmVS    # ($farm_name,$service,$tag,$string)
 
         #RewriteLocation
         if ($tag eq "rewriteLocation") {
-            if ($line =~ /^\t\t#?RewriteLocation/ && $sw == 1 && $string ne "")
-            {
+            if ($line =~ /^\t\t#?RewriteLocation/ && $sw == 1 && $string ne "") {
                 $line = "\t\tRewriteLocation $string";
                 last;
             }
@@ -1633,8 +1612,7 @@ FIXME:
 
 sub getFarmVSI    # ($farm_name,$service)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farmname, $service) = @_;
 
     # get service position
@@ -1658,8 +1636,7 @@ sub getFarmVSI    # ($farm_name,$service)
 
 # esta funcion es solo para API32. borrar y usar getHTTPServiceStruct
 sub get_http_service_struct {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farmname, $service_name) = @_;
 
     require Relianoid::FarmGuardian;
@@ -1700,8 +1677,7 @@ sub get_http_service_struct {
 
 # esta funcion es solo para API32.
 sub get_http_all_services_struct {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farmname) = @_;
 
     # Output
@@ -1726,8 +1702,7 @@ sub get_http_all_services_struct {
 }
 
 sub get_http_all_services_summary_struct {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farmname) = @_;
 
     # Output
@@ -1756,8 +1731,7 @@ Returns:
 
 sub getHTTPFarmPriorities    # ( $farmname, $service_name )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farmname     = shift;
     my $service_name = shift;
     my @priorities;

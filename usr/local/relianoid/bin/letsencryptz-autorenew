@@ -30,10 +30,10 @@
 #	--restart		all the farms using the certificate will be restarted
 #	-h			print help
 
+use 5.036;
 use strict;
 use warnings;
 use Getopt::Long;
-use Switch;
 use Relianoid::Config;
 use Relianoid::Log;
 use Relianoid::LetsencryptZ;
@@ -66,10 +66,8 @@ GetOptions(
     'help'    => \&help,
 );
 
-&zenlog(
-"Executing Letsencrypt certificate '$cert_name' renewal with timeout '$timeout'.",
-    "info", "Letsencryptz-renewal"
-);
+&zenlog("Executing Letsencrypt certificate '$cert_name' renewal with timeout '$timeout'.",
+    "info", "Letsencryptz-renewal");
 
 # check params
 
@@ -136,14 +134,12 @@ if (defined $vip) {
             if (    &getHTTPFarmVip("vipp", $farm) eq "$le_farm_port"
                 and &getHTTPFarmStatus($farm) eq "up")
             {
-                $msg =
-"Farm $farm is listening on 'vip' $vip and Port $le_farm_port.";
+                $msg = "Farm $farm is listening on 'vip' $vip and Port $le_farm_port.";
                 last;
             }
         }
         if (not defined $msg) {
-            $msg =
-"The system has a process listening on 'vip' $vip and Port $le_farm_port.";
+            $msg = "The system has a process listening on 'vip' $vip and Port $le_farm_port.";
         }
         &zenlog($msg, "ERROR", "Letsencryptz-renewal");
         exit 1;
@@ -169,16 +165,14 @@ my $lock_le_renew_fh = &openlock($lock_le_renew, "w");
 my $error_ref;
 eval {
     alarm($timeout);
-    $error_ref =
-      &runLetsencryptRenew($cert_name, $farm_name, $vip, $force,
-        $lock_le_renew_fh);
+    $error_ref = &runLetsencryptRenew($cert_name, $farm_name, $vip, $force, $lock_le_renew_fh);
     alarm(0);
 };
 
 if ($@) {
     if ($@ =~ /timeout/) {
         $msg =
-"Error: Timeout '$timeout' reached while renewal Letsencrypt certificate '$cert_name'!.";
+          "Error: Timeout '$timeout' reached while renewal Letsencrypt certificate '$cert_name'!.";
     }
     else {
         $msg = "Unexpected error found : $@";
@@ -201,12 +195,10 @@ if (not defined $error_ref) {
     &zenlog("$action Farm '$farm_name'", "warning", "Letsencryptz-renewal");
     my $error = &unsetLetsencryptFarmService($farm_name);
     if ($error) {
-        &zenlog("Error in $action Farm '$farm_name'",
-            "error", "Letsencryptz-renewal");
+        &zenlog("Error in $action Farm '$farm_name'", "error", "Letsencryptz-renewal");
     }
     &runLetsencryptLocalWebserverStop();
-    &zenlog("$action Farm '$farm_name' was succesfully",
-        "info", "Letsencryptz-renewal");
+    &zenlog("$action Farm '$farm_name' was succesfully", "info", "Letsencryptz-renewal");
     close $lock_le_renew_fh;
     exit 1;
 }
@@ -216,10 +208,8 @@ elsif (defined $error_ref and $error_ref->{code}) {
     exit $error_ref->{code};
 }
 
-&zenlog(
-"Success, the Letsencrypt certificate '$cert_name' has been renewed successfully.",
-    "info", "Letsencryptz-renewal"
-);
+&zenlog("Success, the Letsencrypt certificate '$cert_name' has been renewed successfully.",
+    "info", "Letsencryptz-renewal");
 
 if (defined $restart) {
     my @farms_restarted;
@@ -277,20 +267,18 @@ if (defined $restart) {
 
     my $info_msg;
     if (@farms_restarted) {
-        $info_msg =
-          "The following farms were been restarted: "
-          . join(", ", @farms_restarted);
+        $info_msg = "The following farms were been restarted: " . join(", ", @farms_restarted);
     }
     if (@farms_restarted_error) {
-        $info_msg .= "The following farms could not been restarted: "
-          . join(", ", @farms_restarted_error);
+        $info_msg .=
+          "The following farms could not been restarted: " . join(", ", @farms_restarted_error);
     }
 
     &zenlog("$info_msg.", "info", "Letsencryptz-renewal") if defined $info_msg;
 
 }
 &zenlog(
-"The Letsencrypt certificate '$cert_name' renewal with timeout '$timeout' has been executed succesfully.",
+    "The Letsencrypt certificate '$cert_name' renewal with timeout '$timeout' has been executed succesfully.",
     "info", "Letsencryptz-renewal"
 );
 

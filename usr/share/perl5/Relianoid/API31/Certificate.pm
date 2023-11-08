@@ -33,8 +33,7 @@ my $CSR_KEY_SIZE = 2048;
 # GET /certificates
 sub certificates    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     require Relianoid::Certificate;
 
     my $desc         = "List certificates";
@@ -57,8 +56,7 @@ sub certificates    # ()
 # GET /certificates/CERTIFICATE
 sub download_certificate    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $cert_filename = shift;
 
     my $desc     = "Download certificate";
@@ -82,8 +80,7 @@ sub download_certificate    # ()
 # DELETE /certificates/CERTIFICATE
 sub delete_certificate    # ( $cert_filename )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $cert_filename = shift;
 
     require Relianoid::Certificate;
@@ -129,8 +126,7 @@ sub delete_certificate    # ( $cert_filename )
 
 # POST /certificates (Create CSR)
 sub create_csr {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
 
     require Relianoid::Certificate;
@@ -175,22 +171,21 @@ sub create_csr {
 
     if (&checkFQDN($json_obj->{fqdn}) eq "false") {
         my $msg =
-"FQDN is not valid. It must be as these examples: domain.com, mail.domain.com, or *.domain.com. Try again.";
+          "FQDN is not valid. It must be as these examples: domain.com, mail.domain.com, or *.domain.com. Try again.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
     if ($json_obj->{name} !~ /^[a-zA-Z0-9\-]*$/) {
         my $msg =
-"Certificate Name is not valid. Only letters, numbers and '-' chararter are allowed. Try again.";
+          "Certificate Name is not valid. Only letters, numbers and '-' chararter are allowed. Try again.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
     my $error = &createCSR(
-        $json_obj->{name},     $json_obj->{fqdn},
-        $json_obj->{country},  $json_obj->{state},
-        $json_obj->{locality}, $json_obj->{organization},
-        $json_obj->{division}, $json_obj->{mail},
-        $CSR_KEY_SIZE,         ""
+        $json_obj->{name},     $json_obj->{fqdn},     $json_obj->{country},
+        $json_obj->{state},    $json_obj->{locality}, $json_obj->{organization},
+        $json_obj->{division}, $json_obj->{mail},     $CSR_KEY_SIZE,
+        ""
     );
 
     if ($error) {
@@ -213,8 +208,7 @@ sub create_csr {
 # POST /certificates/CERTIFICATE (Upload PEM)
 sub upload_certificate    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $upload_filehandle = shift;
     my $filename          = shift;
 
@@ -254,8 +248,7 @@ sub upload_certificate    # ()
 # GET /ciphers
 sub ciphers_available    # ( $json_obj, $farmname )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $desc = "Get the ciphers available";
 
     my @out = (

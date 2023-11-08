@@ -48,8 +48,7 @@ Returns:
 
 sub setFarmClientTimeout    # ($client,$farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($client, $farm_name) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
@@ -69,8 +68,7 @@ sub setFarmClientTimeout    # ($client,$farm_name)
         $i_f++;
 
         if ($filefarmhttp[$i_f] =~ /^Client/) {
-            &zenlog("setting 'ClientTimeout $client' for $farm_name farm http",
-                "info", "LSLB");
+            &zenlog("setting 'ClientTimeout $client' for $farm_name farm http", "info", "LSLB");
             $filefarmhttp[$i_f] = "Client\t\t $client";
             $output             = $?;
             $found              = "true";
@@ -98,8 +96,7 @@ Returns:
 
 sub getFarmClientTimeout    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
@@ -135,8 +132,7 @@ Returns:
 
 sub setHTTPFarmSessionType    # ($session,$farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($session, $farm_name) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
@@ -145,8 +141,7 @@ sub setHTTPFarmSessionType    # ($session,$farm_name)
     my $lock_file = &getLockFile($farm_name);
     my $lock_fh   = &openlock($lock_file, 'w');
 
-    &zenlog("Setting 'Session type $session' for $farm_name farm http",
-        "info", "LSLB");
+    &zenlog("Setting 'Session type $session' for $farm_name farm http", "info", "LSLB");
     tie my @contents, 'Tie::File', "$configdir\/$farm_filename";
     my $i     = -1;
     my $found = "false";
@@ -222,8 +217,7 @@ Returns:
 
 sub setHTTPFarmBlacklistTime    # ($blacklist_time,$farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($blacklist_time, $farm_name) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
@@ -241,10 +235,8 @@ sub setHTTPFarmBlacklistTime    # ($blacklist_time,$farm_name)
     while ($i_f <= $array_count && $found eq "false") {
         $i_f++;
         if ($filefarmhttp[$i_f] =~ /^Alive/) {
-            &zenlog(
-"Setting 'Blacklist time $blacklist_time' for $farm_name farm http",
-                "info", "LSLB"
-            );
+            &zenlog("Setting 'Blacklist time $blacklist_time' for $farm_name farm http",
+                "info", "LSLB");
             $filefarmhttp[$i_f] = "Alive\t\t $blacklist_time";
             $output             = $?;
             $found              = "true";
@@ -272,8 +264,7 @@ Returns:
 
 sub getHTTPFarmBlacklistTime    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name) = @_;
 
     my $blacklist_time = -1;
@@ -316,8 +307,7 @@ Returns:
 
 sub setFarmHttpVerb    # ($verb,$farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($verb, $farm_name) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
@@ -336,8 +326,7 @@ sub setFarmHttpVerb    # ($verb,$farm_name)
     while ($i_f <= $array_count && $found eq "false") {
         $i_f++;
         if ($filefarmhttp[$i_f] =~ /xHTTP/) {
-            &zenlog("Setting 'Http verb $verb' for $farm_name farm http",
-                "info", "LSLB");
+            &zenlog("Setting 'Http verb $verb' for $farm_name farm http", "info", "LSLB");
             $filefarmhttp[$i_f] = "\txHTTP $verb";
             $output             = $?;
             $found              = "true";
@@ -372,8 +361,7 @@ Returns:
 
 sub getFarmHttpVerb    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
@@ -412,8 +400,7 @@ FIXME
 
 sub setFarmListen    # ( $farm_name, $farmlisten )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $flisten) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
@@ -494,8 +481,7 @@ sub setFarmListen    # ( $farm_name, $farmlisten )
         if (   $filefarmhttp[$i_f] =~ /.*StrictTransportSecurity/
             && $flisten eq "http")
         {
-            $filefarmhttp[$i_f] =~
-              s/StrictTransportSecurity/#StrictTransportSecurity/;
+            $filefarmhttp[$i_f] =~ s/StrictTransportSecurity/#StrictTransportSecurity/;
         }
         if (   $filefarmhttp[$i_f] =~ /.*StrictTransportSecurity/
             && $flisten eq "https")
@@ -547,15 +533,13 @@ Returns:
 
 sub setFarmRewriteL    # ($farm_name,$rewritelocation,$path)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $rewritelocation, $path) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
     my $output        = -1;
 
-    &zenlog("setting 'Rewrite Location' for $farm_name to $rewritelocation",
-        "info", "LSLB");
+    &zenlog("setting 'Rewrite Location' for $farm_name to $rewritelocation", "info", "LSLB");
 
     my $lock_file = &getLockFile($farm_name);
     my $lock_fh   = &openlock($lock_file, 'w');
@@ -597,8 +581,7 @@ Returns:
 
 sub getFarmRewriteL    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
@@ -637,15 +620,13 @@ Returns:
 
 sub setFarmConnTO    # ($tout,$farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($tout, $farm_name) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
     my $output        = -1;
 
-    &zenlog("Setting 'ConnTo timeout $tout' for $farm_name farm http",
-        "info", "LSLB");
+    &zenlog("Setting 'ConnTo timeout $tout' for $farm_name farm http", "info", "LSLB");
 
     my $lock_file = &getLockFile($farm_name);
     my $lock_fh   = &openlock($lock_file, 'w');
@@ -686,8 +667,7 @@ Returns:
 
 sub getFarmConnTO    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
@@ -723,8 +703,7 @@ Returns:
 
 sub setHTTPFarmTimeout    # ($timeout,$farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($timeout, $farm_name) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
@@ -769,8 +748,7 @@ Returns:
 
 sub getHTTPFarmTimeout    # ($farm_filename)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
@@ -806,8 +784,7 @@ Returns:
 
 sub setHTTPFarmMaxClientTime    # ($track,$farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($track, $farm_name) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
@@ -851,8 +828,7 @@ Returns:
 
 sub getHTTPFarmMaxClientTime    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
@@ -891,15 +867,12 @@ Returns:
 
 sub getHTTPFarmGlobalStatus    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name) = @_;
 
     my $proxyctl = &getGlobalConfiguration('proxyctl');
 
-    return
-      @{ &logAndGet("$proxyctl -c \"/tmp/$farm_name\_proxy.socket\"", "array")
-      };
+    return @{ &logAndGet("$proxyctl -c \"/tmp/$farm_name\_proxy.socket\"", "array") };
 }
 
 =begin nd
@@ -919,8 +892,7 @@ Returns:
 
 sub setFarmErr    # ($farm_name,$content,$nerr)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $content, $nerr) = @_;
 
     my $output = -1;
@@ -961,8 +933,7 @@ Returns:
 # Only http function
 sub getFarmErr    # ($farm_name,$nerr)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $nerr) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
@@ -1010,8 +981,7 @@ Returns:
 
 sub setHTTPFarmConfErrFile    # ($enabled, $farm_name, $err)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($enabled, $farm_name, $err) = @_;
     require Relianoid::Farm::Core;
     my $farm_filename = &getFarmFile($farm_name);
@@ -1042,10 +1012,7 @@ sub setHTTPFarmConfErrFile    # ($enabled, $farm_name, $err)
         foreach my $line (@filefarmhttp) {
             $i++;
             if ($line =~ /^ListenHTTP/) {
-                my $directive =
-                    "\tErr$err \"$configdir" . "/"
-                  . $farm_name
-                  . "_Err$err.html\"";
+                my $directive = "\tErr$err \"$configdir" . "/" . $farm_name . "_Err$err.html\"";
                 splice @filefarmhttp, $i + 1, 0, $directive;
                 last;
             }
@@ -1085,8 +1052,7 @@ Returns:
 
 sub getHTTPFarmBootStatus    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
@@ -1123,8 +1089,7 @@ Returns:
 
 sub setHTTPFarmBootStatus    # ($farm_name, $value)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $value) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
@@ -1159,20 +1124,20 @@ Returns:
 
 sub getHTTPFarmStatus    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name) = @_;
 
-    my @pid         = &getHTTPFarmPid($farm_name);
-    my $output      = -1;
-    my $running_pid = kill(0, @pid) if @pid;
+    my @pid    = &getHTTPFarmPid($farm_name);
+    my $output = -1;
+    my $running_pid;
+    $running_pid = kill(0, @pid) if @pid;
 
     if (@pid && $running_pid) {
         $output = "up";
     }
     else {
 
-      #~ unlink &getHTTPFarmPidFile( $farm_name ) if ( !@pid && !$running_pid );
+        #~ unlink &getHTTPFarmPidFile( $farm_name ) if ( !@pid && !$running_pid );
         $output = "down";
     }
 
@@ -1195,8 +1160,7 @@ Returns:
 
 sub getHTTPFarmSocket    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name) = @_;
 
     return "/tmp/" . $farm_name . "_proxy.socket";
@@ -1217,8 +1181,7 @@ Returns:
 
 sub getHTTPFarmPid    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name) = @_;
 
     my $piddir  = &getGlobalConfiguration('piddir');
@@ -1281,8 +1244,7 @@ Returns:
 
 sub getHTTPFarmPidFile    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name) = @_;
 
     my $piddir  = &getGlobalConfiguration('piddir');
@@ -1307,8 +1269,7 @@ Returns:
 
 sub getHTTPFarmVip    # ($info,$farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($info, $farm_name) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
@@ -1356,8 +1317,7 @@ Returns:
 
 sub setHTTPFarmVirtualConf    # ($vip,$vip_port,$farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($vip, $vip_port, $farm_name) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
@@ -1421,15 +1381,14 @@ Returns:
 
 sub getHTTPFarmConfigIsOK    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm_name = shift;
 
     my $proxy         = &getGlobalConfiguration('proxy');
     my $farm_filename = &getFarmFile($farm_name);
     my $proxy_command = "$proxy -f $configdir\/$farm_filename -c";
 
-# do not use the function 'logAndGet' here is managing the error output and error code
+    # do not use the function 'logAndGet' here is managing the error output and error code
     my $run = `$proxy_command 2>&1`;
     my $rc  = $?;
 
@@ -1458,8 +1417,7 @@ Returns:
 
 sub getHTTPFarmConfigErrorMessage    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm_name = shift;
     my $service;
 
@@ -1467,7 +1425,7 @@ sub getHTTPFarmConfigErrorMessage    # ($farm_name)
     my $farm_filename = &getFarmFile($farm_name);
     my $proxy_command = "$proxy -f $configdir\/$farm_filename -c";
 
-# do not use the function 'logAndGet' here is managing the error output and error code
+    # do not use the function 'logAndGet' here is managing the error output and error code
     my @run = `$proxy_command 2>&1`;
     my $rc  = $?;
 
@@ -1504,9 +1462,9 @@ sub getHTTPFarmConfigErrorMessage    # ($farm_name)
 
     close $fileconf;
 
-# examples of error msg
-#	AAAhttps, /usr/local/relianoid/config/AAAhttps_proxy.cfg line 36: unknown directive
-#	AAAhttps, /usr/local/relianoid/config/AAAhttps_proxy.cfg line 40: SSL_CTX_use_PrivateKey_file failed - aborted
+    # examples of error msg
+    #	AAAhttps, /usr/local/relianoid/config/AAAhttps_proxy.cfg line 36: unknown directive
+    #	AAAhttps, /usr/local/relianoid/config/AAAhttps_proxy.cfg line 40: SSL_CTX_use_PrivateKey_file failed - aborted
     $file_line =~ /\s*([\w-]+)/;
     my $param = $1;
     $msg = "Error in the configuration file";
@@ -1539,8 +1497,7 @@ sub getHTTPFarmConfigErrorMessage    # ($farm_name)
 }
 
 sub getHTTPFarmStruct {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farmname = shift;
     my $type     = shift // &getFarmType($farmname);
 
@@ -1668,8 +1625,7 @@ sub getHTTPFarmStruct {
 }
 
 sub getHTTPVerbCode {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $verbs_set = shift;
 
     # Default output value in case of missing verb set
@@ -1696,8 +1652,7 @@ sub getHTTPVerbCode {
 # Reading
 
 sub parseL7ProxyConfig {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($file) = @_;
 
     my @lines = split /\n/, $file;
@@ -1878,8 +1833,7 @@ sub parseL7ProxyConfig {
 }
 
 sub getL7ProxyConf {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm) = @_;
 
     require Relianoid::Config;
@@ -1906,8 +1860,7 @@ my $svc_defaults = {
 };
 
 sub print_backends {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($be_list) = @_;
 
     my $be_list_str = '';
@@ -1932,8 +1885,7 @@ sub print_backends {
 }
 
 sub print_session {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($session_ref) = @_;
 
     my $session_str = '';
@@ -1958,15 +1910,13 @@ sub print_session {
 }
 
 sub writeL7ProxyConfigToString {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($conf) = @_;
 
     my $listener      = $conf->{listeners}[0];
     my $listener_type = uc $listener->{type};
 
-    my $global_str =
-      qq(######################################################################
+    my $global_str = qq(######################################################################
 ##GLOBAL OPTIONS
 User		"$conf->{ User }"
 Group		"$conf->{ Group }"
@@ -1990,8 +1940,7 @@ Control 	"$conf->{ Control }"
 );
 
     if ($listener_type eq 'HTTP') {
-        $global_str .=
-          qq(#DHParams 	"/usr/local/relianoid/app/zproxy/etc/dh2048.pem"
+        $global_str .= qq(#DHParams 	"/usr/local/relianoid/app/zproxy/etc/dh2048.pem"
 #ECDHCurve	"prime256v1"
 );
     }
@@ -2046,9 +1995,8 @@ ECDHCurve	"$conf->{ ECDHCurve }"
                 if (exists $svc->{'BackendCookie'}
                     && ref $svc->{'BackendCookie'} eq 'HASH')
                 {
-                    my $ckie = $svc->{'BackendCookie'};
-                    my $values =
-qq("$ckie->{name}" "$ckie->{domain}" "$ckie->{path}" $ckie->{age});
+                    my $ckie   = $svc->{'BackendCookie'};
+                    my $values = qq("$ckie->{name}" "$ckie->{domain}" "$ckie->{path}" $ckie->{age});
                     $i_str = qq(\t\tBackendCookie $values\n);
                 }
                 else {
@@ -2111,8 +2059,7 @@ Listen${listener_type}
         $listener_str .= qq(\tCert "$_"\n) for @{ $listener->{Cert} };
         $listener_str .= qq(\tCiphers "$listener->{ Ciphers }"\n);
         $listener_str .= qq(\tDisable "$_"\n) for @{ $listener->{Disable} };
-        $listener_str .=
-          qq(\tSSLHonorCipherOrder "$listener->{ SSLHonorCipherOrder }"\n);
+        $listener_str .= qq(\tSSLHonorCipherOrder "$listener->{ SSLHonorCipherOrder }"\n);
     }
     else {
         $listener_str .= qq(
@@ -2161,8 +2108,7 @@ End
 }
 
 sub cleanHashValues {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($hash_ref) = @_;
 
     for my $key (keys %{$hash_ref}) {
@@ -2192,8 +2138,7 @@ Returns:
 
 sub setFarmProxyNGConf    # ($proxy_mode,$farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($proxy_mode, $farm_name) = @_;
 
     require Relianoid::Farm::HTTP::Backend;
@@ -2258,7 +2203,7 @@ sub setFarmProxyNGConf    # ($proxy_mode,$farm_name)
         # Service level all directives
         if (   $sw == 1
             && $array[$i] =~
-/^\s*(#?)(PinnedConnection|RoutingPolicy|RewriteLocation|AddHeader|AddResponseHeader|HeadRemove|RemoveResponseHeader|RewriteUrl|ReplaceHeader)/
+            /^\s*(#?)(PinnedConnection|RoutingPolicy|RewriteLocation|AddHeader|AddResponseHeader|HeadRemove|RemoveResponseHeader|RewriteUrl|ReplaceHeader)/
           )
         {
             if ($proxy_mode eq "false") {
@@ -2387,8 +2332,7 @@ Returns:
 =cut
 
 sub doL7FarmRules {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $action        = shift;
     my $farm_name     = shift;
     my $prev_farm_ref = shift;
@@ -2437,8 +2381,7 @@ Returns:
 
 sub getHTTPAddReqHeader    # ($farm_name,$service)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name) = @_;
     return &get_http_farm_headers_struct($farm_name)->{addheader};
 }
@@ -2459,8 +2402,7 @@ Returns:
 
 sub addHTTPAddheader    # ($farm_name, $header, $header_ind)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $header) = @_;
 
     require Relianoid::Farm::Core;
@@ -2471,7 +2413,7 @@ sub addHTTPAddheader    # ($farm_name, $header, $header_ind)
     &ztielock(\my @fileconf, "$configdir/$ffile");
 
     my $index        = 0;
-    my $rewrite_flag = 0;   # it is used to add HeadRemove before than AddHeader
+    my $rewrite_flag = 0;    # it is used to add HeadRemove before than AddHeader
     foreach my $line (@fileconf) {
         if ($line =~ /^[#\s]*Service \"/) { last; }
         if ($line =~ /[#\s]*RewriteLocation/) {
@@ -2480,8 +2422,7 @@ sub addHTTPAddheader    # ($farm_name, $header, $header_ind)
         elsif ($rewrite_flag) {
 
             # put new headremove before than last one
-            if ($line !~
-/^[#\s]*(?:AddHeader|HeadRemove|AddResponseHeader|RemoveResponseHead)\s+"/
+            if ($line !~ /^[#\s]*(?:AddHeader|HeadRemove|AddResponseHeader|RemoveResponseHead)\s+"/
                 and $rewrite_flag)
 
             {
@@ -2518,8 +2459,7 @@ Returns:
 
 sub modifyHTTPAddheader    # ($farm_name, $header, $header_ind)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $header, $header_ind) = @_;
 
     require Relianoid::Farm::Core;
@@ -2570,8 +2510,7 @@ Returns:
 
 sub delHTTPAddheader    # ($farm_name, $header_ind)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $header_ind) = @_;
 
     require Relianoid::Farm::Core;
@@ -2621,8 +2560,7 @@ Returns:
 
 sub getHTTPRemReqHeader    # ($farm_name,$service)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name) = @_;
     return &get_http_farm_headers_struct($farm_name)->{headremove};
 }
@@ -2643,8 +2581,7 @@ Returns:
 
 sub addHTTPHeadremove    # ($farm_name, $header)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $header) = @_;
 
     require Relianoid::Farm::Core;
@@ -2655,7 +2592,7 @@ sub addHTTPHeadremove    # ($farm_name, $header)
     &ztielock(\my @fileconf, "$configdir/$ffile");
 
     my $index        = 0;
-    my $rewrite_flag = 0;   # it is used to add HeadRemove before than AddHeader
+    my $rewrite_flag = 0;    # it is used to add HeadRemove before than AddHeader
     foreach my $line (@fileconf) {
         if ($line =~ /^[#\s]*Service \"/) { last; }
         if ($line =~ /[#\s]*RewriteLocation/) {
@@ -2664,8 +2601,7 @@ sub addHTTPHeadremove    # ($farm_name, $header)
         elsif ($rewrite_flag) {
 
             # put new headremove after than last one
-            if ($line !~
-/^[#\s]*(?:AddHeader|HeadRemove|AddResponseHeader|RemoveResponseHead)\s+"/
+            if ($line !~ /^[#\s]*(?:AddHeader|HeadRemove|AddResponseHeader|RemoveResponseHead)\s+"/
                 and $rewrite_flag)
             {
 
@@ -2701,8 +2637,7 @@ Returns:
 
 sub modifyHTTPHeadremove    # ($farm_name, $header, $header_ind)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $header, $header_ind) = @_;
 
     require Relianoid::Farm::Core;
@@ -2753,8 +2688,7 @@ Returns:
 
 sub delHTTPHeadremove    # ($farm_name,$service,$code)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $header_ind) = @_;
 
     require Relianoid::Farm::Core;
@@ -2804,8 +2738,7 @@ Returns:
 
 sub getHTTPAddRespHeader    # ($farm_name,$service)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name) = @_;
     return &get_http_farm_headers_struct($farm_name)->{addresponseheader};
 }
@@ -2826,8 +2759,7 @@ Returns:
 
 sub addHTTPAddRespheader    # ($farm_name,$service,$code)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $header) = @_;
 
     require Relianoid::Farm::Core;
@@ -2838,7 +2770,7 @@ sub addHTTPAddRespheader    # ($farm_name,$service,$code)
     &ztielock(\my @fileconf, "$configdir/$ffile");
 
     my $index        = 0;
-    my $rewrite_flag = 0;   # it is used to add HeadRemove before than AddHeader
+    my $rewrite_flag = 0;    # it is used to add HeadRemove before than AddHeader
     foreach my $line (@fileconf) {
         if ($line =~ /^[#\s]*Service \"/) { last; }
         if ($line =~ /[#\s]*RewriteLocation/) {
@@ -2847,8 +2779,7 @@ sub addHTTPAddRespheader    # ($farm_name,$service,$code)
         elsif ($rewrite_flag) {
 
             # put new headremove before than last one
-            if ($line !~
-/^[#\s]*(?:AddHeader|HeadRemove|AddResponseHeader|RemoveResponseHead)\s+"/
+            if ($line !~ /^[#\s]*(?:AddHeader|HeadRemove|AddResponseHeader|RemoveResponseHead)\s+"/
                 and $rewrite_flag)
             {
 
@@ -2884,8 +2815,7 @@ Returns:
 
 sub modifyHTTPAddRespheader    # ($farm_name, $header, $header_ind)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $header, $header_ind) = @_;
 
     require Relianoid::Farm::Core;
@@ -2936,8 +2866,7 @@ Returns:
 
 sub delHTTPAddRespheader    # ($farm_name,$service,$code)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $header_ind) = @_;
 
     require Relianoid::Farm::Core;
@@ -2988,8 +2917,7 @@ Returns:
 
 sub getHTTPRemRespHeader    # ($farm_name,$service)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name) = @_;
     return &get_http_farm_headers_struct($farm_name)->{removeresponseheader};
 }
@@ -3010,8 +2938,7 @@ Returns:
 =cut
 
 sub addHTTPRemRespHeader {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $header) = @_;
 
     require Relianoid::Farm::Core;
@@ -3022,7 +2949,7 @@ sub addHTTPRemRespHeader {
     &ztielock(\my @fileconf, "$configdir/$ffile");
 
     my $index        = 0;
-    my $rewrite_flag = 0;   # it is used to add HeadRemove before than AddHeader
+    my $rewrite_flag = 0;    # it is used to add HeadRemove before than AddHeader
     foreach my $line (@fileconf) {
         if ($line =~ /^[#\s]*Service \"/) { last; }
         if ($line =~ /[#\s]*RewriteLocation/) {
@@ -3031,8 +2958,7 @@ sub addHTTPRemRespHeader {
         elsif ($rewrite_flag) {
 
             # put new headremove after than last one
-            if ($line !~
-/^[#\s]*(?:AddHeader|HeadRemove|AddResponseHeader|RemoveResponseHead)\s+"/
+            if ($line !~ /^[#\s]*(?:AddHeader|HeadRemove|AddResponseHeader|RemoveResponseHead)\s+"/
                 and $rewrite_flag)
             {
 
@@ -3068,8 +2994,7 @@ Returns:
 
 sub modifyHTTPRemRespHeader    # ($farm_name, $header, $header_ind)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $header, $header_ind) = @_;
 
     require Relianoid::Farm::Core;
@@ -3120,8 +3045,7 @@ Returns:
 
 sub delHTTPRemRespHeader    # ($farm_name,$service,$code)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $header_ind) = @_;
 
     require Relianoid::Farm::Core;
@@ -3173,8 +3097,7 @@ Returns:
 
 sub addHTTPReplaceHeaders    # ( $farm_name, $type, $header, $match, $replace )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $type, $header, $match, $replace) = @_;
 
     require Relianoid::Farm::Core;
@@ -3184,8 +3107,8 @@ sub addHTTPReplaceHeaders    # ( $farm_name, $type, $header, $match, $replace )
     require Relianoid::Lock;
     &ztielock(\my @fileconf, "$configdir/$ffile");
 
-    my $index        = 0;
-    my $rewrite_flag = 0;   # it is used to add HeadRemove before than AddHeader
+    my $index               = 0;
+    my $rewrite_flag        = 0;    # it is used to add HeadRemove before than AddHeader
     my $rewritelocation_ind = 0;
     my $replace_found       = 0;
     foreach my $line (@fileconf) {
@@ -3241,10 +3164,9 @@ Returns:
 
 =cut
 
-sub modifyHTTPReplaceHeaders # ( $farm_name, $type, $header, $match, $replace, $header_ind )
+sub modifyHTTPReplaceHeaders    # ( $farm_name, $type, $header, $match, $replace, $header_ind )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $type, $header, $match, $replace, $header_ind) = @_;
 
     require Relianoid::Farm::Core;
@@ -3295,8 +3217,7 @@ Returns:
 
 sub getHTTPReplaceHeaders    # ( $farm_name, $type)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $type) = @_;
     return &get_http_farm_headers_struct($farm_name)->{replacerequestheader}
       if ($type eq "Request");
@@ -3320,8 +3241,7 @@ Returns:
 
 sub delHTTPReplaceHeaders    # ($farm_name, $header_ind, $type)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $header_ind, $deltype) = @_;
 
     require Relianoid::Farm::Core;
@@ -3373,8 +3293,7 @@ Returns:
 =cut
 
 sub get_http_farm_headers_struct {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farmname = shift;
     my $farm_st  = shift // {};
     my $proxy_ng = shift // &getGlobalConfiguration('proxy_ng');
@@ -3426,11 +3345,10 @@ sub get_http_farm_headers_struct {
               };
         }
         elsif ($proxy_ng eq 'true'
-            && $line =~
-            /^[#\s]*ReplaceHeader\s+(.+)\s+"(.+)"\s+"(.+)"\s+"(.*)"/)
+            && $line =~ /^[#\s]*ReplaceHeader\s+(.+)\s+"(.+)"\s+"(.+)"\s+"(.*)"/)
         {
 
-        #( my $type, my $header, my $match, my $replace ) = split ( /\s+/, $1 );
+            #( my $type, my $header, my $match, my $replace ) = split ( /\s+/, $1 );
             push @{ $farm_st->{replacerequestheader} },
               {
                 "id"      => $rep_req_head_index++,
@@ -3489,8 +3407,7 @@ Returns:
 =cut
 
 sub moveHeader {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $farm_name = shift;
     my $regex     = shift;
@@ -3544,8 +3461,7 @@ Returns:
 
 sub getHTTPFarmLogs    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $farm_name = shift;
     my $proxy_ng  = shift // &getGlobalConfiguration('proxy_ng');
@@ -3612,8 +3528,7 @@ Returns:
 
 sub setHTTPFarmLogs    # ($farm_name, $action)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm_name = shift;
     my $action    = shift;
     my $proxy_ng  = shift // &getGlobalConfiguration('proxy_ng');
@@ -3659,8 +3574,7 @@ Returns:
 
 sub getHTTPFarm100Continue    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm_name = shift;
 
     my $output = 'true';
@@ -3695,8 +3609,7 @@ Returns:
 
 sub setHTTPFarm100Continue    # ($farm_name, $action)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $action) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);

@@ -42,8 +42,7 @@ Returns:
 
 sub setFarmBackendMaintenance    # ($farm_name,$backend,$mode,$service)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $backend, $mode, $service) = @_;
 
     my $farm_type = &getFarmType($farm_name);
@@ -51,13 +50,11 @@ sub setFarmBackendMaintenance    # ($farm_name,$backend,$mode,$service)
 
     if ($farm_type eq "http" || $farm_type eq "https") {
         require Relianoid::Farm::HTTP::Backend;
-        $output =
-          &setHTTPFarmBackendMaintenance($farm_name, $backend, $mode, $service);
+        $output = &setHTTPFarmBackendMaintenance($farm_name, $backend, $mode, $service);
     }
     elsif ($farm_type eq "l4xnat") {
         require Relianoid::Farm::L4xNAT::Backend;
-        $output =
-          &setL4FarmBackendStatus($farm_name, $backend, 'maintenance', $mode);
+        $output = &setL4FarmBackendStatus($farm_name, $backend, 'maintenance', $mode);
     }
 
     return $output;
@@ -79,8 +76,7 @@ Returns:
 
 sub setFarmBackendNoMaintenance    # ($farm_name,$backend,$service)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $backend, $service) = @_;
 
     my $farm_type = &getFarmType($farm_name);
@@ -88,8 +84,7 @@ sub setFarmBackendNoMaintenance    # ($farm_name,$backend,$service)
 
     if ($farm_type eq "http" || $farm_type eq "https") {
         require Relianoid::Farm::HTTP::Backend;
-        $output =
-          &setHTTPFarmBackendNoMaintenance($farm_name, $backend, $service);
+        $output = &setHTTPFarmBackendNoMaintenance($farm_name, $backend, $service);
     }
     elsif ($farm_type eq "l4xnat") {
         require Relianoid::Farm::L4xNAT::Backend;

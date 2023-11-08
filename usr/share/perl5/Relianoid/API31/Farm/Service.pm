@@ -32,8 +32,7 @@ if (eval { require Relianoid::ELoad; }) {
 # POST
 sub new_farm_service    # ( $json_obj, $farmname )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $farmname = shift;
 
@@ -95,8 +94,7 @@ sub new_farm_service    # ( $json_obj, $farmname )
 
     # check if the service name has invalid characters
     if ($result == 3) {
-        my $msg =
-"Service name is not valid, only allowed numbers, letters and hyphens.";
+        my $msg = "Service name is not valid, only allowed numbers, letters and hyphens.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
@@ -107,10 +105,8 @@ sub new_farm_service    # ( $json_obj, $farmname )
     }
 
     # no error found, return successful response
-    &zenlog(
-"Success, a new service has been created in farm $farmname with id $json_obj->{id}.",
-        "info", "LSLB"
-    );
+    &zenlog("Success, a new service has been created in farm $farmname with id $json_obj->{id}.",
+        "info", "LSLB");
 
     my $body = {
         description => $desc,
@@ -141,8 +137,7 @@ sub new_farm_service    # ( $json_obj, $farmname )
 
 #GET /farms/<name>/services/<service>
 sub farm_services {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farmname, $servicename) = @_;
 
     require Relianoid::Farm::Config;
@@ -196,8 +191,7 @@ sub farm_services {
 
 sub modify_services    # ( $json_obj, $farmname, $service )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($json_obj, $farmname, $service) = @_;
 
     require Relianoid::Farm::Base;
@@ -295,15 +289,13 @@ sub modify_services    # ( $json_obj, $farmname, $service )
     }
 
     if (exists $json_obj->{persistence}) {
-        if ($json_obj->{persistence} =~ /^(|IP|BASIC|URL|PARM|COOKIE|HEADER)$/)
-        {
+        if ($json_obj->{persistence} =~ /^(|IP|BASIC|URL|PARM|COOKIE|HEADER)$/) {
             my $session = $json_obj->{persistence};
             $session = 'nothing' if $session eq "";
 
             my $error = &setFarmVS($farmname, $service, "session", $session);
             if ($error) {
-                my $msg =
-                  "It's not possible to change the persistence parameter.";
+                my $msg = "It's not possible to change the persistence parameter.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
         }
@@ -314,8 +306,7 @@ sub modify_services    # ( $json_obj, $farmname, $service )
     # It is necessary evaluate first session, next ttl and later persistence
     if (exists $json_obj->{sessionid}) {
         if ($session =~ /^(URL|COOKIE|HEADER)$/) {
-            &setFarmVS($farmname, $service, "sessionid",
-                $json_obj->{sessionid});
+            &setFarmVS($farmname, $service, "sessionid", $json_obj->{sessionid});
         }
     }
 
@@ -326,8 +317,7 @@ sub modify_services    # ( $json_obj, $farmname, $service )
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
 
-            my $error =
-              &setFarmVS($farmname, $service, "ttl", "$json_obj->{ttl}");
+            my $error = &setFarmVS($farmname, $service, "ttl", "$json_obj->{ttl}");
             if ($error) {
                 my $msg = "Could not change the ttl parameter.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
@@ -360,12 +350,9 @@ sub modify_services    # ( $json_obj, $farmname, $service )
     }
 
     if (exists $json_obj->{httpsb}) {
-        if ($json_obj->{httpsb} ne
-            &getFarmVS($farmname, $service, 'httpsbackend'))
-        {
+        if ($json_obj->{httpsb} ne &getFarmVS($farmname, $service, 'httpsbackend')) {
             if ($json_obj->{httpsb} eq "true") {
-                &setFarmVS($farmname, $service, "httpsbackend",
-                    $json_obj->{httpsb});
+                &setFarmVS($farmname, $service, "httpsbackend", $json_obj->{httpsb});
             }
             elsif ($json_obj->{httpsb} eq "false") {
                 &setFarmVS($farmname, $service, "httpsbackend", "");
@@ -401,10 +388,8 @@ sub modify_services    # ( $json_obj, $farmname, $service )
         delete $be_ref->{connection_limit};
     }
 
-    &zenlog(
-"Success, some parameters have been changed in service $service in farm $farmname.",
-        "info", "LSLB"
-    );
+    &zenlog("Success, some parameters have been changed in service $service in farm $farmname.",
+        "info", "LSLB");
 
     my $body = {
         description => "Modify service $service in farm $farmname",
@@ -436,8 +421,7 @@ sub modify_services    # ( $json_obj, $farmname, $service )
 # DELETE /farms/<farmname>/services/<servicename> Delete a service of a Farm
 sub delete_service    # ( $farmname, $service )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farmname, $service) = @_;
 
     my $desc = "Delete service";
@@ -497,8 +481,7 @@ sub delete_service    # ( $farmname, $service )
     }
 
     # no errors found, returning successful response
-    &zenlog("Success, the service $service in farm $farmname has been deleted.",
-        "info", "LSLB");
+    &zenlog("Success, the service $service in farm $farmname has been deleted.", "info", "LSLB");
 
     my $message = "The service $service in farm $farmname has been deleted.";
     my $body    = {

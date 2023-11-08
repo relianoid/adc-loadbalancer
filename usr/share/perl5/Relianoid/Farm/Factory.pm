@@ -50,8 +50,7 @@ FIXME:
 
 sub runFarmCreate    # ($farm_type,$vip,$vip_port,$farm_name,$fdev)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_type, $vip, $vip_port, $farm_name, $fdev) = @_;
 
     my $output        = -1;
@@ -75,8 +74,7 @@ sub runFarmCreate    # ($farm_type,$vip,$vip_port,$farm_name,$fdev)
 
     if ($farm_type =~ /^HTTPS?$/i) {
         require Relianoid::Farm::HTTP::Factory;
-        $output =
-          &runHTTPFarmCreate($vip, $vip_port, $farm_name, $farm_type, $status);
+        $output = &runHTTPFarmCreate($vip, $vip_port, $farm_name, $farm_type, $status);
     }
     elsif ($farm_type =~ /^DATALINK$/i) {
         require Relianoid::Farm::Datalink::Factory;
@@ -169,13 +167,12 @@ sub runFarmCreateFrom {
     # modify vport, vip, interface
     if ($params->{profile} ne 'datalink') {
         require Relianoid::Farm::Config;
-        $err = &setFarmVirtualConf($params->{vip}, $params->{vport},
-            $params->{farmname});
+        $err = &setFarmVirtualConf($params->{vip}, $params->{vport}, $params->{farmname});
     }
     else {
         require Relianoid::Farm::Datalink::Config;
-        $err = &setDatalinkFarmVirtualConf($params->{vip}, $params->{interface},
-            $params->{farmname});
+        $err =
+          &setDatalinkFarmVirtualConf($params->{vip}, $params->{interface}, $params->{farmname});
     }
 
     if ($eload and !$err) {
@@ -188,13 +185,7 @@ sub runFarmCreateFrom {
 
     if (($params->{profile} eq 'l4xnat') and (!$err)) {
         require Relianoid::Net::Interface;
-        if (
-            &validatePort(
-                $params->{vip}, $params->{vport},
-                'l4xnat',       $params->{farmname}
-            )
-          )
-        {
+        if (&validatePort($params->{vip}, $params->{vport}, 'l4xnat', $params->{farmname})) {
             $err = &startL4Farm($params->{farmname});
         }
     }

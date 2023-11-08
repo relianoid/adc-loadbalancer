@@ -32,8 +32,7 @@ if (eval { require Relianoid::ELoad; }) {
 
 # Get all farm stats
 sub getAllFarmStats {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     require Relianoid::Farm::Core;
     require Relianoid::Farm::Base;
 
@@ -84,8 +83,7 @@ sub getAllFarmStats {
 #Get Farm Stats
 sub farm_stats    # ( $farmname, $servicename )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farmname    = shift;
     my $servicename = shift;
     if ($farmname eq 'modules') { return; }
@@ -120,8 +118,7 @@ sub farm_stats    # ( $farmname, $servicename )
             my $found_service = grep { $servicename eq $_ } @services;
 
             if (not $found_service) {
-                my $msg =
-                  "The service $servicename does not exist for $farmname.";
+                my $msg = "The service $servicename does not exist for $farmname.";
                 &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
             }
         }
@@ -195,8 +192,7 @@ sub farm_stats    # ( $farmname, $servicename )
 #Get Farm Stats
 sub all_farms_stats    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farms = &getAllFarmStats();
     my $body  = {
         description => "List all farms stats",
@@ -209,8 +205,7 @@ sub all_farms_stats    # ()
 #GET /stats
 sub stats    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     require Relianoid::Stats;
     require Relianoid::SystemInfo;
 
@@ -272,8 +267,7 @@ sub stats    # ()
 #GET /stats/network
 sub stats_network    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     require Relianoid::Stats;
     require Relianoid::SystemInfo;
 

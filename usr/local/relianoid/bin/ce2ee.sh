@@ -92,7 +92,7 @@ if [ -e "$DISK" ]; then
 fi
 
 DEBIAN_FRONTEND=noninteractive apt install -y conntrackd ethtool expect gdnsd health-checks keepalived libauthen-simple-ldap-perl libconvert-asn1-perl libcrypt-blowfish-perl libcrypt-cbc-perl libcurses-perl libcurses-ui-perl libdata-structure-util-perl libdigest-bubblebabble-perl libdigest-hmac-perl libdigest-md5-file-perl libdotconf0 libdrm-common libdrm2 libdumbnet1 libfindbin-libs-perl libgssapi-perl libhiredis0.14 libipset11 libjemalloc2 libldns2 liblinux-inotify2-perl libltdl7 liblua5.1-0 libmaxminddb0 libmodsecurity libmspack0 libnet-dns-perl libnet-dns-sec-perl libnet-ifconfig-wrapper-perl libnet-ip-perl libnet-ldap-perl libnet-libidn-perl libnet-sip-perl libnetfilter-cthelper0 libnetfilter-queue1 libnl-3-200 libnl-genl-3-200 libodbc1 libproc-find-perl libre2-5 libstrongswan libstrongswan-standard-plugins libtcl8.6 libterm-readkey-perl libunwind8 liburcu6 libxmlsec1 libxmlsec1-openssl libxslt1.1 libyajl2 linux-headers-4.19.118-z6000 linux-image-4.19.118-z6000 lua-bitop lua-cjson mariadb-common msodbcsql17 mssql-tools netcat-openbsd netplug odbcinst odbcinst1debian2 open-vm-tools packetbl ppp qemu-guest-agent redis-tools rsync sec ssyncd ssyncd-pound strongswan-charon strongswan-libcharon strongswan-starter tcl-expect tcl8.6 unixodbc xe-guest-utilities xl2tpd
-DEBIAN_FRONTEND=noninteractive apt upgrade -y
+DEBIAN_FRONTEND=noninteractive apt dist-upgrade -y
 DEBIAN_FRONTEND=noninteractive apt install -y zevenet-ipds
 
 # Unmount the ISO file after the upgrade

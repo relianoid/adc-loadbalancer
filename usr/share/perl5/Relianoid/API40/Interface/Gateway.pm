@@ -24,8 +24,7 @@
 use strict;
 
 sub get_gateway {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($ip_ver) = @_;
 
     require Relianoid::Net::Route;
@@ -52,8 +51,7 @@ sub get_gateway {
 
 sub modify_gateway    # ( $json_obj )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $ip_ver   = shift;
 
@@ -108,8 +106,7 @@ sub modify_gateway    # ( $json_obj )
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-    &zenlog("applyRoutes interface:$interface address:$address if_ref:$if_ref",
-        "debug", "NETWORK")
+    &zenlog("applyRoutes interface:$interface address:$address if_ref:$if_ref", "debug", "NETWORK")
       if &debug();
 
     my $error = &applyRoutes("global", $if_ref, $address);
@@ -130,8 +127,7 @@ sub modify_gateway    # ( $json_obj )
 }
 
 sub delete_gateway {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($ip_ver) = @_;
 
     require Relianoid::Net::Route;

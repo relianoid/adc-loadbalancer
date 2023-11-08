@@ -22,8 +22,10 @@
 ###############################################################################
 
 use strict;
+use warnings;
 require Relianoid::Log;
 use Relianoid::SystemInfo;
+use autodie;
 
 my $eload;
 if (eval { require Relianoid::ELoad; }) {
@@ -43,8 +45,7 @@ Returns:
 =cut
 
 sub setSystemPackagesRepo {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     if ($eload) {
         return &eload(
@@ -53,40 +54,23 @@ sub setSystemPackagesRepo {
         );
     }
 
-    # Variables
     my $host         = &getGlobalConfiguration('repo_url_relianoid');
     my $file         = &getGlobalConfiguration('apt_source_relianoid');
     my $aptget_bin   = &getGlobalConfiguration('aptget_bin');
-    my $distribution = "buster";
-    my $kernel       = "4.19-amd64";
+    my $distribution = "bookworm";
+    my $repo_version = "v7";
     my $error        = 0;
 
     &zenlog("Configuring the APT repository", "info", "SYSTEM");
 
-    # get the kernel version
-    my $kernelversion = &getKernelVersion();
-
     # configuring repository
-    open(my $FH, '>', $file) or die "Could not open file '$file' $!";
-
-    if ($kernelversion =~ /^4.19/) {
-        print $FH "deb http://$host/ce/v5/ $distribution main\n";
-    }
-    else {
-        &zenlog("The kernel version is not valid, $kernelversion",
-            "error", "apt");
-        $error = 1;
-    }
-
+    open(my $FH, '>', $file);
+    print $FH "deb http://$host/ce/$repo_version/ $distribution main\n";
     close $FH;
 
-    if (!$error) {
-
-        # update repositories
-        $error = &logAndRun(
-"$aptget_bin update -o Dir::Etc::sourceparts=\"-\" -o Dir::Etc::sourcelist=$file"
-        );
-    }
+    # update repositories
+    $error =
+      &logAndRun("$aptget_bin update -o Dir::Etc::sourceparts=\"-\" -o Dir::Etc::sourcelist=$file");
 
     return $error;
 }
@@ -112,8 +96,7 @@ Returns:
 =cut
 
 sub getSystemPackagesUpdatesList {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     require Relianoid::Lock;
     my $package_list = &getGlobalConfiguration('apt_outdated_list');
@@ -121,18 +104,14 @@ sub getSystemPackagesUpdatesList {
 
     my @pkg_list = ();
     my $msg;
-    my $date   = "";
-    my $status = "unknown";
-    my $install_msg;
+    my $date        = "";
+    my $status      = "unknown";
+    my $install_msg = "To upgrade the system, please, execute in a shell the following command:\n";
     if ($eload) {
-        my $install_msg =
-"To upgrade the system, please, execute in a shell the following command:
-			'checkupgrades -i'";
+        $install_msg .= "    'checkupgrades -i'";
     }
     else {
-        my $install_msg =
-"To upgrade the system, please, execute in a shell the following command:
-			'checkupdates -i'";
+        $install_msg .= "    'checkupdates -i'";
     }
 
     my $fh = &openlock($package_list, '<');
@@ -141,11 +120,12 @@ sub getSystemPackagesUpdatesList {
         close $fh;
 
         # remove the first item
-        shift @pkg_list if ($pkg_list[0] eq 'Listing...');
+        shift @pkg_list
+          if ((exists $pkg_list[0]) and ($pkg_list[0] eq 'Listing...'));
     }
 
     $fh = &openlock($message_file, '<');
-    if ($fh) {
+    if (defined $fh) {
         $msg = <$fh>;
         close $fh;
 

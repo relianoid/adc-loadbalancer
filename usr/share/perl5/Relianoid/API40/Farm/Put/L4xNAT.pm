@@ -34,8 +34,7 @@ if (eval { require Relianoid::ELoad; }) {
 # PUT /farms/<farmname> Modify a l4xnat Farm
 sub modify_l4xnat_farm    # ( $json_obj, $farmname )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $farmname = shift;
 
@@ -81,8 +80,7 @@ sub modify_l4xnat_farm    # ( $json_obj, $farmname )
       if ($error_msg);
 
     if ($json_obj->{protocol} =~ /^(?:amanda|irc|netbios-ns|sane)$/) {
-        my $msg =
-          "'$json_obj->{ protocol }' protocol is not supported anymore.";
+        my $msg = "'$json_obj->{ protocol }' protocol is not supported anymore.";
         &httpErrorResponse(code => 410, desc => $desc, msg => $msg);
     }
 
@@ -94,16 +92,14 @@ sub modify_l4xnat_farm    # ( $json_obj, $farmname )
     # Extend parameter checks
     if (exists $json_obj->{protocol} and $json_obj->{protocol} ne 'all') {
         if ($vport eq '*') {
-            my $msg =
-"Protocol can not be '$json_obj->{ protocol }' with port '$vport'";
+            my $msg = "Protocol can not be '$json_obj->{ protocol }' with port '$vport'";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
     }
 
     if (exists $json_obj->{vport} and $json_obj->{vport} ne '*') {
         if ($proto eq 'all') {
-            my $msg =
-              "Port can not be '$json_obj->{ vport }' with protocol '$proto'";
+            my $msg = "Port can not be '$json_obj->{ vport }' with protocol '$proto'";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
     }
@@ -114,8 +110,7 @@ sub modify_l4xnat_farm    # ( $json_obj, $farmname )
         foreach my $range (@ranges) {
             if ($range =~ /^(\d+):(\d+)$/) {
                 if ($1 > $2) {
-                    my $msg =
-                      "Range $range in virtual port is not a valid value.";
+                    my $msg = "Range $range in virtual port is not a valid value.";
                     &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
                 }
             }
@@ -128,10 +123,9 @@ sub modify_l4xnat_farm    # ( $json_obj, $farmname )
     {
         require Relianoid::Net::Validate;
         require Relianoid::Farm::L4xNAT::Config;
-        if ($status eq 'up' and !&validatePort($vip, $vport, $proto, $farmname))
-        {
+        if ($status eq 'up' and !&validatePort($vip, $vport, $proto, $farmname)) {
             my $msg =
-"The '$vip' ip and '$vport' port are being used for another farm. This farm should be stopped before modifying it";
+              "The '$vip' ip and '$vport' port are being used for another farm. This farm should be stopped before modifying it";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
 
@@ -143,7 +137,7 @@ sub modify_l4xnat_farm    # ( $json_obj, $farmname )
                 || &ipversion(@{$backends}[0]->{ip}) eq &ipversion($vip))
             {
                 my $msg =
-"Invalid VIP address, VIP and backends can't be from diferent IP version.";
+                  "Invalid VIP address, VIP and backends can't be from diferent IP version.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
 
@@ -154,7 +148,7 @@ sub modify_l4xnat_farm    # ( $json_obj, $farmname )
                 my $if_ref  = &getInterfaceConfig($if_name);
                 if (&getInterfaceSystemStatus($if_ref) ne "up") {
                     my $msg =
-"The '$json_obj->{ vip }' ip is not UP. This farm should be stopped before modifying it";
+                      "The '$json_obj->{ vip }' ip is not UP. This farm should be stopped before modifying it";
                     &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
                 }
             }
@@ -164,8 +158,7 @@ sub modify_l4xnat_farm    # ( $json_obj, $farmname )
 
             # VPORT validation
             if (!&getValidPort($vport, "L4XNAT", $farmname)) {
-                my $msg =
-"The virtual port must be an acceptable value and must be available.";
+                my $msg = "The virtual port must be an acceptable value and must be available.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
         }
@@ -213,8 +206,7 @@ sub modify_l4xnat_farm    # ( $json_obj, $farmname )
 
             #Check if the new farm's name alredy exists
             if (&getFarmExists($json_obj->{newfarmname})) {
-                my $msg =
-"The farm $json_obj->{newfarmname} already exists, try another name.";
+                my $msg = "The farm $json_obj->{newfarmname} already exists, try another name.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
 
@@ -223,7 +215,7 @@ sub modify_l4xnat_farm    # ( $json_obj, $farmname )
             my $fnchange = &setNewFarmName($farmname, $json_obj->{newfarmname});
             if ($fnchange == -1) {
                 my $msg =
-"The name of the farm can't be modified, delete the farm and create a new one.";
+                  "The name of the farm can't be modified, delete the farm and create a new one.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
 
@@ -247,8 +239,7 @@ sub modify_l4xnat_farm    # ( $json_obj, $farmname )
         if (&getL4FarmParam('persist', $farmname) ne $persistence) {
             my $statusp = &setFarmSessionType($persistence, $farmname, "");
             if ($statusp) {
-                my $msg =
-                  "Some errors happened trying to modify the persistence.";
+                my $msg = "Some errors happened trying to modify the persistence.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
         }
@@ -266,8 +257,7 @@ sub modify_l4xnat_farm    # ( $json_obj, $farmname )
     # Modify NAT Type
     if (exists($json_obj->{nattype})) {
         if (&getL4FarmParam('mode', $farmname) ne $json_obj->{nattype}) {
-            my $error =
-              &setL4FarmParam('mode', $json_obj->{nattype}, $farmname);
+            my $error = &setL4FarmParam('mode', $json_obj->{nattype}, $farmname);
             if ($error) {
                 my $msg = "Some errors happened trying to modify the nattype.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
@@ -302,8 +292,7 @@ sub modify_l4xnat_farm    # ( $json_obj, $farmname )
     }
 
     # no error found, return successful response
-    &zenlog("Success, some parameters have been changed in farm $farmname.",
-        "info", "LSLB");
+    &zenlog("Success, some parameters have been changed in farm $farmname.", "info", "LSLB");
 
     if (&getL4FarmParam('status', $farmname) eq 'up' and $eload) {
         if ($reload_ipds) {

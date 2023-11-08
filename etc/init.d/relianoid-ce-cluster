@@ -1,0 +1,74 @@
+#!/usr/bin/perl
+### BEGIN INIT INFO
+# Provides:          relianoid-ce-cluster
+# Required-Start:    relianoid
+# Required-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: relianoid ce cluster service
+# Description:
+#
+### END INIT INFO
+###############################################################################
+#
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
+#
+#    Copyright (C) 2014-today RELIANOID
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Affero General Public License as
+#    published by the Free Software Foundation, either version 3 of the
+#    License, or any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU Affero General Public License for more details.
+#
+#    You should have received a copy of the GNU Affero General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+my $action         = $ARGV[0];
+my $enable_cluster = "false";    # false = disable cluster, true = enable cluster
+
+if ("$action" eq "start") {
+    if ($enable_cluster eq "true") {
+        print "Starting RELIANOID CE Cluster...\n";
+        my $command = &run_cluster;
+        my @run     = `$command`;
+        my $exec    = `nohup /usr/local/relianoid/app/zeninotify/zeninotify.pl >/dev/null 2>&1 &`;
+        exit;
+    }
+    else {
+        print "Cluster is disabled, enable cluster in /etc/init.d/relianoid-ce-cluster";
+    }
+}
+
+if ("$action" eq "stop") {
+
+    print "Stopping RELIANOID CE Cluster...\n";
+    my $command = &stop_cluster;
+    my @run     = `$command`;
+    if (-e "/etc/relianoid-ce-cluster.status") {
+        unlink "/etc/relianoid-ce-cluster.status";
+    }
+    exit;
+}
+
+print "Usage: /etc/init.d/relianoid-ce-cluster ( stop | start )\n";
+
+sub run_cluster {
+    require "/usr/local/relianoid/app/ucarp/etc/cluster.conf";
+    my $exec_string =
+      "$ucarp -r ${dead_ratio} --interface=$interface --srcip=$local_ip --vhid=$cluster_id --pass=$password --addr=$cluster_ip --upscript=$up_script --downscript=$down_script -B";
+    return $exec_string;
+}
+
+sub stop_cluster {
+    require "/usr/local/relianoid/app/ucarp/etc/cluster.conf";
+    my $exec_string = "pkill -9 ucarp ; kill -9 `pidof -x zeninotify.pl` 2>/dev/null";
+    return $exec_string;
+}

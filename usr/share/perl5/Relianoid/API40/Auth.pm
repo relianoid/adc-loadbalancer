@@ -30,8 +30,7 @@ if (eval { require Relianoid::ELoad; }) {
 
 sub validCGISession    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     require Relianoid::CGI;
     require CGI::Session;
 
@@ -40,16 +39,15 @@ sub validCGISession    # ()
 
     my $session = CGI::Session->load($q);
 
-#~ &zenlog( "CGI SESSION ID: " . Dumper $session, "debug", "ZAPI" );
-#~ &zenlog( "CGI SESSION ID: " . $session->id , "debug", "ZAPI") if $session->id;
-#~ &zenlog( "session data: " . Dumper $session->dataref(), "debug", "ZAPI" ); # DEBUG
+    #~ &zenlog( "CGI SESSION ID: " . Dumper $session, "debug", "ZAPI" );
+    #~ &zenlog( "CGI SESSION ID: " . $session->id , "debug", "ZAPI") if $session->id;
+    #~ &zenlog( "session data: " . Dumper $session->dataref(), "debug", "ZAPI" ); # DEBUG
 
     if ($session && $session->param('is_logged_in') && !$session->is_expired) {
 
         # ignore cluster nodes status to reset session expiration date
         unless ($q->path_info eq '/system/cluster/nodes') {
-            my $session_timeout = &getGlobalConfiguration('session_timeout')
-              // 30;
+            my $session_timeout = &getGlobalConfiguration('session_timeout') // 30;
             $session->expire('is_logged_in', '+' . $session_timeout . 'm');
         }
 
@@ -63,8 +61,7 @@ sub validCGISession    # ()
 
 sub getAuthorizationCredentials    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $base64_digest;
     my $username;
     my $password;
@@ -103,8 +100,7 @@ sub getAuthorizationCredentials    # ()
 
 sub authenticateCredentials    #($user,$curpasswd)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($user, $pass) = @_;
 
     return if !defined $user or !defined $pass;

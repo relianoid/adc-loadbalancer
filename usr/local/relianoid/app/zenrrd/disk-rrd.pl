@@ -52,13 +52,12 @@ while (@disks) {
     }
 
     if (!-f "$rrdap_dir/$rrd_dir/$partition$db_hd") {
-        print
-"$0: Info: Creating the rrd database $rrdap_dir/$rrd_dir/$partition$db_hd ...\n";
+        print "$0: Info: Creating the rrd database $rrdap_dir/$rrd_dir/$partition$db_hd ...\n";
         RRDs::create "$rrdap_dir/$rrd_dir/$partition$db_hd",
-          "--step", "300",
-          "DS:tot:GAUGE:600:0:U",
-          "DS:used:GAUGE:600:0:U",
-          "DS:free:GAUGE:600:0:U",
+          "--step", "300",              # data-point interval in seconds
+          "DS:tot:GAUGE:600:0:U",       # total
+          "DS:used:GAUGE:600:0:U",      # used
+          "DS:free:GAUGE:600:0:U",      # free
           "RRA:LAST:0.5:1:288",         # daily - every 5 min - 288 reg
           "RRA:MIN:0.5:1:288",          # daily - every 5 min - 288 reg
           "RRA:AVERAGE:0.5:1:288",      # daily - every 5 min - 288 reg
@@ -78,7 +77,7 @@ while (@disks) {
 
         if ($ERROR = RRDs::error) {
             print
-"$0: Error: Unable to generate the rrd database for partition $partition: $ERROR\n";
+              "$0: Error: Unable to generate the rrd database for partition $partition: $ERROR\n";
         }
     }
 
@@ -87,15 +86,12 @@ while (@disks) {
     print "$0: Info:	Used: $used Bytes\n";
     print "$0: Info:	Free: $free Bytes\n";
 
-    print
-      "$0: Info: Updating data in $rrdap_dir/$rrd_dir/$partition$db_hd ...\n";
+    print "$0: Info: Updating data in $rrdap_dir/$rrd_dir/$partition$db_hd ...\n";
 
-    RRDs::update "$rrdap_dir/$rrd_dir/$partition$db_hd",
-      "-t", "tot:used:free",
+    RRDs::update "$rrdap_dir/$rrd_dir/$partition$db_hd", "-t", "tot:used:free",
       "N:$tot:$used:$free";
 
     if ($ERROR = RRDs::error) {
-        print
-"$0: Error: Unable to update the rrd database for partition $partition: $ERROR\n";
+        print "$0: Error: Unable to update the rrd database for partition $partition: $ERROR\n";
     }
 }

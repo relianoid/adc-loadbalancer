@@ -54,20 +54,14 @@ Returns:
 
 =cut
 
-sub setHTTPFarmServer # ($ids,$rip,$port,$weight,$timeout,$farm_name,$service,$priority,$connlimit)
+sub setHTTPFarmServer  # ($ids,$rip,$port,$weight,$timeout,$farm_name,$service,$priority,$connlimit)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
-    my (
-        $ids,       $rip,     $port,     $weight, $timeout,
-        $farm_name, $service, $priority, $connlimit
-    ) = @_;
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+    my ($ids, $rip, $port, $weight, $timeout, $farm_name, $service, $priority, $connlimit) = @_;
 
     if ($proxy_ng eq 'true') {
-        return &setHTTPNGFarmServer(
-            $ids,       $rip,     $port,     $weight, $timeout,
-            $farm_name, $service, $priority, $connlimit
-        );
+        return &setHTTPNGFarmServer($ids, $rip, $port, $weight, $timeout,
+            $farm_name, $service, $priority, $connlimit);
     }
     elsif ($proxy_ng eq 'false') {
         $priority = $weight;
@@ -101,8 +95,7 @@ sub setHTTPFarmServer # ($ids,$rip,$port,$weight,$timeout,$farm_name,$service,$p
 
                     #server for modify $ids;
                     #HTTPS
-                    my $httpsbe =
-                      &getHTTPFarmVS($farm_name, $service, "httpsbackend");
+                    my $httpsbe = &getHTTPFarmVS($farm_name, $service, "httpsbackend");
                     if ($httpsbe eq "true") {
 
                         #add item
@@ -114,11 +107,7 @@ sub setHTTPFarmServer # ($ids,$rip,$port,$weight,$timeout,$farm_name,$service,$p
                     my $p_m = 0;
                     if ($contents[ $i + 3 ] =~ /TimeOut/) {
                         $contents[ $i + 3 ] = "\t\t\tTimeOut $timeout";
-                        &zenlog(
-                            "Modified current timeout", "info",
-                            "LSLB",                     "info",
-                            "LSLB"
-                        );
+                        &zenlog("Modified current timeout", "info", "LSLB", "info", "LSLB");
                     }
                     if ($contents[ $i + 4 ] =~ /Priority/) {
                         $contents[ $i + 4 ] = "\t\t\tPriority $priority";
@@ -162,12 +151,10 @@ sub setHTTPFarmServer # ($ids,$rip,$port,$weight,$timeout,$farm_name,$service,$p
                       )
                     {
                         if ($contents[ $i + 3 ] =~ /TimeOut/) {
-                            splice @contents, $i + 4, 0,
-                              "\t\t\tPriority $priority";
+                            splice @contents, $i + 4, 0, "\t\t\tPriority $priority";
                         }
                         else {
-                            splice @contents, $i + 3, 0,
-                              "\t\t\tPriority $priority";
+                            splice @contents, $i + 3, 0, "\t\t\tPriority $priority";
                         }
                     }
                 }
@@ -198,8 +185,7 @@ sub setHTTPFarmServer # ($ids,$rip,$port,$weight,$timeout,$farm_name,$service,$p
                 $output = $?;
                 $index++;
                 splice @contents, $index, 0, "\t\t\tAddress $rip";
-                my $httpsbe =
-                  &getHTTPFarmVS($farm_name, $service, "httpsbackend");
+                my $httpsbe = &getHTTPFarmVS($farm_name, $service, "httpsbackend");
                 if ($httpsbe eq "true") {
 
                     #add item
@@ -230,8 +216,7 @@ sub setHTTPFarmServer # ($ids,$rip,$port,$weight,$timeout,$farm_name,$service,$p
         if ($nsflag eq "true") {
             my $idservice = &getFarmVSI($farm_name, $service);
             if ($idservice ne "") {
-                &setHTTPFarmBackendStatusFile($farm_name, $backend, "active",
-                    $idservice);
+                &setHTTPFarmBackendStatusFile($farm_name, $backend, "active", $idservice);
             }
         }
     }
@@ -263,13 +248,9 @@ Returns:
 
 sub setHTTPNGFarmServer # ($ids,$rip,$port,$weight,$timeout,$farm_name,$service,$priority,$connlimit)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
-    my (
-        $ids,       $rip,     $port,     $weight, $timeout,
-        $farm_name, $service, $priority, $connlimit
-    ) = @_;
+    my ($ids, $rip, $port, $weight, $timeout, $farm_name, $service, $priority, $connlimit) = @_;
     my $farm_filename = &getFarmFile($farm_name);
     my $output        = -1;
 
@@ -286,14 +267,11 @@ sub setHTTPNGFarmServer # ($ids,$rip,$port,$weight,$timeout,$farm_name,$service,
         my $sw          = 0;
         my $bw          = 0;
         my %data        = (
-            'TimeOut', $timeout, 'Priority',  $priority,
-            'Weight',  $weight,  'ConnLimit', $connlimit,
-            'Address', $rip,     'Port',      $port
+            'TimeOut',   $timeout,   'Priority', $priority, 'Weight', $weight,
+            'ConnLimit', $connlimit, 'Address',  $rip,      'Port',   $port
         );
-        my %setted = (
-            'TimeOut',   0, 'Priority', 0, 'Weight', 0,
-            'ConnLimit', 0, 'Address',  0, 'Port',   0
-        );
+        my %setted =
+          ('TimeOut', 0, 'Priority', 0, 'Weight', 0, 'ConnLimit', 0, 'Address', 0, 'Port', 0);
         my $value;
         my $dec_mark;
 
@@ -315,8 +293,7 @@ sub setHTTPNGFarmServer # ($ids,$rip,$port,$weight,$timeout,$farm_name,$service,
                 next;
             }
             if ($bw == 1) {
-                if ($line =~ /(TimeOut|Priority|Weight|ConnLimit|Address|Port)/)
-                {
+                if ($line =~ /(TimeOut|Priority|Weight|ConnLimit|Address|Port)/) {
                     $value = $data{$1};
                     $setted{"$1"} = 1;
                     if ($value =~ /^$/) {
@@ -338,8 +315,7 @@ sub setHTTPNGFarmServer # ($ids,$rip,$port,$weight,$timeout,$farm_name,$service,
                     foreach my $key (@keys) {
                         $value = $data{$key};
                         if (!$setted{$key} && $value !~ /^$/) {
-                            splice @contents, $i, 0,
-                              "\t\t\t$key $data{\"$key\"}";
+                            splice @contents, $i, 0, "\t\t\t$key $data{\"$key\"}";
                             $data{"$key"} = 1;
                         }
                     }
@@ -363,10 +339,7 @@ sub setHTTPNGFarmServer # ($ids,$rip,$port,$weight,$timeout,$farm_name,$service,
                     &eload(
                         module => 'Relianoid::Net::Floating',
                         func   => 'setL7FloatingSourceAddr',
-                        args   => [
-                            $farm_ref,
-                            { ip => $rip, tag => $dec_mark, id => $ids }
-                        ],
+                        args   => [ $farm_ref, { ip => $rip, tag => $dec_mark, id => $ids } ],
                     );
                 }
                 else {
@@ -412,8 +385,7 @@ sub setHTTPNGFarmServer # ($ids,$rip,$port,$weight,$timeout,$farm_name,$service,
                 $output = $?;
                 $index++;
                 splice @contents, $index, 0, "\t\t\tAddress $rip";
-                my $httpsbe =
-                  &getHTTPFarmVS($farm_name, $service, "httpsbackend");
+                my $httpsbe = &getHTTPFarmVS($farm_name, $service, "httpsbackend");
                 if ($httpsbe eq "true") {
 
                     #add item
@@ -474,10 +446,7 @@ sub setHTTPNGFarmServer # ($ids,$rip,$port,$weight,$timeout,$farm_name,$service,
                         &eload(
                             module => 'Relianoid::Net::Floating',
                             func   => 'setL7FloatingSourceAddr',
-                            args   => [
-                                $farm_ref,
-                                { ip => $rip, tag => $dec_mark, id => $ids }
-                            ],
+                            args   => [ $farm_ref, { ip => $rip, tag => $dec_mark, id => $ids } ],
                         );
                     }
                 }
@@ -488,8 +457,7 @@ sub setHTTPNGFarmServer # ($ids,$rip,$port,$weight,$timeout,$farm_name,$service,
         if ($nsflag eq "true") {
             my $idservice = &getFarmVSI($farm_name, $service);
             if ($idservice ne "") {
-                &setHTTPFarmBackendStatusFile($farm_name, $backend, "active",
-                    $idservice);
+                &setHTTPFarmBackendStatusFile($farm_name, $backend, "active", $idservice);
             }
         }
     }
@@ -516,8 +484,7 @@ Returns:
 
 sub runHTTPFarmServerDelete    # ($ids,$farm_name,$service)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($ids, $farm_name, $service) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
@@ -549,9 +516,7 @@ sub runHTTPFarmServerDelete    # ($ids,$farm_name,$service)
                         $dec_mark = $1;
                         my $mark = sprintf("0x%x", $1);
                         &delMarks("", $mark);
-                        if (&getGlobalConfiguration('mark_routing_L7') eq
-                            'true')
-                        {
+                        if (&getGlobalConfiguration('mark_routing_L7') eq 'true') {
                             require Relianoid::Farm::Backend;
                             &setBackendRule("del", $farm_ref, $mark);
                         }
@@ -613,16 +578,14 @@ Returns:
 
 sub setHTTPFarmBackendsMarks    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my ($farm_name) = @_;
     my $error_ref->{code} = -1;
     require Relianoid::Farm::Core;
     my $farm_filename = &getFarmFile($farm_name);
     if ($farm_filename == -1) {
-        my $msg =
-"Backend Marks for farm $farm_name could not be set, config file does not exist";
+        my $msg = "Backend Marks for farm $farm_name could not be set, config file does not exist";
         $error_ref->{code} = 1;
         $error_ref->{desc} = $msg;
         &zenlog($error_ref->{desc}, "warning", "HTTP");
@@ -686,8 +649,7 @@ Returns:
 
 sub removeHTTPFarmBackendsMarks    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     require Relianoid::Farm::Core;
     my ($farm_name) = @_;
@@ -743,8 +705,7 @@ Returns:
 
 sub getHTTPFarmBackendStatusCtl    # ($farm_name, $sessions)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $sessions) = @_;
 
     my $proxyctl = &getGlobalConfiguration('proxyctl');
@@ -753,11 +714,7 @@ sub getHTTPFarmBackendStatusCtl    # ($farm_name, $sessions)
     if (defined $sessions and $sessions = "true") {
         $sessions_option = "";
     }
-    return @{
-        &logAndGet(
-            "$proxyctl $sessions_option -c /tmp/$farm_name\_proxy.socket",
-            "array")
-    };
+    return @{ &logAndGet("$proxyctl $sessions_option -c /tmp/$farm_name\_proxy.socket", "array") };
 }
 
 =begin nd
@@ -778,8 +735,7 @@ Returns:
 
 sub getHTTPFarmBackends    # ($farm_name,$service,$param_status)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farmname, $service, $param_status) = @_;
 
     require Relianoid::Farm::HTTP::Service;
@@ -873,8 +829,7 @@ Returns:
 #ecm possible bug here returns 2 values instead of 1 (1 backend only)
 sub getHTTPFarmBackendsStatus    # ($farm_name,@content)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $service) = @_;
 
     require Relianoid::Farm::Base;
@@ -896,8 +851,7 @@ sub getHTTPFarmBackendsStatus    # ($farm_name,@content)
 
     # @be is used to get size of backend array
     for (@be) {
-        my $backendstatus =
-          &getHTTPBackendStatusFromFile($farm_name, $id, $service);
+        my $backendstatus = &getHTTPBackendStatusFromFile($farm_name, $id, $service);
         if ($backendstatus ne "maintenance") {
             if ($farmStatus eq "up") {
                 $backendstatus = $stats->{$service}->{backends}[$id]->{status};
@@ -933,11 +887,8 @@ Returns:
 
 sub setHTTPFarmBackendStatus # ($farm_name,$service,$backend_index,$status,$cutmode,$backends_info_ref)
 {
-    &zenlog(__FILE__ . q{:} . __LINE__ . q{:} . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
-    my ($farm_name, $service, $backend_index, $status, $cutmode,
-        $backends_info_ref)
-      = @_;
+    &zenlog(__FILE__ . q{:} . __LINE__ . q{:} . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+    my ($farm_name, $service, $backend_index, $status, $cutmode, $backends_info_ref) = @_;
 
     require Relianoid::Farm::HTTP::Service;
     require Relianoid::Farm::HTTP::Config;
@@ -952,31 +903,27 @@ sub setHTTPFarmBackendStatus # ($farm_name,$service,$backend_index,$status,$cutm
             require Relianoid::Farm::HTTP::Action;
             $output = &sendL7ZproxyCmd(
                 {
-                    farm => $farm_name,
-                    uri  =>
-"listener/0/service/$service_id/backend/$backend_index/status",
+                    farm   => $farm_name,
+                    uri    => "listener/0/service/$service_id/backend/$backend_index/status",
                     method => "PATCH",
                     body   => '{"status":"disabled"}',
                 }
             );
             if ($output->{result} ne "ok") {
                 my $msg =
-"Backend '$backend_index' in service '$service' of farm '$farm_name' cannot be disabled.";
+                  "Backend '$backend_index' in service '$service' of farm '$farm_name' cannot be disabled.";
                 &zenlog($msg, "error", "LSLB");
                 $error_ref->{code} = 1;
                 $error_ref->{desc} = $msg;
                 return $error_ref;
             }
             $error_ref->{code} = 0;
-            &setHTTPFarmBackendStatusFile($farm_name, $backend_index, $status,
-                $service_id);
+            &setHTTPFarmBackendStatusFile($farm_name, $backend_index, $status, $service_id);
             if ($cutmode eq 'cut') {
-                $output =
-                  &setHTTPFarmBackendsSessionsRemove($farm_name, $service,
-                    $backend_index);
+                $output = &setHTTPFarmBackendsSessionsRemove($farm_name, $service, $backend_index);
                 if ($output) {
                     my $msg =
-"Sessions for backend '$backend_index' in service '$service' of farm '$farm_name' were not deleted.";
+                      "Sessions for backend '$backend_index' in service '$service' of farm '$farm_name' were not deleted.";
                     &zenlog($msg, "error", "LSLB");
                     $error_ref->{code} = 2;
                     $error_ref->{desc} = $msg;
@@ -986,8 +933,8 @@ sub setHTTPFarmBackendStatus # ($farm_name,$service,$backend_index,$status,$cutm
         }
         elsif ($status eq 'up') {
 
-#store status and prio of all backends before turning backend 'up' unless backends info
-#has already been passed as parameter.
+            #store status and prio of all backends before turning backend 'up' unless backends info
+            #has already been passed as parameter.
             my $backends_info;
             $backends_info = &getHTTPFarmBackends($farm_name, $service, "true")
               if ((not defined $backends_info_ref) and ($cutmode eq 'cut'));
@@ -995,27 +942,25 @@ sub setHTTPFarmBackendStatus # ($farm_name,$service,$backend_index,$status,$cutm
             require Relianoid::Farm::HTTP::Action;
             $output = &sendL7ZproxyCmd(
                 {
-                    farm => $farm_name,
-                    uri  =>
-"listener/0/service/$service_id/backend/$backend_index/status",
+                    farm   => $farm_name,
+                    uri    => "listener/0/service/$service_id/backend/$backend_index/status",
                     method => "PATCH",
                     body   => '{"status":"active"}',
                 }
             );
             if ($output->{result} ne "ok") {
                 my $msg =
-"Backend '$backend_index' in service '$service' of farm '$farm_name' cannot be enabled";
+                  "Backend '$backend_index' in service '$service' of farm '$farm_name' cannot be enabled";
                 &zenlog($msg, "error", "LSLB");
                 $error_ref->{code} = 1;
                 $error_ref->{desc} = $msg;
                 return $error_ref;
             }
             $error_ref->{code} = 0;
-            &setHTTPFarmBackendStatusFile($farm_name, $backend_index,
-                'active', $service_id);
+            &setHTTPFarmBackendStatusFile($farm_name, $backend_index, 'active', $service_id);
             if ($cutmode eq 'cut') {
 
-#compare priority algorithm status of all backends before and after turning backend 'up'
+                #compare priority algorithm status of all backends before and after turning backend 'up'
                 my $y = 0;
                 my @backends;
                 if (defined $backends_info_ref) {
@@ -1040,18 +985,16 @@ sub setHTTPFarmBackendStatus # ($farm_name,$service,$backend_index,$status,$cutm
                 my @bks_updated_prio_status =
                   @{ &getPriorityAlgorithmStatus(\@backends)->{status} };
 
-      # compare priority algorithm status of all backends and remove sessions of
-      # backends that have become useless due to priority and remove traffic.
+                # compare priority algorithm status of all backends and remove sessions of
+                # backends that have become useless due to priority and remove traffic.
                 $y = 0;
                 foreach my $bk (@bks_updated_prio_status) {
                     if ($bk ne $bks_prio_status[$y]) {
                         if ($backends[$y]->{status} eq "up") {
-                            $output =
-                              &setHTTPFarmBackendsSessionsRemove($farm_name,
-                                $service, $y);
+                            $output = &setHTTPFarmBackendsSessionsRemove($farm_name, $service, $y);
                             if ($output) {
                                 my $msg =
-"Sessions of unused backends in service '$service' of farm '$farm_name' were not deleted.";
+                                  "Sessions of unused backends in service '$service' of farm '$farm_name' were not deleted.";
                                 &zenlog($msg, "error", "LSLB");
                                 $error_ref->{code} = 2;
                                 $error_ref->{desc} = $msg;
@@ -1067,12 +1010,10 @@ sub setHTTPFarmBackendStatus # ($farm_name,$service,$backend_index,$status,$cutm
     elsif ($proxy_ng eq 'false') {
         my $proxyctl = &getGlobalConfiguration('proxyctl');
         if ($status eq 'maintenance' or $status eq 'fgDOWN') {
-            $output =
-              &logAndRun(
-                "$proxyctl -c $socket_file -b 0 $service_id $backend_index");
+            $output = &logAndRun("$proxyctl -c $socket_file -b 0 $service_id $backend_index");
             if ($output) {
                 my $msg =
-"Backend '$backend_index' in service '$service' of farm '$farm_name' cannot be disabled";
+                  "Backend '$backend_index' in service '$service' of farm '$farm_name' cannot be disabled";
                 $error_ref->{code} = 1;
                 $error_ref->{desc} = $msg;
                 return $error_ref;
@@ -1080,15 +1021,12 @@ sub setHTTPFarmBackendStatus # ($farm_name,$service,$backend_index,$status,$cutm
             else {
                 $error_ref->{code} = 0;
             }
-            &setHTTPFarmBackendStatusFile($farm_name, $backend_index, $status,
-                $service_id);
+            &setHTTPFarmBackendStatusFile($farm_name, $backend_index, $status, $service_id);
             if ($cutmode eq 'cut') {
-                $output =
-                  &setHTTPFarmBackendsSessionsRemove($farm_name, $service,
-                    $backend_index);
+                $output = &setHTTPFarmBackendsSessionsRemove($farm_name, $service, $backend_index);
                 if ($output) {
                     my $msg =
-"Sessions for backend '$backend_index' in service '$service' of farm '$farm_name' were not deleted.";
+                      "Sessions for backend '$backend_index' in service '$service' of farm '$farm_name' were not deleted.";
                     &zenlog($msg, "error", "LSLB");
                     $error_ref->{code} = 2;
                     $error_ref->{desc} = $msg;
@@ -1097,12 +1035,10 @@ sub setHTTPFarmBackendStatus # ($farm_name,$service,$backend_index,$status,$cutm
             }
         }
         elsif ($status eq 'up') {
-            $output =
-              &logAndRun(
-                "$proxyctl -c $socket_file -B 0 $service_id $backend_index");
+            $output = &logAndRun("$proxyctl -c $socket_file -B 0 $service_id $backend_index");
             if ($output) {
                 my $msg =
-"Backend '$backend_index' in service '$service' of farm '$farm_name' cannot be enabled";
+                  "Backend '$backend_index' in service '$service' of farm '$farm_name' cannot be enabled";
                 $error_ref->{code} = 1;
                 $error_ref->{desc} = $msg;
                 return $error_ref;
@@ -1110,8 +1046,7 @@ sub setHTTPFarmBackendStatus # ($farm_name,$service,$backend_index,$status,$cutm
             else {
                 $error_ref->{code} = 0;
             }
-            &setHTTPFarmBackendStatusFile($farm_name, $backend_index,
-                'active', $service_id);
+            &setHTTPFarmBackendStatusFile($farm_name, $backend_index, 'active', $service_id);
         }
     }
     return $error_ref;
@@ -1134,8 +1069,7 @@ Returns:
 
 sub getHTTPBackendStatusFromFile    # ($farm_name,$backend,$service)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $backend, $service) = @_;
 
     require Relianoid::Farm::HTTP::Service;
@@ -1192,8 +1126,7 @@ FIXME:
 
 sub setHTTPFarmBackendStatusFile    # ($farm_name,$backend,$status,$idsv)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $backend, $status, $idsv) = @_;
 
     require Tie::File;
@@ -1204,11 +1137,7 @@ sub setHTTPFarmBackendStatusFile    # ($farm_name,$backend,$status,$idsv)
     if (!-e $statusfile) {
         open my $fd, '>', "$statusfile";
         my $proxyctl = &getGlobalConfiguration('proxyctl');
-        my @run      = @{
-            &logAndGet(
-                "$proxyctl -C -c /tmp/$farm_name\_proxy.socket", "array"
-            )
-        };
+        my @run      = @{ &logAndGet("$proxyctl -C -c /tmp/$farm_name\_proxy.socket", "array") };
         my @sw;
         my @bw;
 
@@ -1284,8 +1213,7 @@ Returns:
 
 sub getHTTPFarmBackendsClients    # ($idserver,@content,$farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($idserver, @content, $farm_name) = @_;
 
     if (!@content) {
@@ -1322,8 +1250,7 @@ FIXME:
 
 sub getHTTPFarmBackendsClientsList    # ($farm_name,@content)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, @content) = @_;
 
     my @client_list;
@@ -1372,21 +1299,16 @@ Returns:
 
 sub setHTTPFarmBackendMaintenance    # ($farm_name,$backend,$mode,$service)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $backend, $mode, $service) = @_;
 
     my $output = 0;
 
-    &zenlog(
-"setting Maintenance mode for $farm_name service $service backend $backend",
-        "info", "LSLB"
-    );
+    &zenlog("setting Maintenance mode for $farm_name service $service backend $backend",
+        "info", "LSLB");
 
     if (&getFarmStatus($farm_name) eq 'up') {
-        $output =
-          &setHTTPFarmBackendStatus($farm_name, $service, $backend,
-            'maintenance', $mode);
+        $output = &setHTTPFarmBackendStatus($farm_name, $service, $backend, 'maintenance', $mode);
     }
 
     return $output;
@@ -1409,21 +1331,16 @@ Returns:
 
 sub setHTTPFarmBackendNoMaintenance    # ($farm_name,$backend,$service)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $backend, $service) = @_;
 
     my $output = 0;
 
-    &zenlog(
-"setting Disabled maintenance mode for $farm_name service $service backend $backend",
-        "info", "LSLB"
-    );
+    &zenlog("setting Disabled maintenance mode for $farm_name service $service backend $backend",
+        "info", "LSLB");
 
     if (&getFarmStatus($farm_name) eq 'up') {
-        $output =
-          &setHTTPFarmBackendStatus($farm_name, $service, $backend, 'up',
-            'cut');
+        $output = &setHTTPFarmBackendStatus($farm_name, $service, $backend, 'up', 'cut');
     }
 
     return $output;
@@ -1449,8 +1366,7 @@ FIXME:
 
 sub runRemoveHTTPBackendStatus    # ($farm_name,$backend,$service)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $backend, $service) = @_;
 
     require Tie::File;
@@ -1503,8 +1419,7 @@ FIXME:
 
 sub setHTTPFarmBackendStatusFromFile    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm_name = shift;
 
     &zenlog("Setting backends status in farm $farm_name", "info", "LSLB");
@@ -1530,8 +1445,7 @@ sub setHTTPFarmBackendStatusFromFile    # ($farm_name)
     while (my $line_aux = <$fh>) {
         my @line = split("\ ", $line_aux);
         &logAndRun(
-"$proxyctl -c /tmp/$farm_name\_proxy.socket $line[0] $line[1] $line[2] $line[3]"
-        );
+            "$proxyctl -c /tmp/$farm_name\_proxy.socket $line[0] $line[1] $line[2] $line[3]");
     }
     close $fh;
 }
@@ -1556,8 +1470,7 @@ FIXME:
 
 sub setHTTPFarmBackendsSessionsRemove    #($farm_name,$service,$backendid)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $service, $backendid) = @_;
 
     my $serviceid;
@@ -1565,7 +1478,7 @@ sub setHTTPFarmBackendsSessionsRemove    #($farm_name,$service,$backendid)
     my $err      = 0;
 
     &zenlog(
-"Deleting established sessions to a backend $backendid from farm $farm_name in service $service",
+        "Deleting established sessions to a backend $backendid from farm $farm_name in service $service",
         "info", "LSLB"
     );
 
@@ -1589,8 +1502,7 @@ sub setHTTPFarmBackendsSessionsRemove    #($farm_name,$service,$backendid)
     }
     elsif ($proxy_ng eq "false") {
         my $proxyctl = &getGlobalConfiguration('proxyctl');
-        my $cmd =
-"$proxyctl -c /tmp/$farm_name\_proxy.socket -f 0 $serviceid $backendid";
+        my $cmd      = "$proxyctl -c /tmp/$farm_name\_proxy.socket -f 0 $serviceid $backendid";
         $err = &logAndRun($cmd);
     }
 
@@ -1598,8 +1510,7 @@ sub setHTTPFarmBackendsSessionsRemove    #($farm_name,$service,$backendid)
 }
 
 sub getHTTPFarmBackendAvailableID {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farmname = shift;
     my $service  = shift;
 
@@ -1651,8 +1562,7 @@ Returns:
 
 sub getHTTPFarmBackendsStatusInfo    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name) = @_;
 
     require Relianoid::Farm::Base;
@@ -1688,7 +1598,7 @@ sub getHTTPFarmBackendsStatusInfo    # ($farm_name)
         # i.e.
         #      0. Backend 192.168.100.254:80 active (5 0.000 sec) alive (0)
         if ($line =~
-/(\d+)\. Backend (\d+\.\d+\.\d+\.\d+|[a-fA-F0-9:]+):(\d+) (\w+) .+ (\w+)(?: \((\d+)\))?/
+            /(\d+)\. Backend (\d+\.\d+\.\d+\.\d+|[a-fA-F0-9:]+):(\d+) (\w+) .+ (\w+)(?: \((\d+)\))?/
           )
         {
             my $backendHash = {
@@ -1705,8 +1615,7 @@ sub getHTTPFarmBackendsStatusInfo    # ($farm_name)
 
                 #Checkstatusfile
                 $backendHash->{"status"} =
-                  &getHTTPBackendStatusFromFile($farm_name, $backendHash->{id},
-                    $serviceName);
+                  &getHTTPBackendStatusFromFile($farm_name, $backendHash->{id}, $serviceName);
 
                 # not show fgDOWN status
                 $backendHash->{"status"} = "down"

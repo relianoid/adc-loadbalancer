@@ -76,7 +76,7 @@ case "$1" in
 ;;
 
 '-i')   # Install the non-updated packages
-	DEBIAN_FRONTEND=noninteractive $apt_bin --with-new-pkgs upgrade -o Dir::Etc::sourcelist="$apt_source_relianoid"
+	DEBIAN_FRONTEND=noninteractive $apt_bin dist-upgrade -o Dir::Etc::sourcelist="$apt_source_relianoid"
 	#checkupdates
 	#do this in order to update the web GUI alerts after any installation
 	$aptget_bin update -o Dir::Etc::sourceparts="-" -o Dir::Etc::sourcelist="$apt_source_relianoid" > /dev/null

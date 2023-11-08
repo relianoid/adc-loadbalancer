@@ -45,8 +45,7 @@ Returns:
 =cut
 
 sub loadL4FarmModules {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $modprobe_bin = &getGlobalConfiguration("modprobe");
     my $error        = 0;
@@ -64,7 +63,7 @@ sub loadL4FarmModules {
         &logAndRun("$nftbin flush table ip dummyTable");
 
         my $nftCmd =
-"$nftbin add table ip dummyTable; $nftbin add chain ip dummyTable dummyChain { type nat hook input priority 0 \\; }; $nftbin add rule ip dummyTable dummyChain ct state established accept";
+          "$nftbin add table ip dummyTable; $nftbin add chain ip dummyTable dummyChain { type nat hook input priority 0 \\; }; $nftbin add rule ip dummyTable dummyChain ct state established accept";
 
         $error += &logAndRun("$nftCmd")
           if (&logAndRunCheck("$nftbin list table dummyTable"));

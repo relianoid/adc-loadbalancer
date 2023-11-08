@@ -38,8 +38,7 @@ if (eval { require Relianoid::ELoad; }) {
 
 sub new_farm_backend    # ( $json_obj, $farmname )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $farmname = shift;
 
@@ -89,7 +88,7 @@ sub new_farm_backend    # ( $json_obj, $farmname )
 
         if (&ipversion($json_obj->{ip}) ne &ipversion($farm_vip)) {
             my $msg =
-"The IP version of backend IP '$json_obj->{ ip }' does not match with farm VIP '$farm_vip'";
+              "The IP version of backend IP '$json_obj->{ ip }' does not match with farm VIP '$farm_vip'";
 
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
@@ -106,8 +105,7 @@ sub new_farm_backend    # ( $json_obj, $farmname )
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-    &zenlog("New backend created in farm $farmname with IP $json_obj->{ip}.",
-        "info", "FARMS");
+    &zenlog("New backend created in farm $farmname with IP $json_obj->{ip}.", "info", "FARMS");
 
     # check priority for l4xnat
     if ($type eq 'l4xnat') {
@@ -115,12 +113,9 @@ sub new_farm_backend    # ( $json_obj, $farmname )
         require Relianoid::Farm::Validate;
         my $priorities = &getL4FarmPriorities($farmname);
         if (my $prio = &priorityAlgorithmIsOK($priorities)) {
-            $info_msg =
-              "Backends with high priority value ($prio) will not be used.";
-            &zenlog(
-"Warning, backend with high priority value ($prio) in farm $farmname.",
-                "warning", "FARMS"
-            );
+            $info_msg = "Backends with high priority value ($prio) will not be used.";
+            &zenlog("Warning, backend with high priority value ($prio) in farm $farmname.",
+                "warning", "FARMS");
         }
     }
 
@@ -155,8 +150,7 @@ sub new_farm_backend    # ( $json_obj, $farmname )
 
 sub new_service_backend    # ( $json_obj, $farmname, $service )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $farmname = shift;
     my $service  = shift;
@@ -205,7 +199,7 @@ sub new_service_backend    # ( $json_obj, $farmname, $service )
     # check if the service has configured a redirect
     if (&getHTTPFarmVS($farmname, $service, 'redirect')) {
         my $msg =
-"It is not possible to create a backend when the service has a redirect configured.";
+          "It is not possible to create a backend when the service has a redirect configured.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
@@ -223,13 +217,11 @@ sub new_service_backend    # ( $json_obj, $farmname, $service )
     # get an ID for the new backend
     my $id = &getHTTPFarmBackendAvailableID($farmname, $service);
 
-# First param ($id) is an empty string to let function autogenerate the id for the new backend
+    # First param ($id) is an empty string to let function autogenerate the id for the new backend
     my $status = &setHTTPFarmServer(
-        "",                   $json_obj->{ip},
-        $json_obj->{port},    $json_obj->{weight},
-        $json_obj->{timeout}, $farmname,
-        $service,             $json_obj->{priority},
-        $json_obj->{connection_limit},
+        "",                  $json_obj->{ip},       $json_obj->{port},
+        $json_obj->{weight}, $json_obj->{timeout},  $farmname,
+        $service,            $json_obj->{priority}, $json_obj->{connection_limit},
     );
 
     # check if there was an error adding a new backend
@@ -242,7 +234,7 @@ sub new_service_backend    # ( $json_obj, $farmname, $service )
 
     # no error found, return successful response
     &zenlog(
-"Success, a new backend has been created in farm $farmname in service $service with IP $json_obj->{ip}.",
+        "Success, a new backend has been created in farm $farmname in service $service with IP $json_obj->{ip}.",
         "info", "FARMS"
     );
 
@@ -250,10 +242,9 @@ sub new_service_backend    # ( $json_obj, $farmname, $service )
     if ($type =~ /http/) {
         my $priorities = &getHTTPFarmPriorities($farmname, $service);
         if (my $prio = &priorityAlgorithmIsOK($priorities)) {
-            $info_msg =
-              "Backends with high priority value ($prio) will not be used.";
+            $info_msg = "Backends with high priority value ($prio) will not be used.";
             &zenlog(
-"Warning, backend with high priority value ($prio) in farm $farmname in service $service.",
+                "Warning, backend with high priority value ($prio) in farm $farmname in service $service.",
                 "warning", "FARMS"
             );
         }
@@ -282,8 +273,7 @@ sub new_service_backend    # ( $json_obj, $farmname, $service )
             require Relianoid::Farm::HTTP::Config;
             my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
             if ($config_error ne "") {
-                $body->{warning} =
-                  "Farm '$farmname' config error: $config_error";
+                $body->{warning} = "Farm '$farmname' config error: $config_error";
             }
             else {
                 &runFarmReload($farmname);
@@ -303,8 +293,7 @@ sub new_service_backend    # ( $json_obj, $farmname, $service )
 
 #GET /farms/<name>/backends
 sub backends {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farmname = shift;
 
     my $desc = "List backends";
@@ -318,8 +307,7 @@ sub backends {
 
     my $type = &getFarmType($farmname);
     if ($type ne 'l4xnat' and $type ne 'datalink') {
-        my $msg =
-"The farm $farmname with profile $type does not support this request.";
+        my $msg = "The farm $farmname with profile $type does not support this request.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
@@ -336,8 +324,7 @@ sub backends {
 
 #GET /farms/<name>/services/<service>/backends
 sub service_backends {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farmname, $service) = @_;
 
     my $desc = "List service backends";
@@ -386,8 +373,7 @@ sub service_backends {
 
 sub modify_backends    #( $json_obj, $farmname, $id_server )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($json_obj, $farmname, $id_server) = @_;
 
     my $desc = "Modify backend";
@@ -435,7 +421,7 @@ sub modify_backends    #( $json_obj, $farmname, $id_server )
             my $farm_vip = &getL4FarmParam("vip", $farmname);
             if (&ipversion($json_obj->{ip}) ne &ipversion($farm_vip)) {
                 my $msg =
-"The IP version of backend IP '$json_obj->{ ip }' does not match with farm VIP '$farm_vip'";
+                  "The IP version of backend IP '$json_obj->{ ip }' does not match with farm VIP '$farm_vip'";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
         }
@@ -472,12 +458,10 @@ sub modify_backends    #( $json_obj, $farmname, $id_server )
     if (($type ne 'datalink') and (exists $json_obj->{priority})) {
         require Relianoid::Farm::L4xNAT::Backend;
         require Relianoid::Farm::Validate;
-        if (my $prio = &priorityAlgorithmIsOK(&getL4FarmPriorities($farmname)))
-        {
-            $info_msg =
-              "Backends with high priority value ($prio) will not be used.";
+        if (my $prio = &priorityAlgorithmIsOK(&getL4FarmPriorities($farmname))) {
+            $info_msg = "Backends with high priority value ($prio) will not be used.";
             &zenlog(
-"Warning, backend with high priority value ($prio) in farm $farmname.",
+                "Warning, backend with high priority value ($prio) in farm $farmname.",
                 "warning", "FARMS"
 
             );
@@ -485,9 +469,8 @@ sub modify_backends    #( $json_obj, $farmname, $id_server )
     }
 
     &zenlog(
-"Success, some parameters have been changed in the backend $id_server in farm $farmname.",
-        "info", "FARMS"
-    );
+        "Success, some parameters have been changed in the backend $id_server in farm $farmname.",
+        "info", "FARMS");
 
     my $message = "Backend modified.";
     my $body    = {
@@ -509,8 +492,7 @@ sub modify_backends    #( $json_obj, $farmname, $id_server )
 
 sub modify_service_backends    #( $json_obj, $farmname, $service, $id_server )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($json_obj, $farmname, $service, $id_server) = @_;
 
     my $desc = "Modify service backend";
@@ -577,13 +559,12 @@ sub modify_service_backends    #( $json_obj, $farmname, $service, $id_server )
 
     # apply BACKEND change
 
-    $be->{ip}               = $json_obj->{ip}       // $be->{ip};
-    $be->{port}             = $json_obj->{port}     // $be->{port};
-    $be->{weight}           = $json_obj->{weight}   // $be->{weight};
-    $be->{priority}         = $json_obj->{priority} // $be->{priority};
-    $be->{timeout}          = $json_obj->{timeout}  // $be->{timeout};
-    $be->{connection_limit} = $json_obj->{connection_limit}
-      // $be->{connection_limit};
+    $be->{ip}               = $json_obj->{ip}               // $be->{ip};
+    $be->{port}             = $json_obj->{port}             // $be->{port};
+    $be->{weight}           = $json_obj->{weight}           // $be->{weight};
+    $be->{priority}         = $json_obj->{priority}         // $be->{priority};
+    $be->{timeout}          = $json_obj->{timeout}          // $be->{timeout};
+    $be->{connection_limit} = $json_obj->{connection_limit} // $be->{connection_limit};
 
     my $status = &setHTTPFarmServer(
         $id_server,    $be->{ip},       $be->{port},
@@ -594,7 +575,7 @@ sub modify_service_backends    #( $json_obj, $farmname, $service, $id_server )
     # check if there was an error modifying the backend
     if ($status == -1) {
         my $msg =
-"It's not possible to modify the backend with IP $json_obj->{ip} in service $service.";
+          "It's not possible to modify the backend with IP $json_obj->{ip} in service $service.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
@@ -604,13 +585,10 @@ sub modify_service_backends    #( $json_obj, $farmname, $service, $id_server )
         and (exists $json_obj->{priority}))
     {
         require Relianoid::Farm::Validate;
-        if (my $prio =
-            &priorityAlgorithmIsOK(&getHTTPFarmPriorities($farmname, $service)))
-        {
-            $info_msg =
-              "Backends with high priority value ($prio) will not be used.";
+        if (my $prio = &priorityAlgorithmIsOK(&getHTTPFarmPriorities($farmname, $service))) {
+            $info_msg = "Backends with high priority value ($prio) will not be used.";
             &zenlog(
-"Warning, backend with high priority value ($prio) in farm $farmname in service $service.",
+                "Warning, backend with high priority value ($prio) in farm $farmname in service $service.",
                 "warning", "FARMS"
             );
         }
@@ -635,8 +613,7 @@ sub modify_service_backends    #( $json_obj, $farmname, $service, $id_server )
             require Relianoid::Farm::HTTP::Config;
             my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
             if ($config_error ne "") {
-                $body->{warning} =
-                  "Farm '$farmname' config error: $config_error";
+                $body->{warning} = "Farm '$farmname' config error: $config_error";
             }
             else {
                 &runFarmReload($farmname);
@@ -657,8 +634,7 @@ sub modify_service_backends    #( $json_obj, $farmname, $service, $id_server )
 # DELETE /farms/<farmname>/backends/<backendid> Delete a backend of a Farm
 sub delete_backend    # ( $farmname, $id_server )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farmname, $id_server) = @_;
 
     require Relianoid::Farm::Backend;
@@ -690,27 +666,21 @@ sub delete_backend    # ( $farmname, $id_server )
 
     if ($status == -1) {
         my $msg =
-"It's not possible to delete the backend with ID $id_server of the $farmname farm.";
+          "It's not possible to delete the backend with ID $id_server of the $farmname farm.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
     my $info_msg;
     if ($type eq 'l4xnat') {
         require Relianoid::Farm::Validate;
-        if (my $prio = &priorityAlgorithmIsOK(&getL4FarmPriorities($farmname)))
-        {
-            $info_msg =
-              "Backends with high priority value ($prio) will not be used.";
-            &zenlog(
-"Warning, backend with high priority value ($prio) in farm $farmname.",
-                "warning", "FARMS"
-            );
+        if (my $prio = &priorityAlgorithmIsOK(&getL4FarmPriorities($farmname))) {
+            $info_msg = "Backends with high priority value ($prio) will not be used.";
+            &zenlog("Warning, backend with high priority value ($prio) in farm $farmname.",
+                "warning", "FARMS");
         }
     }
 
-    &zenlog(
-        "Success, the backend $id_server in farm $farmname has been deleted.",
-        "info", "FARMS");
+    &zenlog("Success, the backend $id_server in farm $farmname has been deleted.", "info", "FARMS");
 
     &eload(
         module => 'Relianoid::Cluster',
@@ -739,8 +709,7 @@ sub delete_backend    # ( $farmname, $id_server )
 #  DELETE /farms/<farmname>/services/<servicename>/backends/<backendid> Delete a backend of a Service
 sub delete_service_backend    # ( $farmname, $service, $id_server )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farmname, $service, $id_server) = @_;
 
     my $desc = "Delete service backend";
@@ -799,21 +768,17 @@ sub delete_service_backend    # ( $farmname, $service, $id_server )
     if ($status == -1) {
         &zenlog("It's not possible to delete the backend.", "info", "FARMS");
 
-        my $msg =
-"Could not find the backend with ID $id_server of the $farmname farm.";
+        my $msg = "Could not find the backend with ID $id_server of the $farmname farm.";
         &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
     }
 
     my $info_msg;
     if (&getGlobalConfiguration('proxy_ng') eq 'true') {
         require Relianoid::Farm::Validate;
-        if (my $prio =
-            &priorityAlgorithmIsOK(&getHTTPFarmPriorities($farmname, $service)))
-        {
-            $info_msg =
-              "Backends with high priority value ($prio) will not be used.";
+        if (my $prio = &priorityAlgorithmIsOK(&getHTTPFarmPriorities($farmname, $service))) {
+            $info_msg = "Backends with high priority value ($prio) will not be used.";
             &zenlog(
-"Warning, backend with high priority value ($prio) in service $service in farm $farmname.",
+                "Warning, backend with high priority value ($prio) in service $service in farm $farmname.",
                 "warning", "FARMS"
             );
         }
@@ -821,9 +786,8 @@ sub delete_service_backend    # ( $farmname, $service, $id_server )
 
     # no error found, return successful response
     &zenlog(
-"Success, the backend $id_server in service $service in farm $farmname has been deleted.",
-        "info", "FARMS"
-    );
+        "Success, the backend $id_server in service $service in farm $farmname has been deleted.",
+        "info", "FARMS");
 
     my $message = "Backend removed";
     my $body    = {
@@ -845,8 +809,7 @@ sub delete_service_backend    # ( $farmname, $service, $id_server )
             require Relianoid::Farm::HTTP::Config;
             my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
             if ($config_error ne "") {
-                $body->{warning} =
-                  "Farm '$farmname' config error: $config_error";
+                $body->{warning} = "Farm '$farmname' config error: $config_error";
             }
             else {
                 &runFarmReload($farmname);
@@ -863,8 +826,7 @@ sub delete_service_backend    # ( $farmname, $service, $id_server )
 }
 
 sub validateDatalinkBackendIface {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $backend = shift;
     my $msg;
 
@@ -875,17 +837,11 @@ sub validateDatalinkBackendIface {
         $msg = "$backend->{interface} has not been found";
     }
     elsif ($iface_ref->{vini}) {
-        $msg =
-"It is not possible to configure vlan interface for datalink backends";
+        $msg = "It is not possible to configure vlan interface for datalink backends";
     }
-    elsif (
-        !&validateGateway(
-            $iface_ref->{addr}, $iface_ref->{mask}, $backend->{ip}
-        )
-      )
-    {
+    elsif (!&validateGateway($iface_ref->{addr}, $iface_ref->{mask}, $backend->{ip})) {
         $msg =
-"The $backend->{ ip } IP must be in the same network than the $iface_ref->{ addr } interface.";
+          "The $backend->{ ip } IP must be in the same network than the $iface_ref->{ addr } interface.";
     }
 
     return $msg;

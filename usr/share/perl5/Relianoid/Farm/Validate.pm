@@ -39,8 +39,7 @@ Returns:
 sub priorityAlgorithmIsOK    # ( \@Priorities )
 {
     use List::Util qw( min max );
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $priority_ref = shift;
     my @backends     = sort @{$priority_ref};
     my @backendstmp;

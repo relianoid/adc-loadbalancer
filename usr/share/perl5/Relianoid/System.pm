@@ -39,8 +39,7 @@ See Also:
 =cut
 
 sub getTotalConnections {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $conntrack = &getGlobalConfiguration("conntrack");
     my $conns     = &logAndGet("$conntrack -C");
     $conns =~ s/(\d+)/$1/;
@@ -66,8 +65,7 @@ See Also:
 =cut
 
 sub indexOfElementInArray {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $searched_element = shift;
     my $array_ref        = shift;
 
@@ -110,8 +108,7 @@ Returns:
 =cut
 
 sub slurpFile {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $path = shift;
 
     # Slurp: store an entire file in a variable.
@@ -154,8 +151,7 @@ Returns:
 =cut
 
 sub getSpaceFree {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $dir      = shift;
     my $df_bin   = &getGlobalConfiguration("df_bin");
@@ -164,7 +160,7 @@ sub getSpaceFree {
     my $grep_bin = &getGlobalConfiguration("grep_bin");
 
     my $cmd =
-"$df_bin -B1 $dir | $grep_bin -Ev '^(Filesystem|\$)' | $sed_bin -E 's/\\s+/ /g' | $cut_bin -d ' ' -f4";
+      "$df_bin -B1 $dir | $grep_bin -Ev '^(Filesystem|\$)' | $sed_bin -E 's/\\s+/ /g' | $cut_bin -d ' ' -f4";
     my $size = &logAndGet($cmd);
 
     &zenlog("Dir: $dir, Free space (Bytes): $size", "debug2");
@@ -186,8 +182,7 @@ Returns:
 =cut
 
 sub getSpaceFormatHuman {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $size = shift;
 
@@ -228,10 +223,9 @@ Returns:
 =cut
 
 sub getSupportSaveSize {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
-    my $offset = "20971520";                             # 20 MB
+    my $offset = "20971520";                               # 20 MB
     my $dirs   = "/usr/local/relianoid/config /var/log";
 
     my $tar_bin = &getGlobalConfiguration('tar');
@@ -255,8 +249,7 @@ Returns:
 =cut
 
 sub checkSupportSaveSpace {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $dir = shift // "/tmp";
 
@@ -267,13 +260,13 @@ sub checkSupportSaveSpace {
 
     if ($out) {
         &zenlog(
-"There is no enough free space ('$freeSpace') in the '$dir' partition. Supportsave needs '$supp_size' bytes",
+            "There is no enough free space ('$freeSpace') in the '$dir' partition. Supportsave needs '$supp_size' bytes",
             "error", "system"
         );
     }
     else {
         &zenlog(
-"Checking free space ('$freeSpace') in the '$dir' partition. Supportsave needs '$supp_size' bytes",
+            "Checking free space ('$freeSpace') in the '$dir' partition. Supportsave needs '$supp_size' bytes",
             "debug", "system"
         );
     }
@@ -295,8 +288,7 @@ Returns:
 =cut
 
 sub getSupportSave {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $zbindir   = &getGlobalConfiguration('zbindir');
     my @ss_output = @{ &logAndGet("${zbindir}/supportsave", "array") };
 
@@ -330,8 +322,7 @@ Returns:
 =cut
 
 sub applyFactoryReset {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $if_name    = shift;
     my $reset_type = shift // '';
@@ -342,17 +333,14 @@ sub applyFactoryReset {
     }
 
     unless ($reset_type =~ /^(?:remove-backups|hardware||hard-reset)$/) {
-        &zenlog("Reset type do not recognized: $reset_type", "error",
-            "Factory");
+        &zenlog("Reset type do not recognized: $reset_type", "error", "Factory");
         return -2;
     }
 
     $reset_type = "--$reset_type" if ($reset_type ne '');
 
-    my $cmd =
-      &getGlobalConfiguration('factory_reset_bin') . " -i $if_name $reset_type";
-    my $err = &logAndRunBG($cmd)
-      ;    # it has to be executed in background for being used from api
+    my $cmd = &getGlobalConfiguration('factory_reset_bin') . " -i $if_name $reset_type";
+    my $err = &logAndRunBG($cmd);    # it has to be executed in background for being used from api
 
     return $err;
 }
@@ -372,8 +360,7 @@ Returns:
 
 sub checkPidRunning    #( $pid )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $pid = shift;
     my $ret = 1;
     $ret = 0 if (-e "/proc/" . $pid);
@@ -395,10 +382,9 @@ Returns:
 
 sub checkPidFileRunning    #( $pid_file )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $pid_file = shift;
-    open my $fileh, $pid_file;
+    open my $fileh, '<', $pid_file;
     my $pid = <$fileh>;
     chomp $pid;
     close $fileh;

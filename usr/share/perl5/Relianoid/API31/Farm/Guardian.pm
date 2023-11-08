@@ -31,8 +31,7 @@ if (eval { require Relianoid::ELoad; }) {
 #  PUT /farms/<farmname>/fg Modify the parameters of the farm guardian in a Service
 sub modify_farmguardian    # ( $json_obj, $farmname )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $farmname = shift;
 
@@ -55,8 +54,7 @@ sub modify_farmguardian    # ( $json_obj, $farmname )
 
     # validate FARM TYPE
     unless ($type eq 'l4xnat' || $type =~ /^https?$/ || $type eq 'gslb') {
-        my $msg =
-          "Farm guardian is not supported for the requested farm profile.";
+        my $msg = "Farm guardian is not supported for the requested farm profile.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
@@ -121,9 +119,8 @@ sub modify_farmguardian    # ( $json_obj, $farmname )
         my $num_farms = scalar @{ &getFGObject($fg)->{farms} };
         if ($num_farms > 1) {
             my $errormsg =
-"Farm guardian $fg is used for several farms, modify it from API 3.2 or later";
-            my $body =
-              { description => $desc, error => "true", message => $errormsg };
+              "Farm guardian $fg is used for several farms, modify it from API 3.2 or later";
+            my $body = { description => $desc, error => "true", message => $errormsg };
             &httpResponse({ code => 400, body => $body });
         }
     }
@@ -143,9 +140,7 @@ sub modify_farmguardian    # ( $json_obj, $farmname )
         my @fgconfig = &getFarmGuardianConf($farmname, $service);
 
         chomp @fgconfig;
-        my (undef, $timetocheck, $check_script, $usefarmguardian,
-            $farmguardianlog)
-          = @fgconfig;
+        my (undef, $timetocheck, $check_script, $usefarmguardian, $farmguardianlog) = @fgconfig;
 
         $timetocheck += 0;
         $timetocheck = 5 if !$timetocheck;
@@ -158,8 +153,7 @@ sub modify_farmguardian    # ( $json_obj, $farmname )
             $timetocheck = $timetocheck + 0;
         }
         if (exists $json_obj->{fgscript}) {
-            $check_script =
-              $json_obj->{fgscript};    # FIXME: Make safe script string
+            $check_script = $json_obj->{fgscript};    # FIXME: Make safe script string
         }
         if (exists $json_obj->{fgenabled}) {
             $usefarmguardian = $json_obj->{fgenabled};
@@ -178,22 +172,19 @@ sub modify_farmguardian    # ( $json_obj, $farmname )
 
         # check for errors setting farmguardian
         if ($status == -1) {
-            my $msg =
-"It's not possible to create the FarmGuardian configuration file.";
+            my $msg = "It's not possible to create the FarmGuardian configuration file.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
 
         # get current farmguardian configuration
-        my (undef, $timetocheck, $check_script, $usefarmguardian,
-            $farmguardianlog)
-          = &getFarmGuardianConf($farmname, $service);
+        my (undef, $timetocheck, $check_script, $usefarmguardian, $farmguardianlog) =
+          &getFarmGuardianConf($farmname, $service);
 
         $timetocheck += 0;
         $timetocheck = 5 if !$timetocheck;
 
         # no error found, return successful response
-        my $msg =
-"Success, some parameters have been changed in farm guardian in farm $farmname.";
+        my $msg  = "Success, some parameters have been changed in farm guardian in farm $farmname.";
         my $body = {
             description => $desc,
             params      => {

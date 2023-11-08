@@ -24,6 +24,7 @@
 # Description:
 # Migrate from old Farmguardian configuration file to new Farmguardian configuration format
 
+use 5.036;
 use strict;
 use warnings;
 
@@ -36,18 +37,20 @@ my $fg_conf  = "$conf_dir/farmguardian.conf";
 use Relianoid::File;
 use Relianoid::FarmGuardian;
 
-opendir(DIR, $conf_dir) or return;
+opendir(my $dir, $conf_dir) or return;
 my $index = 0;
-while (my $file = readdir(DIR)) {
+while (my $file = readdir($dir)) {
     if ($file =~ /_guardian\.conf$/) {
         print " + Migrating Farmguardian file $conf_dir/$file ...\n";
         my $file_content = &getFile("$conf_dir/$file");
         chomp $file_content;
 
-        my $file_name = $1 if $file =~ /^(.+)_guardian\.conf$/;
-        my ($farm, $service) = split(/_/, $file_name);
+        my $file_name;
+        my $service;
+        $file_name = $1 if $file =~ /^(.+)_guardian\.conf$/;
         my ($farm, $interval, $command, $cut, $log) =
           split(/:{3}/, $file_content);
+        ($farm, $service) = split(/_/, $file_name);
 
         my @check_command     = split(/ /, $command);
         my $farmguardian_name = "migrated" . $index++ . "_" . $check_command[0];
@@ -69,7 +72,7 @@ while (my $file = readdir(DIR)) {
         print "      Update Farmguardian $farmguardian_name ... ";
         $error = &setFGObject($farmguardian_name, $farmguardian_ref);
 
-       #$error = &setTinyObj( $fg_conf, $farmguardian_name, $farmguardian_ref );
+        #$error = &setTinyObj( $fg_conf, $farmguardian_name, $farmguardian_ref );
         if ($error) {
             print "ERROR\n";
             next;
@@ -94,6 +97,6 @@ while (my $file = readdir(DIR)) {
         }
     }
 }
-closedir(DIR);
+closedir($dir);
 1;
 

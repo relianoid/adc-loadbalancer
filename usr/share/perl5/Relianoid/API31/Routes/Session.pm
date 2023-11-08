@@ -33,8 +33,7 @@ POST qr{^/session$} => \&session_login;
 DELETE qr{^/session$} => \&session_logout;
 
 sub session_login {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $desc    = "Login to new session";
     my $session = CGI::Session->new(&getCGI());
 
@@ -77,8 +76,7 @@ sub session_login {
 }
 
 sub session_logout {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $desc = "Logout of session";
     my $cgi  = &getCGI();
 

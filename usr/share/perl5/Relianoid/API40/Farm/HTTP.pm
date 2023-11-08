@@ -34,8 +34,7 @@ require Relianoid::Farm::HTTP::Config;
 # POST	/farms/<>/addheader
 sub add_addheader    # ( $json_obj, $farmname )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $farmname = shift;
 
@@ -87,8 +86,7 @@ sub add_addheader    # ( $json_obj, $farmname )
                 require Relianoid::Farm::HTTP::Config;
                 my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
                 if ($config_error ne "") {
-                    $body->{warning} =
-                      "Farm '$farmname' config error: $config_error";
+                    $body->{warning} = "Farm '$farmname' config error: $config_error";
                 }
                 else {
                     &runFarmReload($farmname);
@@ -112,8 +110,7 @@ sub add_addheader    # ( $json_obj, $farmname )
 # PUT	/farms/<>/addheader/<id>
 sub modify_addheader    # ( $json_obj, $farmname, $index )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $farmname = shift;
     my $index    = shift;
@@ -174,8 +171,7 @@ sub modify_addheader    # ( $json_obj, $farmname, $index )
                 require Relianoid::Farm::HTTP::Config;
                 my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
                 if ($config_error ne "") {
-                    $body->{warning} =
-                      "Farm '$farmname' config error: $config_error";
+                    $body->{warning} = "Farm '$farmname' config error: $config_error";
                 }
                 else {
                     &runFarmReload($farmname);
@@ -198,8 +194,7 @@ sub modify_addheader    # ( $json_obj, $farmname, $index )
 
 #  DELETE	/farms/<>/addheader/<>
 sub del_addheader {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farmname = shift;
     my $index    = shift;
 
@@ -242,8 +237,7 @@ sub del_addheader {
                 require Relianoid::Farm::HTTP::Config;
                 my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
                 if ($config_error ne "") {
-                    $body->{warning} =
-                      "Farm '$farmname' config error: $config_error";
+                    $body->{warning} = "Farm '$farmname' config error: $config_error";
                 }
                 else {
                     &runFarmReload($farmname);
@@ -267,8 +261,7 @@ sub del_addheader {
 # POST	/farms/<>/headremove
 sub add_headremove    # ( $json_obj, $farmname )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $farmname = shift;
 
@@ -320,8 +313,7 @@ sub add_headremove    # ( $json_obj, $farmname )
                 require Relianoid::Farm::HTTP::Config;
                 my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
                 if ($config_error ne "") {
-                    $body->{warning} =
-                      "Farm '$farmname' config error: $config_error";
+                    $body->{warning} = "Farm '$farmname' config error: $config_error";
                 }
                 else {
                     &runFarmReload($farmname);
@@ -345,8 +337,7 @@ sub add_headremove    # ( $json_obj, $farmname )
 # PUT	/farms/<>/headremove/<id>
 sub modify_headremove    # ( $json_obj, $farmname, $index )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $farmname = shift;
     my $index    = shift;
@@ -407,8 +398,7 @@ sub modify_headremove    # ( $json_obj, $farmname, $index )
                 require Relianoid::Farm::HTTP::Config;
                 my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
                 if ($config_error ne "") {
-                    $body->{warning} =
-                      "Farm '$farmname' config error: $config_error";
+                    $body->{warning} = "Farm '$farmname' config error: $config_error";
                 }
                 else {
                     &runFarmReload($farmname);
@@ -431,8 +421,7 @@ sub modify_headremove    # ( $json_obj, $farmname, $index )
 
 #  DELETE	/farms/<>/addheader/<>
 sub del_headremove {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farmname = shift;
     my $index    = shift;
 
@@ -475,8 +464,7 @@ sub del_headremove {
                 require Relianoid::Farm::HTTP::Config;
                 my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
                 if ($config_error ne "") {
-                    $body->{warning} =
-                      "Farm '$farmname' config error: $config_error";
+                    $body->{warning} = "Farm '$farmname' config error: $config_error";
                 }
                 else {
                     &runFarmReload($farmname);
@@ -500,8 +488,7 @@ sub del_headremove {
 # POST	/farms/<>/addheader
 sub add_addResponseheader    # ( $json_obj, $farmname )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $farmname = shift;
 
@@ -553,8 +540,7 @@ sub add_addResponseheader    # ( $json_obj, $farmname )
                 require Relianoid::Farm::HTTP::Config;
                 my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
                 if ($config_error ne "") {
-                    $body->{warning} =
-                      "Farm '$farmname' config error: $config_error";
+                    $body->{warning} = "Farm '$farmname' config error: $config_error";
                 }
                 else {
                     &runFarmReload($farmname);
@@ -578,8 +564,7 @@ sub add_addResponseheader    # ( $json_obj, $farmname )
 # PUT	/farms/<>/addresponseheader/<id>
 sub modify_addResponseheader    # ( $json_obj, $farmname, $index )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $farmname = shift;
     my $index    = shift;
@@ -640,8 +625,7 @@ sub modify_addResponseheader    # ( $json_obj, $farmname, $index )
                 require Relianoid::Farm::HTTP::Config;
                 my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
                 if ($config_error ne "") {
-                    $body->{warning} =
-                      "Farm '$farmname' config error: $config_error";
+                    $body->{warning} = "Farm '$farmname' config error: $config_error";
                 }
                 else {
                     &runFarmReload($farmname);
@@ -664,8 +648,7 @@ sub modify_addResponseheader    # ( $json_obj, $farmname, $index )
 
 #  DELETE	/farms/<>/addresponseheader/<>
 sub del_addResponseheader {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farmname = shift;
     my $index    = shift;
 
@@ -708,8 +691,7 @@ sub del_addResponseheader {
                 require Relianoid::Farm::HTTP::Config;
                 my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
                 if ($config_error ne "") {
-                    $body->{warning} =
-                      "Farm '$farmname' config error: $config_error";
+                    $body->{warning} = "Farm '$farmname' config error: $config_error";
                 }
                 else {
                     &runFarmReload($farmname);
@@ -733,8 +715,7 @@ sub del_addResponseheader {
 # POST	/farms/<>/replacerequestheader
 sub add_replaceRequestHeader    # ( $json_obj, $farmname )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $json_obj = shift;
     my $farmname = shift;
@@ -746,8 +727,7 @@ sub add_replaceRequestHeader    # ( $json_obj, $farmname )
 # POST	/farms/<>/replaceresponseheader
 sub add_replaceResponseHeader    # ( $json_obj, $farmname )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $json_obj = shift;
     my $farmname = shift;
@@ -758,8 +738,7 @@ sub add_replaceResponseHeader    # ( $json_obj, $farmname )
 
 sub add_replaceheader            # ( $json_obj, $farmname, $type )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $farmname = shift;
     my $type     = shift;
@@ -777,8 +756,7 @@ sub add_replaceheader            # ( $json_obj, $farmname, $type )
         return &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
     }
 
-    my $params =
-      &getZAPIModel("farm_http_header_" . lc($type) . "_replace-create.json");
+    my $params = &getZAPIModel("farm_http_header_" . lc($type) . "_replace-create.json");
 
     # Check allowed parameters
     my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
@@ -823,8 +801,7 @@ sub add_replaceheader            # ( $json_obj, $farmname, $type )
                 require Relianoid::Farm::HTTP::Config;
                 my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
                 if ($config_error ne "") {
-                    $body->{warning} =
-                      "Farm '$farmname' config error: $config_error";
+                    $body->{warning} = "Farm '$farmname' config error: $config_error";
                 }
                 else {
                     &runFarmReload($farmname);
@@ -847,8 +824,7 @@ sub add_replaceheader            # ( $json_obj, $farmname, $type )
 
 #  PUT	/farms/<>/replacerequestheader/<>
 sub modify_replaceRequestHeader {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $json_obj = shift;
     my $farmname = shift;
@@ -860,8 +836,7 @@ sub modify_replaceRequestHeader {
 
 #  PUT	/farms/<>/replaceresponseheader/<>
 sub modify_replaceResponseHeader {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $json_obj = shift;
     my $farmname = shift;
@@ -874,8 +849,7 @@ sub modify_replaceResponseHeader {
 # PUT	/farms/<>/replaceHeader/<id>
 sub modify_replaceHeader    # ( $json_obj, $farmname, $type, $index )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $farmname = shift;
     my $type     = shift;
@@ -894,8 +868,7 @@ sub modify_replaceHeader    # ( $json_obj, $farmname, $type, $index )
         return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-    my $params =
-      &getZAPIModel("farm_http_header_" . lc($type) . "_replace-modify.json");
+    my $params = &getZAPIModel("farm_http_header_" . lc($type) . "_replace-modify.json");
 
     # Check allowed parameters
     my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
@@ -933,12 +906,9 @@ sub modify_replaceHeader    # ( $json_obj, $farmname, $type, $index )
 
     unless (
         &modifyHTTPReplaceHeaders(
-            $farmname,
-            $type,
-            $json_obj->{header}  // $header->{header},
-            $json_obj->{match}   // $header->{match},
-            $json_obj->{replace} // $header->{replace},
-            $index
+            $farmname, $type,
+            $json_obj->{header} // $header->{header}, $json_obj->{match} // $header->{match},
+            $json_obj->{replace} // $header->{replace}, $index
         )
       )
     {
@@ -961,8 +931,7 @@ sub modify_replaceHeader    # ( $json_obj, $farmname, $type, $index )
                 require Relianoid::Farm::HTTP::Config;
                 my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
                 if ($config_error ne "") {
-                    $body->{warning} =
-                      "Farm '$farmname' config error: $config_error";
+                    $body->{warning} = "Farm '$farmname' config error: $config_error";
                 }
                 else {
                     &runFarmReload($farmname);
@@ -985,8 +954,7 @@ sub modify_replaceHeader    # ( $json_obj, $farmname, $type, $index )
 
 #  DELETE	/farms/<>/replacerequestheader/<>
 sub del_replaceRequestHeader {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $farmname = shift;
     my $index    = shift;
@@ -997,8 +965,7 @@ sub del_replaceRequestHeader {
 
 #  DELETE	/farms/<>/replaceresponseheader/<>
 sub del_replaceResponseHeader {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $farmname = shift;
     my $index    = shift;
@@ -1008,8 +975,7 @@ sub del_replaceResponseHeader {
 }
 
 sub del_replaceheader {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farmname = shift;
     my $index    = shift;
     my $type     = shift;
@@ -1048,8 +1014,7 @@ sub del_replaceheader {
                 require Relianoid::Farm::HTTP::Config;
                 my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
                 if ($config_error ne "") {
-                    $body->{warning} =
-                      "Farm '$farmname' config error: $config_error";
+                    $body->{warning} = "Farm '$farmname' config error: $config_error";
                 }
                 else {
                     &runFarmReload($farmname);
@@ -1072,8 +1037,7 @@ sub del_replaceheader {
 
 #  POST	/farms/<>/replacerequestheader/<>/actions
 sub move_replacerequestheader {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $json_obj = shift;
     my $farmname = shift;
@@ -1087,8 +1051,7 @@ sub move_replacerequestheader {
 
 #  POST	/farms/<>/replaceresponseheader/<>/actions
 sub move_replaceresponseheader {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $json_obj = shift;
     my $farmname = shift;
@@ -1102,8 +1065,7 @@ sub move_replaceresponseheader {
 
 sub move_replaceheader    # ( $json_obj, $type, $regex, $farmname, $index )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $json_obj = shift;
     my $type     = shift;
@@ -1121,8 +1083,7 @@ sub move_replaceheader    # ( $json_obj, $type, $regex, $farmname, $index )
 
     my @headers = @{ &getHTTPReplaceHeaders($farmname, $type) };
 
-    my $params =
-      &getZAPIModel("farm_http_header_" . lc($type) . "_replace-move.json");
+    my $params = &getZAPIModel("farm_http_header_" . lc($type) . "_replace-move.json");
     $params->{position}->{"interval"} = "0," . scalar @headers - 1;
 
     # Check allowed parameters
@@ -1139,9 +1100,8 @@ sub move_replaceheader    # ( $json_obj, $type, $regex, $farmname, $index )
     unless (&moveHeader($farmname, $regex, $json_obj->{position}, $index)) {
 
         # success
-        my $msg = "Header was moved successfully.";
-        my $body =
-          { description => $desc, params => $json_obj, message => $msg };
+        my $msg  = "Header was moved successfully.";
+        my $body = { description => $desc, params => $json_obj, message => $msg };
 
         if (&getFarmStatus($farmname) ne 'down') {
             require Relianoid::Farm::Action;
@@ -1153,8 +1113,7 @@ sub move_replaceheader    # ( $json_obj, $type, $regex, $farmname, $index )
                 require Relianoid::Farm::HTTP::Config;
                 my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
                 if ($config_error ne "") {
-                    $body->{warning} =
-                      "Farm '$farmname' config error: $config_error";
+                    $body->{warning} = "Farm '$farmname' config error: $config_error";
                 }
                 else {
                     &runFarmReload($farmname);
@@ -1178,8 +1137,7 @@ sub move_replaceheader    # ( $json_obj, $type, $regex, $farmname, $index )
 # POST	/farms/<>/removeresponseheader
 sub add_removeResponseheader    # ( $json_obj, $farmname )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $farmname = shift;
 
@@ -1231,8 +1189,7 @@ sub add_removeResponseheader    # ( $json_obj, $farmname )
                 require Relianoid::Farm::HTTP::Config;
                 my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
                 if ($config_error ne "") {
-                    $body->{warning} =
-                      "Farm '$farmname' config error: $config_error";
+                    $body->{warning} = "Farm '$farmname' config error: $config_error";
                 }
                 else {
                     &runFarmReload($farmname);
@@ -1256,8 +1213,7 @@ sub add_removeResponseheader    # ( $json_obj, $farmname )
 # PUT	/farms/<>/removeresponseheader/<id>
 sub modify_removeResponseheader    # ( $json_obj, $farmname )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $farmname = shift;
     my $index    = shift;
@@ -1318,8 +1274,7 @@ sub modify_removeResponseheader    # ( $json_obj, $farmname )
                 require Relianoid::Farm::HTTP::Config;
                 my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
                 if ($config_error ne "") {
-                    $body->{warning} =
-                      "Farm '$farmname' config error: $config_error";
+                    $body->{warning} = "Farm '$farmname' config error: $config_error";
                 }
                 else {
                     &runFarmReload($farmname);
@@ -1342,8 +1297,7 @@ sub modify_removeResponseheader    # ( $json_obj, $farmname )
 
 #  DELETE	/farms/<>/addheader/<>
 sub del_removeResponseHeader {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farmname = shift;
     my $index    = shift;
 
@@ -1386,8 +1340,7 @@ sub del_removeResponseHeader {
                 require Relianoid::Farm::HTTP::Config;
                 my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
                 if ($config_error ne "") {
-                    $body->{warning} =
-                      "Farm '$farmname' config error: $config_error";
+                    $body->{warning} = "Farm '$farmname' config error: $config_error";
                 }
                 else {
                     &runFarmReload($farmname);

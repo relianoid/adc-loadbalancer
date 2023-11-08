@@ -49,8 +49,7 @@ Returns:
 
 sub runHTTPFarmCreate    # ( $vip, $vip_port, $farm_name, $farm_type )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     require Relianoid::Farm::HTTP::Config;
     my ($vip, $vip_port, $farm_name, $farm_type, $status) = @_;
@@ -67,8 +66,7 @@ sub runHTTPFarmCreate    # ( $vip, $vip_port, $farm_name, $farm_type )
     #copy template modyfing values
     my $proxytpl        = &getGlobalConfiguration('proxytpl');
     my $proxy_conf_file = "$configdir/${farm_name}_proxy.cfg";
-    &zenlog("Copying proxy template ($proxytpl) to $proxy_conf_file",
-        "info", "LSLB");
+    &zenlog("Copying proxy template ($proxytpl) to $proxy_conf_file", "info", "LSLB");
     copy($proxytpl, $proxy_conf_file);
 
     #modify strings with variables
@@ -136,12 +134,12 @@ sub runHTTPFarmCreate    # ( $vip, $vip_port, $farm_name, $farm_type )
 
     if ($status eq 'up') {
         &zenlog(
-"Running $proxy -f $configdir\/$farm_name\_proxy.cfg -p $piddir\/$farm_name\_proxy.pid",
+            "Running $proxy -f $configdir\/$farm_name\_proxy.cfg -p $piddir\/$farm_name\_proxy.pid",
             "info", "LSLB"
         );
 
         $output = &zsystem(
-"$proxy -f $configdir\/$farm_name\_proxy.cfg -p $piddir\/$farm_name\_proxy.pid 2>/dev/null"
+            "$proxy -f $configdir\/$farm_name\_proxy.cfg -p $piddir\/$farm_name\_proxy.pid 2>/dev/null"
         );
 
         if ($proxy_ng eq 'true') {
@@ -157,7 +155,7 @@ sub runHTTPFarmCreate    # ( $vip, $vip_port, $farm_name, $farm_type )
                     $vip_family = "ipv4";
                 }
                 my $body =
-qq({"farms" : [ { "name" : "$farm_name", "virtual-addr" : "$vip", "virtual-ports" : "$vip_port", "mode" : "local", "state": "up", "family" : "$vip_family" }]});
+                  qq({"farms" : [ { "name" : "$farm_name", "virtual-addr" : "$vip", "virtual-ports" : "$vip_port", "mode" : "local", "state": "up", "family" : "$vip_family" }]});
                 require Relianoid::Nft;
                 my $error = &httpNlbRequest(
                     {
@@ -168,10 +166,8 @@ qq({"farms" : [ { "name" : "$farm_name", "virtual-addr" : "$vip", "virtual-ports
                     }
                 );
                 if ($error) {
-                    &zenlog(
-"L4xnat Farm Type local for '$farm_name' can not be created.",
-                        "warning", "LSLB"
-                    );
+                    &zenlog("L4xnat Farm Type local for '$farm_name' can not be created.",
+                        "warning", "LSLB");
                 }
             }
 

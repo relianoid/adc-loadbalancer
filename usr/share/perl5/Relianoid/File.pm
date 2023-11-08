@@ -24,8 +24,7 @@
 use strict;
 
 sub getFile {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $path = shift;
 
     unless (-f $path) {
@@ -54,8 +53,7 @@ sub getFile {
 }
 
 sub setFile {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $path    = shift;
     my $content = shift;
 
@@ -83,8 +81,7 @@ sub setFile {
 }
 
 sub saveFileHandler {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $path       = shift;
     my $content_fh = shift;
 
@@ -111,35 +108,35 @@ sub saveFileHandler {
     }
 
     return 1;
+}
 
-    # Insert an array in a file before or after a pattern
-    sub insertFileWithPattern {
-        my ($file, $array, $pattern, $opt) = @_;
-        my $err = 0;
+# Insert an array in a file before or after a pattern
+sub insertFileWithPattern {
+    my ($file, $array, $pattern, $opt) = @_;
+    my $err = 0;
 
-        $opt //= 'after';
+    $opt //= 'after';
 
-        my $index = 0;
-        my $found = 0;
-        tie my @fileconf, 'Tie::File', $file;
+    my $index = 0;
+    my $found = 0;
+    tie my @fileconf, 'Tie::File', $file;
 
-        foreach my $line (@fileconf) {
-            if ($line =~ /$pattern/) {
-                $found = 1;
-                last;
-            }
-            $index++;
+    foreach my $line (@fileconf) {
+        if ($line =~ /$pattern/) {
+            $found = 1;
+            last;
         }
-
-        return 1 if (!$found);
-
-        $index++ if ($opt eq 'after');
-
-        splice @fileconf, $index, 0, @{$array};
-        untie @fileconf;
-
-        return $err;
+        $index++;
     }
+
+    return 1 if (!$found);
+
+    $index++ if ($opt eq 'after');
+
+    splice @fileconf, $index, 0, @{$array};
+    untie @fileconf;
+
+    return $err;
 }
 
 sub createFile {
@@ -212,16 +209,15 @@ Returns:
 =cut
 
 sub getFileChecksumMD5 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $filepath = shift;
     my $md5      = {};
 
     if (-d $filepath) {
-        opendir(DIR, $filepath);
-        my @files = readdir(DIR);
-        closedir(DIR);
+        opendir(my $directory, $filepath);
+        my @files = readdir($directory);
+        closedir($directory);
         foreach my $file (@files) {
             next if ($file eq "." or $file eq "..");
             $md5 =
@@ -254,8 +250,7 @@ Returns:
 =cut
 
 sub getFileChecksumAction {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $checksum_filepath1 = shift;
     my $checksum_filepath2 = shift;

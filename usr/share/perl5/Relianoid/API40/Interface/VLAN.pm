@@ -31,8 +31,7 @@ if (eval { require Relianoid::ELoad; }) {
 #  POST /interfaces/vlan Create a new vlan network interface
 sub new_vlan    # ( $json_obj )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
 
     require Relianoid::Net::Util;
@@ -62,7 +61,7 @@ sub new_vlan    # ( $json_obj )
     );
     unless (($dhcp_flag and !$ip_opt) or (!$dhcp_flag and $ip_mand)) {
         my $msg =
-"It is mandatory set an 'ip' and its 'netmask' or enabling the 'dhcp'. It is not allow to send 'ip', 'netmask' or 'gateway' when 'dhcp' is true.";
+          "It is mandatory set an 'ip' and its 'netmask' or enabling the 'dhcp'. It is not allow to send 'ip', 'netmask' or 'gateway' when 'dhcp' is true.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
@@ -106,8 +105,7 @@ sub new_vlan    # ( $json_obj )
     }
 
     if ($is_slave eq 'true') {
-        my $msg =
-          "It is not possible create a VLAN interface from a NIC slave.";
+        my $msg = "It is not possible create a VLAN interface from a NIC slave.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
@@ -146,8 +144,7 @@ sub new_vlan    # ( $json_obj )
             my $if_used =
               &checkNetworkExists($json_obj->{ip}, $json_obj->{netmask});
             if ($if_used) {
-                my $msg =
-                  "The network already exists in the interface $if_used.";
+                my $msg = "The network already exists in the interface $if_used.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
         }
@@ -165,10 +162,9 @@ sub new_vlan    # ( $json_obj )
             my $gw_v = &ipversion($if_ref->{gateway});
 
             my $mask_v =
-              ($ip_v == 4 && &getValidFormat('IPv4_mask', $if_ref->{mask})) ? 4
-              : ($ip_v == 6 && &getValidFormat('IPv6_mask', $if_ref->{mask}))
-              ? 6
-              : '';
+                ($ip_v == 4 && &getValidFormat('IPv4_mask', $if_ref->{mask})) ? 4
+              : ($ip_v == 6 && &getValidFormat('IPv6_mask', $if_ref->{mask})) ? 6
+              :                                                                 '';
 
             if ($ip_v ne $mask_v
                 || ($if_ref->{gateway} && $ip_v ne $gw_v))
@@ -179,12 +175,7 @@ sub new_vlan    # ( $json_obj )
         }
 
         if ($if_ref->{gateway}) {
-            unless (
-                &validateGateway(
-                    $if_ref->{addr}, $if_ref->{mask}, $if_ref->{gateway}
-                )
-              )
-            {
+            unless (&validateGateway($if_ref->{addr}, $if_ref->{mask}, $if_ref->{gateway})) {
                 my $msg = "Gateway does not belong to the interface subnet.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
@@ -193,8 +184,7 @@ sub new_vlan    # ( $json_obj )
 
     # creating
     if (&createVlan($if_ref)) {
-        my $msg =
-          "The $json_obj->{ name } vlan network interface can't be created";
+        my $msg = "The $json_obj->{ name } vlan network interface can't be created";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
@@ -208,15 +198,13 @@ sub new_vlan    # ( $json_obj )
         );
 
         if ($err) {
-            my $msg =
-"The $json_obj->{ name } vlan network interface can't be configured";
+            my $msg = "The $json_obj->{ name } vlan network interface can't be configured";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
     }
     else {
         if (&setVlan($if_ref, $json_obj)) {
-            my $msg =
-"The $json_obj->{ name } vlan network interface can't be configured";
+            my $msg = "The $json_obj->{ name } vlan network interface can't be configured";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
     }
@@ -224,7 +212,7 @@ sub new_vlan    # ( $json_obj )
     my $body = {
         description => $desc,
         params      => &get_vlan_struct($json_obj->{name}),
-        message => "The $json_obj->{ name } VLAN has been created successfully."
+        message     => "The $json_obj->{ name } VLAN has been created successfully."
     };
 
     &httpResponse({ code => 201, body => $body });
@@ -232,8 +220,7 @@ sub new_vlan    # ( $json_obj )
 
 sub delete_interface_vlan    # ( $vlan )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $vlan = shift;
 
     my $desc = "Delete VLAN interface";
@@ -268,7 +255,7 @@ sub delete_interface_vlan    # ( $vlan )
               split(/\s/, $zcl_conf->{_}->{track_interface});
             if (grep { $_ eq $if_ref->{name} } @track_interface) {
                 $msg =
-"The interface $if_ref->{ name } cannot be modified because it is been tracked by the cluster.
+                  "The interface $if_ref->{ name } cannot be modified because it is been tracked by the cluster.
 						If you still want to modify it, remove it from the cluster track interface list.";
                 return &httpErrorResponse(
                     code => 400,
@@ -298,8 +285,7 @@ sub delete_interface_vlan    # ( $vlan )
         );
         if (@{$vpns}) {
             my $str = join(', ', @{$vpns});
-            my $msg =
-              "This interface is being used as Local Gateway in VPN(s): $str";
+            my $msg = "This interface is being used as Local Gateway in VPN(s): $str";
             return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
         $vpns = &eload(
@@ -309,8 +295,7 @@ sub delete_interface_vlan    # ( $vlan )
         );
         if (@{$vpns}) {
             my $str = join(', ', @{$vpns});
-            my $msg =
-              "This interface is being used as Local Network in VPN(s): $str";
+            my $msg = "This interface is being used as Local Network in VPN(s): $str";
             return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
 
@@ -319,8 +304,7 @@ sub delete_interface_vlan    # ( $vlan )
     my @child = &getInterfaceChild($vlan);
     if (@child) {
         my $child_string = join(', ', @child);
-        my $msg =
-"Before removing $vlan interface, delete the virtual interfaces: $child_string.";
+        my $msg = "Before removing $vlan interface, delete the virtual interfaces: $child_string.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
@@ -350,8 +334,7 @@ sub delete_interface_vlan    # ( $vlan )
 
 sub get_vlan_list    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     require Relianoid::Net::Interface;
 
     my $desc        = "List VLAN interfaces";
@@ -367,8 +350,7 @@ sub get_vlan_list    # ()
 
 sub get_vlan    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $vlan = shift;
 
     require Relianoid::Net::Interface;
@@ -391,8 +373,7 @@ sub get_vlan    # ()
 
 sub actions_interface_vlan    # ( $json_obj, $vlan )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $vlan     = shift;
 
@@ -446,7 +427,7 @@ sub actions_interface_vlan    # ( $json_obj, $vlan )
         # validate PARENT INTERFACE STATUS
         unless ($parent_if_status eq 'up') {
             my $msg =
-"The interface $if_ref->{name} has a parent interface DOWN, check the interfaces status";
+              "The interface $if_ref->{name} has a parent interface DOWN, check the interfaces status";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
 
@@ -488,7 +469,7 @@ sub actions_interface_vlan    # ( $json_obj, $vlan )
                   split(/\s/, $zcl_conf->{_}->{track_interface});
                 if (grep { $_ eq $if_ref->{name} } @track_interface) {
                     $msg =
-"The interface $if_ref->{ name } cannot be modified because it is been tracked by the cluster.
+                      "The interface $if_ref->{ name } cannot be modified because it is been tracked by the cluster.
 							If you still want to modify it, remove it from the cluster track interface list.";
                     return &httpErrorResponse(
                         code => 400,
@@ -519,8 +500,7 @@ sub actions_interface_vlan    # ( $json_obj, $vlan )
 
 sub modify_interface_vlan    # ( $json_obj, $vlan )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $vlan     = shift;
 
@@ -564,14 +544,14 @@ sub modify_interface_vlan    # ( $json_obj, $vlan )
             or exists $json_obj->{gateway})
         {
             my $msg =
-"It is not possible set 'ip', 'netmask' or 'gateway' while 'dhcp' is enabled.";
+              "It is not possible set 'ip', 'netmask' or 'gateway' while 'dhcp' is enabled.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
     }
 
     if (!exists $json_obj->{ip} and exists $json_obj->{dhcp} and @child) {
         my $msg =
-"This interface has appending some virtual interfaces, please, set up a new 'ip' in the current networking range.";
+          "This interface has appending some virtual interfaces, please, set up a new 'ip' in the current networking range.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
@@ -606,20 +586,15 @@ sub modify_interface_vlan    # ( $json_obj, $vlan )
             # check ip and netmas are configured
             unless ($new_if->{addr} ne "" and $new_if->{mask} ne "") {
                 my $msg =
-"The networking configuration is not valid. It needs an IP ('$new_if->{addr}') and a netmask ('$new_if->{mask}')";
+                  "The networking configuration is not valid. It needs an IP ('$new_if->{addr}') and a netmask ('$new_if->{mask}')";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
 
-# Do not modify gateway or netmask if exists a virtual interface using this interface
+            # Do not modify gateway or netmask if exists a virtual interface using this interface
             my @wrong_conf;
             foreach my $child_name (@child) {
                 my $child_if = &getInterfaceConfig($child_name);
-                unless (
-                    &validateGateway(
-                        $child_if->{addr}, $new_if->{mask}, $new_if->{addr}
-                    )
-                  )
-                {
+                unless (&validateGateway($child_if->{addr}, $new_if->{mask}, $new_if->{addr})) {
                     push @wrong_conf, $child_name;
                 }
             }
@@ -627,7 +602,7 @@ sub modify_interface_vlan    # ( $json_obj, $vlan )
             if (@wrong_conf) {
                 my $child_string = join(', ', @wrong_conf);
                 my $msg =
-"The virtual interface(s): '$child_string' will not be compatible with the new configuration.";
+                  "The virtual interface(s): '$child_string' will not be compatible with the new configuration.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
         }
@@ -637,20 +612,14 @@ sub modify_interface_vlan    # ( $json_obj, $vlan )
             my $if_used =
               &checkNetworkExists($new_if->{addr}, $new_if->{mask}, $vlan);
             if ($if_used) {
-                my $msg =
-                  "The network already exists in the interface $if_used.";
+                my $msg = "The network already exists in the interface $if_used.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
         }
 
         # check the gateway is in network
         if ($new_if->{gateway}) {
-            unless (
-                &validateGateway(
-                    $new_if->{addr}, $new_if->{mask}, $new_if->{gateway}
-                )
-              )
-            {
+            unless (&validateGateway($new_if->{addr}, $new_if->{mask}, $new_if->{gateway})) {
                 my $msg = "The gateway is not valid for the network.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
@@ -708,11 +677,8 @@ sub modify_interface_vlan    # ( $json_obj, $vlan )
 
             # check if network is changed
             my $mask = $json_obj->{netmask} // $if_ref->{mask};
-            if (
-                !&validateGateway($if_ref->{addr}, $if_ref->{mask},
-                    $json_obj->{ip})
-                or $if_ref->{mask} ne $mask
-              )
+            if (  !&validateGateway($if_ref->{addr}, $if_ref->{mask}, $json_obj->{ip})
+                or $if_ref->{mask} ne $mask)
             {
                 my $net =
                   new NetAddr::IP($if_ref->{addr}, $if_ref->{mask})->cidr();
@@ -748,35 +714,32 @@ sub modify_interface_vlan    # ( $json_obj, $vlan )
                 $str_function = substr($str_function, 5);
 
                 my $msg =
-"This interface is been used by some $str_objects, please, set up a new 'ip' in order to be used as $str_function.";
+                  "This interface is been used by some $str_objects, please, set up a new 'ip' in order to be used as $str_function.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
             if ($json_obj->{force} ne 'true') {
                 my $str_objects;
                 my $str_function;
                 if (@farms) {
-                    $str_objects = " and farms";
-                    $str_function =
-                      " and as farm VIP in the farm(s): " . join(', ', @farms);
+                    $str_objects  = " and farms";
+                    $str_function = " and as farm VIP in the farm(s): " . join(', ', @farms);
                 }
                 if (@{$vpns_localgw} or @{$vpns_localnet}) {
                     $str_objects .= " and vpns";
                 }
                 if (@{$vpns_localgw}) {
                     $str_function .=
-                      " and as Local Gateway in the VPN(s): "
-                      . join(', ', @{$vpns_localgw});
+                      " and as Local Gateway in the VPN(s): " . join(', ', @{$vpns_localgw});
                 }
                 if (@{$vpns_localnet}) {
                     $str_function .=
-                      " and as Local Network in the VPN(s): "
-                      . join(', ', @{$vpns_localnet});
+                      " and as Local Network in the VPN(s): " . join(', ', @{$vpns_localnet});
                 }
                 $str_objects  = substr($str_objects,  5);
                 $str_function = substr($str_function, 5);
 
                 my $msg =
-"The IP is being used $str_function. If you are sure, repeat with parameter 'force'. All $str_objects using this interface will be restarted.";
+                  "The IP is being used $str_function. If you are sure, repeat with parameter 'force'. All $str_objects using this interface will be restarted.";
                 return &httpErrorResponse(
                     code => 400,
                     desc => $desc,
@@ -795,8 +758,7 @@ sub modify_interface_vlan    # ( $json_obj, $vlan )
         );
 
         if ($err) {
-            my $msg =
-              "Errors found trying to enabling dhcp for the interface $vlan";
+            my $msg = "Errors found trying to enabling dhcp for the interface $vlan";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
     }
@@ -831,13 +793,11 @@ sub modify_interface_vlan    # ( $json_obj, $vlan )
     }
 
     require Relianoid::Lock;
-    my $vlan_config_file =
-      &getGlobalConfiguration('configdir') . "/if_$if_ref->{ name }_conf";
-    my $dhcp_flag = $json_obj->{dhcp} // $if_ref->{dhcp};
+    my $vlan_config_file = &getGlobalConfiguration('configdir') . "/if_$if_ref->{ name }_conf";
+    my $dhcp_flag        = $json_obj->{dhcp} // $if_ref->{dhcp};
 
     if (($dhcp_flag ne 'true') and !($if_ref->{addr} && $if_ref->{mask})) {
-        my $msg =
-          "Cannot configure the interface without address or without netmask.";
+        my $msg = "Cannot configure the interface without address or without netmask.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
     elsif ($dhcp_flag eq "true") {

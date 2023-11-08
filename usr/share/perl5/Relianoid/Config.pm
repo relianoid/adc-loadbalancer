@@ -21,7 +21,7 @@
 #
 ###############################################################################
 
-use v5.14;
+use 5.036;
 use strict;
 
 use Relianoid::Log;
@@ -55,16 +55,15 @@ sub getGlobalConfiguration {
             return $global_conf->{$parameter};
         }
 
-# bugfix: it is not returned any message when the 'debug' parameter is not defined in global.conf.
+        # bugfix: it is not returned any message when the 'debug' parameter is not defined in global.conf.
         elsif ($parameter eq 'debug') {
-            return undef;
+            return;
         }
         else {
-            &zenlog(
-"The global configuration parameter '$parameter' has not been found",
-                'warning', 'Configuration'
-            ) if ($parameter ne "debug");
-            return undef;
+            &zenlog("The global configuration parameter '$parameter' has not been found",
+                'warning', 'Configuration')
+              if ($parameter ne "debug");
+            return;
         }
     }
 
@@ -87,8 +86,7 @@ See Also:
 =cut
 
 sub parseGlobalConfiguration {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $global_conf_filepath = "/usr/local/relianoid/config/global.conf";
     my $global_conf;
@@ -103,9 +101,7 @@ sub parseGlobalConfiguration {
     while (my $conf_line = <$global_conf_file>) {
 
         # extract variable name and value
-        if ($conf_line =~
-            /^\s*\$(\w+)\s*=\s*(?:"(.*)"|\'(.*)\');(?:\s*#update)?\s*$/)
-        {
+        if ($conf_line =~ /^\s*\$(\w+)\s*=\s*(?:"(.*)"|\'(.*)\');(?:\s*#update)?\s*$/) {
             $global_conf->{$1} = $2;
         }
     }
@@ -148,8 +144,7 @@ See Also:
 
 sub setGlobalConfiguration    # ( parameter, value )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($param, $value) = @_;
 
     my $global_conf_file = &getGlobalConfiguration('globalcfg');
@@ -187,8 +182,7 @@ Returns:
 =cut
 
 sub setConfigStr2Arr {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $obj        = shift;
     my $param_list = shift;
 
@@ -220,8 +214,7 @@ See Also:
 =cut
 
 sub getTiny {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $file_path = shift;
 
     if (!-f $file_path) {
@@ -267,8 +260,7 @@ See Also:
 
 sub getTinyObj    #( $filepath, $object, $key_ref )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my ($filepath, $object, $key_ref, $key_action) = @_;
     my $tiny_ref_tmp = &getTiny($filepath);
@@ -333,8 +325,7 @@ Returns:
 =cut
 
 sub setTinyObj {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($path, $object, $key, $value, $action) = @_;
 
     unless ($object) {
@@ -359,7 +350,7 @@ sub setTinyObj {
 
     # save all struct
     if (ref $key) {
-        if ($value eq "new") {
+        if ((defined $value) and ($value eq "new")) {
             $fileHandle->{$object} = {};
         }
         foreach my $param (keys %{$key}) {
@@ -368,7 +359,7 @@ sub setTinyObj {
             }
             next
               if (  (!exists $fileHandle->{$object}->{$param})
-                and ($value eq "update"));
+                and ((defined $value) and ($value eq "update")));
 
             $fileHandle->{$object}->{$param} = $key->{$param};
         }
@@ -412,8 +403,7 @@ Returns:
 =cut
 
 sub delTinyObj {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $path   = shift;
     my $object = shift;
 
@@ -448,8 +438,7 @@ Returns:
 =cut
 
 sub migrateConfigFiles {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $MIG_DIR = &getGlobalConfiguration('mig_dir');
 

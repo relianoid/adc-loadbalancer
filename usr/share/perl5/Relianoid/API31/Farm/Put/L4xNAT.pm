@@ -32,8 +32,7 @@ if (eval { require Relianoid::ELoad; }) {
 # PUT /farms/<farmname> Modify a l4xnat Farm
 sub modify_l4xnat_farm    # ( $json_obj, $farmname )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $farmname = shift;
 
@@ -91,7 +90,7 @@ sub modify_l4xnat_farm    # ( $json_obj, $farmname )
 
         if ($json_obj->{newfarmname} ne $farmname) {
 
-        #Check if farmname has correct characters (letters, numbers and hyphens)
+            #Check if farmname has correct characters (letters, numbers and hyphens)
             unless ($json_obj->{newfarmname} =~ /^[a-zA-Z0-9\-]*$/) {
                 my $msg = "Invalid newfarmname.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
@@ -100,8 +99,7 @@ sub modify_l4xnat_farm    # ( $json_obj, $farmname )
             #Check if the new farm's name alredy exists
             my $newffile = &getFarmFile($json_obj->{newfarmname});
             if ($newffile != -1) {
-                my $msg =
-"The farm $json_obj->{newfarmname} already exists, try another name.";
+                my $msg = "The farm $json_obj->{newfarmname} already exists, try another name.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
 
@@ -110,7 +108,7 @@ sub modify_l4xnat_farm    # ( $json_obj, $farmname )
             my $fnchange = &setNewFarmName($farmname, $json_obj->{newfarmname});
             if ($fnchange == -1) {
                 my $msg =
-"The name of the farm can't be modified, delete the farm and create a new one.";
+                  "The name of the farm can't be modified, delete the farm and create a new one.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
 
@@ -159,8 +157,7 @@ sub modify_l4xnat_farm    # ( $json_obj, $farmname )
         if (&getL4FarmParam('persist', $farmname) ne $persistence) {
             my $statusp = &setFarmSessionType($persistence, $farmname, "");
             if ($statusp) {
-                my $msg =
-                  "Some errors happened trying to modify the persistence.";
+                my $msg = "Some errors happened trying to modify the persistence.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
 
@@ -206,8 +203,7 @@ sub modify_l4xnat_farm    # ( $json_obj, $farmname )
         }
 
         if (&getL4FarmParam('mode', $farmname) ne $json_obj->{nattype}) {
-            my $error =
-              &setL4FarmParam('mode', $json_obj->{nattype}, $farmname);
+            my $error = &setL4FarmParam('mode', $json_obj->{nattype}, $farmname);
             if ($error) {
                 my $msg = "Some errors happened trying to modify the nattype.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
@@ -258,8 +254,7 @@ sub modify_l4xnat_farm    # ( $json_obj, $farmname )
 
         # VPORT validation
         if (!&getValidPort($json_obj->{vport}, "L4XNAT", $farmname)) {
-            my $msg =
-"The virtual port must be an acceptable value and must be available.";
+            my $msg = "The virtual port must be an acceptable value and must be available.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
     }
@@ -289,12 +284,7 @@ sub modify_l4xnat_farm    # ( $json_obj, $farmname )
     # Modify both vip & vport
     if (exists($json_obj->{vip}) && exists($json_obj->{vport})) {
         require Relianoid::Farm::Config;
-        if (
-            &setFarmVirtualConf(
-                $json_obj->{vip}, $json_obj->{vport}, $farmname
-            )
-          )
-        {
+        if (&setFarmVirtualConf($json_obj->{vip}, $json_obj->{vport}, $farmname)) {
             my $msg = "Invalid vport or invalid vip.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
@@ -303,8 +293,7 @@ sub modify_l4xnat_farm    # ( $json_obj, $farmname )
     }
 
     # no error found, return successful response
-    &zenlog("Success, some parameters have been changed in farm $farmname.",
-        "info", "LSLB");
+    &zenlog("Success, some parameters have been changed in farm $farmname.", "info", "LSLB");
 
     if (&getL4FarmParam('status', $farmname) eq 'up') {
 

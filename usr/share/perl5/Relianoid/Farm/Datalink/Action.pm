@@ -43,8 +43,7 @@ Returns:
 
 sub _runDatalinkFarmStart    # ($farm_name, $writeconf)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $writeconf) = @_;
 
     require Tie::File;
@@ -65,8 +64,7 @@ sub _runDatalinkFarmStart    # ($farm_name, $writeconf)
     tie my @cron_file, 'Tie::File', $cron_file;
     if (!grep (/$cron_tag/, @cron_file)) {
         my $libexec_path = &getGlobalConfiguration('libexec_dir');
-        push(@cron_file,
-            "* * * * *	root	$libexec_path/check_uplink $farm_name $cron_tag");
+        push(@cron_file, "* * * * *	root	$libexec_path/check_uplink $farm_name $cron_tag");
     }
     untie @cron_file;
 
@@ -91,8 +89,7 @@ sub _runDatalinkFarmStart    # ($farm_name, $writeconf)
             if ($serv->{weight} ne "") {
                 $weight = $serv->{weight};
             }
-            $routes =
-"$routes nexthop via $serv->{ ip } dev $serv->{ interface } weight $weight";
+            $routes = "$routes nexthop via $serv->{ ip } dev $serv->{ interface } weight $weight";
         }
     }
 
@@ -103,16 +100,14 @@ sub _runDatalinkFarmStart    # ($farm_name, $writeconf)
                 && $serv->{priority} < 10
                 && $serv->{priority} < $bestprio)
             {
-                $routes =
-                  "nexthop via $serv->{ ip } dev $serv->{ interface } weight 1";
+                $routes   = "nexthop via $serv->{ ip } dev $serv->{ interface } weight 1";
                 $bestprio = $serv->{priority};
             }
         }
     }
 
     if ($routes ne "") {
-        my $ip_command =
-          "$ip_bin route add default scope global table table_$iface $routes";
+        my $ip_command = "$ip_bin route add default scope global table table_$iface $routes";
 
         $status = &logAndRun("$ip_command");
     }
@@ -130,8 +125,7 @@ sub _runDatalinkFarmStart    # ($farm_name, $writeconf)
         my ($net, $mask) = ipv4_network("$ip / $ipmask");
 
         if (!$net or !$mask) {
-            &zenlog(
-                "Interface $iface has to be up to boot the farm $farm_name");
+            &zenlog("Interface $iface has to be up to boot the farm $farm_name");
             return -1;
         }
 
@@ -172,8 +166,7 @@ Returns:
 
 sub _runDatalinkFarmStop    # ($farm_name,$writeconf)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $writeconf) = @_;
 
     require Tie::File;
@@ -248,8 +241,7 @@ Returns:
 
 sub copyDatalinkFarm    # ($farm_name,$new_farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $new_farm_name, $rm) = @_;
 
     require Tie::File;
@@ -260,11 +252,8 @@ sub copyDatalinkFarm    # ($farm_name,$new_farm_name)
     my $output        = -1;
 
     my $piddir = &getGlobalConfiguration('piddir');
-    copy("$configdir\/$farm_filename", "$configdir\/$newffile");
-    copy(
-        "$piddir\/$farm_name\_datalink.pid",
-        "$piddir\/$new_farm_name\_datalink.pid"
-    );
+    copy("$configdir\/$farm_filename",        "$configdir\/$newffile");
+    copy("$piddir\/$farm_name\_datalink.pid", "$piddir\/$new_farm_name\_datalink.pid");
     $output = $?;
 
     tie my @configfile, 'Tie::File', "$configdir\/$newffile";

@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 
+use 5.036;
 use strict;
 use Relianoid::Config;
 use Relianoid::Net::Interface;
@@ -24,7 +25,7 @@ foreach my $file (@iface_files) {
     #Trying to read, set the errstr error if in tiny format
     my $iface_file = Config::Tiny->read("$iface_files_dir/$file");
 
-#Don't migrate if is in tiny format ( there is no error when reading and the section is defined )
+    #Don't migrate if is in tiny format ( there is no error when reading and the section is defined )
     next
       if (!(Config::Tiny->errstr =~ /$iface/)
         && defined $iface_file->{$iface});
@@ -45,13 +46,11 @@ foreach my $file (@iface_files) {
 
 sub _getInterfaceConfig    # \%iface ($if_name, $ip_version)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($if_name) = @_;
 
     unless (defined $if_name) {
-        &zenlog('getInterfaceConfig got undefined interface name',
-            'debug2', 'network');
+        &zenlog('getInterfaceConfig got undefined interface name', 'debug2', 'network');
     }
 
     #~ &zenlog( "[CALL] getInterfaceConfig( $if_name )" );

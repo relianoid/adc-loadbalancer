@@ -44,8 +44,7 @@ Returns:
 
 sub getFarmEstConns    # ($farm_name,$netstat)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $netstat) = @_;
 
     my $farm_type   = &getFarmType($farm_name);
@@ -92,8 +91,7 @@ Returns:
 
 sub getBackendSYNConns    # ($farm_name,$ip_backend,$port_backend,$netstat)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $ip_backend, $port_backend, $netstat) = @_;
 
     my $farm_type   = &getFarmType($farm_name);
@@ -101,14 +99,11 @@ sub getBackendSYNConns    # ($farm_name,$ip_backend,$port_backend,$netstat)
 
     if ($farm_type eq "http" || $farm_type eq "https") {
         require Relianoid::Farm::HTTP::Stats;
-        $connections =
-          &getHTTPBackendSYNConns($farm_name, $ip_backend, $port_backend);
+        $connections = &getHTTPBackendSYNConns($farm_name, $ip_backend, $port_backend);
     }
     elsif ($farm_type eq "l4xnat") {
         require Relianoid::Farm::L4xNAT::Stats;
-        $connections =
-          &getL4BackendSYNConns($farm_name, $ip_backend, $port_backend,
-            $netstat);
+        $connections = &getL4BackendSYNConns($farm_name, $ip_backend, $port_backend, $netstat);
     }
 
     return $connections;
@@ -130,8 +125,7 @@ Returns:
 
 sub getFarmSYNConns    # ($farm_name, $netstat)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $netstat) = @_;
 
     my $farm_type   = &getFarmType($farm_name);

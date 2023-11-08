@@ -26,10 +26,9 @@ use strict;
 use Relianoid::Log;
 use Relianoid::Config;
 
-my $configdir = &getGlobalConfiguration("configdir");
-my $fg_conf   = "$configdir/farmguardian.conf";
-my $fg_template =
-  &getGlobalConfiguration("templatedir") . "/farmguardian.template";
+my $configdir   = &getGlobalConfiguration("configdir");
+my $fg_conf     = "$configdir/farmguardian.conf";
+my $fg_template = &getGlobalConfiguration("templatedir") . "/farmguardian.template";
 
 my $eload;
 if (eval { require Relianoid::ELoad; }) {
@@ -50,8 +49,7 @@ Returns:
 =cut
 
 sub getFGStatusFile {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm = shift;
 
     return "$configdir\/$farm\_status.cfg";
@@ -83,16 +81,14 @@ Returns:
 =cut
 
 sub getFGStruct {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     return {
-        'description' => "",       # Tiny description about the check
-        'command'   => "", # Command to check. The check must return 0 on sucess
-        'farms'     => [], # farm list where the farm guardian is applied
-        'log'       => "false",    # logg farm guardian
-        'interval'  => "10",       # Time between checks
-        'cut_conns' =>
-          "false",    # cut the connections with the backend is marked as down
+        'description'   => "",         # Tiny description about the check
+        'command'       => "",         # Command to check. The check must return 0 on sucess
+        'farms'         => [],         # farm list where the farm guardian is applied
+        'log'           => "false",    # logg farm guardian
+        'interval'      => "10",       # Time between checks
+        'cut_conns'     => "false",    # cut the connections with the backend is marked as down
         'template'      => "false",
         'backend_alias' => "false",
     };
@@ -112,8 +108,7 @@ Returns:
 =cut
 
 sub getFGExistsConfig {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $fg_name = shift;
     my $fh      = &getTiny($fg_conf);
     return (exists $fh->{$fg_name}) ? 1 : 0;
@@ -133,8 +128,7 @@ Returns:
 =cut
 
 sub getFGExistsTemplate {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $fg_name = shift;
     my $fh      = &getTiny($fg_template);
     return (exists $fh->{$fg_name}) ? 1 : 0;
@@ -154,8 +148,7 @@ Returns:
 =cut
 
 sub getFGExists {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $fg_name = shift;
     return (&getFGExistsTemplate($fg_name) or &getFGExistsConfig($fg_name));
 }
@@ -174,8 +167,7 @@ Returns:
 =cut
 
 sub getFGConfigList {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $fg_file = &getTiny($fg_conf);
     return keys %{$fg_file};
 }
@@ -194,8 +186,7 @@ Returns:
 =cut
 
 sub getFGTemplateList {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $fg_file = &getTiny($fg_template);
     return keys %{$fg_file};
 }
@@ -214,8 +205,7 @@ Returns:
 =cut
 
 sub getFGList {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my @list = &getFGConfigList();
 
     # get from template file
@@ -254,8 +244,7 @@ Returns:
 =cut
 
 sub getFGObject {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $fg_name      = shift;
     my $use_template = shift;
     my $file         = "";
@@ -291,8 +280,7 @@ Returns:
 =cut
 
 sub getFGFarm {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm = shift;
     my $srv  = shift;
 
@@ -324,8 +312,7 @@ Returns:
 =cut
 
 sub createFGBlank {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $name = shift;
 
     my $values = &getFGStruct();
@@ -347,8 +334,7 @@ Returns:
 =cut
 
 sub createFGTemplate {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $name     = shift;
     my $template = shift;
 
@@ -373,8 +359,7 @@ Returns:
 =cut
 
 sub createFGConfig {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $name      = shift;
     my $fg_config = shift;
 
@@ -398,8 +383,7 @@ Returns:
 =cut
 
 sub delFGObject {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $fg_name = shift;
 
     my $out = &runFGStop($fg_name);
@@ -432,8 +416,7 @@ Returns:
 =cut
 
 sub setFGObject {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $fg_name = shift;
     my $key     = shift;
     my $value   = shift;
@@ -487,8 +470,7 @@ Returns:
 =cut
 
 sub setFGFarmRename {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm     = shift;
     my $new_farm = shift;
 
@@ -511,7 +493,7 @@ sub setFGFarmRename {
             my $status_file     = &getFGStatusFile($farm);
             my $new_status_file = &getFGStatusFile($new_farm);
             &zenlog("renaming $status_file =>> $new_status_file") if &debug;
-            rename($status_file, $new_status_file);
+            rename $status_file, $new_status_file;
         }
     }
 
@@ -535,8 +517,7 @@ Returns:
 =cut
 
 sub linkFGFarm {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $fg_name = shift;
     my $farm    = shift;
     my $srv     = shift;
@@ -586,8 +567,7 @@ Returns:
 =cut
 
 sub unlinkFGFarm {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $fg_name = shift;
     my $farm    = shift;
     my $srv     = shift;
@@ -631,8 +611,7 @@ Returns:
 =cut
 
 sub delFGFarm {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm    = shift;
     my $service = shift;
 
@@ -647,14 +626,12 @@ sub delFGFarm {
             foreach my $srv (&getFarmServices($farm)) {
                 $fg = &getFGFarm($farm, $srv);
                 next if not $fg;
-                $err |=
-                  &setTinyObj($fg_conf, $fg, 'farms', "${farm}_$srv", 'del');
+                $err |= &setTinyObj($fg_conf, $fg, 'farms', "${farm}_$srv", 'del');
             }
         }
         else {
             $fg = &getFGFarm($farm, $service);
-            $err |=
-              &setTinyObj($fg_conf, $fg, 'farms', "${farm}_$service", 'del')
+            $err |= &setTinyObj($fg_conf, $fg, 'farms', "${farm}_$service", 'del')
               if $fg;
         }
     }
@@ -681,8 +658,7 @@ Returns:
 =cut
 
 sub getFGPidFile {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $fname  = shift;
     my $svice  = shift;
     my $piddir = &getGlobalConfiguration('piddir');
@@ -717,8 +693,7 @@ Returns:
 =cut
 
 sub getFGPidFarm {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm    = shift;
     my $service = shift;
     my $pid     = 0;
@@ -765,8 +740,7 @@ Returns:
 =cut
 
 sub runFGStop {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $fgname = shift;
     my $out;
 
@@ -800,8 +774,7 @@ Returns:
 =cut
 
 sub runFGStart {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $fgname = shift;
     my $out;
 
@@ -835,8 +808,7 @@ Returns:
 =cut
 
 sub runFGRestart {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $fgname = shift;
     my $out;
 
@@ -862,15 +834,15 @@ Returns:
 =cut
 
 sub runFGFarmStop {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
-    my $farm    = shift;
-    my $service = shift
-      ; # optional, if the farm is http and the service is not sent to the function, all services will be restarted
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+    my $farm = shift;
+
+    # optional, if the farm is http and the service is not sent to
+    # the function, all services will be restarted
+    my $service = shift;
 
     $service = undef
-      if (defined $service and $service eq '')
-      ;    # overwrite the parameter is it a empty string
+      if (defined $service and $service eq '');    # overwrite the parameter is it a empty string
 
     my $out = 0;
     my $srvtag;
@@ -888,19 +860,14 @@ sub runFGFarmStop {
         my $fgpid = &getFGPidFarm($farm, $service);
 
         if ($fgpid && $fgpid > 0) {
-            &zenlog(
-                "running 'kill 9, $fgpid' stopping FarmGuardian $farm $service",
-                "debug", "FG"
-            );
+            &zenlog("running 'kill 9, $fgpid' stopping FarmGuardian $farm $service", "debug", "FG");
 
             # kill returns the number of process affected
             $out = kill 9, $fgpid;
             $out = (not $out);
             if ($out) {
-                &zenlog(
-"running 'kill 9, $fgpid' stopping FarmGuardian $farm $service",
-                    "error", "FG"
-                );
+                &zenlog("running 'kill 9, $fgpid' stopping FarmGuardian $farm $service",
+                    "error", "FG");
             }
 
             # delete pid files
@@ -927,8 +894,7 @@ sub runFGFarmStop {
 
                             require Relianoid::Farm::HTTP::Backend;
                             my $error_ref =
-                              &setHTTPFarmBackendStatus($farm, $service,
-                                $index, 'up', 'cut');
+                              &setHTTPFarmBackendStatus($farm, $service, $index, 'up', 'cut');
                             $error_ref->{code} = 0
                               if (  $error_ref->{code} != 1
                                 and $error_ref->{code} != -1);
@@ -947,8 +913,7 @@ sub runFGFarmStop {
 
                 foreach my $l_serv (@{$be}) {
                     if ($l_serv->{status} eq "fgDOWN") {
-                        my $error_ref =
-                          &setL4FarmBackendStatus($farm, $l_serv->{id}, "up");
+                        my $error_ref = &setL4FarmBackendStatus($farm, $l_serv->{id}, "up");
                         $error_ref->{code} = 0
                           if (  $error_ref->{code} != 1
                             and $error_ref->{code} != -1);
@@ -981,8 +946,7 @@ Returns:
 =cut
 
 sub runFGFarmStart {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm, $svice) = @_;
 
     my $status = 0;
@@ -1098,8 +1062,7 @@ Returns:
 =cut
 
 sub runFGFarmRestart {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm    = shift;
     my $service = shift;
     my $out;
@@ -1124,8 +1087,7 @@ Returns:
 =cut
 
 sub getFGRunningFarms {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $fg = shift;
     my @runfarm;
 
@@ -1162,8 +1124,7 @@ Returns:
 =cut
 
 sub getFGMigrateFile {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm = shift;
     my $srv  = shift;
 
@@ -1184,8 +1145,7 @@ Returns:
 =cut
 
 sub setOldFarmguardian {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $obj = shift;
 
     my $srv  = $obj->{service} // "";
@@ -1199,7 +1159,7 @@ sub setOldFarmguardian {
     # default object
     my $def = {
         'description' =>
-"This farmguardian was created automatically to migrate to Relianoid 5.2 version or higher",
+          "This farmguardian was created automatically to migrate to Relianoid 5.2 version or higher",
         'command'   => $obj->{command},
         'log'       => $obj->{log},
         'interval'  => $obj->{interval},
@@ -1256,8 +1216,7 @@ See Also:
 
 sub getFarmGuardianLog    # ($fname,$svice)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($fname, $svice) = @_;
 
     my $fg = &getFGFarm($fname, $svice);
@@ -1287,8 +1246,7 @@ See Also:
 
 sub runFarmGuardianStart    # ($fname,$svice)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($fname, $svice) = @_;
 
     return &runFGFarmStart($fname, $svice);
@@ -1312,8 +1270,7 @@ See Also:
 
 sub runFarmGuardianStop    # ($fname,$svice)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($fname, $svice) = @_;
 
     return &runFGFarmStop($fname, $svice);
@@ -1347,12 +1304,11 @@ See Also:
 
 sub runFarmGuardianCreate    # ($fname,$ttcheck,$script,$usefg,$fglog,$svice)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($fname, $ttcheck, $script, $usefg, $fglog, $svice) = @_;
 
     &zenlog(
-"runFarmGuardianCreate( farm: $fname, interval: $ttcheck, cmd: $script, log: $fglog, enabled: $usefg )",
+        "runFarmGuardianCreate( farm: $fname, interval: $ttcheck, cmd: $script, log: $fglog, enabled: $usefg )",
         "debug", "FG"
     );
 
@@ -1398,8 +1354,7 @@ See Also:
 
 sub runFarmGuardianRemove    # ($fname,$svice)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($fname, $svice) = @_;
 
     my $fg = &getFGFarm($fname, $svice);
@@ -1443,8 +1398,7 @@ See Also:
 
 sub getFarmGuardianConf    # ($fname,$svice)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($fname, $svice) = @_;
 
     # name for old checks
@@ -1492,8 +1446,7 @@ See Also:
 
 sub getFarmGuardianPid    # ($fname,$svice)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($fname, $svice) = @_;
 
     my $pid = &getFGPidFarm($fname, $svice);

@@ -34,7 +34,7 @@ sub decodeJSONFile {
 
     my $file_str;
     my $fh = &openlock($file, '<');
-    return undef if !defined $fh;
+    return if !defined $fh;
 
     {
         local $/ = undef;

@@ -30,8 +30,7 @@ if (eval { require Relianoid::ELoad; }) {
 # GET /certificates/letsencryptz
 sub get_le_certificates    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     require Relianoid::LetsencryptZ;
 
@@ -72,8 +71,7 @@ sub get_le_certificates    # ()
 # GET /certificates/letsencryptz/le_cert_re
 sub get_le_certificate    # ( $cert_filename )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $le_cert_name = shift;
 
     require Relianoid::LetsencryptZ;
@@ -98,8 +96,7 @@ sub get_le_certificate    # ( $cert_filename )
 # POST /certificates/letsencryptz
 sub create_le_certificate    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $json_obj = shift;
 
@@ -117,8 +114,7 @@ sub create_le_certificate    # ()
 
     # avoid farmname when no HTTP Farm exists
     if (!@farm_list and defined $json_obj->{farmname}) {
-        my $msg =
-          "There is no HTTP Farms in the system, use 'vip' param instead.";
+        my $msg = "There is no HTTP Farms in the system, use 'vip' param instead.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
@@ -152,7 +148,7 @@ sub create_le_certificate    # ()
         }
         else {
             my $msg =
-"Let's Encrypt certificate $json_obj->{ domains }[0] already exists!. Please, use the parameter 'force' if you are sure.";
+              "Let's Encrypt certificate $json_obj->{ domains }[0] already exists!. Please, use the parameter 'force' if you are sure.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
     }
@@ -161,8 +157,7 @@ sub create_le_certificate    # ()
     if (defined $json_obj->{farmname}) {
         require Relianoid::Farm::Base;
         if (&getFarmVip('vipp', $json_obj->{farmname}) ne 80) {
-            my $msg =
-              "Farm $json_obj->{ farmname } must be listening on Port 80.";
+            my $msg = "Farm $json_obj->{ farmname } must be listening on Port 80.";
             &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
         }
         if (&getHTTPFarmStatus($json_obj->{farmname}) ne "up") {
@@ -184,12 +179,12 @@ sub create_le_certificate    # ()
                     and &getHTTPFarmStatus($farm) eq "up")
                 {
                     my $msg =
-"Farm $farm is listening on 'vip' $json_obj->{ vip } and Port $le_farm_port.";
+                      "Farm $farm is listening on 'vip' $json_obj->{ vip } and Port $le_farm_port.";
                     &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
                 }
             }
             my $msg =
-"The system has a process listening on 'vip' $json_obj->{ vip } and Port $le_farm_port.";
+              "The system has a process listening on 'vip' $json_obj->{ vip } and Port $le_farm_port.";
             &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
         }
     }
@@ -201,24 +196,23 @@ sub create_le_certificate    # ()
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-    my $error = &runLetsencryptObtain($json_obj->{farmname}, $json_obj->{vip},
+    my $error =
+      &runLetsencryptObtain($json_obj->{farmname}, $json_obj->{vip},
         $json_obj->{domains}, $json_obj->{test}, $force);
     if ($error) {
         my $strdomains = join(", ", @{ $json_obj->{domains} });
-        my $msg =
-          "The Letsencrypt certificate for Domain $strdomains can't be created";
+        my $msg        = "The Letsencrypt certificate for Domain $strdomains can't be created";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-    &zenlog(
-        "Success, the Letsencrypt certificate has been created successfully.",
+    &zenlog("Success, the Letsencrypt certificate has been created successfully.",
         "info", "LestencryptZ");
 
     my $out  = &getLetsencryptCertificateInfo($json_obj->{domains}[0]);
     my $body = {
         description => $desc,
         params      => $out,
-        message => "The Letsencrypt certificate has been created successfully."
+        message     => "The Letsencrypt certificate has been created successfully."
     };
 
     &httpResponse({ code => 200, body => $body });
@@ -227,8 +221,7 @@ sub create_le_certificate    # ()
 # DELETE /certificates/letsencryptz/le_cert_re
 sub delete_le_certificate    # ( $cert_filename )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $le_cert_name = shift;
     my $desc         = "Delete LetsEncrypt certificate";
@@ -250,7 +243,7 @@ sub delete_le_certificate    # ( $cert_filename )
     my $farms_used = &getCertFarmsUsed($cert_name);
     if (@{$farms_used}) {
         my $msg =
-"Let's Encrypt Certificate $le_cert_name can not be deleted because it is in use by "
+          "Let's Encrypt Certificate $le_cert_name can not be deleted because it is in use by "
           . join(", ", @{$farms_used});
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
@@ -265,7 +258,7 @@ sub delete_le_certificate    # ( $cert_filename )
         );
         if ($status == 0) {
             my $msg =
-"Let's Encrypt Certificate $le_cert_name can not be deleted because it is in use by HTTPS server";
+              "Let's Encrypt Certificate $le_cert_name can not be deleted because it is in use by HTTPS server";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
     }
@@ -289,10 +282,8 @@ sub delete_le_certificate    # ( $cert_filename )
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-    &zenlog(
-        "Success, the Let's Encrypt certificate has been deleted successfully.",
-        "info", "LestencryptZ"
-    );
+    &zenlog("Success, the Let's Encrypt certificate has been deleted successfully.",
+        "info", "LestencryptZ");
 
     my $msg  = "Let's Encrypt Certificate $le_cert_name has been deleted.";
     my $body = {
@@ -306,8 +297,7 @@ sub delete_le_certificate    # ( $cert_filename )
 # POST /certificates/letsencryptz/le_cert_re/actions
 sub actions_le_certificate    # ( $le_cert_name )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj     = shift;
     my $le_cert_name = shift;
     my $desc         = "Let's Encrypt certificate actions";
@@ -339,8 +329,7 @@ sub actions_le_certificate    # ( $le_cert_name )
 
     # avoid farmname when no HTTP Farm exists
     if (!@farm_list and defined $json_obj->{farmname}) {
-        my $msg =
-          "There is no HTTP Farms in the system, use 'vip' param instead.";
+        my $msg = "There is no HTTP Farms in the system, use 'vip' param instead.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
@@ -356,8 +345,7 @@ sub actions_le_certificate    # ( $le_cert_name )
     if (defined $json_obj->{farmname}) {
         require Relianoid::Farm::Base;
         if (&getFarmVip('vipp', $json_obj->{farmname}) ne 80) {
-            my $msg =
-              "Farm $json_obj->{ farmname } must be listening on Port 80.";
+            my $msg = "Farm $json_obj->{ farmname } must be listening on Port 80.";
             &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
         }
         if (&getHTTPFarmStatus($json_obj->{farmname}) ne "up") {
@@ -379,12 +367,12 @@ sub actions_le_certificate    # ( $le_cert_name )
                     and &getHTTPFarmStatus($farm) eq "up")
                 {
                     my $msg =
-"Farm $farm is listening on 'vip' $json_obj->{ vip } and Port $le_farm_port.";
+                      "Farm $farm is listening on 'vip' $json_obj->{ vip } and Port $le_farm_port.";
                     &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
                 }
             }
             my $msg =
-"The system has a process listening on 'vip' $json_obj->{ vip } and Port $le_farm_port.";
+              "The system has a process listening on 'vip' $json_obj->{ vip } and Port $le_farm_port.";
             &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
         }
     }
@@ -408,8 +396,7 @@ sub actions_le_certificate    # ( $le_cert_name )
         );
     }
 
-    &zenlog(
-        "Success, the Letsencrypt certificate has been renewed successfully.",
+    &zenlog("Success, the Letsencrypt certificate has been renewed successfully.",
         "info", "LestencryptZ");
 
     my @farms_restarted;
@@ -454,17 +441,14 @@ sub actions_le_certificate    # ( $le_cert_name )
 
     my $info_msg;
     if (@farms_restarted) {
-        $info_msg =
-          "The following farms were been restarted: "
-          . join(", ", @farms_restarted);
+        $info_msg = "The following farms were been restarted: " . join(", ", @farms_restarted);
     }
     if (@farms_restarted_error) {
-        $info_msg = "The following farms could not been restarted: "
-          . join(", ", @farms_restarted_error);
+        $info_msg =
+          "The following farms could not been restarted: " . join(", ", @farms_restarted_error);
     }
 
-    my $msg =
-"The Let's Encrypt certificate $le_cert_name has been renewed successfully.";
+    my $msg  = "The Let's Encrypt certificate $le_cert_name has been renewed successfully.";
     my $out  = &getLetsencryptCertificateInfo($le_cert_name);
     my $body = {
         description => $desc,
@@ -479,8 +463,7 @@ sub actions_le_certificate    # ( $le_cert_name )
 # PUT /certificates/letsencryptz/le_cert_re
 sub modify_le_certificate    # ( $le_cert_name )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj     = shift;
     my $le_cert_name = shift;
     my $desc         = "Modify Let's Encrypt certificate";
@@ -544,8 +527,7 @@ sub modify_le_certificate    # ( $le_cert_name )
     if (defined $json_obj->{farmname}) {
         require Relianoid::Farm::Base;
         if (&getFarmVip('vipp', $json_obj->{farmname}) ne 80) {
-            my $msg =
-              "Farm $json_obj->{ farmname } must be listening on Port 80.";
+            my $msg = "Farm $json_obj->{ farmname } must be listening on Port 80.";
             &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
         }
         if (&getHTTPFarmStatus($json_obj->{farmname}) ne "up") {
@@ -567,12 +549,12 @@ sub modify_le_certificate    # ( $le_cert_name )
                     and &getHTTPFarmStatus($farm) eq "up")
                 {
                     my $msg =
-"Farm $farm is listening on 'vip' $json_obj->{ vip } and Port $le_farm_port.";
+                      "Farm $farm is listening on 'vip' $json_obj->{ vip } and Port $le_farm_port.";
                     &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
                 }
             }
             my $msg =
-"The system has a process listening on 'vip' $json_obj->{ vip } and Port $le_farm_port.";
+              "The system has a process listening on 'vip' $json_obj->{ vip } and Port $le_farm_port.";
             &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
         }
     }
@@ -593,30 +575,30 @@ sub modify_le_certificate    # ( $le_cert_name )
 
         if ($error) {
             my $msg =
-"The Auto Renewal for Let's Encrypt certificate $le_cert_name can't be enabled";
+              "The Auto Renewal for Let's Encrypt certificate $le_cert_name can't be enabled";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
 
         &zenlog(
-"Success, the Auto Renewal for Letsencrypt certificate has been enabled successfully.",
+            "Success, the Auto Renewal for Letsencrypt certificate has been enabled successfully.",
             "info", "LestencryptZ"
         );
         $msg =
-"The Auto Renewal for Let's Encrypt certificate $le_cert_name has been enabled successfully.";
+          "The Auto Renewal for Let's Encrypt certificate $le_cert_name has been enabled successfully.";
     }
     else {
         my $error = &unsetLetsencryptCron($le_cert_name);
         if ($error) {
             my $msg =
-"The Auto Renewal for Let's Encrypt certificate $le_cert_name can't be disabled";
+              "The Auto Renewal for Let's Encrypt certificate $le_cert_name can't be disabled";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
         &zenlog(
-"Success, the Auto Renewal for Letsencrypt certificate has been disabled successfully.",
+            "Success, the Auto Renewal for Letsencrypt certificate has been disabled successfully.",
             "info", "LestencryptZ"
         );
         $msg =
-"The Auto Renewal for Let's Encrypt certificate $le_cert_name has been disabled successfully.";
+          "The Auto Renewal for Let's Encrypt certificate $le_cert_name has been disabled successfully.";
     }
 
     my $out  = &getLetsencryptCertificateInfo($le_cert_name);
@@ -631,8 +613,7 @@ sub modify_le_certificate    # ( $le_cert_name )
 # GET /certificates/letsencryptz/config
 sub get_le_conf    # ( )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $desc = "Get LetsEncrypt Config";
 
@@ -648,8 +629,7 @@ sub get_le_conf    # ( )
 # PUT /certificates/letsencryptz/config
 sub modify_le_conf    # ( )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
 
     my $desc   = "Modify LetsEncrypt Config";

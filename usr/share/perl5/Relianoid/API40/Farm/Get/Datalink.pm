@@ -30,8 +30,7 @@ if (eval { require Relianoid::ELoad; }) {
 
 sub farms_name_datalink    # ( $farmname )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farmname = shift;
 
     require Relianoid::Farm::Config;

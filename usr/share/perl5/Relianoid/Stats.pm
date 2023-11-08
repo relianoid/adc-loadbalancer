@@ -56,15 +56,11 @@ See Also:
 =cut
 
 sub getMemStats {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $meminfo_filename = '/proc/meminfo';
     my ($format) = @_;
     my @data;
-    my (
-        $mvalue,   $mfvalue,  $mused,  $mbvalue, $mcvalue,
-        $swtvalue, $swfvalue, $swused, $swcvalue
-    );
+    my ($mvalue, $mfvalue, $mused, $mbvalue, $mcvalue, $swtvalue, $swfvalue, $swused, $swcvalue);
     my ($mname, $mfname, $mbname, $mcname, $swtname, $swfname, $swcname);
 
     unless (-f $meminfo_filename) {
@@ -187,8 +183,7 @@ See Also:
 =cut
 
 sub getLoadStats {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $load_filename = '/proc/loadavg';
 
     my $last;
@@ -266,11 +261,10 @@ See Also:
 =cut
 
 sub getNetworkStats {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($format) = @_;
 
-    $format = "" unless defined $format;   # removes undefined variable warnings
+    $format = "" unless defined $format;    # removes undefined variable warnings
 
     my $netinfo_filename = '/proc/net/dev';
 
@@ -390,8 +384,7 @@ See Also:
 =cut
 
 sub getCPU {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my @data;
     my $interval         = 1;
     my $cpuinfo_filename = '/proc/stat';
@@ -487,8 +480,7 @@ sub getCPU {
     my $cpu_irq     = (100 * $diff_cpu_irq) / $diff_cpu_total;
     my $cpu_softirq = (100 * $diff_cpu_softirq) / $diff_cpu_total;
 
-    my $cpu_usage =
-      $cpu_user + $cpu_nice + $cpu_sys + $cpu_iowait + $cpu_irq + $cpu_softirq;
+    my $cpu_usage = $cpu_user + $cpu_nice + $cpu_sys + $cpu_iowait + $cpu_irq + $cpu_softirq;
 
     $cpu_user    = sprintf("%.2f", $cpu_user);
     $cpu_nice    = sprintf("%.2f", $cpu_nice);
@@ -522,8 +514,7 @@ sub getCPU {
 }
 
 sub getCPUUsageStats {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $out;    # Output
 
     my @data_cpu = &getCPU();
@@ -572,8 +563,7 @@ See Also:
 =cut
 
 sub getDiskSpace {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my @data;    # output
 
     my $df_bin = &getGlobalConfiguration('df_bin');
@@ -644,8 +634,7 @@ See Also:
 =cut
 
 sub getDiskPartitionsInfo {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $partitions;    # output
 
     my $df_bin = &getGlobalConfiguration('df_bin');
@@ -689,8 +678,7 @@ See Also:
 =cut
 
 sub getDiskMountPoint {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($dev) = @_;
 
     my $df_bin    = &getGlobalConfiguration('df_bin');
@@ -725,13 +713,11 @@ See Also:
 =cut
 
 sub getCPUTemp {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $filename = &getGlobalConfiguration("temperatureFile");
     my $lastline;
 
     unless (-f $filename) {
-        print "$0: Error: File $filename not exist ...\n";
         exit 1;
     }
 

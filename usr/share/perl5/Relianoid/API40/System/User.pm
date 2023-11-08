@@ -30,8 +30,7 @@ if (eval { require Relianoid::ELoad; }) {
 
 # 	GET /system/users
 sub get_system_user {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     require Relianoid::User;
     my $user = &getUser();
 
@@ -44,7 +43,8 @@ sub get_system_user {
             'zapi_permissions' => &getZAPI("status"),
             'service'          => 'local'
 
-    # 'zapikey'	=> &getZAPI( "zapikey" ), # it is configured if the status is up
+              # it is configured if the status is up
+              # 'zapikey'	=> &getZAPI( "zapikey" ),
         };
 
         &httpResponse(
@@ -79,8 +79,7 @@ sub get_system_user {
 
 #  POST /system/users
 sub set_system_user {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
 
     require Relianoid::User;
@@ -105,8 +104,7 @@ sub set_system_user {
         }
 
         elsif ($json_obj->{'newpassword'} eq $json_obj->{'password'}) {
-            my $msg =
-              "The new password must be different to the current password.";
+            my $msg = "The new password must be different to the current password.";
             return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
         if ($eload) {
@@ -142,11 +140,7 @@ sub set_system_user {
 
         # modify password
         if (exists $json_obj->{'newpassword'}) {
-            $error = &changePassword(
-                $user,
-                $json_obj->{'newpassword'},
-                $json_obj->{'newpassword'}
-            );
+            $error = &changePassword($user, $json_obj->{'newpassword'}, $json_obj->{'newpassword'});
 
             if ($error) {
                 my $msg = "Modifying $user.";
@@ -183,8 +177,7 @@ sub set_system_user {
             if ($json_obj->{'zapi_permissions'} eq 'true'
                 && !&getZAPI('zapikey'))
             {
-                my $msg =
-                  "It is necessary a zapikey to enable the zapi permissions.";
+                my $msg = "It is necessary a zapikey to enable the zapi permissions.";
                 return &httpErrorResponse(
                     code => 400,
                     desc => $desc,

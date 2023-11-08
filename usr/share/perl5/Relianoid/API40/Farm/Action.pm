@@ -31,8 +31,7 @@ if (eval { require Relianoid::ELoad; }) {
 # PUT /farms/<farmname>/actions Set an action in a Farm
 sub farm_actions    # ( $json_obj, $farmname )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $farmname = shift;
 
@@ -85,8 +84,7 @@ sub farm_actions    # ( $json_obj, $farmname )
         require Relianoid::Farm::Base;
         require Relianoid::Farm::Action;
         if (&getFarmRestartStatus($farmname)) {
-            my $msg =
-"The farm has changes pending of applying, it has to be restarted.";
+            my $msg = "The farm has changes pending of applying, it has to be restarted.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
 
@@ -106,8 +104,7 @@ sub farm_actions    # ( $json_obj, $farmname )
 
             my $port = &getFarmVip("vipp", $farmname);
             if (!&validatePort($ip, $port, undef, $farmname)) {
-                my $msg =
-"There is another farm using the ip '$ip' and the port '$port'";
+                my $msg = "There is another farm using the ip '$ip' and the port '$port'";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
         }
@@ -123,8 +120,7 @@ sub farm_actions    # ( $json_obj, $farmname )
         my $status = &runFarmStop($farmname, "true");
 
         if ($status) {
-            my $msg =
-"Error trying to stop the farm in the action restart in farm $farmname.";
+            my $msg = "Error trying to stop the farm in the action restart in farm $farmname.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
 
@@ -150,8 +146,7 @@ sub farm_actions    # ( $json_obj, $farmname )
 
             my $port = &getFarmVip("vipp", $farmname);
             if (!&validatePort($ip, $port, undef, $farmname)) {
-                my $msg =
-"There is another farm using the ip '$ip' and the port '$port'";
+                my $msg = "There is another farm using the ip '$ip' and the port '$port'";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
         }
@@ -160,13 +155,12 @@ sub farm_actions    # ( $json_obj, $farmname )
 
         if ($status) {
             my $msg =
-"ZAPI error, trying to start the farm in the action restart in farm $farmname.";
+              "ZAPI error, trying to start the farm in the action restart in farm $farmname.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
     }
 
-    my $msg =
-      "The action $json_obj->{ action } has been performed in farm $farmname.";
+    my $msg = "The action $json_obj->{ action } has been performed in farm $farmname.";
 
     &zenlog("Success, $msg", "info", "FARMS");
 
@@ -190,10 +184,9 @@ sub farm_actions    # ( $json_obj, $farmname )
 
 # Set an action in a backend of http|https farm
 # PUT /farms/<farmname>/services/<service>/backends/<backend>/maintenance
-sub service_backend_maintenance # ( $json_obj, $farmname, $service, $backend_id )
+sub service_backend_maintenance    # ( $json_obj, $farmname, $service, $backend_id )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj   = shift;
     my $farmname   = shift;
     my $service    = shift;
@@ -253,7 +246,7 @@ sub service_backend_maintenance # ( $json_obj, $farmname, $service, $backend_id 
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
-# Do not allow to modify the maintenance status if the farm needs to be restarted
+    # Do not allow to modify the maintenance status if the farm needs to be restarted
     require Relianoid::Farm::Action;
     if (&getFarmRestartStatus($farmname)) {
         my $msg = "The farm needs to be restarted before to apply this action.";
@@ -266,22 +259,18 @@ sub service_backend_maintenance # ( $json_obj, $farmname, $service, $backend_id 
         my $maintenance_mode = $json_obj->{mode} // "drain";    # default
 
         $status =
-          &setHTTPFarmBackendMaintenance($farmname, $backend_id,
-            $maintenance_mode, $service);
+          &setHTTPFarmBackendMaintenance($farmname, $backend_id, $maintenance_mode, $service);
     }
     elsif ($json_obj->{action} eq "up") {
-        $status =
-          &setHTTPFarmBackendNoMaintenance($farmname, $backend_id, $service);
+        $status = &setHTTPFarmBackendNoMaintenance($farmname, $backend_id, $service);
     }
 
     if ($status->{code} == 1 or $status->{code} == -1) {
-        my $msg =
-"Errors found trying to change status backend to $json_obj->{ action }";
+        my $msg = "Errors found trying to change status backend to $json_obj->{ action }";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-    my $msg =
-"The action $json_obj->{ action } has been performed in farm '$farmname'.";
+    my $msg = "The action $json_obj->{ action } has been performed in farm '$farmname'.";
     my $warning;
     if ($status->{code} != 0) {
         $warning = $status->{desc};
@@ -312,8 +301,7 @@ sub service_backend_maintenance # ( $json_obj, $farmname, $service, $backend_id 
 # PUT /farms/<farmname>/backends/<backend>/maintenance
 sub backend_maintenance    # ( $json_obj, $farmname, $backend_id )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj   = shift;
     my $farmname   = shift;
     my $backend_id = shift;
@@ -363,21 +351,18 @@ sub backend_maintenance    # ( $json_obj, $farmname, $backend_id )
     if ($json_obj->{action} eq "maintenance") {
         my $maintenance_mode = $json_obj->{mode} // "drain";    # default
 
-        $status =
-          &setFarmBackendMaintenance($farmname, $backend_id, $maintenance_mode);
+        $status = &setFarmBackendMaintenance($farmname, $backend_id, $maintenance_mode);
     }
     elsif ($json_obj->{action} eq "up") {
         $status = &setFarmBackendNoMaintenance($farmname, $backend_id);
     }
 
     if ($status->{code} == 1 or $status->{code} == -1) {
-        my $msg =
-"Errors found trying to change status backend to $json_obj->{ action }";
+        my $msg = "Errors found trying to change status backend to $json_obj->{ action }";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-    my $msg =
-"The action $json_obj->{ action } has been performed in farm '$farmname'.";
+    my $msg = "The action $json_obj->{ action } has been performed in farm '$farmname'.";
     my $warning;
     if ($status->{code} != 0) {
         $warning = $status->{desc};

@@ -47,8 +47,7 @@ See Also:
 
 sub changePassword    #($user, $newpass, $verifypass)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($user, $newpass, $verifypass) = @_;
 
     $verifypass = $newpass if (!$verifypass);
@@ -98,8 +97,7 @@ See Also:
 
 sub checkValidUser    #($user,$curpasswd)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($user, $curpasswd) = @_;
 
     my $output = 0;

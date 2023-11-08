@@ -26,19 +26,16 @@ use Relianoid::System::Log;
 
 #	GET	/system/logs
 sub get_logs {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $desc    = "Get logs";
     my $backups = &getLogs;
 
-    &httpResponse(
-        { code => 200, body => { description => $desc, params => $backups } });
+    &httpResponse({ code => 200, body => { description => $desc, params => $backups } });
 }
 
 #	GET	/system/logs/LOG
 sub download_logs {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $logFile = shift;
 
     my $desc     = "Download log file '$logFile'";
@@ -58,7 +55,7 @@ sub download_logs {
         &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
     }
 
-# Download function ends communication if itself finishes successful. It is not necessary send "200 OK" msg
+    # Download function ends communication if itself finishes successful. It is not necessary send "200 OK" msg
     my $logdir = &getGlobalConfiguration('logdir');
 
     &httpDownloadResponse(desc => $desc, dir => $logdir, file => $logFile);
@@ -66,8 +63,7 @@ sub download_logs {
 
 #	GET	/system/logs/LOG/lines/LINES
 sub show_logs {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $logFile      = shift;
     my $lines_number = shift;    # number of lines to show
 

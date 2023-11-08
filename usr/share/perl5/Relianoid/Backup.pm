@@ -42,15 +42,14 @@ See Also:
 =cut
 
 sub getBackup {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my @backups;
     my $backupdir = &getGlobalConfiguration('backupdir');
     my $backup_re = &getValidFormat('backup');
 
-    opendir(DIR, $backupdir);
-    my @files = grep (/^backup.*/, readdir(DIR));
-    closedir(DIR);
+    opendir(my $directory, $backupdir);
+    my @files = grep (/^backup.*/, readdir($directory));
+    closedir($directory);
 
     foreach my $line (@files) {
         my $filepath = "$backupdir/$line";
@@ -61,8 +60,7 @@ sub getBackup {
         use Time::localtime qw(ctime);
 
         my $datetime_string = ctime(stat($filepath)->mtime);
-        $datetime_string =
-          &logAndGet("date -d \"${datetime_string}\" +%F\"  \"%T\" \"%Z -u");
+        $datetime_string = &logAndGet("date -d \"${datetime_string}\" +%F\"  \"%T\" \"%Z -u");
         chomp($datetime_string);
         push @backups,
           {
@@ -93,8 +91,7 @@ See Also:
 =cut
 
 sub getExistsBackup {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $name = shift;
     my $find;
 
@@ -123,8 +120,7 @@ See Also:
 =cut
 
 sub createBackup {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $name      = shift;
     my $zenbackup = &getGlobalConfiguration('zenbackup');
     my $error     = &logAndRun("$zenbackup $name -c");
@@ -150,8 +146,7 @@ See Also:
 =cut
 
 sub downloadBackup {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $backup = shift;
     my $error;
 
@@ -201,8 +196,7 @@ See Also:
 =cut
 
 sub uploadBackup {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $filename          = shift;
     my $upload_filehandle = shift;
@@ -262,8 +256,7 @@ See Also:
 =cut
 
 sub deleteBackup {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $file = shift;
     $file = "backup-$file.tar.gz";
     my $backupdir = &getGlobalConfiguration("backupdir");
@@ -298,8 +291,7 @@ See Also:
 =cut
 
 sub applyBackup {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $backup = shift;
     my $error;
     my $tar  = &getGlobalConfiguration('tar');
@@ -311,8 +303,7 @@ sub applyBackup {
     &zenlog("Stopping Relianoid service", "info", "SYSTEM");
     $error = &logAndRun("/etc/init.d/relianoid stop");
     if ($error) {
-        &zenlog("Problem stopping Relianoid Load Balancer service",
-            "error", "SYSTEM");
+        &zenlog("Problem stopping Relianoid Load Balancer service", "error", "SYSTEM");
         return $error;
     }
 
@@ -342,12 +333,10 @@ sub applyBackup {
     $error = &logAndRun("/etc/init.d/relianoid start");
 
     if (!$error) {
-        &zenlog("Backup applied and Relianoid Load Balancer restarted...",
-            "info", "SYSTEM");
+        &zenlog("Backup applied and Relianoid Load Balancer restarted...", "info", "SYSTEM");
     }
     else {
-        &zenlog("Problem restarting Relianoid Load Balancer service",
-            "error", "SYSTEM");
+        &zenlog("Problem restarting Relianoid Load Balancer service", "error", "SYSTEM");
     }
 
     return $error;
@@ -367,12 +356,11 @@ Returns:
 =cut
 
 sub getBackupVersion {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $backup = shift;
 
-    my $tar  = &getGlobalConfiguration('tar');
-    my $file = &getGlobalConfiguration('backupdir') . "/backup-$backup.tar.gz";
+    my $tar         = &getGlobalConfiguration('tar');
+    my $file        = &getGlobalConfiguration('backupdir') . "/backup-$backup.tar.gz";
     my $config_path = &getGlobalConfiguration('globalcfg');
 
     # remove the first slash
@@ -383,9 +371,7 @@ sub getBackupVersion {
     my $version = "";
 
     foreach my $line (@out) {
-        if ($line =~
-            /^\s*\$version\s*=\s*(?:"(.*)"|\'(.*)\');(?:\s*#update)?\s*$/)
-        {
+        if ($line =~ /^\s*\$version\s*=\s*(?:"(.*)"|\'(.*)\');(?:\s*#update)?\s*$/) {
             $version = $1;
             last;
         }

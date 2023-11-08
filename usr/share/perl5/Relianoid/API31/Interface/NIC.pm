@@ -30,8 +30,7 @@ if (eval { require Relianoid::ELoad; }) {
 
 sub delete_interface_nic    # ( $nic )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $nic = shift;
 
     require Relianoid::Net::Core;
@@ -52,7 +51,7 @@ sub delete_interface_nic    # ( $nic )
     if (@child) {
         my $child_string = join(', ', @child);
         my $msg =
-"It is not possible to delete $nic because there are virtual interfaces using it: $child_string.";
+          "It is not possible to delete $nic because there are virtual interfaces using it: $child_string.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
@@ -62,14 +61,12 @@ sub delete_interface_nic    # ( $nic )
     };
 
     if ($@) {
-        my $msg =
-          "The configuration for the network interface $nic can't be deleted.";
+        my $msg = "The configuration for the network interface $nic can't be deleted.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-    my $message =
-      "The configuration for the network interface $nic has been deleted.";
-    my $body = {
+    my $message = "The configuration for the network interface $nic has been deleted.";
+    my $body    = {
         description => $desc,
         success     => "true",
         message     => $message,
@@ -81,8 +78,7 @@ sub delete_interface_nic    # ( $nic )
 # GET /interfaces Get params of the interfaces
 sub get_nic_list    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     require Relianoid::Net::Interface;
 
     my $desc  = "List NIC interfaces";
@@ -121,7 +117,7 @@ sub get_nic_list    # ()
         };
 
         $if_conf->{is_slave}   = $if_ref->{is_slave} if $eload;
-        $if_conf->{is_cluster} = 'true' if $cluster_if eq $if_ref->{name};
+        $if_conf->{is_cluster} = 'true'              if $cluster_if eq $if_ref->{name};
 
         # include 'has_vlan'
         for my $vlan_ref (@vlans) {
@@ -146,8 +142,7 @@ sub get_nic_list    # ()
 
 sub get_nic    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $nic = shift;
 
     require Relianoid::Net::Interface;
@@ -195,8 +190,7 @@ sub get_nic    # ()
 
 sub actions_interface_nic    # ( $json_obj, $nic )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $nic      = shift;
 
@@ -271,8 +265,7 @@ sub actions_interface_nic    # ( $json_obj, $nic )
 
 sub modify_interface_nic    # ( $json_obj, $nic )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $nic      = shift;
 
@@ -302,8 +295,7 @@ sub modify_interface_nic    # ( $json_obj, $nic )
 
     # Check address errors
     if (exists $json_obj->{ip}) {
-        unless (defined($json_obj->{ip})
-            && &getValidFormat('IPv4_addr', $json_obj->{ip})
+        unless (defined($json_obj->{ip}) && &getValidFormat('IPv4_addr', $json_obj->{ip})
             || $json_obj->{ip} eq '')
         {
             my $msg = "IP Address is not valid.";
@@ -311,13 +303,13 @@ sub modify_interface_nic    # ( $json_obj, $nic )
         }
     }
 
-#not modify gateway or netmask if exists a virtual interface using this interface
+    #not modify gateway or netmask if exists a virtual interface using this interface
     if (exists $json_obj->{netmask}) {
         my @child = &getInterfaceChild($nic);
         if (@child) {
             my $child_string = join(', ', @child);
             my $msg =
-"It is not possible to modify $nic because there are virtual interfaces using it: $child_string.";
+              "It is not possible to modify $nic because there are virtual interfaces using it: $child_string.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
     }
@@ -328,19 +320,17 @@ sub modify_interface_nic    # ( $json_obj, $nic )
             && &getValidFormat('IPv4_mask', $json_obj->{netmask}))
         {
             my $msg =
-"Netmask Address $json_obj->{netmask} structure is not ok. Must be IPv4 structure or numeric.";
+              "Netmask Address $json_obj->{netmask} structure is not ok. Must be IPv4 structure or numeric.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
     }
 
     # Check gateway errors
     if (exists $json_obj->{gateway}) {
-        unless (defined($json_obj->{gateway})
-            && &getValidFormat('IPv4_addr', $json_obj->{gateway})
+        unless (defined($json_obj->{gateway}) && &getValidFormat('IPv4_addr', $json_obj->{gateway})
             || $json_obj->{gateway} eq '')
         {
-            my $msg =
-              "Gateway Address $json_obj->{gateway} structure is not ok.";
+            my $msg = "Gateway Address $json_obj->{gateway} structure is not ok.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
     }
@@ -367,12 +357,7 @@ sub modify_interface_nic    # ( $json_obj, $nic )
 
     if ($new_if->{gateway}) {
         require Relianoid::Net::Validate;
-        unless (
-            &validateGateway(
-                $new_if->{addr}, $new_if->{mask}, $new_if->{gateway}
-            )
-          )
-        {
+        unless (&validateGateway($new_if->{addr}, $new_if->{mask}, $new_if->{gateway})) {
             my $msg = "The gateway is not valid for the network.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
@@ -385,8 +370,7 @@ sub modify_interface_nic    # ( $json_obj, $nic )
         {
             require Relianoid::Net::Util;
             if (grep (/^$json_obj->{ ip }$/, &listallips())) {
-                my $msg =
-                  "The IP address is already in use for other interface.";
+                my $msg = "The IP address is already in use for other interface.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
         }
@@ -411,8 +395,7 @@ sub modify_interface_nic    # ( $json_obj, $nic )
     $if_ref->{ip_v}    = 4;
 
     unless ($if_ref->{addr} && $if_ref->{mask}) {
-        my $msg =
-          "Cannot configure the interface without address or without netmask.";
+        my $msg = "Cannot configure the interface without address or without netmask.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 

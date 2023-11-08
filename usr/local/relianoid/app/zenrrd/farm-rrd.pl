@@ -68,9 +68,8 @@ foreach my $farmfile (&getFarmList()) {
         my $netstat;
         $netstat = &getConntrack("", $vip, "", "", "") if ($ftype eq 'l4xnat');
 
-        $synconns = &getFarmSYNConns($farm, $netstat);    # SYN_RECV connections
-        $globalconns =
-          &getFarmEstConns($farm, $netstat);    # ESTABLISHED connections
+        $synconns    = &getFarmSYNConns($farm, $netstat);    # SYN_RECV connections
+        $globalconns = &getFarmEstConns($farm, $netstat);    # ESTABLISHED connections
     }
 
     if ($globalconns eq '' || $synconns eq '') {
@@ -79,8 +78,7 @@ foreach my $farmfile (&getFarmList()) {
     }
 
     if (!-f "$rrdap_dir/$rrd_dir/$db_farm") {
-        print
-"$0: Info: Creating the rrd database $rrdap_dir/$rrd_dir/$db_farm ...\n";
+        print "$0: Info: Creating the rrd database $rrdap_dir/$rrd_dir/$db_farm ...\n";
         RRDs::create "$rrdap_dir/$rrd_dir/$db_farm",
           "--step", "300",
           "DS:pending:GAUGE:600:0:12500000",
@@ -103,8 +101,7 @@ foreach my $farmfile (&getFarmList()) {
           "RRA:MAX:0.5:288:372";        # yearly - every 1 day - 372 reg
 
         if ($ERROR = RRDs::error) {
-            print
-              "$0: Error: Unable to generate the swap rrd database: $ERROR\n";
+            print "$0: Error: Unable to generate the swap rrd database: $ERROR\n";
         }
     }
 
@@ -113,9 +110,8 @@ foreach my $farmfile (&getFarmList()) {
     print "$0: Info:	Established: $globalconns\n";
     print "$0: Info: Updating data in $rrdap_dir/$rrd_dir/$db_farm ...\n";
 
-    RRDs::update "$rrdap_dir/$rrd_dir/$db_farm",
-      "-t", "pending:established",
-      "N:$synconns:$globalconns";
+    RRDs::update("$rrdap_dir/$rrd_dir/$db_farm",
+        "-t", "pending:established", "N:$synconns:$globalconns");
 
     if ($ERROR = RRDs::error) {
         print "$0: Error: Unable to update the rrd database: $ERROR\n";

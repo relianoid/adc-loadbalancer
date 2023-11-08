@@ -25,25 +25,20 @@ use strict;
 
 #	GET	/system/users
 sub get_all_users {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     require Relianoid::Zapi;
 
     my $desc       = "Get users";
     my $zapiStatus = &getZAPI("status");
-    my @users      = (
-        { "user" => "root", "status" => "true" },
-        { "user" => "zapi", "status" => "$zapiStatus" }
-    );
+    my @users =
+      ({ "user" => "root", "status" => "true" }, { "user" => "zapi", "status" => "$zapiStatus" });
 
-    &httpResponse(
-        { code => 200, body => { description => $desc, params => \@users } });
+    &httpResponse({ code => 200, body => { description => $desc, params => \@users } });
 }
 
 #	GET	/system/users/zapi
 sub get_user {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $user = shift;
 
     require Relianoid::Zapi;
@@ -60,14 +55,12 @@ sub get_user {
         'status' => &getZAPI("status"),
     };
 
-    &httpResponse(
-        { code => 200, body => { description => $desc, params => $zapi } });
+    &httpResponse({ code => 200, body => { description => $desc, params => $zapi } });
 }
 
 # POST /system/users/zapi
 sub set_user_zapi {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
 
     require Relianoid::Zapi;
@@ -111,11 +104,7 @@ sub set_user_zapi {
     }
 
     if (exists $json_obj->{'newpassword'}) {
-        &changePassword(
-            'zapi',
-            $json_obj->{'newpassword'},
-            $json_obj->{'newpassword'}
-        );
+        &changePassword('zapi', $json_obj->{'newpassword'}, $json_obj->{'newpassword'});
     }
 
     my $msg  = "Settings was changed successfully.";
@@ -126,8 +115,7 @@ sub set_user_zapi {
 
 # POST /system/users/root
 sub set_user {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $user     = shift;
 
@@ -136,8 +124,7 @@ sub set_user {
     my $desc = "User settings.";
 
     my @requiredParams = ("password", "newpassword");
-    my $param_msg =
-      &getValidReqParams($json_obj, \@requiredParams, \@requiredParams);
+    my $param_msg      = &getValidReqParams($json_obj, \@requiredParams, \@requiredParams);
 
     if ($param_msg) {
         &httpErrorResponse(code => 400, desc => $desc, msg => $param_msg);
@@ -157,11 +144,7 @@ sub set_user {
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-    my $error = &changePassword(
-        $user,
-        $json_obj->{'newpassword'},
-        $json_obj->{'newpassword'}
-    );
+    my $error = &changePassword($user, $json_obj->{'newpassword'}, $json_obj->{'newpassword'});
     if ($error) {
         my $msg = "Changing $user password.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);

@@ -27,19 +27,16 @@ use Relianoid::Backup;
 
 #	GET	/system/backup
 sub get_backup {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $desc    = "Get backups";
     my $backups = &getBackup();
 
-    &httpResponse(
-        { code => 200, body => { description => $desc, params => $backups } });
+    &httpResponse({ code => 200, body => { description => $desc, params => $backups } });
 }
 
 #	POST  /system/backup
 sub create_backup {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
 
     my $desc           = "Create a backups";
@@ -78,8 +75,7 @@ sub create_backup {
 
 #	GET	/system/backup/BACKUP
 sub download_backup {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $backup = shift;
 
     my $desc = "Download a backup";
@@ -99,8 +95,7 @@ sub download_backup {
 
 #	PUT	/system/backup/BACKUP
 sub upload_backup {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $upload_filehandle = shift;
     my $name              = shift;
 
@@ -133,8 +128,7 @@ sub upload_backup {
 
 #	DELETE /system/backup/BACKUP
 sub del_backup {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $backup = shift;
 
     my $desc = "Delete backup $backup'";
@@ -163,8 +157,7 @@ sub del_backup {
 
 #	POST /system/backup/BACKUP/actions
 sub apply_backup {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $backup   = shift;
 
@@ -192,8 +185,7 @@ sub apply_backup {
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-    &httpResponse(
-        { code => 200, body => { description => $desc, params => $json_obj } });
+    &httpResponse({ code => 200, body => { description => $desc, params => $json_obj } });
 }
 
 1;

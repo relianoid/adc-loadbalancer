@@ -49,8 +49,7 @@ Returns:
 
 sub getConntrack    # ($orig_src, $orig_dst, $reply_src, $reply_dst, $protocol)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($orig_src, $orig_dst, $reply_src, $reply_dst, $protocol) = @_;
 
     # remove newlines in every argument
@@ -63,16 +62,15 @@ sub getConntrack    # ($orig_src, $orig_dst, $reply_src, $reply_dst, $protocol)
     $reply_dst = "-q $reply_dst" if ($reply_dst);
     $protocol  = "-p $protocol"  if ($protocol);
 
-    my $conntrack = &getGlobalConfiguration('conntrack');
-    my $conntrack_cmd =
-      "$conntrack -L $orig_src $orig_dst $reply_src $reply_dst $protocol";
+    my $conntrack     = &getGlobalConfiguration('conntrack');
+    my $conntrack_cmd = "$conntrack -L $orig_src $orig_dst $reply_src $reply_dst $protocol";
 
     # return an array reference
     my @output = @{ &logAndGet($conntrack_cmd, "array") };
 
-# my $conns_count = scalar @output;
-# &zenlog( "getConntrack command: $conntrack_cmd", "info", "MONITOR" );
-# &zenlog( "getConntrack returned $conns_count connections.", "info", "MONITOR" );
+    # my $conns_count = scalar @output;
+    # &zenlog( "getConntrack command: $conntrack_cmd", "info", "MONITOR" );
+    # &zenlog( "getConntrack returned $conns_count connections.", "info", "MONITOR" );
 
     return \@output;
 }
@@ -97,8 +95,7 @@ Returns:
 # Returns array execution of netstat
 sub getNetstatFilter    # ($proto,$state,$ninfo,$fpid,$netstat)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($proto, $state, $ninfo, $fpid, $netstat) = @_;
 
     my $lfpid = $fpid;
@@ -116,9 +113,9 @@ sub getNetstatFilter    # ($proto,$state,$ninfo,$fpid,$netstat)
     my @output = grep (/$filter/, @{$netstat});
     my $output = \@output;
 
-# my $conns_count = scalar @output;
-# &zenlog( "getNetstatFilter filter: '$filter'", "info", "MONITOR" );
-# &zenlog( "getNetstatFilter returned $conns_count connections.", "info", "MONITOR" );
+    # my $conns_count = scalar @output;
+    # &zenlog( "getNetstatFilter filter: '$filter'", "info", "MONITOR" );
+    # &zenlog( "getNetstatFilter returned $conns_count connections.", "info", "MONITOR" );
 
     return $output;
 }
@@ -249,8 +246,7 @@ Returns:
 
 sub getConntrackParams    # ($filter)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($filter) = @_;
 
     my $conntrack_bin    = &getGlobalConfiguration('conntrack');
@@ -259,12 +255,10 @@ sub getConntrackParams    # ($filter)
     # define protocol first
     if (exists $filter->{proto}) {
         if ($filter->{proto} =~ /^(\w+)\s(\w+)$/) {
-            $conntrack_params .=
-              "--proto $conntrack_proto{ $1 } $conntrack_proto{ $2 } ";
+            $conntrack_params .= "--proto $conntrack_proto{ $1 } $conntrack_proto{ $2 } ";
         }
         else {
-            $conntrack_params .=
-              "--proto $conntrack_proto{ $filter->{ proto } } ";
+            $conntrack_params .= "--proto $conntrack_proto{ $filter->{ proto } } ";
         }
     }
 
@@ -277,31 +271,28 @@ sub getConntrackParams    # ($filter)
         $conntrack_params .= "--$param $filter->{ $filter_key } ";
     }
 
-#~ &zenlog( "getConntrackParams conntrack_params: $conntrack_params", "info", "MONITOR" );
+    #~ &zenlog( "getConntrackParams conntrack_params: $conntrack_params", "info", "MONITOR" );
 
     return $conntrack_params;
 }
 
 sub getConntrackCount {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($conntrack_params) = @_;
 
     my $conntrack_bin = &getGlobalConfiguration('conntrack');
     my $conntrack_cmd = "$conntrack_bin -L $conntrack_params 2>&1 >/dev/null";
 
-    &zenlog("getConntrackCount conntrack_cmd: $conntrack_cmd",
-        "debug", "MONITOR");
+    &zenlog("getConntrackCount conntrack_cmd: $conntrack_cmd", "debug", "MONITOR");
 
-# Do not use the function 'logAndGet', this function manages the output error and code
+    # Do not use the function 'logAndGet', this function manages the output error and code
     my $summary = `$conntrack_cmd`;
     my $error   = $?;
     my ($count) = $summary =~ m/: ([0-9]+) flow entries have been shown./;
 
-    &zenlog(
-"getConntrackCount: An error happened running conntrack command: $conntrack_cmd",
-        "error", "MONITOR"
-    ) if $error;
+    &zenlog("getConntrackCount: An error happened running conntrack command: $conntrack_cmd",
+        "error", "MONITOR")
+      if $error;
 
     return $count + 0;
 }

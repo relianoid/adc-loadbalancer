@@ -33,8 +33,7 @@ if (eval { require Relianoid::ELoad; }) {
 #GET /farms
 sub farms    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     require Relianoid::Farm::Base;
 
     my @out;
@@ -68,8 +67,7 @@ sub farms    # ()
 # GET /farms/LSLBFARM
 sub farms_lslb    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     require Relianoid::Farm::Base;
 
     my @out;
@@ -104,8 +102,7 @@ sub farms_lslb    # ()
 # GET /farms/DATALINKFARM
 sub farms_dslb    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     require Relianoid::Farm::Base;
 
     my @out;
@@ -139,8 +136,7 @@ sub farms_dslb    # ()
 #GET /farms/<name>/summary
 sub farms_name_summary    # ( $farmname )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farmname = shift;
     my $desc     = "Show farm $farmname";
 
@@ -163,8 +159,7 @@ sub farms_name_summary    # ( $farmname )
 #GET /farms/<name>
 sub farms_name    # ( $farmname )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farmname = shift;
 
     my $desc = "Show farm $farmname";
@@ -200,8 +195,7 @@ sub farms_name    # ( $farmname )
 
 # function to standarizate the backend output
 sub getAPIFarmBackends {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $out_b        = shift;
     my $type         = shift;
     my $add_api_keys = shift // [];

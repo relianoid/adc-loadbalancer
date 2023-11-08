@@ -32,8 +32,7 @@ if (eval { require Relianoid::ELoad; }) {
 # POST
 sub new_farm_service    # ( $json_obj, $farmname )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $farmname = shift;
 
@@ -90,8 +89,7 @@ sub new_farm_service    # ( $json_obj, $farmname )
 
     # check if the service name has invalid characters
     if ($result == 3) {
-        my $msg =
-"Service name is not valid, only allowed numbers, letters and hyphens.";
+        my $msg = "Service name is not valid, only allowed numbers, letters and hyphens.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
@@ -102,16 +100,13 @@ sub new_farm_service    # ( $json_obj, $farmname )
     }
 
     # no error found, return successful response
-    &zenlog(
-"Success, a new service has been created in farm $farmname with id $json_obj->{id}.",
-        "info", "FARMS"
-    );
+    &zenlog("Success, a new service has been created in farm $farmname with id $json_obj->{id}.",
+        "info", "FARMS");
 
     my $body = {
         description => $desc,
         params      => { id => $json_obj->{id} },
-        message     =>
-"A new service has been created in farm $farmname with id $json_obj->{id}."
+        message     => "A new service has been created in farm $farmname with id $json_obj->{id}."
     };
 
     if (&getFarmStatus($farmname) ne 'down') {
@@ -124,8 +119,7 @@ sub new_farm_service    # ( $json_obj, $farmname )
             require Relianoid::Farm::HTTP::Config;
             my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
             if ($config_error ne "") {
-                $body->{warning} =
-                  "Farm '$farmname' config error: $config_error";
+                $body->{warning} = "Farm '$farmname' config error: $config_error";
             }
             else {
                 &runFarmReload($farmname);
@@ -145,8 +139,7 @@ sub new_farm_service    # ( $json_obj, $farmname )
 
 #GET /farms/<name>/services/<service>
 sub farm_services {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farmname, $servicename) = @_;
 
     require Relianoid::API40::Farm::Get::HTTP;
@@ -180,7 +173,7 @@ sub farm_services {
     # no error found, return successful response
     my $service = &getHTTPServiceStruct($farmname, $servicename);
 
-#Fix Me: getHTTPServiceStruct should not return these parameters if 'proxy_ng' ne 'true' .
+    #Fix Me: getHTTPServiceStruct should not return these parameters if 'proxy_ng' ne 'true' .
     if (&getGlobalConfiguration('proxy_ng') ne 'true') {
         delete($service->{replacerequestheader});
         delete($service->{replaceresponseheader});
@@ -210,8 +203,7 @@ sub farm_services {
 
 sub modify_services    # ( $json_obj, $farmname, $service )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($json_obj, $farmname, $service) = @_;
 
     require Relianoid::Farm::Base;
@@ -285,8 +277,7 @@ sub modify_services    # ( $json_obj, $farmname, $service )
         # delete service's backends if redirect has been configured
         if ($redirect) {
             require Relianoid::Farm::HTTP::Backend;
-            my $backends =
-              scalar @{ &getHTTPFarmBackends($farmname, $service) };
+            my $backends = scalar @{ &getHTTPFarmBackends($farmname, $service) };
             if ($backends) {
                 $bk_msg = "The backends of $service have been deleted.";
                 for (my $id = $backends - 1 ; $id >= 0 ; $id--) {
@@ -348,15 +339,13 @@ sub modify_services    # ( $json_obj, $farmname, $service )
     # It is necessary evaluate first session, next ttl and later persistence
     if (exists $json_obj->{sessionid}) {
         if ($session =~ /^(URL|COOKIE|HEADER)$/) {
-            &setFarmVS($farmname, $service, "sessionid",
-                $json_obj->{sessionid});
+            &setFarmVS($farmname, $service, "sessionid", $json_obj->{sessionid});
         }
     }
 
     if (exists $json_obj->{ttl}) {
         if ($session =~ /^(IP|BASIC|URL|PARM|COOKIE|HEADER)$/) {
-            my $error =
-              &setFarmVS($farmname, $service, "ttl", "$json_obj->{ttl}");
+            my $error = &setFarmVS($farmname, $service, "ttl", "$json_obj->{ttl}");
             if ($error) {
                 my $msg = "Could not change the ttl parameter.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
@@ -389,12 +378,9 @@ sub modify_services    # ( $json_obj, $farmname, $service )
     }
 
     if (exists $json_obj->{httpsb}) {
-        if ($json_obj->{httpsb} ne
-            &getFarmVS($farmname, $service, 'httpsbackend'))
-        {
+        if ($json_obj->{httpsb} ne &getFarmVS($farmname, $service, 'httpsbackend')) {
             if ($json_obj->{httpsb} eq "true") {
-                &setFarmVS($farmname, $service, "httpsbackend",
-                    $json_obj->{httpsb});
+                &setFarmVS($farmname, $service, "httpsbackend", $json_obj->{httpsb});
             }
             elsif ($json_obj->{httpsb} eq "false") {
                 &setFarmVS($farmname, $service, "httpsbackend", "");
@@ -429,8 +415,8 @@ sub modify_services    # ( $json_obj, $farmname, $service )
 
     if (exists $json_obj->{pinnedconnection}) {
         if (&getGlobalConfiguration('proxy_ng') eq 'true') {
-            my $error = &setFarmVS($farmname, $service, "pinnedConnection",
-                "$json_obj->{pinnedconnection}");
+            my $error =
+              &setFarmVS($farmname, $service, "pinnedConnection", "$json_obj->{pinnedconnection}");
             if ($error) {
                 my $msg = "Could not change the pinned connection parameter.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
@@ -440,8 +426,8 @@ sub modify_services    # ( $json_obj, $farmname, $service )
 
     if (exists $json_obj->{routingpolicy}) {
         if (&getGlobalConfiguration('proxy_ng') eq 'true') {
-            my $error = &setFarmVS($farmname, $service, "routingPolicy",
-                "$json_obj->{routingpolicy}");
+            my $error =
+              &setFarmVS($farmname, $service, "routingPolicy", "$json_obj->{routingpolicy}");
             if ($error) {
                 my $msg = "Could not change the routing policy parameter.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
@@ -451,8 +437,8 @@ sub modify_services    # ( $json_obj, $farmname, $service )
 
     if (exists $json_obj->{rewritelocation}) {
         if (&getGlobalConfiguration('proxy_ng') eq 'true') {
-            my $error = &setFarmVS($farmname, $service, "rewriteLocation",
-                "$json_obj->{rewritelocation}");
+            my $error =
+              &setFarmVS($farmname, $service, "rewriteLocation", "$json_obj->{rewritelocation}");
             if ($error) {
                 my $msg = "Could not change the rewrite location parameter.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
@@ -534,18 +520,15 @@ sub modify_services    # ( $json_obj, $farmname, $service )
         delete($output_params->{removeResponseHeader});
     }
 
-    &zenlog(
-"Success, some parameters have been changed in service $service in farm $farmname.",
-        "info", "FARMS"
-    );
+    &zenlog("Success, some parameters have been changed in service $service in farm $farmname.",
+        "info", "FARMS");
 
     my $body = {
         description => "Modify service $service in farm $farmname",
         params      => $output_params,
     };
 
-    $body->{message} =
-      $bk_msg ? $bk_msg : "The service $service has been updated successfully.";
+    $body->{message} = $bk_msg ? $bk_msg : "The service $service has been updated successfully.";
 
     if (&getFarmStatus($farmname) ne 'down') {
         require Relianoid::Farm::Action;
@@ -557,8 +540,7 @@ sub modify_services    # ( $json_obj, $farmname, $service )
             require Relianoid::Farm::HTTP::Config;
             my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
             if ($config_error ne "") {
-                $body->{warning} =
-                  "Farm '$farmname' config error: $config_error";
+                $body->{warning} = "Farm '$farmname' config error: $config_error";
             }
             else {
                 &runFarmReload($farmname);
@@ -579,8 +561,7 @@ sub modify_services    # ( $json_obj, $farmname, $service )
 # DELETE /farms/<farmname>/services/<servicename> Delete a service of a Farm
 sub delete_service    # ( $farmname, $service )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farmname, $service) = @_;
 
     my $desc = "Delete service";
@@ -640,8 +621,7 @@ sub delete_service    # ( $farmname, $service )
     }
 
     # no errors found, returning successful response
-    &zenlog("Success, the service $service has been deleted in farm $farmname.",
-        "info", "FARMS");
+    &zenlog("Success, the service $service has been deleted in farm $farmname.", "info", "FARMS");
 
     my $message = "The service $service has been deleted in farm $farmname.";
     my $body    = {
@@ -661,8 +641,7 @@ sub delete_service    # ( $farmname, $service )
             require Relianoid::Farm::HTTP::Config;
             my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
             if ($config_error ne "") {
-                $body->{warning} =
-                  "Farm '$farmname' config error: $config_error";
+                $body->{warning} = "Farm '$farmname' config error: $config_error";
             }
             else {
                 &runFarmReload($farmname);

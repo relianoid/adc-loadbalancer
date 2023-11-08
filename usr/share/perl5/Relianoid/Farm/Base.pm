@@ -49,8 +49,7 @@ See Also:
 
 sub getFarmVip    # ($info,$farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($info, $farm_name) = @_;
 
     my $farm_type = &getFarmType($farm_name);
@@ -97,8 +96,7 @@ NOTE:
 
 sub getFarmStatus    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm_name = shift;
 
     my $output = -1;
@@ -156,8 +154,7 @@ NOTE:
 
 sub getFarmVipStatus    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm_name = shift;
 
     my $output     = -1;
@@ -268,8 +265,7 @@ Returns:
 
 sub getFarmPid    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm_name = shift;
 
     my $farm_type = &getFarmType($farm_name);
@@ -310,8 +306,7 @@ Returns:
 
 sub getFarmBootStatus    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm_name = shift;
 
     my $farm_type = &getFarmType($farm_name);
@@ -360,8 +355,7 @@ FIXME:
 
 sub getFarmProto    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm_name = shift;
 
     my $farm_type = &getFarmType($farm_name);
@@ -394,8 +388,7 @@ Returns:
 =cut
 
 sub getNumberOfFarmTypeRunning {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $type = shift;    # input value
 
     my $counter = 0;     # return value
@@ -430,8 +423,7 @@ Returns:
 =cut
 
 sub getFarmListByVip {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $ip   = shift;
     my $port = shift;
     my @out  = ();
@@ -441,11 +433,8 @@ sub getFarmListByVip {
     foreach my $farm (&getFarmNameList()) {
         if (&getFarmVip('vip', $farm) eq $ip) {
             next
-              if (
-                defined($port)
-                and !grep (/^$port$/,
-                    @{ &getMultiporExpanded(&getFarmVip('vipp', $farm)) })
-              );
+              if (defined($port)
+                and !grep (/^$port$/, @{ &getMultiporExpanded(&getFarmVip('vipp', $farm)) }));
             push @out, $farm;
         }
     }
@@ -466,8 +455,7 @@ Returns:
 =cut
 
 sub getFarmRunning {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my @out = ();
 
     foreach my $farm (&getFarmNameList()) {

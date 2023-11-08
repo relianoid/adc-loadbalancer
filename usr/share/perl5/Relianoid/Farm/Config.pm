@@ -48,8 +48,7 @@ See Also:
 
 sub setFarmBlacklistTime    # ($blacklist_time,$farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($blacklist_time, $farm_name) = @_;
 
     my $farm_type = &getFarmType($farm_name);
@@ -82,8 +81,7 @@ See Also:
 
 sub getFarmBlacklistTime    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name) = @_;
 
     my $farm_type      = &getFarmType($farm_name);
@@ -116,8 +114,7 @@ See Also:
 
 sub setFarmSessionType    # ($session,$farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($session, $farm_name) = @_;
 
     my $farm_type = &getFarmType($farm_name);
@@ -180,8 +177,7 @@ See Also:
 
 sub setFarmTimeout    # ($timeout,$farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($timeout, $farm_name) = @_;
 
     my $farm_type = &getFarmType($farm_name);
@@ -217,8 +213,7 @@ See Also:
 
 sub getFarmTimeout    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name) = @_;
 
     my $farm_type = &getFarmType($farm_name);
@@ -259,15 +254,13 @@ See Also:
 
 sub setFarmAlgorithm    # ($algorithm,$farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($algorithm, $farm_name) = @_;
 
     my $farm_type = &getFarmType($farm_name);
     my $output    = -1;
 
-    &zenlog("setting 'Algorithm $algorithm' for $farm_name farm $farm_type",
-        "info", "FARMS");
+    &zenlog("setting 'Algorithm $algorithm' for $farm_name farm $farm_type", "info", "FARMS");
 
     if ($farm_type eq "datalink") {
         require Relianoid::Farm::Datalink::Config;
@@ -306,8 +299,7 @@ See Also:
 
 sub getFarmAlgorithm    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name) = @_;
 
     my $farm_type = &getFarmType($farm_name);
@@ -340,17 +332,14 @@ Returns:
 
 sub setFarmMaxClientTime    # ($max_client_time,$track,$farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($max_client_time, $track, $farm_name) = @_;
 
     my $farm_type = &getFarmType($farm_name);
     my $output    = -1;
 
-    &zenlog(
-"setting 'MaxClientTime $max_client_time $track' for $farm_name farm $farm_type",
-        "info", "LSLB"
-    );
+    &zenlog("setting 'MaxClientTime $max_client_time $track' for $farm_name farm $farm_type",
+        "info", "LSLB");
 
     if ($farm_type eq "http" || $farm_type eq "https") {
         require Relianoid::Farm::HTTP::Config;
@@ -378,8 +367,7 @@ Returns:
 
 sub getFarmMaxClientTime    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name) = @_;
 
     my $farm_type = &getFarmType($farm_name);
@@ -416,16 +404,13 @@ See Also:
 
 sub setFarmVirtualConf    # ($vip,$vip_port,$farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($vip, $vip_port, $farm_name) = @_;
 
     my $farm_type = &getFarmType($farm_name);
     my $stat      = -1;
 
-    &zenlog(
-        "setting 'VirtualConf $vip $vip_port' for $farm_name farm $farm_type",
-        "info", "FARMS");
+    &zenlog("setting 'VirtualConf $vip $vip_port' for $farm_name farm $farm_type", "info", "FARMS");
 
     if ($farm_type eq "http" || $farm_type eq "https") {
         require Relianoid::Farm::HTTP::Config;
@@ -472,8 +457,7 @@ Returns:
 =cut
 
 sub setAllFarmByVip {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $vip      = shift;
     my $farmList = shift;
 
@@ -517,8 +501,7 @@ NOTE:
 
 sub checkFarmnameOK    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm_name = shift;
 
     return ($farm_name =~ /^[a-zA-Z0-9\-]+$/)
@@ -542,8 +525,7 @@ Returns:
 
 sub getFarmVS    # ($farm_name, $service, $tag)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $service, $tag) = @_;
 
     my $output = "";
@@ -582,8 +564,7 @@ Returns:
 
 sub setFarmVS    # ($farm_name,$service,$tag,$string)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $service, $tag, $string) = @_;
 
     my $output    = "";
@@ -617,13 +598,12 @@ Returns:
 =cut
 
 sub getFarmStruct {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     require Relianoid::Farm::Core;
     my $farm;                                 # declare output hash
     my $farmName = shift;                     # input: farm name
     my $farmType = &getFarmType($farmName);
-    return undef if ($farmType eq 1);
+    return if ($farmType eq 1);
 
     if ($farmType =~ /http|https/) {
         require Relianoid::Farm::HTTP::Config;
@@ -665,8 +645,7 @@ Returns:
 
 sub getFarmPlainInfo    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm_name = shift;
     my $file      = shift // undef;
     my @content;
@@ -676,12 +655,12 @@ sub getFarmPlainInfo    # ($farm_name)
     my $farm_filename = &getFarmFile($farm_name);
 
     if ($farm_filename =~ /(?:gslb)\.cfg$/ && defined $file) {
-        open my $fd, '<', "$configdir/$farm_filename/$file" or return undef;
+        open my $fd, '<', "$configdir/$farm_filename/$file" or return;
         chomp(@content = <$fd>);
         close $fd;
     }
     else {
-        open my $fd, '<', "$configdir/$farm_filename" or return undef;
+        open my $fd, '<', "$configdir/$farm_filename" or return;
         chomp(@content = <$fd>);
         close $fd;
     }
@@ -706,8 +685,7 @@ FIXME:
 =cut
 
 sub reloadFarmsSourceAddress {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     require Relianoid::Farm::Core;
 
@@ -730,8 +708,7 @@ Returns:
 =cut
 
 sub reloadL7FarmsSourceAddress {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     require Relianoid::Farm::Core;
 
@@ -761,8 +738,7 @@ FIXME:
 =cut
 
 sub reloadFarmsSourceAddressByFarm {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     require Relianoid::Farm::Core;
     require Relianoid::Farm::Base;
@@ -826,9 +802,7 @@ sub reloadFarmsSourceAddressByFarm {
                     );
                 }
                 if (defined $farm_floating_ref->{backends}) {
-                    foreach my $backend_floating_ref (
-                        @{ $farm_floating_ref->{backends} })
-                    {
+                    foreach my $backend_floating_ref (@{ $farm_floating_ref->{backends} }) {
                         my $bk_ref->{tag} = $backend_floating_ref->{in}->{mark};
 
                         if ($backend_floating_ref->{out}->{floating_ip}) {
@@ -840,8 +814,7 @@ sub reloadFarmsSourceAddressByFarm {
                             &eload(
                                 module => 'Relianoid::Net::Floating',
                                 func   => 'setL7FloatingSourceAddr',
-                                args   =>
-                                  [ $farm_ref, $bk_ref, $farm_floating_ref ],
+                                args   => [ $farm_ref, $bk_ref, $farm_floating_ref ],
                             );
                         }
                         else {
@@ -881,8 +854,7 @@ Returns:
 =cut
 
 sub checkLocalFarmSourceAddress {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my ($farm_name, $floating_ref) = @_;
 
@@ -929,8 +901,7 @@ sub checkLocalFarmSourceAddress {
         my $farm_floating = &eload(
             module => 'Relianoid::Net::Floating',
             func   => 'getFloatingSourceAddr',
-            args   =>
-              [ $farm_vip, undef, $floating_system_ref, $if_system_status ]
+            args   => [ $farm_vip, undef, $floating_system_ref, $if_system_status ]
         );
 
         # if iface with floating, needs snat
@@ -947,8 +918,7 @@ sub checkLocalFarmSourceAddress {
         my $bk_floating;
         my $exists_floating_backend = 0;
         foreach my $serv_name (@services) {
-            my $backends_ref =
-              &getHTTPFarmBackends($farm_name, $serv_name, "false");
+            my $backends_ref = &getHTTPFarmBackends($farm_name, $serv_name, "false");
             foreach my $bk (@{$backends_ref}) {
                 if (not $ip_floating_ref->{ $bk->{ip} }) {
 
@@ -957,10 +927,7 @@ sub checkLocalFarmSourceAddress {
                     $bk_floating = &eload(
                         module => 'Relianoid::Net::Floating',
                         func   => 'getFloatingSourceAddr',
-                        args   => [
-                            $bk->{ip},            $mark,
-                            $floating_system_ref, $if_system_status
-                        ]
+                        args   => [ $bk->{ip}, $mark, $floating_system_ref, $if_system_status ]
                     );
 
                     $ip_floating_ref->{ $bk->{ip} } = $bk_floating;
@@ -1000,8 +967,7 @@ Returns:
 =cut
 
 sub reloadBackendsSourceAddressByIface {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     require Relianoid::Farm::Core;
     require Relianoid::Farm::Base;
@@ -1063,8 +1029,7 @@ sub getPersistence {
         $farm_ref = &getL4FarmStruct($farm_name);
         my $persist = &getL4FarmParam('persist', $farm_name);
         if ($persist !~ /^$/) {
-            &zenlog("Persistence enabled to $persist for farm $farm_name",
-                "info", "farm");
+            &zenlog("Persistence enabled to $persist for farm $farm_name", "info", "farm");
             return 0;
         }
     }
@@ -1082,8 +1047,7 @@ sub getPersistence {
         my $lock_fh   = &openlock("$pathconf/$farm_file", 'r');
         while (<$lock_fh>) {
             if ($_ =~ /[^#]Session/) {
-                &zenlog("Persistence enabled for farm $farm_name",
-                    "info", "farm");
+                &zenlog("Persistence enabled for farm $farm_name", "info", "farm");
                 return 0;
             }
         }

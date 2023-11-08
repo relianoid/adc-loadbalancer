@@ -33,8 +33,7 @@ if (eval { require Relianoid::ELoad; }) {
 # PUT /farms/<farmname> Modify a http|https Farm
 sub modify_http_farm    # ( $json_obj, $farmname )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $farmname = shift;
 
@@ -76,7 +75,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
             and !&validatePort($vip, $vport, 'http', $farmname))
         {
             my $msg =
-"The '$vip' ip and '$vport' port are being used for another farm. This farm should be stopped before modifying it";
+              "The '$vip' ip and '$vport' port are being used for another farm. This farm should be stopped before modifying it";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
     }
@@ -87,7 +86,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
             my $if_ref  = &getInterfaceConfig($if_name);
             if (&getInterfaceSystemStatus($if_ref) ne "up") {
                 my $msg =
-"The '$json_obj->{ vip }' ip is not UP. This farm should be stopped before modifying it";
+                  "The '$json_obj->{ vip }' ip is not UP. This farm should be stopped before modifying it";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
         }
@@ -101,12 +100,11 @@ sub modify_http_farm    # ( $json_obj, $farmname )
         and &getGlobalConfiguration('proxy_ng') eq 'true'
       )
     {
-        my $conntimeout  = $json_obj->{contimeout} // $farm_st->{contimeout};
-        my $resurrectime = $json_obj->{resurrectime}
-          // $farm_st->{resurrectime};
+        my $conntimeout  = $json_obj->{contimeout}   // $farm_st->{contimeout};
+        my $resurrectime = $json_obj->{resurrectime} // $farm_st->{resurrectime};
         if ($resurrectime < $conntimeout) {
             my $msg =
-"The param 'resurrectime' value ( $resurrectime ) can not be lower than the param 'contimeout' value ( $conntimeout )";
+              "The param 'resurrectime' value ( $resurrectime ) can not be lower than the param 'contimeout' value ( $conntimeout )";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
     }
@@ -145,8 +143,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 
         #Check if the new farm's name alredy exists
         if (&getFarmExists($json_obj->{newfarmname})) {
-            my $msg =
-"The farm $json_obj->{newfarmname} already exists, try another name.";
+            my $msg = "The farm $json_obj->{newfarmname} already exists, try another name.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
 
@@ -214,8 +211,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
         }
 
         if (&setFarmRewriteL($farmname, $rewritelocation, $path) == -1) {
-            my $msg =
-              "Some errors happened trying to modify the rewritelocation.";
+            my $msg = "Some errors happened trying to modify the rewritelocation.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
     }
@@ -226,17 +222,14 @@ sub modify_http_farm    # ( $json_obj, $farmname )
         my $status = &setHTTPFarmLogs($farmname, $json_obj->{logs});
 
         if ($status) {
-            my $msg =
-              "Some errors happened trying to modify the log parameter.";
+            my $msg = "Some errors happened trying to modify the log parameter.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
     }
 
     # Enable or disable ignore 100 continue header
-    if (
-        exists($json_obj->{ignore_100_continue})
-        and
-        ($json_obj->{ignore_100_continue} ne $farm_st->{ignore_100_continue})
+    if (exists($json_obj->{ignore_100_continue})
+        and ($json_obj->{ignore_100_continue} ne $farm_st->{ignore_100_continue})
       )    # this is a bugfix
     {
         my $action = ($json_obj->{ignore_100_continue} eq "true") ? 1 : 0;
@@ -244,8 +237,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
         my $status = &setHTTPFarm100Continue($farmname, $action);
 
         if ($status == -1) {
-            my $msg =
-"Some errors happened trying to modify the ignore_100_continue parameter.";
+            my $msg = "Some errors happened trying to modify the ignore_100_continue parameter.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
     }
@@ -316,8 +308,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
                 and exists $params->{$key}->{listener}
                 and $params->{$key}->{listener} eq 'https')
             {
-                my $msg =
-"The farm listener has to be 'HTTPS' to configure the parameter '$key'.";
+                my $msg = "The farm listener has to be 'HTTPS' to configure the parameter '$key'.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
         }
@@ -348,8 +339,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
             ) if ($eload);
 
             unless ($ssloff) {
-                &zenlog("The CPU does not support SSL offloading.",
-                    "warning", "system");
+                &zenlog("The CPU does not support SSL offloading.", "warning", "system");
             }
 
             if (&setFarmCipherList($farmname, $ciphers_lib) == -1) {
@@ -357,7 +347,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
 
-            $farm_st->{ciphers} = $json_obj->{ciphers};   # update ciphers value
+            $farm_st->{ciphers} = $json_obj->{ciphers};    # update ciphers value
         }
 
         # Modify Customized Ciphers
@@ -366,19 +356,13 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 
             if ($farm_st->{ciphers} eq "customsecurity") {
                 $json_obj->{cipherc} =~ s/\ //g;
-                if (
-                    &setFarmCipherList($farmname, $ciphers_lib,
-                        $json_obj->{cipherc}) == -1
-                  )
-                {
-                    my $msg =
-                      "Some errors happened trying to modify the cipherc.";
+                if (&setFarmCipherList($farmname, $ciphers_lib, $json_obj->{cipherc}) == -1) {
+                    my $msg = "Some errors happened trying to modify the cipherc.";
                     &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
                 }
             }
             else {
-                my $msg =
-"'ciphers' has to be 'customsecurity' to set the 'cipherc' parameter.";
+                my $msg = "'ciphers' has to be 'customsecurity' to set the 'cipherc' parameter.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
         }
@@ -390,7 +374,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 
             if (!-f "$configdir/$json_obj->{ certname }") {
                 my $msg =
-"The certificate $json_obj->{ certname } has to be uploaded to use it in a farm.";
+                  "The certificate $json_obj->{ certname } has to be uploaded to use it in a farm.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
 
@@ -463,8 +447,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
         }
     }
 
-    &zenlog("Success, some parameters have been changed in farm $farmname.",
-        "info", "LSLB");
+    &zenlog("Success, some parameters have been changed in farm $farmname.", "info", "LSLB");
 
     # Return the received json object updated.
     require Relianoid::API40::Farm::Output::HTTP;
@@ -509,8 +492,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
         else {
             my $config_error = &getHTTPFarmConfigErrorMessage($farmname);
             if ($config_error ne "") {
-                $body->{warning} =
-                  "Farm '$farmname' config error: $config_error";
+                $body->{warning} = "Farm '$farmname' config error: $config_error";
             }
             else {
                 &runFarmReload($farmname);

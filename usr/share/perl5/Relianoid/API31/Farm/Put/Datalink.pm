@@ -32,8 +32,7 @@ if (eval { require Relianoid::ELoad; }) {
 
 sub modify_datalink_farm    # ( $json_obj, $farmname )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $farmname = shift;
 
@@ -66,7 +65,7 @@ sub modify_datalink_farm    # ( $json_obj, $farmname )
 
         if ($json_obj->{newfarmname} ne $farmname) {
 
-        #Check if farmname has correct characters (letters, numbers and hyphens)
+            #Check if farmname has correct characters (letters, numbers and hyphens)
             if ($json_obj->{newfarmname} !~ /^[a-zA-Z0-9\-]*$/) {
                 my $msg = "Invalid newfarmname.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
@@ -75,8 +74,7 @@ sub modify_datalink_farm    # ( $json_obj, $farmname )
             #Check if the new farm's name alredy exists
             my $newffile = &getFarmFile($json_obj->{newfarmname});
             if ($newffile != -1) {
-                my $msg =
-"The farm $json_obj->{newfarmname} already exists, try another name.";
+                my $msg = "The farm $json_obj->{newfarmname} already exists, try another name.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
 
@@ -85,7 +83,7 @@ sub modify_datalink_farm    # ( $json_obj, $farmname )
             my $fnchange = &setNewFarmName($farmname, $json_obj->{newfarmname});
             if ($fnchange == -1) {
                 my $msg =
-"The name of the farm can't be modified, delete the farm and create a new one.";
+                  "The name of the farm can't be modified, delete the farm and create a new one.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
 
@@ -143,11 +141,9 @@ sub modify_datalink_farm    # ( $json_obj, $farmname )
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
 
-        my $status =
-          &setDatalinkFarmVirtualConf($json_obj->{vip}, $fdev, $farmname);
+        my $status = &setDatalinkFarmVirtualConf($json_obj->{vip}, $fdev, $farmname);
         if ($status == -1) {
-            my $msg =
-              "It's not possible to change the farm virtual IP and interface.";
+            my $msg = "It's not possible to change the farm virtual IP and interface.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
 
@@ -167,8 +163,7 @@ sub modify_datalink_farm    # ( $json_obj, $farmname )
     }
 
     # no error found, return successful response
-    &zenlog("Success, some parameters have been changed in farm $farmname.",
-        "info", "DSLB");
+    &zenlog("Success, some parameters have been changed in farm $farmname.", "info", "DSLB");
 
     my $body = {
         description => $desc,

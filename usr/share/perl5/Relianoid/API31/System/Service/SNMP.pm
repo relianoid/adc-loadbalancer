@@ -27,21 +27,18 @@ use Relianoid::SNMP;
 
 # GET /system/snmp
 sub get_snmp {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $desc = "Get snmp";
 
     my %snmp = %{ &getSnmpdConfig() };
     $snmp{'status'} = &getSnmpdStatus();
 
-    &httpResponse(
-        { code => 200, body => { description => $desc, params => \%snmp } });
+    &httpResponse({ code => 200, body => { description => $desc, params => \%snmp } });
 }
 
 #  POST /system/snmp
 sub set_snmp {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
 
     my $desc = "Post snmp";
@@ -90,8 +87,7 @@ sub set_snmp {
     sleep(1);
     $snmp->{status} = &getSnmpdStatus();
 
-    &httpResponse(
-        { code => 200, body => { description => $desc, params => $snmp } });
+    &httpResponse({ code => 200, body => { description => $desc, params => $snmp } });
 }
 
 1;

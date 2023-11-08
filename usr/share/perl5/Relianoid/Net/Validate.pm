@@ -51,10 +51,8 @@ sub getNetIpFormat {
         return $x->to_string_compressed();
     }
     else {
-        &zenlog(
-"The bin '$bin' is not recoignized. The ip '$ip' couldn't be converted",
-            "error", "networking"
-        );
+        &zenlog("The bin '$bin' is not recoignized. The ip '$ip' couldn't be converted",
+            "error", "networking");
     }
 
     return $ip;
@@ -77,8 +75,7 @@ Returns:
 =cut
 
 sub getProtoTransport {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $profile = shift;
 
     my $proto = [];
@@ -118,10 +115,8 @@ sub getProtoTransport {
         $proto = [ "tcp", "udp" ];
     }
     else {
-        &zenlog(
-"The funct 'getProfileProto' does not understand the parameter '$profile'",
-            "error", "networking"
-        );
+        &zenlog("The funct 'getProfileProto' does not understand the parameter '$profile'",
+            "error", "networking");
     }
 
     return $proto;
@@ -150,8 +145,7 @@ Returns:
 =cut
 
 sub validatePortKernelSpace {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($ip, $port, $proto, $farmname) = @_;
 
     # get l4 farms
@@ -178,8 +172,7 @@ sub validatePortKernelSpace {
 
         # check if farm is all ports
         if ($port eq '*' or $f_port eq '*') {
-            &zenlog("Port collision with farm '$farm' for using all ports",
-                "warning", "net");
+            &zenlog("Port collision with farm '$farm' for using all ports", "warning", "net");
             return 0;
         }
 
@@ -187,8 +180,7 @@ sub validatePortKernelSpace {
         my $f_port_list = &getMultiporExpanded($f_port);
         my $col         = &getArrayCollision($f_port_list, $port_list);
         if (defined $col) {
-            &zenlog("Port collision ($col) with farm '$farm'", "warning",
-                "net");
+            &zenlog("Port collision ($col) with farm '$farm'", "warning", "net");
             return 0;
         }
     }
@@ -209,8 +201,7 @@ Returns:
 =cut
 
 sub getMultiporExpanded {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $port       = shift;
     my @total_port = ();
     if ($port ne '*') {
@@ -241,8 +232,7 @@ Returns:
 =cut
 
 sub getMultiportRegex {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $port = shift;
     my $reg  = $port;
 
@@ -275,8 +265,7 @@ Returns:
 =cut
 
 sub validatePortUserSpace {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($ip, $port, $proto, $farmname, $process) = @_;
 
     my $override;
@@ -294,8 +283,7 @@ sub validatePortUserSpace {
                 and $cur_vip eq $ip
                 and $cur_port eq $port)
             {
-                &zenlog(
-                    "The networking configuration matches with the own farm",
+                &zenlog("The networking configuration matches with the own farm",
                     "debug", "networking");
                 return 1;
             }
@@ -338,7 +326,7 @@ sub validatePortUserSpace {
     my $ip_reg;
     if (defined $override and $override) {
 
-  # L4xnat overrides the user space daemons that are listening on all interfaces
+        # L4xnat overrides the user space daemons that are listening on all interfaces
         $ip_reg = ($ip eq '0.0.0.0') ? '[^\s]+' : "(?:$ip)";
     }
     else {
@@ -352,10 +340,8 @@ sub validatePortUserSpace {
     my $filter = '^\s*(?:[^\s]+\s+){3,3}' . $ip_reg . ':' . $port_reg . '\s';
     @out = grep (/$filter/, @out);
     if (@out) {
-        &zenlog(
-            "The ip '$ip' and the port '$port' are being used for some process",
-            "warning", "networking"
-        );
+        &zenlog("The ip '$ip' and the port '$port' are being used for some process",
+            "warning", "networking");
         return 0;
     }
 
@@ -391,17 +377,14 @@ See Also:
 =cut
 
 sub validatePort {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($ip, $port, $proto, $farmname, $process) = @_;
 
     # validate inputs
     $ip = '0.0.0.0' if $ip eq '*';
     if (!defined $proto and !defined $farmname) {
-        &zenlog(
-"Check port needs the protocol to validate the ip '$ip' and the port '$port'",
-            "error", "networking"
-        );
+        &zenlog("Check port needs the protocol to validate the ip '$ip' and the port '$port'",
+            "error", "networking");
         return 0;
     }
 
@@ -439,8 +422,7 @@ Returns:
 
 sub ipisok    # ($checkip, $version)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $checkip = shift;
     my $version = shift;
     my $return  = "false";
@@ -500,8 +482,7 @@ Returns:
 
 sub ipversion    # ($checkip)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $checkip = shift;
     my $output  = "-";
 
@@ -541,8 +522,7 @@ Returns:
 
 sub validateGateway    # ($ip, $mask, $ip2)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($ip, $mask, $ip2) = @_;
 
     require NetAddr::IP;
@@ -550,9 +530,9 @@ sub validateGateway    # ($ip, $mask, $ip2)
     my $addr1 = NetAddr::IP->new($ip,  $mask);
     my $addr2 = NetAddr::IP->new($ip2, $mask);
 
-    return ( defined $addr1
-          && defined $addr2
-          && ($addr1->network() eq $addr2->network())) ? 1 : 0;
+    return (defined $addr1 && defined $addr2 && ($addr1->network() eq $addr2->network()))
+      ? 1
+      : 0;
 }
 
 =begin nd
@@ -576,8 +556,7 @@ Bugs:
 
 sub ifexist    # ($nif)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $nif = shift;
 
     use IO::Interface qw(:flags);    # Needs to load with 'use'
@@ -627,8 +606,7 @@ Returns:
 =cut
 
 sub checkNetworkExists {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($net, $mask, $exception, $duplicated) = @_;
 
     #if duplicated network is allowed then don't check if network exists.
@@ -690,8 +668,7 @@ Returns:
 =cut
 
 sub checkDuplicateNetworkExists {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     #if duplicated network is not allowed then don't check if network exists.
     require Relianoid::Config;
@@ -705,9 +682,7 @@ sub checkDuplicateNetworkExists {
     push @interfaces, &getInterfaceTypeList('vlan');
 
     foreach my $if_ref (@interfaces) {
-        my $iface =
-          &checkNetworkExists($if_ref->{addr}, $if_ref->{mask}, $if_ref->{name},
-            "false");
+        my $iface = &checkNetworkExists($if_ref->{addr}, $if_ref->{mask}, $if_ref->{name}, "false");
         return $iface if ($iface ne "");
     }
 
@@ -729,8 +704,7 @@ Returns:
 =cut
 
 sub validBackendStack {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($be_aref, $ip) = @_;
     my $ip_stack     = &ipversion($ip);
     my $ipv_mismatch = 0;

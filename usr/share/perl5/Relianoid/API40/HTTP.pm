@@ -52,8 +52,7 @@ my %http_status_codes = (
 );
 
 sub GET {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($path, $code, $mod) = @_;
 
     return
@@ -74,8 +73,7 @@ sub GET {
 }
 
 sub POST {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($path, $code, $mod) = @_;
 
     return unless $ENV{REQUEST_METHOD} eq 'POST';
@@ -123,8 +121,7 @@ sub POST {
         $input_ref = $data;
     }
     else {
-        &zenlog("Content-Type not supported: $ENV{ CONTENT_TYPE }",
-            "error", $LOG_TAG);
+        &zenlog("Content-Type not supported: $ENV{ CONTENT_TYPE }", "error", $LOG_TAG);
         my $body = { message => 'Content-Type not supported', error => 'true' };
 
         &httpResponse({ code => 415, body => $body });
@@ -141,8 +138,7 @@ sub POST {
 }
 
 sub PUT {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($path, $code, $mod) = @_;
 
     return unless $ENV{REQUEST_METHOD} eq 'PUT';
@@ -190,8 +186,7 @@ sub PUT {
         $input_ref = $data;
     }
     else {
-        &zenlog("Content-Type not supported: $ENV{ CONTENT_TYPE }",
-            "error", $LOG_TAG);
+        &zenlog("Content-Type not supported: $ENV{ CONTENT_TYPE }", "error", $LOG_TAG);
         my $body = { message => 'Content-Type not supported', error => 'true' };
 
         &httpResponse({ code => 415, body => $body });
@@ -208,8 +203,7 @@ sub PUT {
 }
 
 sub DELETE {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($path, $code, $mod) = @_;
 
     return unless $ENV{REQUEST_METHOD} eq 'DELETE';
@@ -228,8 +222,7 @@ sub DELETE {
 }
 
 sub OPTIONS {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($path, $code) = @_;
 
     return unless $ENV{REQUEST_METHOD} eq 'OPTIONS';
@@ -262,13 +255,12 @@ sub OPTIONS {
 
 sub httpResponse    # ( \%hash ) hash_keys->( $code, %headers, $body )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $self = shift;
 
     return $self unless exists $ENV{GATEWAY_INTERFACE};
 
-#~ &zenlog("DEBUG httpResponse input: " . Dumper $self, "debug", $LOG_TAG ); # DEBUG
+    #~ &zenlog("DEBUG httpResponse input: " . Dumper $self, "debug", $LOG_TAG ); # DEBUG
 
     die 'httpResponse: Bad input' if !defined $self or ref $self ne 'HASH';
 
@@ -289,7 +281,7 @@ sub httpResponse    # ( \%hash ) hash_keys->( $code, %headers, $body )
           : "https://$ENV{ HTTP_HOST }";
     }
 
- # Headers included in _ALL_ the responses, any method, any URI, sucess or error
+    # Headers included in _ALL_ the responses, any method, any URI, sucess or error
     my @headers = (
         'Access-Control-Allow-Origin'      => $origin,
         'Access-Control-Allow-Credentials' => 'true',
@@ -315,10 +307,8 @@ sub httpResponse    # ( \%hash ) hash_keys->( $code, %headers, $body )
             my $session_cookie = $q->cookie(CGISESSID => $session->id);
 
             push @headers,
-              'Set-Cookie' => $session_cookie
-              . "; SameSite=None; Secure; HttpOnly",
-              'Access-Control-Expose-Headers' =>
-              'Set-Cookie, Content-Disposition',
+              'Set-Cookie' => $session_cookie . "; SameSite=None; Secure; HttpOnly",
+              'Access-Control-Expose-Headers' => 'Set-Cookie, Content-Disposition',
               ;
         }
     }
@@ -379,8 +369,7 @@ sub httpResponse    # ( \%hash ) hash_keys->( $code, %headers, $body )
     {
 
         # log request if debug is enabled
-        my $req_msg =
-"STATUS: $self->{ code } REQUEST: $ENV{REQUEST_METHOD} $ENV{SCRIPT_URL}";
+        my $req_msg = "STATUS: $self->{ code } REQUEST: $ENV{REQUEST_METHOD} $ENV{SCRIPT_URL}";
 
         # include memory usage if debug is 2 or higher
         $req_msg .= " " . &getMemoryUsage() if &debug() > 0;
@@ -397,8 +386,7 @@ sub httpResponse    # ( \%hash ) hash_keys->( $code, %headers, $body )
 }
 
 sub httpErrorResponse {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $args;
 
     eval { $args = @_ == 1 ? shift @_ : {@_}; };
@@ -421,9 +409,7 @@ sub httpErrorResponse {
 
     # check the status code is in a valid range
     unless ($args->{code} =~ /^4[0-9][0-9]$/) {
-        &zdie(
-            "httpErrorResponse: Non-supported HTTP status code: $args->{ code }"
-        );
+        &zdie("httpErrorResponse: Non-supported HTTP status code: $args->{ code }");
     }
 
     my $body = {
@@ -436,7 +422,7 @@ sub httpErrorResponse {
     $body->{documentation} = $doc_url if $doc_url;
 
     &zenlog("$args->{ desc }: $args->{ msg }", "error", $LOG_TAG);
-    &zenlog($args->{log_msg}, "info", $LOG_TAG) if exists $args->{log_msg};
+    &zenlog($args->{log_msg},                  "info",  $LOG_TAG) if exists $args->{log_msg};
 
     my $response = { code => $args->{code}, body => $body };
 
@@ -449,8 +435,7 @@ sub httpErrorResponse {
 
 # WARNING: Function unfinished.
 sub httpSuccessResponse {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($args) = @_;
 
     unless (ref($args) eq 'HASH') {
@@ -462,9 +447,7 @@ sub httpSuccessResponse {
     }
 
     unless ($args->{code} =~ /^2[0-9][0-9]$/) {
-        &zdie(
-"httpSuccessResponse: Non-supported HTTP status code: $args->{ code }"
-        );
+        &zdie("httpSuccessResponse: Non-supported HTTP status code: $args->{ code }");
     }
 
     my $body = {
@@ -478,8 +461,7 @@ sub httpSuccessResponse {
 }
 
 sub httpDownloadResponse {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $args;
 
     eval { $args = @_ == 1 ? shift @_ : {@_}; };
@@ -543,8 +525,7 @@ sub httpDownloadResponse {
 }
 
 sub buildAPIParams {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $out_b     = shift;
     my $api_keys  = shift;
     my $translate = shift;
@@ -563,8 +544,7 @@ sub buildAPIParams {
 }
 
 sub buildBackendAPIParams {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $out_b     = shift;
     my $api_keys  = shift;
     my $translate = shift;

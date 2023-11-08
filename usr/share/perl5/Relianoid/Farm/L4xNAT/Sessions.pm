@@ -105,8 +105,7 @@ Returns:
 =cut
 
 sub listL4FarmSessions {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farmname = shift;
 
     require Relianoid::Lock;
@@ -192,7 +191,7 @@ sub getL4FarmSession {
         return $s if ($s->{session} eq $session);
     }
 
-    return undef;
+    return;
 }
 
 1;

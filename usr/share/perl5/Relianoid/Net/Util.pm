@@ -42,8 +42,7 @@ See Also:
 # Get List of Vinis or Vlans from an interface
 sub getIfacesFromIf    # ($if_name, $type)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $if_name = shift;    # Interface's Name
     my $type    = shift;    # Type: vini or vlan
     my @ifaces;
@@ -92,8 +91,7 @@ See Also:
 # Check if there are some Virtual Interfaces or Vlan with IPv6 and previous UP status to get it up.
 sub setIfacesUp    # ($if_name,$type)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $if_name = shift;    # Interface's Name
     my $type    = shift;    # Type: vini or vlan
 
@@ -113,12 +111,10 @@ sub setIfacesUp    # ($if_name,$type)
         }
 
         if ($type eq "vini") {
-            &zenlog("Virtual interfaces of $if_name have been put up.",
-                "info", "NETWORK");
+            &zenlog("Virtual interfaces of $if_name have been put up.", "info", "NETWORK");
         }
         elsif ($type eq "vlan") {
-            &zenlog("VLAN interfaces of $if_name have been put up.",
-                "info", "NETWORK");
+            &zenlog("VLAN interfaces of $if_name have been put up.", "info", "NETWORK");
         }
     }
 
@@ -143,8 +139,7 @@ See Also:
 # send gratuitous ICMP packets for L3 aware
 sub sendGPing    # ($pif)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($pif)   = @_;
     my $if_conf = &getInterfaceConfig($pif);
     my $gw      = $if_conf->{gateway};
@@ -154,8 +149,7 @@ sub sendGPing    # ($pif)
         my $pingc    = &getGlobalConfiguration('pingc');
         my $ping_cmd = "$ping_bin -c $pingc -I $if_conf->{addr} $gw";
 
-        &zenlog("Sending $pingc ping(s) to gateway $gw from $if_conf->{addr}",
-            "info", "NETWORK");
+        &zenlog("Sending $pingc ping(s) to gateway $gw from $if_conf->{addr}", "info", "NETWORK");
         &logAndRunBG("$ping_cmd");
     }
 }
@@ -178,8 +172,7 @@ See Also:
 #get a random available port
 sub getRandomPort    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     require Relianoid::Net::Validate;
 
     my $proto = shift;
@@ -235,8 +228,7 @@ See Also:
 # send gratuitous ARP frames
 sub sendGArp    # ($if,$ip)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($if, $ip) = @_;
 
     require Relianoid::Net::Validate;
@@ -352,8 +344,7 @@ See Also:
 #know if and return ip
 sub iponif    # ($if)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $if = shift;
 
     require IO::Socket;
@@ -389,8 +380,7 @@ See Also:
 # return the mask of an if
 sub maskonif    # ($if)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $if = shift;
 
     require IO::Socket;
@@ -424,8 +414,7 @@ See Also:
 #list ALL IPS UP
 sub listallips    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     require Relianoid::Net::Interface;
 
     my @listinterfaces = ();
@@ -456,8 +445,7 @@ See Also:
 # Enable(true) / Disable(false) IP Forwarding
 sub setIpForward    # ($arg)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $arg = shift;
 
     my $status = 0;
@@ -469,11 +457,9 @@ sub setIpForward    # ($arg)
     &zenlog("setting $arg to IP forwarding ", "info", "NETWORK");
 
     # switch forwarding as requested
-    $status +=
-      &logAndRun("echo $switch > /proc/sys/net/ipv4/conf/all/forwarding");
+    $status += &logAndRun("echo $switch > /proc/sys/net/ipv4/conf/all/forwarding");
     $status += &logAndRun("echo $switch > /proc/sys/net/ipv4/ip_forward");
-    $status +=
-      &logAndRun("echo $switch > /proc/sys/net/ipv6/conf/all/forwarding");
+    $status += &logAndRun("echo $switch > /proc/sys/net/ipv6/conf/all/forwarding");
 
     return $status;
 }
@@ -495,8 +481,7 @@ See Also:
 
 sub getInterfaceOfIp    # ($ip)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $ip = shift;
 
     require Relianoid::Net::Interface;
@@ -516,8 +501,7 @@ sub getInterfaceOfIp    # ($ip)
     }
 
     # returns an invalid interface name, an undefined variable
-    &zenlog("Warning: No interface was found configured with IP address $ip",
-        "info", "NETWORK");
+    &zenlog("Warning: No interface was found configured with IP address $ip", "info", "NETWORK");
 
     return;
 }

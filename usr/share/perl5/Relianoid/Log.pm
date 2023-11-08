@@ -202,8 +202,7 @@ Returns:
 
 sub zlog    # (@message)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my @message = shift;
 
     #my ($package,   # 0
@@ -246,8 +245,7 @@ See Also:
 
 sub logAndRun    # ($command)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $command = shift;    # command string to log and run
 
     my $program     = $basename;
@@ -282,8 +280,7 @@ Returns:
 
 sub logAndRunBG    # ($command)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $command = shift;    # command string to log and run
 
     my $program = $basename;
@@ -300,13 +297,12 @@ sub logAndRunBG    # ($command)
 
     # return_code is -1 on error.
 
-# returns true on error launching the program, false on error launching the program
+    # returns true on error launching the program, false on error launching the program
     return $return_code == -1;
 }
 
 sub zdie {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     require Carp;
     Carp->import();
 
@@ -330,8 +326,7 @@ See Also:
 =cut
 
 sub zsystem {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my (@exec) = @_;
     my $program = $basename;
 
@@ -376,8 +371,7 @@ TODO:
 =cut
 
 sub logAndGet {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $cmd        = shift;
     my $type       = shift // 'string';
     my $add_stderr = shift // 0;
@@ -445,8 +439,7 @@ sub logAndRunCheck {
     my $return_code = $?;
 
     if (&debug() >= 2) {
-        &zenlog($program . " err_code '$return_code' checking: $command",
-            "debug2", "SYSTEM");
+        &zenlog($program . " err_code '$return_code' checking: $command", "debug2", "SYSTEM");
     }
     if (&debug() >= 3) {
         &zenlog($program . " output: @cmd_output", "debug3", "SYSTEM");
@@ -476,8 +469,7 @@ Returns:
 =cut
 
 sub logRunAndGet {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $command  = shift;
     my $format   = shift // 'string';
     my $outflush = shift // 0;

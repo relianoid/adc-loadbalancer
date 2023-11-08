@@ -33,8 +33,7 @@ if (eval { require Relianoid::ELoad; }) {
 #GET the list of graphs availables in the load balancer
 sub list_possible_graphs    #()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     require Relianoid::Stats;
 
     my @farms = grep (s/-farm$//, &getGraphs2Show("Farm"));
@@ -78,7 +77,7 @@ sub list_possible_graphs    #()
     }
     my $body = {
         description =>
-"These are the possible graphs, you'll be able to access to the daily, weekly, monthly or yearly graph",
+          "These are the possible graphs, you'll be able to access to the daily, weekly, monthly or yearly graph",
         system     => \@sys,
         interfaces => \@net,
         farms      => \@farms
@@ -95,8 +94,7 @@ sub list_possible_graphs    #()
 # GET all system graphs
 sub list_sys_graphs    #()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     require Relianoid::Stats;
 
     # System values
@@ -117,7 +115,7 @@ sub list_sys_graphs    #()
 
     my $body = {
         description =>
-"These are the possible system graphs, you'll be able to access to the daily, weekly, monthly or yearly graph",
+          "These are the possible system graphs, you'll be able to access to the daily, weekly, monthly or yearly graph",
         system => \@sys
     };
 
@@ -127,8 +125,7 @@ sub list_sys_graphs    #()
 # GET system graphs
 sub get_sys_graphs    #()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $key = shift;
 
     my $desc = "Get $key graphs";
@@ -157,8 +154,7 @@ sub get_sys_graphs    #()
 # GET frequency system graphs
 sub get_sys_graphs_freq    #()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $key       = shift;
     my $frequency = shift;
 
@@ -183,8 +179,7 @@ sub get_sys_graphs_freq    #()
 # /graphs/system/cpu/custom/start/11-25-2020-05:55/end/11-25-2020-22:25
 sub get_sys_graphs_interval    #()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $key   = shift;
     my $start = shift;
     my $end   = shift;
@@ -209,12 +204,11 @@ sub get_sys_graphs_interval    #()
 # GET all interface graphs
 sub list_iface_graphs    #()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my @iface = grep (s/iface$//, &getGraphs2Show("Network"));
     my $body  = {
         description =>
-"These are the possible interface graphs, you'll be able to access to the daily, weekly, monthly or yearly graph",
+          "These are the possible interface graphs, you'll be able to access to the daily, weekly, monthly or yearly graph",
         interfaces => \@iface
     };
 
@@ -224,8 +218,7 @@ sub list_iface_graphs    #()
 # GET interface graphs
 sub get_iface_graphs    #()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $iface = shift;
 
     require Relianoid::Net::Interface;
@@ -266,8 +259,7 @@ sub get_iface_graphs    #()
 # GET frequency interface graphs
 sub get_iface_graphs_frec    #()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $iface     = shift;
     my $frequency = shift;
 
@@ -301,8 +293,7 @@ sub get_iface_graphs_frec    #()
 # GET interface graph in an interval
 sub get_iface_graphs_interval    #()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $iface = shift;
     my $start = shift;
     my $end   = shift;
@@ -337,8 +328,7 @@ sub get_iface_graphs_interval    #()
 # GET all farm graphs
 sub list_farm_graphs    #()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my @farms = grep (s/-farm$//, &getGraphs2Show("Farm"));
 
     if ($eload) {
@@ -352,7 +342,7 @@ sub list_farm_graphs    #()
 
     my $body = {
         description =>
-"These are the possible farm graphs, you'll be able to access to the daily, weekly, monthly or yearly graph",
+          "These are the possible farm graphs, you'll be able to access to the daily, weekly, monthly or yearly graph",
         farms => \@farms
     };
 
@@ -362,8 +352,7 @@ sub list_farm_graphs    #()
 # GET farm graphs
 sub get_farm_graphs    #()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farmName = shift;
 
     require Relianoid::Farm::Core;
@@ -403,8 +392,7 @@ sub get_farm_graphs    #()
 # GET frequency farm graphs
 sub get_farm_graphs_frec    #()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farmName  = shift;
     my $frequency = shift;
 
@@ -439,8 +427,7 @@ sub get_farm_graphs_frec    #()
 # GET farm graph in an interval
 sub get_farm_graphs_interval    #()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farmName = shift;
     my $start    = shift;
     my $end      = shift;
@@ -476,8 +463,7 @@ sub get_farm_graphs_interval    #()
 #GET mount points list
 sub list_disks_graphs    #()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     require Relianoid::Stats;
 
     my @mount_points;
@@ -502,8 +488,7 @@ sub list_disks_graphs    #()
 #GET disk graphs for all periods
 sub get_disk_graphs    #()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $mount_point = shift;
 
     require Relianoid::Stats;
@@ -543,8 +528,7 @@ sub get_disk_graphs    #()
 #GET disk graph for a single period
 sub get_disk_graphs_freq    #()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $mount_point = shift;
     my $frequency   = shift;
 
@@ -577,8 +561,7 @@ sub get_disk_graphs_freq    #()
 #GET disk graph in an interval
 sub get_disk_graphs_interval    #()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $mount_point = shift;
     my $start       = shift;
     my $end         = shift;

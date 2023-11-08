@@ -52,8 +52,7 @@ Returns:
 =cut
 
 sub execHTTRequest {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     # enable one:
     # return &execHTTRequestModule(@_);
@@ -61,8 +60,7 @@ sub execHTTRequest {
 }
 
 sub execHTTRequestModule {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $params = shift;
 
     require LWP::UserAgent;
@@ -126,8 +124,7 @@ sub execHTTRequestModule {
 }
 
 sub execHTTRequestCmd {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $params = shift;
 
     my $out->{error} = 1;
@@ -147,8 +144,8 @@ sub execHTTRequestCmd {
     my $json = "";
     if ($params->{json}) {
         require JSON;
-        $json = "-H 'Content-Type: application/json' --data '"
-          . JSON::encode_json($params->{json}) . "'";
+        $json =
+          "-H 'Content-Type: application/json' --data '" . JSON::encode_json($params->{json}) . "'";
     }
 
     # execute the request

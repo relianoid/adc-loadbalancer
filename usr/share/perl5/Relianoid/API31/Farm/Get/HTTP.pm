@@ -29,8 +29,7 @@ if (eval { require Relianoid::ELoad; }) {
 }
 
 sub get_farm_struct {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farmname = shift;
     my $output_params;
 
@@ -150,8 +149,7 @@ sub get_farm_struct {
 # GET /farms/<farmname> Request info of a http|https Farm
 sub farms_name_http    # ( $farmname )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farmname = shift;
 
     require Relianoid::Farm::HTTP::Service;
@@ -213,8 +211,7 @@ sub farms_name_http    # ( $farmname )
 
 # GET /farms/<farmname>/summary
 sub farms_name_http_summary {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farmname = shift;
 
     require Relianoid::Farm::HTTP::Service;
@@ -250,8 +247,7 @@ sub farms_name_http_summary {
 }
 
 sub getZapiHTTPServiceStruct {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farmname, $service_name) = @_;
 
     require Relianoid::FarmGuardian;

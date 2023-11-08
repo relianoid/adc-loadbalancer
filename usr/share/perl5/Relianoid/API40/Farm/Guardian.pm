@@ -31,8 +31,7 @@ if (eval { require Relianoid::ELoad; }) {
 }
 
 sub getZapiFG {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $fg_name = shift;
 
     my $fg  = &getFGObject($fg_name);
@@ -53,8 +52,7 @@ sub getZapiFG {
 }
 
 sub getZapiFGList {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my @out;
     my @list = &getFGList();
 
@@ -69,8 +67,7 @@ sub getZapiFGList {
 # first, it checks is exists and later look for in both lists, template and config
 #  GET /monitoring/fg/<fg_name>
 sub get_farmguardian {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $fg_name = shift;
 
     my $desc = "Retrive the farm guardian '$fg_name'";
@@ -88,19 +85,16 @@ sub get_farmguardian {
 
 #  GET /monitoring/fg
 sub list_farmguardian {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $fg   = &getZapiFGList();
     my $desc = "List farm guardian checks and templates";
 
-    return &httpResponse(
-        { code => 200, body => { description => $desc, params => $fg } });
+    return &httpResponse({ code => 200, body => { description => $desc, params => $fg } });
 }
 
 #  POST /monitoring/fg
 sub create_farmguardian {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $fg_name  = $json_obj->{name};
     my $desc     = "Create a farm guardian '$fg_name'";
@@ -111,8 +105,7 @@ sub create_farmguardian {
     }
 
     if (&getFGExistsTemplate($fg_name)) {
-        my $msg =
-"The farm guardian '$fg_name' is a template, select another name, please";
+        my $msg = "The farm guardian '$fg_name' is a template, select another name, please";
         return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
@@ -126,8 +119,7 @@ sub create_farmguardian {
     if (exists $json_obj->{copy_from}
         and not &getFGExists($json_obj->{copy_from}))
     {
-        my $msg =
-          "The parent farm guardian '$json_obj->{ copy_from }' does not exist.";
+        my $msg = "The parent farm guardian '$json_obj->{ copy_from }' does not exist.";
         return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
@@ -139,7 +131,7 @@ sub create_farmguardian {
 
     my $out = &getZapiFG($fg_name);
     if ($out) {
-        my $msg = "The farm guardian '$fg_name' has been created successfully.";
+        my $msg  = "The farm guardian '$fg_name' has been created successfully.";
         my $body = {
             description => $desc,
             params      => $out,
@@ -155,8 +147,7 @@ sub create_farmguardian {
 
 #  PUT /monitoring/fg/<fg_name>
 sub modify_farmguardian {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $fgname   = shift;
 
@@ -180,10 +171,9 @@ sub modify_farmguardian {
 
     # avoid modifying some parameters of a template
     if (&getFGExistsTemplate($fgname)) {
-        if (exists $json_obj->{'description'} or exists $json_obj->{'command'})
-        {
+        if (exists $json_obj->{'description'} or exists $json_obj->{'command'}) {
             my $msg =
-"It is not allow to modify the parameters 'description' or 'command' in a template.";
+              "It is not allow to modify the parameters 'description' or 'command' in a template.";
             return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
     }
@@ -195,7 +185,7 @@ sub modify_farmguardian {
     {
         if (exists $json_obj->{command} or exists $json_obj->{backend_alias}) {
             my $error_msg =
-"Farm guardian '$fgname' is running in: '$run_farms'. To apply, send parameter 'force'";
+              "Farm guardian '$fgname' is running in: '$run_farms'. To apply, send parameter 'force'";
             &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg);
         }
     }
@@ -215,8 +205,7 @@ sub modify_farmguardian {
         }
 
         # no error found, return successful response
-        my $msg =
-"Success, some parameters have been changed in farm guardian '$fgname'.";
+        my $msg  = "Success, some parameters have been changed in farm guardian '$fgname'.";
         my $out  = &getZapiFG($fgname);
         my $body = { description => $desc, params => $out, message => $msg, };
 
@@ -232,8 +221,7 @@ sub modify_farmguardian {
 
 #  DELETE /monitoring/fg/<fg_name>
 sub delete_farmguardian {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $fg_name = shift;
 
     my $desc = "Delete the farm guardian '$fg_name'";
@@ -247,7 +235,7 @@ sub delete_farmguardian {
     if (@running_farms) {
         my $farm_str = join(', ', @running_farms);
         my $msg =
-"It is not possible delete farm guardian '$fg_name' because it is running in: '$farm_str'";
+          "It is not possible delete farm guardian '$fg_name' because it is running in: '$farm_str'";
         return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
@@ -280,17 +268,14 @@ sub delete_farmguardian {
 
 #  POST /farms/<farm>(/services/<service>)?/fg
 sub add_farmguardian_farm {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $farm     = shift;
     my $srv      = shift;
 
-    my $srv_message =
-      ($srv) ? "service '$srv' in the farm '$farm'" : "farm '$farm'";
+    my $srv_message = ($srv) ? "service '$srv' in the farm '$farm'" : "farm '$farm'";
 
-    my $desc =
-      "Add the farm guardian '$json_obj->{ name }' to the '$srv_message'";
+    my $desc = "Add the farm guardian '$json_obj->{ name }' to the '$srv_message'";
 
     require Relianoid::Farm::Service;
 
@@ -333,8 +318,7 @@ sub add_farmguardian_farm {
     # check if the farm guardian is already applied to the farm
     my $fg_obj = &getFGObject($json_obj->{name});
     if (grep (/^$farm_tag$/, @{ $fg_obj->{farms} })) {
-        my $msg =
-          "'$json_obj->{ name }' is already applied in the '$srv_message'";
+        my $msg = "'$json_obj->{ name }' is already applied in the '$srv_message'";
         return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
@@ -360,7 +344,7 @@ sub add_farmguardian_farm {
         }
 
         my $msg =
-"Success, The farm guardian '$json_obj->{ name }' was added to the '$srv_message'";
+          "Success, The farm guardian '$json_obj->{ name }' was added to the '$srv_message'";
         my $body = {
             description => $desc,
             message     => $msg,
@@ -369,8 +353,7 @@ sub add_farmguardian_farm {
         return &httpResponse({ code => 200, body => $body });
     }
     else {
-        my $msg =
-"There was an error trying to add '$json_obj->{ name }' to the '$srv_message'";
+        my $msg = "There was an error trying to add '$json_obj->{ name }' to the '$srv_message'";
         return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
@@ -378,8 +361,7 @@ sub add_farmguardian_farm {
 
 #  DELETE /farms/<farm>(/services/<service>)?/fg/<fg_name>
 sub rem_farmguardian_farm {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm = shift;
     my $srv;
     my $fgname;
@@ -392,9 +374,8 @@ sub rem_farmguardian_farm {
         $fgname = shift;
     }
 
-    my $srv_message =
-      ($srv) ? "service '$srv' in the farm '$farm'" : "farm '$farm'";
-    my $desc = "Remove the farm guardian '$fgname' from the '$srv_message'";
+    my $srv_message = ($srv) ? "service '$srv' in the farm '$farm'" : "farm '$farm'";
+    my $desc        = "Remove the farm guardian '$fgname' from the '$srv_message'";
 
     require Relianoid::Farm::Service;
 
@@ -423,8 +404,7 @@ sub rem_farmguardian_farm {
     # check if the farm guardian is already applied to the farm
     my $fg_obj = &getFGObject($fgname);
     if (not grep (/^$farm_tag$/, @{ $fg_obj->{farms} })) {
-        my $msg =
-          "The farm guardian '$fgname' is not applied to the '$srv_message'";
+        my $msg = "The farm guardian '$fgname' is not applied to the '$srv_message'";
         return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 

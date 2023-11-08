@@ -22,6 +22,7 @@
 ###############################################################################
 
 use strict;
+use warnings;
 use RRDs;
 use MIME::Base64;
 use Relianoid::Config;
@@ -126,8 +127,8 @@ sub getRRDAxisXLimits {
 
     ($start, $last) = RRDs::times($start, $last);
 
-   #     0    1    2     3     4    5     6     7     8
-   # my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
+    #     0    1    2     3     4    5     6     7     8
+    # my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
     my @t = @{ localtime($last) };
     $last  = strftime($format, @t);
     @t     = @{ localtime($start) };
@@ -153,8 +154,7 @@ See Also:
 
 sub printImgFile    #($file)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($file) = @_;
 
     if (open my $png, '<', $file) {
@@ -189,8 +189,7 @@ See Also:
 
 sub delGraph    #($name, type)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $name = shift;
     my $type = shift;
 
@@ -198,14 +197,12 @@ sub delGraph    #($name, type)
     my $rrd_dir   = &getGlobalConfiguration('rrd_dir');
 
     if ($type =~ /iface/) {
-        &zenlog("Delete graph file: $rrdap_dir/$rrd_dir/${name}iface.rrd",
-            "info", "MONITOR");
+        &zenlog("Delete graph file: $rrdap_dir/$rrd_dir/${name}iface.rrd", "info", "MONITOR");
         unlink("$rrdap_dir/$rrd_dir/${name}iface.rrd");
     }
 
     if ($type =~ /farm/) {
-        &zenlog("Delete graph file: $rrdap_dir/$rrd_dir/$name-farm.rrd",
-            "info", "MONITOR");
+        &zenlog("Delete graph file: $rrdap_dir/$rrd_dir/$name-farm.rrd", "info", "MONITOR");
         unlink glob("$rrdap_dir/$rrd_dir/$name-farm.rrd");
 
         &eload(
@@ -215,8 +212,7 @@ sub delGraph    #($name, type)
         ) if $eload;
     }
     if ($type =~ /vpn/) {
-        &zenlog("Delete graph file: $rrdap_dir/$rrd_dir/$name-vpn.rrd",
-            "info", "MONITOR");
+        &zenlog("Delete graph file: $rrdap_dir/$rrd_dir/$name-vpn.rrd", "info", "MONITOR");
         unlink glob("$rrdap_dir/$rrd_dir/$name-vpn.rrd");
     }
 }
@@ -245,8 +241,7 @@ See Also:
 
 sub printGraph    #($type,$time)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($type, $time, $end) = @_;
 
     my $img_dir = &getGlobalConfiguration('img_dir');
@@ -324,8 +319,7 @@ See Also:
 
 sub genCpuGraph    #($type,$graph,$time)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($type, $graph, $start, $end) = @_;
 
     my $db_cpu = "$rrdap_dir/$rrd_dir/$type.rrd";
@@ -416,8 +410,7 @@ See Also:
 
 sub genDiskGraph    #($type,$graph,$time)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($type, $graph, $start, $end) = @_;
 
     my $db_hd = "$rrdap_dir/$rrd_dir/$type.rrd";
@@ -431,38 +424,22 @@ sub genDiskGraph    #($type,$graph,$time)
 
     if (-e $db_hd) {
         RRDs::graph(
-            "$graph",
-            "--start=$start",
-            "--end=$end",
-            "--title=PARTITION $mount",
-            "--vertical-label=SPACE",
-            "-h",
-            "$height",
-            "-w",
-            "$width",
-            "--lazy",
-            "-l 0",
-            "-a",
-            "$imagetype",
-            "DEF:tot=$db_hd:tot:AVERAGE",
-            "DEF:used=$db_hd:used:AVERAGE",
-            "DEF:free=$db_hd:free:AVERAGE",
-            "CDEF:total=used,free,+",
-            "AREA:used#595959:Used\\t",
-            "GPRINT:used:LAST:Last\\:%8.2lf %s",
-            "GPRINT:used:MIN:Min\\:%8.2lf %s",
-            "GPRINT:used:AVERAGE:Avg\\:%8.2lf %s",
-            "GPRINT:used:MAX:Max\\:%8.2lf %s\\n",
-            "STACK:free#46b971:Free\\t",
-            "GPRINT:free:LAST:Last\\:%8.2lf %s",
-            "GPRINT:free:MIN:Min\\:%8.2lf %s",
-            "GPRINT:free:AVERAGE:Avg\\:%8.2lf %s",
-            "GPRINT:free:MAX:Max\\:%8.2lf %s\\n",
-            "LINE1:total#000000:Total\\t",
-            "GPRINT:total:LAST:Last\\:%8.2lf %s",
-            "GPRINT:total:MIN:Min\\:%8.2lf %s",
-            "GPRINT:total:AVERAGE:Avg\\:%8.2lf %s",
-            "GPRINT:total:MAX:Max\\:%8.2lf %s\\n"
+            "$graph",                               "--start=$start",
+            "--end=$end",                           "--title=PARTITION $mount",
+            "--vertical-label=SPACE",               "-h",
+            "$height",                              "-w",
+            "$width",                               "--lazy",
+            "-l 0",                                 "-a",
+            "$imagetype",                           "DEF:tot=$db_hd:tot:AVERAGE",
+            "DEF:used=$db_hd:used:AVERAGE",         "DEF:free=$db_hd:free:AVERAGE",
+            "CDEF:total=used,free,+",               "AREA:used#595959:Used\\t",
+            "GPRINT:used:LAST:Last\\:%8.2lf %s",    "GPRINT:used:MIN:Min\\:%8.2lf %s",
+            "GPRINT:used:AVERAGE:Avg\\:%8.2lf %s",  "GPRINT:used:MAX:Max\\:%8.2lf %s\\n",
+            "STACK:free#46b971:Free\\t",            "GPRINT:free:LAST:Last\\:%8.2lf %s",
+            "GPRINT:free:MIN:Min\\:%8.2lf %s",      "GPRINT:free:AVERAGE:Avg\\:%8.2lf %s",
+            "GPRINT:free:MAX:Max\\:%8.2lf %s\\n",   "LINE1:total#000000:Total\\t",
+            "GPRINT:total:LAST:Last\\:%8.2lf %s",   "GPRINT:total:MIN:Min\\:%8.2lf %s",
+            "GPRINT:total:AVERAGE:Avg\\:%8.2lf %s", "GPRINT:total:MAX:Max\\:%8.2lf %s\\n"
         );
     }
 }
@@ -488,42 +465,27 @@ See Also:
 
 sub genLoadGraph    #($type,$graph,$time)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($type, $graph, $start, $end) = @_;
 
     my $db_load = "$rrdap_dir/$rrd_dir/$type.rrd";
 
     if (-e $db_load) {
         RRDs::graph(
-            "$graph",
-            "--imgformat=$imagetype",
-            "--start=$start",
-            "--end=$end",
-            "--width=$width",
-            "--height=$height",
-            "--alt-autoscale-max",
-            "--lower-limit=0",
-            "--title=LOAD AVERAGE",
-            "--vertical-label=LOAD",
-            "DEF:load=$db_load:load:AVERAGE",
-            "DEF:load5=$db_load:load5:AVERAGE",
-            "DEF:load15=$db_load:load15:AVERAGE",
-            "AREA:load#729e00:last minute\\t\\t",
-            "GPRINT:load:LAST:Last\\:%3.2lf",
-            "GPRINT:load:MIN:Min\\:%3.2lf",
-            "GPRINT:load:AVERAGE:Avg\\:%3.2lf",
-            "GPRINT:load:MAX:Max\\:%3.2lf\\n",
-            "STACK:load5#46b971:last 5 minutes\\t",
-            "GPRINT:load5:LAST:Last\\:%3.2lf",
-            "GPRINT:load5:MIN:Min\\:%3.2lf",
-            "GPRINT:load5:AVERAGE:Avg\\:%3.2lf",
-            "GPRINT:load5:MAX:Max\\:%3.2lf\\n",
-            "STACK:load15#595959:last 15 minutes\\t",
-            "GPRINT:load15:LAST:Last\\:%3.2lf",
-            "GPRINT:load15:MIN:Min\\:%3.2lf",
-            "GPRINT:load15:AVERAGE:Avg\\:%3.2lf",
-            "GPRINT:load15:MAX:Max\\:%3.2lf\\n"
+            "$graph",                               "--imgformat=$imagetype",
+            "--start=$start",                       "--end=$end",
+            "--width=$width",                       "--height=$height",
+            "--alt-autoscale-max",                  "--lower-limit=0",
+            "--title=LOAD AVERAGE",                 "--vertical-label=LOAD",
+            "DEF:load=$db_load:load:AVERAGE",       "DEF:load5=$db_load:load5:AVERAGE",
+            "DEF:load15=$db_load:load15:AVERAGE",   "AREA:load#729e00:last minute\\t\\t",
+            "GPRINT:load:LAST:Last\\:%3.2lf",       "GPRINT:load:MIN:Min\\:%3.2lf",
+            "GPRINT:load:AVERAGE:Avg\\:%3.2lf",     "GPRINT:load:MAX:Max\\:%3.2lf\\n",
+            "STACK:load5#46b971:last 5 minutes\\t", "GPRINT:load5:LAST:Last\\:%3.2lf",
+            "GPRINT:load5:MIN:Min\\:%3.2lf",        "GPRINT:load5:AVERAGE:Avg\\:%3.2lf",
+            "GPRINT:load5:MAX:Max\\:%3.2lf\\n",     "STACK:load15#595959:last 15 minutes\\t",
+            "GPRINT:load15:LAST:Last\\:%3.2lf",     "GPRINT:load15:MIN:Min\\:%3.2lf",
+            "GPRINT:load15:AVERAGE:Avg\\:%3.2lf",   "GPRINT:load15:MAX:Max\\:%3.2lf\\n"
         );
     }
 }
@@ -550,48 +512,30 @@ See Also:
 
 sub genMemGraph    #($type,$graph,$time)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($type, $graph, $start, $end) = @_;
 
     my $db_mem = "$rrdap_dir/$rrd_dir/$type.rrd";
 
     if (-e $db_mem) {
         RRDs::graph(
-            "$graph",
-            "--imgformat=$imagetype",
-            "--start=$start",
-            "--end=$end",
-            "--width=$width",
-            "--height=$height",
-            "--alt-autoscale-max",
-            "--lower-limit=0",
-            "--title=RAM",
-            "--vertical-label=MEMORY",
-            "--base=1024",
-            "DEF:memt=$db_mem:memt:AVERAGE",
-            "DEF:memu=$db_mem:memu:AVERAGE",
-            "DEF:memf=$db_mem:memf:AVERAGE",
-            "DEF:memc=$db_mem:memc:AVERAGE",
-            "AREA:memu#595959:Used\\t\\t",
-            "GPRINT:memu:LAST:Last\\:%8.2lf %s",
-            "GPRINT:memu:MIN:Min\\:%8.2lf %s",
-            "GPRINT:memu:AVERAGE:Avg\\:%8.2lf %s",
-            "GPRINT:memu:MAX:Max\\:%8.2lf %s\\n",
-            "STACK:memf#46b971:Free\\t\\t",
-            "GPRINT:memf:LAST:Last\\:%8.2lf %s",
-            "GPRINT:memf:MIN:Min\\:%8.2lf %s",
-            "GPRINT:memf:AVERAGE:Avg\\:%8.2lf %s",
-            "GPRINT:memf:MAX:Max\\:%8.2lf %s\\n",
-            "LINE2:memc#46F2A2:Cache&Buffer\\t",
-            "GPRINT:memc:LAST:Last\\:%8.2lf %s",
-            "GPRINT:memc:MIN:Min\\:%8.2lf %s",
-            "GPRINT:memc:AVERAGE:Avg\\:%8.2lf %s",
-            "GPRINT:memc:MAX:Max\\:%8.2lf %s\\n",
-            "LINE1:memt#000000:Total\\t\\t",
-            "GPRINT:memt:LAST:Last\\:%8.2lf %s",
-            "GPRINT:memt:MIN:Min\\:%8.2lf %s",
-            "GPRINT:memt:AVERAGE:Avg\\:%8.2lf %s",
+            "$graph",                              "--imgformat=$imagetype",
+            "--start=$start",                      "--end=$end",
+            "--width=$width",                      "--height=$height",
+            "--alt-autoscale-max",                 "--lower-limit=0",
+            "--title=RAM",                         "--vertical-label=MEMORY",
+            "--base=1024",                         "DEF:memt=$db_mem:memt:AVERAGE",
+            "DEF:memu=$db_mem:memu:AVERAGE",       "DEF:memf=$db_mem:memf:AVERAGE",
+            "DEF:memc=$db_mem:memc:AVERAGE",       "AREA:memu#595959:Used\\t\\t",
+            "GPRINT:memu:LAST:Last\\:%8.2lf %s",   "GPRINT:memu:MIN:Min\\:%8.2lf %s",
+            "GPRINT:memu:AVERAGE:Avg\\:%8.2lf %s", "GPRINT:memu:MAX:Max\\:%8.2lf %s\\n",
+            "STACK:memf#46b971:Free\\t\\t",        "GPRINT:memf:LAST:Last\\:%8.2lf %s",
+            "GPRINT:memf:MIN:Min\\:%8.2lf %s",     "GPRINT:memf:AVERAGE:Avg\\:%8.2lf %s",
+            "GPRINT:memf:MAX:Max\\:%8.2lf %s\\n",  "LINE2:memc#46F2A2:Cache&Buffer\\t",
+            "GPRINT:memc:LAST:Last\\:%8.2lf %s",   "GPRINT:memc:MIN:Min\\:%8.2lf %s",
+            "GPRINT:memc:AVERAGE:Avg\\:%8.2lf %s", "GPRINT:memc:MAX:Max\\:%8.2lf %s\\n",
+            "LINE1:memt#000000:Total\\t\\t",       "GPRINT:memt:LAST:Last\\:%8.2lf %s",
+            "GPRINT:memt:MIN:Min\\:%8.2lf %s",     "GPRINT:memt:AVERAGE:Avg\\:%8.2lf %s",
             "GPRINT:memt:MAX:Max\\:%8.2lf %s\\n"
         );
     }
@@ -619,48 +563,30 @@ See Also:
 
 sub genMemSwGraph    #($type,$graph,$time)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($type, $graph, $start, $end) = @_;
 
     my $db_memsw = "$rrdap_dir/$rrd_dir/$type.rrd";
 
     if (-e $db_memsw) {
         RRDs::graph(
-            "$graph",
-            "--imgformat=$imagetype",
-            "--start=$start",
-            "--end=$end",
-            "--width=$width",
-            "--height=$height",
-            "--alt-autoscale-max",
-            "--lower-limit=0",
-            "--title=SWAP",
-            "--vertical-label=MEMORY",
-            "--base=1024",
-            "DEF:swt=$db_memsw:swt:AVERAGE",
-            "DEF:swu=$db_memsw:swu:AVERAGE",
-            "DEF:swf=$db_memsw:swf:AVERAGE",
-            "DEF:swc=$db_memsw:swc:AVERAGE",
-            "AREA:swu#595959:Used\\t\\t",
-            "GPRINT:swu:LAST:Last\\:%8.2lf %s",
-            "GPRINT:swu:MIN:Min\\:%8.2lf %s",
-            "GPRINT:swu:AVERAGE:Avg\\:%8.2lf %s",
-            "GPRINT:swu:MAX:Max\\:%8.2lf %s\\n",
-            "STACK:swf#46b971:Free\\t\\t",
-            "GPRINT:swf:LAST:Last\\:%8.2lf %s",
-            "GPRINT:swf:MIN:Min\\:%8.2lf %s",
-            "GPRINT:swf:AVERAGE:Avg\\:%8.2lf %s",
-            "GPRINT:swf:MAX:Max\\:%8.2lf %s\\n",
-            "LINE2:swc#46F2A2:Cached\\t",
-            "GPRINT:swc:LAST:Last\\:%8.2lf %s",
-            "GPRINT:swc:MIN:Min\\:%8.2lf %s",
-            "GPRINT:swc:AVERAGE:Avg\\:%8.2lf %s",
-            "GPRINT:swc:MAX:Max\\:%8.2lf %s\\n",
-            "LINE1:swt#000000:Total\\t\\t",
-            "GPRINT:swt:LAST:Last\\:%8.2lf %s",
-            "GPRINT:swt:MIN:Min\\:%8.2lf %s",
-            "GPRINT:swt:AVERAGE:Avg\\:%8.2lf %s",
+            "$graph",                             "--imgformat=$imagetype",
+            "--start=$start",                     "--end=$end",
+            "--width=$width",                     "--height=$height",
+            "--alt-autoscale-max",                "--lower-limit=0",
+            "--title=SWAP",                       "--vertical-label=MEMORY",
+            "--base=1024",                        "DEF:swt=$db_memsw:swt:AVERAGE",
+            "DEF:swu=$db_memsw:swu:AVERAGE",      "DEF:swf=$db_memsw:swf:AVERAGE",
+            "DEF:swc=$db_memsw:swc:AVERAGE",      "AREA:swu#595959:Used\\t\\t",
+            "GPRINT:swu:LAST:Last\\:%8.2lf %s",   "GPRINT:swu:MIN:Min\\:%8.2lf %s",
+            "GPRINT:swu:AVERAGE:Avg\\:%8.2lf %s", "GPRINT:swu:MAX:Max\\:%8.2lf %s\\n",
+            "STACK:swf#46b971:Free\\t\\t",        "GPRINT:swf:LAST:Last\\:%8.2lf %s",
+            "GPRINT:swf:MIN:Min\\:%8.2lf %s",     "GPRINT:swf:AVERAGE:Avg\\:%8.2lf %s",
+            "GPRINT:swf:MAX:Max\\:%8.2lf %s\\n",  "LINE2:swc#46F2A2:Cached\\t",
+            "GPRINT:swc:LAST:Last\\:%8.2lf %s",   "GPRINT:swc:MIN:Min\\:%8.2lf %s",
+            "GPRINT:swc:AVERAGE:Avg\\:%8.2lf %s", "GPRINT:swc:MAX:Max\\:%8.2lf %s\\n",
+            "LINE1:swt#000000:Total\\t\\t",       "GPRINT:swt:LAST:Last\\:%8.2lf %s",
+            "GPRINT:swt:MIN:Min\\:%8.2lf %s",     "GPRINT:swt:AVERAGE:Avg\\:%8.2lf %s",
             "GPRINT:swt:MAX:Max\\:%8.2lf %s\\n",
         );
     }
@@ -688,8 +614,7 @@ See Also:
 
 sub genNetGraph    #($type,$graph,$time)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($type, $graph, $start, $end) = @_;
 
     my $db_if   = "$rrdap_dir/$rrd_dir/$type.rrd";
@@ -753,8 +678,7 @@ See Also:
 
 sub genFarmGraph    #($type,$graph,$time)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($type, $graph, $start, $end) = @_;
 
     my $db_farm = "$rrdap_dir/$rrd_dir/$type.rrd";
@@ -821,8 +745,7 @@ See Also:
 
 sub genVPNGraph    #($type,$graph,$time)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($type, $graph, $time) = @_;
 
     my $db_vpn   = "$type.rrd";
@@ -884,41 +807,40 @@ See Also:
 #function that returns the graph list to show
 sub getGraphs2Show    #($graphtype)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($graphtype) = @_;
 
     my @list = -1;
 
     if ($graphtype eq 'System') {
-        opendir(DIR, "$rrdap_dir/$rrd_dir");
-        my @disk = grep (/^dev-.*$/, readdir(DIR));
-        closedir(DIR);
+        opendir(my $dir, "$rrdap_dir/$rrd_dir");
+        my @disk = grep (/^dev-.*$/, readdir($dir));
+        closedir($dir);
         for (@disk) { s/.rrd$//g };    # remove filenames .rrd trailing
         @list = ("cpu", @disk, "load", "mem", "memsw");
     }
     elsif ($graphtype eq 'Network') {
-        opendir(DIR, "$rrdap_dir/$rrd_dir");
-        @list = grep (/iface.rrd$/, readdir(DIR));
-        closedir(DIR);
+        opendir(my $dir, "$rrdap_dir/$rrd_dir");
+        @list = grep (/iface.rrd$/, readdir($dir));
+        closedir($dir);
         for (@list) { s/.rrd$//g };    # remove filenames .rrd trailing
     }
     elsif ($graphtype eq 'Farm') {
-        opendir(DIR, "$rrdap_dir/$rrd_dir");
-        @list = grep (/farm.rrd$/, readdir(DIR));
-        closedir(DIR);
+        opendir(my $dir, "$rrdap_dir/$rrd_dir");
+        @list = grep (/farm.rrd$/, readdir($dir));
+        closedir($dir);
         for (@list) { s/.rrd$//g };    # remove filenames .rrd trailing
     }
     elsif ($graphtype eq 'VPN') {
-        opendir(DIR, "$rrdap_dir/$rrd_dir");
-        @list = grep (/vpn.rrd$/, readdir(DIR));
-        closedir(DIR);
+        opendir(my $dir, "$rrdap_dir/$rrd_dir");
+        @list = grep (/vpn.rrd$/, readdir($dir));
+        closedir($dir);
         for (@list) { s/.rrd$//g };    # remove filenames .rrd trailing
     }
     else {
-        opendir(DIR, "$rrdap_dir/$rrd_dir");
-        @list = grep (/.rrd$/, readdir(DIR));
-        closedir(DIR);
+        opendir(my $dir, "$rrdap_dir/$rrd_dir");
+        @list = grep (/.rrd$/, readdir($dir));
+        closedir($dir);
         for (@list) { s/.rrd$//g };    # remove filenames .rrd trailing
     }
 

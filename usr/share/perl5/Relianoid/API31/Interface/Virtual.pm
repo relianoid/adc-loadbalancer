@@ -31,8 +31,7 @@ if (eval { require Relianoid::ELoad; }) {
 # POST /addvini/<interface> Create a new virtual network interface
 sub new_vini    # ( $json_obj )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
 
     my $desc = "Add a virtual interface";
@@ -44,8 +43,7 @@ sub new_vini    # ( $json_obj )
     # virtual_name = pather_name + . + virtual_tag
     # size < 16: size = pather_name:virtual_name
     if (length $json_obj->{name} > 15) {
-        my $msg =
-          "Virtual interface name has a maximum length of 15 characters";
+        my $msg = "Virtual interface name has a maximum length of 15 characters";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
@@ -114,11 +112,8 @@ sub new_vini    # ( $json_obj )
     $if_ref->{gateway} = "" if !$if_ref->{gateway};
     $if_ref->{type}    = 'virtual';
 
-    unless (
-        &validateGateway($if_parent->{addr}, $if_ref->{mask}, $if_ref->{addr}))
-    {
-        my $msg =
-"IP Address $json_obj->{ip} must be same net than the parent interface.";
+    unless (&validateGateway($if_parent->{addr}, $if_ref->{mask}, $if_ref->{addr})) {
+        my $msg = "IP Address $json_obj->{ip} must be same net than the parent interface.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
@@ -139,8 +134,7 @@ sub new_vini    # ( $json_obj )
     };
 
     if ($@) {
-        my $msg =
-          "The $json_obj->{ name } virtual network interface can't be created";
+        my $msg = "The $json_obj->{ name } virtual network interface can't be created";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
@@ -166,8 +160,7 @@ sub new_vini    # ( $json_obj )
 
 sub delete_interface_virtual    # ( $virtual )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $virtual = shift;
 
     require Relianoid::Net::Interface;
@@ -184,8 +177,7 @@ sub delete_interface_virtual    # ( $virtual )
     my @child = &getInterfaceChild($virtual);
     if (@child) {
         my $child_string = join(', ', @child);
-        my $msg =
-"Before removing $virtual interface, disable the floating IPs: $child_string.";
+        my $msg = "Before removing $virtual interface, disable the floating IPs: $child_string.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
@@ -229,8 +221,7 @@ sub delete_interface_virtual    # ( $virtual )
 
 sub get_virtual_list    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     require Relianoid::Net::Interface;
 
     my $desc = "List virtual interfaces";
@@ -269,8 +260,7 @@ sub get_virtual_list    # ()
 
 sub get_virtual    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $virtual = shift;
 
     my $desc = "Show virtual interface $virtual";
@@ -316,8 +306,7 @@ sub get_virtual    # ()
 
 sub actions_interface_virtual    # ( $json_obj, $virtual )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $virtual  = shift;
 
@@ -356,7 +345,7 @@ sub actions_interface_virtual    # ( $json_obj, $virtual )
 
         unless ($parent_if_status eq 'up') {
             my $msg =
-"The interface $if_ref->{name} has a parent interface DOWN, check the interfaces status";
+              "The interface $if_ref->{name} has a parent interface DOWN, check the interfaces status";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
 
@@ -407,8 +396,7 @@ sub actions_interface_virtual    # ( $json_obj, $virtual )
 
 sub modify_interface_virtual    # ( $json_obj, $virtual )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $virtual  = shift;
 
@@ -443,7 +431,7 @@ sub modify_interface_virtual    # ( $json_obj, $virtual )
     if (@child) {
         my $child_string = join(', ', @child);
         my $msg =
-"Before of modifying $virtual interface, disable the floating IPs: $child_string.";
+          "Before of modifying $virtual interface, disable the floating IPs: $child_string.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
@@ -452,8 +440,7 @@ sub modify_interface_virtual    # ( $json_obj, $virtual )
         if ($json_obj->{ip} ne $if_ref->{addr}) {
             require Relianoid::Net::Util;
             if (grep (/^$json_obj->{ ip }$/, &listallips())) {
-                my $msg =
-                  "The IP address is already in use for other interface.";
+                my $msg = "The IP address is already in use for other interface.";
                 return &httpErrorResponse(
                     code => 400,
                     desc => $desc,
@@ -465,15 +452,8 @@ sub modify_interface_virtual    # ( $json_obj, $virtual )
 
     require Relianoid::Net::Validate;
     my $if_ref_parent = &getInterfaceConfig($if_ref->{parent}, $ip_v);
-    unless (
-        &validateGateway(
-            $if_ref_parent->{addr},
-            $if_ref->{mask}, $json_obj->{ip}
-        )
-      )
-    {
-        $msg =
-"IP Address $json_obj->{ip} must be same net than the father interface.";
+    unless (&validateGateway($if_ref_parent->{addr}, $if_ref->{mask}, $json_obj->{ip})) {
+        $msg = "IP Address $json_obj->{ip} must be same net than the father interface.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 

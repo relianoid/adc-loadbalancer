@@ -42,8 +42,7 @@ See Also:
 
 sub setSnmpdStatus    # ($snmpd_status)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     # get 'true' string to start, or a 'false' string to stop
     my ($snmpd_status) = @_;
@@ -101,8 +100,7 @@ See Also:
 
 sub getSnmpdStatus    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $pidof       = &getGlobalConfiguration('pidof');
     my $return_code = (&logAndRunCheck("$pidof snmpd")) ? 'false' : 'true';
 
@@ -135,8 +133,7 @@ See Also:
 
 sub getSnmpdConfig    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     require Tie::File;
 
     my $snmpdconfig_file = &getGlobalConfiguration('snmpdconfig_file');
@@ -184,8 +181,7 @@ See Also:
 
 sub setSnmpdConfig    # ($snmpd_conf)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($snmpd_conf) = @_;
 
     my $snmpdconfig_file = &getGlobalConfiguration('snmpdconfig_file');
@@ -210,8 +206,7 @@ sub setSnmpdConfig    # ($snmpd_conf)
     # example: agentAddress  udp:127.0.0.1:161
     # example: rocommunity public  0.0.0.0/0
     print $config_file "agentAddress udp:$ip:$snmpd_conf->{port}\n";
-    print $config_file
-      "rocommunity $snmpd_conf->{community} $snmpd_conf->{scope}\n";
+    print $config_file "rocommunity $snmpd_conf->{community} $snmpd_conf->{scope}\n";
     print $config_file "includeAllDisks 10%\n";
     print $config_file "#zenlb\n";
 

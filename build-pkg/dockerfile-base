@@ -1,0 +1,20 @@
+FROM debian:#{version}
+
+# Base packages
+RUN apt-get update && apt-get install -y \
+    libssl-dev \
+    libperl-dev \
+    fakeroot
+
+# Use host user uid/gid, so the new files are owned by the user
+# running the container
+ARG host_uid
+ARG host_gid
+
+# The -o option (non-unique) is a hack that avoid problems when
+# the image is built as root
+RUN groupadd -o -g ${host_uid} host_user && \
+    useradd  -o -u ${host_uid} -g ${host_gid} host_user
+USER host_user
+
+WORKDIR /workdir

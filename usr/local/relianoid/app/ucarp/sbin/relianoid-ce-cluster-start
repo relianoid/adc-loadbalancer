@@ -1,0 +1,16 @@
+#!/usr/bin/bash
+
+echo "Executing RELIANOID Cluster transtion to MASTER...\n"
+
+# wait for 1 second to the first replication
+sleep 1
+
+# start RELIANOID service
+/etc/init.d/relianoid start
+
+# update cluster status
+echo master > /etc/relianoid-ce-cluster.status
+
+# start zeninotify
+nohup /usr/local/relianoid/app/zeninotify/zeninotify.pl >/dev/null 2>&1 &
+

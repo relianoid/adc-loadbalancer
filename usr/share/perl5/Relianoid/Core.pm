@@ -22,6 +22,7 @@
 ###############################################################################
 
 use strict;
+use warnings;
 use feature 'state';
 
 use Relianoid::Log;

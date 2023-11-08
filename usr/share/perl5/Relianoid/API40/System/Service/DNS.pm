@@ -25,21 +25,18 @@ use strict;
 
 # GET /system/dns
 sub get_dns {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     require Relianoid::System::DNS;
 
     my $desc = "Get dns";
     my $dns  = &getDns();
 
-    &httpResponse(
-        { code => 200, body => { description => $desc, params => $dns } });
+    &httpResponse({ code => 200, body => { description => $desc, params => $dns } });
 }
 
 #  POST /system/dns
 sub set_dns {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
 
     require Relianoid::System::DNS;

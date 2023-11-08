@@ -21,6 +21,9 @@
 #
 ###############################################################################
 
+set -e
+trap 'echo Failed at ${LINENO}: $BASH_COMMAND' ERR
+
 GLOBALCF="/usr/local/relianoid/config/global.conf"
 GLOBALCFT="/usr/local/relianoid/share/global.conf.template"
 
@@ -34,14 +37,20 @@ GLOBALCFT="/usr/local/relianoid/share/global.conf.template"
 source /usr/local/relianoid/bin/load_global_conf
 load_global_conf
 
+## System services
+
 # Enable root access through SSH
 SSHDCONFIG="/etc/ssh/sshd_config"
-if [[ `grep -c "^PermitRootLogin.*yes" $SSHDCONFIG` == '0' ]]; then
+if [[ -e $SSHDCONFIG && `grep -c "^PermitRootLogin.*yes" $SSHDCONFIG` == '0' ]]; then
 	sed -i -e 's/^PermitRootLogin.*/PermitRootLogin yes/' $SSHDCONFIG
-	/etc/init.d/ssh reload 2> /dev/null
+	if [[ "$(/etc/init.d/ssh status | grep -c 'sshd is not running')" == '0' ]]; then
+		/etc/init.d/ssh reload 2> /dev/null
+	fi
 fi
 
-# Disable services
+# Start ssh server after relianoid service
+sed -i 's/^\# Required-Start:.*/# Required-Start:\t\$remote_fs \$syslog relianoid/g' /etc/init.d/ssh
+sed -i 's/^\# Required-Stop:.*/# Required-Stop:\t\$remote_fs \$syslog relianoid/g'   /etc/init.d/ssh
 
 # SNMP service
 if [[ -f /etc/snmp/snmpd.conf && `grep -c '#zenlb' /etc/snmp/snmpd.conf` == '0' ]]; then
@@ -55,10 +64,15 @@ if [[ `grep -c 'LSd' /etc/default/snmpd` == '1' ]]; then
 	sed -i -e 's/LSd/LS6d/' /etc/default/snmpd
 fi
 
-# Start ssh server after relianoid service
-sed -i 's/^\# Required-Start:.*/# Required-Start:\t\$remote_fs \$syslog relianoid/g' /etc/init.d/ssh
-sed -i 's/^\# Required-Stop:.*/# Required-Stop:\t\$remote_fs \$syslog relianoid/g'   /etc/init.d/ssh
-
+# Grub disk configuration
+GRUB_CONF='/tmp/grub-pc.debconf'
+GRUB_DISK=`fdisk -l | grep 'Disk /dev/' | head -1 | awk '{ printf $2}' | tr -d ':'`
+DEBCONF_DEVICES=`debconf-show grub-pc | grep grub-pc/install_devices: | cut -d: -f2 | cut -d\  -f2-`
+if [ -e "$GRUB_DISK" -a "$GRUB_DISK" != "$DEBCONF_DEVICES" ]; then
+	echo "grub-pc grub-pc/install_devices multiselect $GRUB_DISK" > $GRUB_CONF
+	debconf-set-selections $GRUB_CONF
+	rm $GRUB_CONF
+fi
 
 ## Create configuration files
 
@@ -98,22 +112,47 @@ echo "RELIANOID will be unavailable while the service is restarting."
 update-rc.d relianoid defaults
 update-rc.d zevenet remove    # Deprecate Zevenet
 
-# Setup motd.tail
-cp /etc/motd.tail /etc/motd
+cat > /etc/motd << 'EOF'
+
+██████  ███████ ██      ██  █████  ███    ██  ██████  ██ ██████  
+██   ██ ██      ██      ██ ██   ██ ████   ██ ██    ██ ██ ██   ██ 
+██████  █████   ██      ██ ███████ ██ ██  ██ ██    ██ ██ ██   ██ 
+██   ██ ██      ██      ██ ██   ██ ██  ██ ██ ██    ██ ██ ██   ██ 
+██   ██ ███████ ███████ ██ ██   ██ ██   ████  ██████  ██ ██████  
+                                                                 
+RELIANOID ADC Community Edition
+www.relianoid.com
+
+ Need assistance?
+ https://www.relianoid.com/contact-us/
+
+EOF
+
 if [ "`grep Debian /etc/issue`" != "" -o "`grep -i Zevenet /etc/issue`" != "" ]; then
  sed -i "s/.*Debian.*/RELIANOID Community Edition \\\n \\\l/g" /etc/issue
 fi
 
 # Set the cron service
 cp /usr/local/relianoid/share/relianoid.cron /etc/cron.d/relianoid
-rm /etc/cron.d/zevenet    # Deprecate Zevenet
+rm -f /etc/cron.d/zevenet    # Deprecate Zevenet
 /etc/init.d/cron reload
 
 # Change prompt color
 sed -i "s/1;30m/0;37m/g" /etc/bash.bashrc 2> /dev/null
 
+# Cluster
+sed -i '/changed-by-relianoid/d' /root/.bashrc &>/dev/null || true
+sed -i '/^export PROMPT_COMMAND=.*zevenet-ce-cluster.status/d' /root/.bashrc &>/dev/null || true # Deprecate Zevenet
+FOUND_CE_CLUSTER=`grep -c relianoid-ce-cluster.status /root/.bashrc 2>/dev/null` || true
+if [ $FOUND_CE_CLUSTER -eq 0 ]; then
+	echo "if [ -f /etc/relianoid-ce-cluster.status ]; then #changed-by-relianoid" >> /root/.bashrc
+	echo "export PROMPT_COMMAND=\"echo -n \[\\\$(cat /etc/relianoid-ce-cluster.status 2>/dev/null)\]\ \" #changed-by-relianoid" >> /root/.bashrc
+	echo "fi #changed-by-relianoid" >> /root/.bashrc
+fi
+# Cluster
+
 # Configure apt repository
-perl -E " require Relianoid::System::Packages; &setSystemPackagesRepo();"
+perl -E "require Relianoid::System::Packages; exit &setSystemPackagesRepo();"
 
 ## Run checkupdates to update message
 $checkupdates_bin > /dev/null

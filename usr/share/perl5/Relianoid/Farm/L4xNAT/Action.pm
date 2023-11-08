@@ -50,8 +50,7 @@ Returns:
 
 sub startL4Farm    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $farm_name = shift;
     my $writeconf = shift // 0;
@@ -105,8 +104,7 @@ Returns:
 
 sub stopL4Farm    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $farm_name = shift;
     my $writeconf = shift;
@@ -159,8 +157,7 @@ Returns:
 
 sub setL4NewFarmName    # ($farm_name, $new_farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm_name     = shift;
     my $new_farm_name = shift;
 
@@ -193,8 +190,7 @@ Returns:
 
 sub copyL4Farm    # ($farm_name, $new_farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm_name     = shift;
     my $new_farm_name = shift;
     my $del           = shift // '';
@@ -254,8 +250,7 @@ Returns:
 
 sub loadL4FarmNlb    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm_name = shift;
 
     require Relianoid::Farm::Core;
@@ -290,15 +285,13 @@ Returns:
 
 sub startL4FarmNlb    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm_name = shift;
     my $writeconf = shift;
 
     require Relianoid::Farm::L4xNAT::Config;
 
-    my $output =
-      &setL4FarmParam(($writeconf) ? 'bootstatus' : 'status', "up", $farm_name);
+    my $output = &setL4FarmParam(($writeconf) ? 'bootstatus' : 'status', "up", $farm_name);
 
     my $pidfile = &getL4FarmPidFile($farm_name);
 
@@ -326,15 +319,13 @@ Returns:
 
 sub stopL4FarmNlb    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm_name = shift;
     my $writeconf = shift;
 
     require Relianoid::Farm::Core;
 
-    my $out = &setL4FarmParam(($writeconf) ? 'bootstatus' : 'status',
-        "down", $farm_name);
+    my $out = &setL4FarmParam(($writeconf) ? 'bootstatus' : 'status', "down", $farm_name);
 
     return $out;
 }
@@ -353,8 +344,7 @@ Returns:
 =cut
 
 sub getL4FarmPidFile {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name) = @_;
 
     my $piddir  = &getGlobalConfiguration('piddir');
@@ -383,8 +373,7 @@ Returns:
 =cut
 
 sub sendL4NlbCmd {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $self    = shift;
     my $cfgfile = "";
     my $output  = -1;
@@ -396,8 +385,8 @@ sub sendL4NlbCmd {
         return $out if ($out != 0);
     }
 
-# avoid farm configuration file destruction by asking nftlb only for modifications
-# or deletion of attributes of the farm
+    # avoid farm configuration file destruction by asking nftlb only for modifications
+    # or deletion of attributes of the farm
     if ($self->{method} =~ /PUT/
         || ($self->{method} =~ /DELETE/ && $self->{uri} =~ /farms\/.*\/.*/))
     {
@@ -425,8 +414,7 @@ sub sendL4NlbCmd {
         }
 
         if (!$match) {
-            &zenlog("The farms was not loaded properly, trying it again",
-                "error",);
+            &zenlog("The farms was not loaded properly, trying it again", "error",);
             &loadL4FarmNlb($self->{farm});
         }
     }

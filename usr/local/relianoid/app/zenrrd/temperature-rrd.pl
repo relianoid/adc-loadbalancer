@@ -46,11 +46,9 @@ if ($temp =~ /^$/) {
 }
 
 if (!-f "$rrdap_dir/$rrd_dir/$db_temp") {
-    print
-      "$0: Info: Creating the rrd database $rrdap_dir/$rrd_dir/$db_temp ...\n";
-    RRDs::create "$rrdap_dir/$rrd_dir/$db_temp",
-      "--step", "300",
-      "DS:temp:GAUGE:600:0:100",
+    print "$0: Info: Creating the rrd database $rrdap_dir/$rrd_dir/$db_temp ...\n";
+    RRDs::create "$rrdap_dir/$rrd_dir/$db_temp", "--step", "300",   # data-point interval in seconds
+      "DS:temp:GAUGE:600:0:100",    # temperature
       "RRA:LAST:0.5:1:288",         # daily - every 5 min - 288 reg
       "RRA:MIN:0.5:1:288",          # daily - every 5 min - 288 reg
       "RRA:AVERAGE:0.5:1:288",      # daily - every 5 min - 288 reg

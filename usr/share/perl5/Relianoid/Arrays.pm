@@ -40,8 +40,7 @@ Returns:
 =cut
 
 sub moveByIndex {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($list, $ori_index, $dst_index) = @_;
 
     my $elem = $list->[$ori_index];
@@ -68,8 +67,7 @@ Returns:
 =cut
 
 sub getARRIndex {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($list, $item) = @_;
     my $ind;
 
@@ -83,7 +81,6 @@ sub getARRIndex {
     }
 
     # fixme:  return undef when the index is not found
-
     return $ind;
 }
 
@@ -102,8 +99,7 @@ Returns:
 =cut
 
 sub uniqueArray {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $arr = shift;
 
     my %hold = ();
@@ -135,8 +131,7 @@ Returns:
 =cut
 
 sub getArrayCollision {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $arr1 = shift;
     my $arr2 = shift;
 
@@ -146,7 +141,7 @@ sub getArrayCollision {
         }
     }
 
-    return undef;
+    return;
 }
 
 1;

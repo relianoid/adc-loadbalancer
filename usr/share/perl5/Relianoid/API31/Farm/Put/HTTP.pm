@@ -33,8 +33,7 @@ if (eval { require Relianoid::ELoad; }) {
 # PUT /farms/<farmname> Modify a http|https Farm
 sub modify_http_farm    # ( $json_obj, $farmname )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $farmname = shift;
 
@@ -104,8 +103,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
         #Check if the new farm's name alredy exists
         my $newffile = &getFarmFile($json_obj->{newfarmname});
         if ($newffile != -1) {
-            my $msg =
-"The farm $json_obj->{newfarmname} already exists, try another name.";
+            my $msg = "The farm $json_obj->{newfarmname} already exists, try another name.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
 
@@ -121,7 +119,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 
         if ($fnchange == -1) {
             my $msg =
-"The name of the farm can't be modified, delete the farm and create a new one.";
+              "The name of the farm can't be modified, delete the farm and create a new one.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
         elsif ($fnchange == -2) {
@@ -172,8 +170,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
 
-        my $status =
-          &setFarmBlacklistTime($json_obj->{resurrectime}, $farmname);
+        my $status = &setFarmBlacklistTime($json_obj->{resurrectime}, $farmname);
         if ($status == -1) {
             my $msg = "Some errors happened trying to modify the resurrectime.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
@@ -200,9 +197,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 
     # Modify Rewrite Location Headers
     if (exists($json_obj->{rewritelocation})) {
-        if ($json_obj->{rewritelocation} !~
-            /^(?:disabled|enabled|enabled-backends)$/)
-        {
+        if ($json_obj->{rewritelocation} !~ /^(?:disabled|enabled|enabled-backends)$/) {
             my $msg = "Invalid rewritelocation value.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
@@ -220,8 +215,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 
         my $status = &setFarmRewriteL($farmname, $rewritelocation);
         if ($status == -1) {
-            my $msg =
-              "Some errors happened trying to modify the rewritelocation.";
+            my $msg = "Some errors happened trying to modify the rewritelocation.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
 
@@ -254,8 +248,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
                 );
 
                 if ($status == -1) {
-                    my $msg =
-                      "Some errors happened trying to modify the certname.";
+                    my $msg = "Some errors happened trying to modify the certname.";
                     &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
                 }
 
@@ -267,8 +260,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
     # Modify HTTP Verbs Accepted
     if (exists($json_obj->{httpverb})) {
         if ($json_obj->{httpverb} !~
-/^(?:standardHTTP|extendedHTTP|standardWebDAV|MSextWebDAV|MSRPCext|optionsHTTP)$/
-          )
+            /^(?:standardHTTP|extendedHTTP|standardWebDAV|MSextWebDAV|MSRPCext|optionsHTTP)$/)
         {
             my $msg = "Invalid httpverb value.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
@@ -423,8 +415,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 
                 my $status = &setFarmCipherList($farmname, $cipher, $cipherc);
                 if ($status == -1) {
-                    my $msg =
-                      "Some errors happened trying to modify the cipherc.";
+                    my $msg = "Some errors happened trying to modify the cipherc.";
                     &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
                 }
 
@@ -456,8 +447,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 
         # Disable security protocol
         my @protocols_ssl_keys = (
-            "disable_sslv2", "disable_sslv3",
-            "disable_tlsv1", "disable_tlsv1_1",
+            "disable_sslv2", "disable_sslv3", "disable_tlsv1", "disable_tlsv1_1",
             "disable_tlsv1_2"
         );
         foreach my $key_ssl (@protocols_ssl_keys) {
@@ -474,17 +464,14 @@ sub modify_http_farm    # ( $json_obj, $farmname )
                 $ssl_proto = "TLSv1_2" if ($key_ssl eq "disable_tlsv1_2");
 
                 if ($action == -1) {
-                    my $msg =
-                      "Error, the value is not valid for parameter $key_ssl.";
+                    my $msg = "Error, the value is not valid for parameter $key_ssl.";
                     &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
                 }
 
                 if ($action != &getHTTPFarmDisableSSL($farmname, $ssl_proto)) {
-                    my $status =
-                      &setHTTPFarmDisableSSL($farmname, $ssl_proto, $action);
+                    my $status = &setHTTPFarmDisableSSL($farmname, $ssl_proto, $action);
                     if ($status == -1) {
-                        my $msg =
-                          "Some errors happened trying to modify the certname.";
+                        my $msg = "Some errors happened trying to modify the certname.";
                         &httpErrorResponse(
                             code => 400,
                             desc => $desc,
@@ -502,8 +489,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
             || exists($json_obj->{cipherc})
             || exists($json_obj->{certname}))
         {
-            my $msg =
-              "To modify ciphers, chiperc or certname, listener must be https.";
+            my $msg = "To modify ciphers, chiperc or certname, listener must be https.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
     }
@@ -559,8 +545,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
         $restart_flag = "true";
     }
 
-    &zenlog("Success, some parameters have been changed in farm $farmname.",
-        "info", "LSLB");
+    &zenlog("Success, some parameters have been changed in farm $farmname.", "info", "LSLB");
 
     # set numeric values to numeric type
     for my $key (keys %{$json_obj}) {

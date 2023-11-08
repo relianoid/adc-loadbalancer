@@ -110,14 +110,12 @@ if (   $mvalue =~ /^$/
 }
 
 if (!-f "$rrdap_dir/$rrd_dir/$db_mem") {
-    print
-      "$0: Info: Creating the rrd database $rrdap_dir/$rrd_dir/$db_mem ...\n";
-    RRDs::create "$rrdap_dir/$rrd_dir/$db_mem",
-      "--step", "300",
-      "DS:memt:GAUGE:600:0:U",
-      "DS:memu:GAUGE:600:0:U",
-      "DS:memf:GAUGE:600:0:U",
-      "DS:memc:GAUGE:600:0:U",
+    print "$0: Info: Creating the rrd database $rrdap_dir/$rrd_dir/$db_mem ...\n";
+    RRDs::create "$rrdap_dir/$rrd_dir/$db_mem", "--step", "300",    # data-point interval in seconds
+      "DS:memt:GAUGE:600:0:U",      # total
+      "DS:memu:GAUGE:600:0:U",      # used
+      "DS:memf:GAUGE:600:0:U",      # free
+      "DS:memc:GAUGE:600:0:U",      # cache
       "RRA:LAST:0.5:1:288",         # daily - every 5 min - 288 reg
       "RRA:MIN:0.5:1:288",          # daily - every 5 min - 288 reg
       "RRA:AVERAGE:0.5:1:288",      # daily - every 5 min - 288 reg
@@ -141,14 +139,12 @@ if (!-f "$rrdap_dir/$rrd_dir/$db_mem") {
 }
 
 if (!-f "$rrdap_dir/$rrd_dir/$db_memsw") {
-    print
-      "$0: Info: Creating the rrd database $rrdap_dir/$rrd_dir/$db_memsw ...\n";
-    RRDs::create "$rrdap_dir/$rrd_dir/$db_memsw",
-      "--step", "300",
-      "DS:swt:GAUGE:600:0:U",
-      "DS:swu:GAUGE:600:0:U",
-      "DS:swf:GAUGE:600:0:U",
-      "DS:swc:GAUGE:600:0:U",
+    print "$0: Info: Creating the rrd database $rrdap_dir/$rrd_dir/$db_memsw ...\n";
+    RRDs::create "$rrdap_dir/$rrd_dir/$db_memsw", "--step", "300",  # data-point interval in seconds
+      "DS:swt:GAUGE:600:0:U",       # total
+      "DS:swu:GAUGE:600:0:U",       # used
+      "DS:swf:GAUGE:600:0:U",       # free
+      "DS:swc:GAUGE:600:0:U",       # cache
       "RRA:LAST:0.5:1:288",         # daily - every 5 min - 288 reg
       "RRA:MIN:0.5:1:288",          # daily - every 5 min - 288 reg
       "RRA:AVERAGE:0.5:1:288",      # daily - every 5 min - 288 reg
@@ -195,8 +191,7 @@ print "$0: Info:	Free Memory Swap: $swfvalue Bytes\n";
 print "$0: Info:	Cached Memory Swap: $swcvalue Bytes\n";
 
 print "$0: Info: Updating data in $rrdap_dir/$rrd_dir/$db_memsw ...\n";
-RRDs::update "$rrdap_dir/$rrd_dir/$db_memsw",
-  "-t", "swt:swu:swf:swc",
+RRDs::update "$rrdap_dir/$rrd_dir/$db_memsw", "-t", "swt:swu:swf:swc",
   "N:$swtvalue:$swused:$swfvalue:$swcvalue";
 
 if ($ERROR = RRDs::error) {

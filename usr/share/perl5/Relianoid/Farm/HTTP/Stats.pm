@@ -43,8 +43,7 @@ Returns:
 
 sub getHTTPFarmEstConns    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name) = @_;
     my $count = 0;
 
@@ -81,8 +80,7 @@ Returns:
 
 sub getHTTPFarmSYNConns    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name) = @_;
 
     my $vip      = &getFarmVip("vip",  $farm_name);
@@ -127,8 +125,7 @@ BUG:
 
 sub getHTTPBackendEstConns    # ($farm_name,$backend_ip,$backend_port, $netstat)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $backend_ip, $backend_port, $mark) = @_;
 
     my $filter = {
@@ -146,7 +143,7 @@ sub getHTTPBackendEstConns    # ($farm_name,$backend_ip,$backend_port, $netstat)
     my $ct_params = &getConntrackParams($filter);
     my $count     = &getConntrackCount($ct_params);
 
-# &zenlog( "getHTTPBackendEstConns: $farm_name backends -> $count connections." );
+    # &zenlog( "getHTTPBackendEstConns: $farm_name backends -> $count connections." );
 
     return $count + 0;
 }
@@ -170,8 +167,7 @@ BUG:
 
 sub getHTTPBackendSYNConns    # ($farm_name, $backend_ip, $backend_port)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my ($farm_name, $backend_ip, $backend_port, $mark) = @_;
 
@@ -196,7 +192,7 @@ sub getHTTPBackendSYNConns    # ($farm_name, $backend_ip, $backend_port)
 
     return $count + 0;
 
-# &zenlog( "getHTTPBackendSYNConns: $farm_name backends -> $count connections." );
+    # &zenlog( "getHTTPBackendSYNConns: $farm_name backends -> $count connections." );
 }
 
 =begin nd
@@ -215,8 +211,7 @@ Returns:
 
 sub getHTTPFarmBackendsStats    # ($farm_name,$service_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $service_name) = @_;
 
     if (&getGlobalConfiguration('proxy_ng') eq 'true') {
@@ -268,8 +263,7 @@ Returns:
 
 sub getZproxyHTTPFarmBackendsStats    # ($farm_name, $service_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $service_name) = @_;
 
     require JSON;
@@ -306,24 +300,20 @@ sub getZproxyHTTPFarmBackendsStats    # ($farm_name, $service_name)
         foreach my $service (@$services) {
             next
               if (defined $service_name && $service_name ne $service->{name});
-            my $service_ref =
-              &getHTTPServiceStruct($farm_name, $service->{name});
-            my $ttl   = $service_ref->{ttl};
-            my $index = 0;
+            my $service_ref = &getHTTPServiceStruct($farm_name, $service->{name});
+            my $ttl         = $service_ref->{ttl};
+            my $index       = 0;
             my $backend_info;
             foreach my $bk (@{ $service->{backends} }) {
 
                 # skip redirect backend
                 next if ($bk->{type} eq "2");
 
-                my $mark = sprintf("0x%x",
-                    @{ $service_ref->{backends} }[ $bk->{id} ]->{tag});
+                my $mark = sprintf("0x%x", @{ $service_ref->{backends} }[ $bk->{id} ]->{tag});
                 my $backend_established =
-                  &getHTTPBackendEstConns($farm_name, $bk->{address},
-                    $bk->{port}, $mark);
+                  &getHTTPBackendEstConns($farm_name, $bk->{address}, $bk->{port}, $mark);
                 my $backend_pending =
-                  &getHTTPBackendSYNConns($farm_name, $bk->{address},
-                    $bk->{port}, $mark);
+                  &getHTTPBackendSYNConns($farm_name, $bk->{address}, $bk->{port}, $mark);
                 my $backendHash = {
                     id          => $bk->{id},
                     ip          => $bk->{address},
@@ -342,8 +332,7 @@ sub getZproxyHTTPFarmBackendsStats    # ($farm_name, $service_name)
 
                     #Checkstatusfile
                     $backendHash->{"status"} =
-                      &getHTTPBackendStatusFromFile($farm_name, $bk->{id},
-                        $service->{name});
+                      &getHTTPBackendStatusFromFile($farm_name, $bk->{id}, $service->{name});
 
                     # not show fgDOWN status
                     $backendHash->{"status"} = "down"
@@ -368,14 +357,13 @@ sub getZproxyHTTPFarmBackendsStats    # ($farm_name, $service_name)
                   : $min_rem . 'm' . $sec_rem . 's' . '0ms';
 
                 my $sessionHash = {
-                    client     => $index,
-                    id         => $ss->{'backend-id'},
-                    backend_ip => $backend_info->{ $ss->{'backend-id'} }->{ip},
-                    backend_port =>
-                      $backend_info->{ $ss->{'backend-id'} }->{port},
-                    session => $ss->{id},
-                    service => $service->{name},
-                    ttl     => $ttl,
+                    client       => $index,
+                    id           => $ss->{'backend-id'},
+                    backend_ip   => $backend_info->{ $ss->{'backend-id'} }->{ip},
+                    backend_port => $backend_info->{ $ss->{'backend-id'} }->{port},
+                    session      => $ss->{id},
+                    service      => $service->{name},
+                    ttl          => $ttl,
                 };
                 push(@{ $stats->{sessions} }, $sessionHash);
                 $index++;
@@ -429,8 +417,7 @@ FIXME:
 
 sub getPoundHTTPFarmBackendsStats    # ($farm_name,$service_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $service_name) = @_;
 
     require Relianoid::Farm::Base;
@@ -485,7 +472,7 @@ sub getPoundHTTPFarmBackendsStats    # ($farm_name,$service_name)
         # i.e.
         #      0. Backend 192.168.100.254:80 active (5 0.000 sec) alive (0)
         if ($line =~
-/(\d+)\. Backend (\d+\.\d+\.\d+\.\d+|[a-fA-F0-9:]+):(\d+) (\w+) .+ (\w+)(?: \((\d+)\))?/
+            /(\d+)\. Backend (\d+\.\d+\.\d+\.\d+|[a-fA-F0-9:]+):(\d+) (\w+) .+ (\w+)(?: \((\d+)\))?/
           )
         {
             my $backendHash = {
@@ -506,8 +493,7 @@ sub getPoundHTTPFarmBackendsStats    # ($farm_name,$service_name)
             }
             else {
                 $backendHash->{established} =
-                  &getHTTPBackendEstConns($farm_name, $backendHash->{ip},
-                    $backendHash->{port});
+                  &getHTTPBackendEstConns($farm_name, $backendHash->{ip}, $backendHash->{port});
             }
 
             # Getting real status
@@ -517,8 +503,7 @@ sub getPoundHTTPFarmBackendsStats    # ($farm_name,$service_name)
 
                 #Checkstatusfile
                 $backendHash->{"status"} =
-                  &getHTTPBackendStatusFromFile($farm_name, $backendHash->{id},
-                    $serviceName);
+                  &getHTTPBackendStatusFromFile($farm_name, $backendHash->{id}, $serviceName);
 
                 # not show fgDOWN status
                 $backendHash->{"status"} = "down"
@@ -536,8 +521,7 @@ sub getPoundHTTPFarmBackendsStats    # ($farm_name,$service_name)
             require Relianoid::Farm::Stats;
 
             $backendHash->{pending} =
-              &getBackendSYNConns($farm_name, $backendHash->{ip},
-                $backendHash->{port});
+              &getBackendSYNConns($farm_name, $backendHash->{ip}, $backendHash->{port});
 
             push(@{ $stats->{backends} }, $backendHash);
         }

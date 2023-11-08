@@ -33,8 +33,7 @@ if (eval { require Relianoid::ELoad; }) {
 # GET /farms/<farmname> Request info of a l4xnat Farm
 sub farms_name_l4    # ( $farmname )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farmname = shift;
 
     my $out_p;

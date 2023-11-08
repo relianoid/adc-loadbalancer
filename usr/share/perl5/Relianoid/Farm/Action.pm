@@ -47,12 +47,11 @@ Returns:
 
 sub _runFarmStart    # ($farm_name, $writeconf)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $writeconf) = @_;
 
     # The parameter expect "undef" to not write it
-    $writeconf = undef if ($writeconf eq 'false');
+    $writeconf = 0 if ($writeconf eq 'false');
 
     require Relianoid::Farm::Base;
     require Relianoid::Farm::Config;
@@ -129,8 +128,7 @@ NOTE:
 
 sub runFarmStart    # ($farm_name, $writeconf)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $writeconf) = @_;
 
     my $status = &_runFarmStart($farm_name, $writeconf);
@@ -178,8 +176,7 @@ NOTE:
 
 sub runFarmStop    # ($farm_name, $writeconf)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $writeconf) = @_;
 
     if ($eload) {
@@ -222,12 +219,11 @@ Returns:
 
 sub _runFarmStop    # ($farm_name, $writeconf)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $writeconf) = @_;
 
     # The parameter expects "undef" to not write it
-    $writeconf = undef if ($writeconf eq 'false');
+    $writeconf = 0 if ($writeconf eq 'false');
 
     require Relianoid::Farm::Base;
 
@@ -284,8 +280,7 @@ NOTE:
 
 sub runFarmDelete    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm_name = shift;
 
     require Relianoid::Netfilter;
@@ -392,13 +387,11 @@ Integer - return 0 on success, another value on another failure
 
 sub runFarmReload    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm_name = shift;
     require Relianoid::Farm::Action;
     if (&getFarmRestartStatus($farm_name)) {
-        &zenlog("'Reload' on $farm_name is not executed. 'Restart' is needed.",
-            "info", "FARMS");
+        &zenlog("'Reload' on $farm_name is not executed. 'Restart' is needed.", "info", "FARMS");
         return 2;
     }
     my $status = 0;
@@ -431,8 +424,7 @@ Returns:
 sub _runFarmReload    # ($farm_name)
 
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm = shift;
     my $err  = 0;
 
@@ -466,8 +458,7 @@ NOTE:
 
 sub getFarmRestartFile    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm_name = shift;
 
     return "/tmp/_farm_need_restart_$farm_name";
@@ -490,8 +481,7 @@ NOTE:
 =cut
 
 sub getFarmRestartStatus {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $fname = shift;
 
     require Relianoid::Farm::Action;
@@ -519,8 +509,7 @@ NOTE:
 
 sub setFarmRestart    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm_name = shift;
 
     # do nothing if the farm is not running
@@ -551,8 +540,7 @@ NOTE:
 
 sub setFarmNoRestart    # ($farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $farm_name = shift;
 
     my $lf = &getFarmRestartFile($farm_name);
@@ -575,8 +563,7 @@ Returns:
 
 sub setNewFarmName    # ($farm_name,$new_farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $new_farm_name) = @_;
 
     my $rrdap_dir = &getGlobalConfiguration('rrdap_dir');
@@ -589,6 +576,7 @@ sub setNewFarmName    # ($farm_name,$new_farm_name)
 
     # farmguardian renaming
     require Relianoid::FarmGuardian;
+    require File::Copy;
 
     # stop farm
     &runFGFarmStop($farm_name);
@@ -598,9 +586,7 @@ sub setNewFarmName    # ($farm_name,$new_farm_name)
 
     # end of farmguardian renaming
 
-    &zenlog(
-        "setting 'NewFarmName $new_farm_name' for $farm_name farm $farm_type",
-        "info", "FARMS");
+    &zenlog("setting 'NewFarmName $new_farm_name' for $farm_name farm $farm_type", "info", "FARMS");
 
     if ($farm_type eq "http" || $farm_type eq "https") {
         require Relianoid::Farm::HTTP::Action;
@@ -631,10 +617,8 @@ sub setNewFarmName    # ($farm_name,$new_farm_name)
     # end of farmguardian renaming
 
     # rename rrd
-    rename(
-        "$rrdap_dir/$rrd_dir/$farm_name-farm.rrd",
-        "$rrdap_dir/$rrd_dir/$new_farm_name-farm.rrd"
-    );
+    File::Copy::move("$rrdap_dir/$rrd_dir/$farm_name-farm.rrd",
+        "$rrdap_dir/$rrd_dir/$new_farm_name-farm.rrd");
 
     # delete old graphs
     unlink("img/graphs/bar$farm_name.png");
@@ -674,15 +658,13 @@ Returns:
 
 sub copyFarm    # ($farm_name,$new_farm_name)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $new_farm_name) = @_;
 
     my $farm_type = &getFarmType($farm_name);
     my $output    = -1;
 
-    &zenlog("copying the farm '$farm_name' to '$new_farm_name'",
-        "info", "FARMS");
+    &zenlog("copying the farm '$farm_name' to '$new_farm_name'", "info", "FARMS");
 
     if ($farm_type eq "http" || $farm_type eq "https") {
         require Relianoid::Farm::HTTP::Action;

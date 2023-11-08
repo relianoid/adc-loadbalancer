@@ -30,8 +30,7 @@ if (eval { require Relianoid::ELoad; }) {
 
 sub delete_interface_nic    # ( $nic )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $nic = shift;
 
     require Relianoid::Net::Core;
@@ -64,8 +63,7 @@ sub delete_interface_nic    # ( $nic )
         if (defined $zcl_conf->{_}->{interface}
             and $zcl_conf->{_}->{interface} eq $if_ref->{name})
         {
-            $msg =
-              "The cluster interface $if_ref->{ name } cannot be modified.";
+            $msg = "The cluster interface $if_ref->{ name } cannot be modified.";
             return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
         if (defined $if_ref->{is_slave} and $if_ref->{is_slave} eq "true") {
@@ -77,7 +75,7 @@ sub delete_interface_nic    # ( $nic )
               split(/\s/, $zcl_conf->{_}->{track_interface});
             if (grep { $_ eq $if_ref->{name} } @track_interface) {
                 $msg =
-"The interface $if_ref->{ name } cannot be modified because it is been tracked by the cluster.
+                  "The interface $if_ref->{ name } cannot be modified because it is been tracked by the cluster.
 						If you still want to modify it, remove it from the cluster track interface list.";
                 return &httpErrorResponse(
                     code => 400,
@@ -93,7 +91,7 @@ sub delete_interface_nic    # ( $nic )
     if (@child) {
         my $child_string = join(', ', @child);
         my $msg =
-"It is not possible to delete $nic because there are virtual interfaces using it: $child_string.";
+          "It is not possible to delete $nic because there are virtual interfaces using it: $child_string.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
@@ -116,8 +114,7 @@ sub delete_interface_nic    # ( $nic )
         );
         if (@{$vpns}) {
             my $str = join(', ', @{$vpns});
-            my $msg =
-              "The interface is being used as Local Gateway in VPN(s): $str";
+            my $msg = "The interface is being used as Local Gateway in VPN(s): $str";
             return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
         $vpns = &eload(
@@ -127,8 +124,7 @@ sub delete_interface_nic    # ( $nic )
         );
         if (@{$vpns}) {
             my $str = join(', ', @{$vpns});
-            my $msg =
-              "The interface is being used as Local Network in VPN(s): $str";
+            my $msg = "The interface is being used as Local Network in VPN(s): $str";
             return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
 
@@ -141,14 +137,12 @@ sub delete_interface_nic    # ( $nic )
 
     if ($@) {
         &zenlog("Module failed: $@", 'error', 'net');
-        my $msg =
-          "The configuration for the network interface $nic can't be deleted.";
+        my $msg = "The configuration for the network interface $nic can't be deleted.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-    my $message =
-      "The configuration for the network interface $nic has been deleted.";
-    my $body = {
+    my $message = "The configuration for the network interface $nic has been deleted.";
+    my $body    = {
         description => $desc,
         success     => "true",
         message     => $message,
@@ -160,8 +154,7 @@ sub delete_interface_nic    # ( $nic )
 # GET /interfaces Get params of the interfaces
 sub get_nic_list    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     require Relianoid::Net::Interface;
 
     my $desc         = "List NIC interfaces";
@@ -177,8 +170,7 @@ sub get_nic_list    # ()
 
 sub get_nic    # ()
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $nic = shift;
 
     require Relianoid::Net::Interface;
@@ -201,8 +193,7 @@ sub get_nic    # ()
 
 sub actions_interface_nic    # ( $json_obj, $nic )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $nic      = shift;
 
@@ -234,7 +225,7 @@ sub actions_interface_nic    # ( $json_obj, $nic )
               split(/\s/, $zcl_conf->{_}->{track_interface});
             if (grep { $_ eq $nic } @track_interface) {
                 my $msg =
-"The interface $nic cannot be modified because it is been tracked by the cluster.
+                  "The interface $nic cannot be modified because it is been tracked by the cluster.
 						If you still want to modify it, remove it from the cluster track interface list.";
                 return &httpErrorResponse(
                     code => 400,
@@ -312,8 +303,7 @@ sub actions_interface_nic    # ( $json_obj, $nic )
 
 sub modify_interface_nic    # ( $json_obj, $nic )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $nic      = shift;
 
@@ -356,14 +346,14 @@ sub modify_interface_nic    # ( $json_obj, $nic )
                 or exists $json_obj->{gateway})
             {
                 my $msg =
-"It is not possible set 'ip', 'netmask' or 'gateway' while 'dhcp' is going to be set up.";
+                  "It is not possible set 'ip', 'netmask' or 'gateway' while 'dhcp' is going to be set up.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
         }
         elsif (!exists $json_obj->{ip}) {
             if (@child) {
                 my $msg =
-"This interface has appending some virtual interfaces, please, set up a new 'ip' in the current networking range.";
+                  "This interface has appending some virtual interfaces, please, set up a new 'ip' in the current networking range.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
         }
@@ -408,20 +398,15 @@ sub modify_interface_nic    # ( $json_obj, $nic )
         # check ip and netmask are configured
         unless ($new_if->{addr} ne "" and $new_if->{mask} ne "") {
             my $msg =
-"The networking configuration is not valid. It needs an IP ('$new_if->{addr}') and a netmask ('$new_if->{mask}')";
+              "The networking configuration is not valid. It needs an IP ('$new_if->{addr}') and a netmask ('$new_if->{mask}')";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
 
-# Do not modify gateway or netmask if exists a virtual interface using this interface
+        # Do not modify gateway or netmask if exists a virtual interface using this interface
         my @wrong_conf;
         foreach my $child_name (@child) {
             my $child_if = &getInterfaceConfig($child_name);
-            unless (
-                &validateGateway(
-                    $child_if->{addr}, $new_if->{mask}, $new_if->{addr}
-                )
-              )
-            {
+            unless (&validateGateway($child_if->{addr}, $new_if->{mask}, $new_if->{addr})) {
                 push @wrong_conf, $child_name;
             }
         }
@@ -429,19 +414,14 @@ sub modify_interface_nic    # ( $json_obj, $nic )
         if (@wrong_conf) {
             my $child_string = join(', ', @wrong_conf);
             my $msg =
-"The virtual interface(s): '$child_string' will not be compatible with the new configuration.";
+              "The virtual interface(s): '$child_string' will not be compatible with the new configuration.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
     }
 
     # check the gateway is in network
     if ($new_if->{gateway}) {
-        unless (
-            &validateGateway(
-                $new_if->{addr}, $new_if->{mask}, $new_if->{gateway}
-            )
-          )
-        {
+        unless (&validateGateway($new_if->{addr}, $new_if->{mask}, $new_if->{gateway})) {
             my $msg = "The gateway is not valid for the network.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
@@ -505,8 +485,7 @@ sub modify_interface_nic    # ( $json_obj, $nic )
                 if (defined $zcl_conf->{_}->{interface}
                     and $zcl_conf->{_}->{interface} eq $if_ref->{name})
                 {
-                    $msg =
-"The cluster interface $if_ref->{ name } cannot be modified.";
+                    $msg = "The cluster interface $if_ref->{ name } cannot be modified.";
                     return &httpErrorResponse(
                         code => 400,
                         desc => $desc,
@@ -516,8 +495,7 @@ sub modify_interface_nic    # ( $json_obj, $nic )
                 if (defined $if_ref->{is_slave}
                     and $if_ref->{is_slave} eq "true")
                 {
-                    $msg =
-"The slave interface $if_ref->{ name } cannot be modified.";
+                    $msg = "The slave interface $if_ref->{ name } cannot be modified.";
                     return &httpErrorResponse(
                         code => 400,
                         desc => $desc,
@@ -540,11 +518,8 @@ sub modify_interface_nic    # ( $json_obj, $nic )
 
             # check if network is changed
             my $mask = $json_obj->{netmask} // $if_ref->{mask};
-            if (
-                !&validateGateway($if_ref->{addr}, $if_ref->{mask},
-                    $json_obj->{ip})
-                or $if_ref->{mask} ne $mask
-              )
+            if (  !&validateGateway($if_ref->{addr}, $if_ref->{mask}, $json_obj->{ip})
+                or $if_ref->{mask} ne $mask)
             {
                 my $net =
                   new NetAddr::IP($if_ref->{addr}, $if_ref->{mask})->cidr();
@@ -581,35 +556,32 @@ sub modify_interface_nic    # ( $json_obj, $nic )
                 $str_function = substr($str_function, 5);
 
                 my $msg =
-"This interface is been used by some $str_objects, please, set up a new 'ip' in order to be used as $str_function.";
+                  "This interface is been used by some $str_objects, please, set up a new 'ip' in order to be used as $str_function.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
             if ($json_obj->{force} ne 'true') {
                 my $str_objects;
                 my $str_function;
                 if (@farms) {
-                    $str_objects = " and farms";
-                    $str_function =
-                      " and as farm VIP in the farm(s): " . join(', ', @farms);
+                    $str_objects  = " and farms";
+                    $str_function = " and as farm VIP in the farm(s): " . join(', ', @farms);
                 }
                 if (@{$vpns_localgw} or @{$vpns_localnet}) {
                     $str_objects .= " and vpns";
                 }
                 if (@{$vpns_localgw}) {
                     $str_function .=
-                      " and as Local Gateway in the VPN(s): "
-                      . join(', ', @{$vpns_localgw});
+                      " and as Local Gateway in the VPN(s): " . join(', ', @{$vpns_localgw});
                 }
                 if (@{$vpns_localnet}) {
                     $str_function .=
-                      " and as Local Network in the VPN(s): "
-                      . join(', ', @{$vpns_localnet});
+                      " and as Local Network in the VPN(s): " . join(', ', @{$vpns_localnet});
                 }
                 $str_objects  = substr($str_objects,  5);
                 $str_function = substr($str_function, 5);
 
                 my $msg =
-"The IP is being used $str_function. If you are sure, repeat with parameter 'force'. All $str_objects using this interface will be restarted.";
+                  "The IP is being used $str_function. If you are sure, repeat with parameter 'force'. All $str_objects using this interface will be restarted.";
                 return &httpErrorResponse(
                     code => 400,
                     desc => $desc,
@@ -657,9 +629,7 @@ sub modify_interface_nic    # ( $json_obj, $nic )
     if (exists $json_obj->{dhcp}) {
         if ($json_obj->{dhcp} eq "true") {
             require Relianoid::Lock;
-            $nic_config_file =
-              &getGlobalConfiguration('configdir')
-              . "/if_$if_ref->{ name }_conf";
+            $nic_config_file = &getGlobalConfiguration('configdir') . "/if_$if_ref->{ name }_conf";
             &lockResource($nic_config_file, "l");
         }
 
@@ -714,16 +684,14 @@ sub modify_interface_nic    # ( $json_obj, $nic )
                     if ($if_ref->{ip_v} eq "4") {
                         my $if_gw = &getGlobalConfiguration('defaultgwif');
                         if ($if_ref->{name} eq $if_gw) {
-                            my $defaultgw =
-                              &getGlobalConfiguration('defaultgw');
+                            my $defaultgw = &getGlobalConfiguration('defaultgw');
                             &applyRoutes("global", $if_ref, $defaultgw);
                         }
                     }
                     elsif ($if_ref->{ip_v} eq "6") {
                         my $if_gw = &getGlobalConfiguration('defaultgwif6');
                         if ($if_ref->{name} eq $if_gw) {
-                            my $defaultgw =
-                              &getGlobalConfiguration('defaultgw6');
+                            my $defaultgw = &getGlobalConfiguration('defaultgw6');
                             &applyRoutes("global", $if_ref, $defaultgw);
                         }
                     }
@@ -733,7 +701,7 @@ sub modify_interface_nic    # ( $json_obj, $nic )
                 }
             }
 
-           # if the GW is changed, change it in all appending virtual interfaces
+            # if the GW is changed, change it in all appending virtual interfaces
             if (exists $json_obj->{gateway}) {
                 foreach my $appending (&getInterfaceChild($nic)) {
                     my $app_config = &getInterfaceConfig($appending);

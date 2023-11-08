@@ -23,4 +23,5 @@ do
 		sed -i "/^\s*NfMark\s*/d" "$i"
 	fi
 
+	sed -i "s/usr.local.zevenet/usr\/local\/relianoid/g" "$i"
 done

@@ -58,8 +58,7 @@ if ($q->path_info =~ qr{^/farms/$farm_re/certificates}) {
 
     POST qr{^/farms/($farm_re)/certificates$} => \&add_farm_certificate;
 
-    DELETE qr{^/farms/($farm_re)/certificates/($cert_pem_re)$} =>
-      \&delete_farm_certificate;
+    DELETE qr{^/farms/($farm_re)/certificates/($cert_pem_re)$} => \&delete_farm_certificate;
 }
 
 if ($q->path_info =~ qr{^/farms/$farm_re/fg}) {
@@ -77,12 +76,11 @@ if ($q->path_info =~ qr{^/farms/$farm_re/actions}) {
 if ($q->path_info =~ qr{^/farms/$farm_re.*/backends/$be_re/maintenance}) {
     require Relianoid::API31::Farm::Action;
 
-    PUT
-qr{^/farms/($farm_re)/services/($service_re)/backends/($be_re)/maintenance$}
-      => \&service_backend_maintenance;    #  (HTTP only)
+    PUT qr{^/farms/($farm_re)/services/($service_re)/backends/($be_re)/maintenance$} =>
+      \&service_backend_maintenance;    #  (HTTP only)
 
     PUT qr{^/farms/($farm_re)/backends/($be_re)/maintenance$} =>
-      \&backend_maintenance;               #  (L4xNAT only)
+      \&backend_maintenance;            #  (L4xNAT only)
 }
 
 if ($q->path_info =~ qr{^/farms/$farm_re(?:/services/$service_re)?/backends}) {
@@ -96,11 +94,9 @@ if ($q->path_info =~ qr{^/farms/$farm_re(?:/services/$service_re)?/backends}) {
 
     DELETE qr{^/farms/($farm_re)/backends/($be_re)$} => \&delete_backend;
 
-    GET qr{^/farms/($farm_re)/services/($service_re)/backends$} =>
-      \&service_backends;
+    GET qr{^/farms/($farm_re)/services/($service_re)/backends$} => \&service_backends;
 
-    POST qr{^/farms/($farm_re)/services/($service_re)/backends$} =>
-      \&new_service_backend;
+    POST qr{^/farms/($farm_re)/services/($service_re)/backends$} => \&new_service_backend;
 
     PUT qr{^/farms/($farm_re)/services/($service_re)/backends/($be_re)$} =>
       \&modify_service_backends;
@@ -194,10 +190,8 @@ if ($q->path_info =~ qr{^/interfaces/virtual}) {
 
     GET qr{^/interfaces/virtual/($virtual_re)$} => \&get_virtual;
     PUT qr{^/interfaces/virtual/($virtual_re)$} => \&modify_interface_virtual;
-    DELETE qr{^/interfaces/virtual/($virtual_re)$} =>
-      \&delete_interface_virtual;
-    POST qr{^/interfaces/virtual/($virtual_re)/actions$} =>
-      \&actions_interface_virtual;
+    DELETE qr{^/interfaces/virtual/($virtual_re)$} => \&delete_interface_virtual;
+    POST qr{^/interfaces/virtual/($virtual_re)/actions$} => \&actions_interface_virtual;
 }
 
 if ($q->path_info =~ qr{^/interfaces/gateway}) {
@@ -229,8 +223,7 @@ if ($q->path_info =~ qr{^/stats}) {
 
     # Fixed: make 'service' or 'services' valid requests for compatibility
     # with previous bug.
-    GET qr{^/stats/farms/($farm_re)/services?/($service_re)/backends$} =>
-      \&farm_stats;
+    GET qr{^/stats/farms/($farm_re)/services?/($service_re)/backends$} => \&farm_stats;
 }
 
 # Graphs
@@ -251,8 +244,7 @@ if ($q->path_info =~ qr{^/graphs}) {
     GET qr{^/graphs/system/($system_id_re)$} => \&get_sys_graphs;
 
     #  GET frequency system graphs
-    GET qr{^/graphs/system/($system_id_re)/($frequency_re)$} =>
-      \&get_frec_sys_graphs;
+    GET qr{^/graphs/system/($system_id_re)/($frequency_re)$} => \&get_frec_sys_graphs;
 
     ##### /graphs/system/disk
 
@@ -262,8 +254,7 @@ if ($q->path_info =~ qr{^/graphs}) {
     GET qr{^/graphs/system/disk$} => \&list_disks;
 
     # keep before next request
-    GET qr{^/graphs/system/disk/($disk_re)/($frequency_re)$} =>
-      \&graph_disk_mount_point_freq;
+    GET qr{^/graphs/system/disk/($disk_re)/($frequency_re)$} => \&graph_disk_mount_point_freq;
 
     GET qr{^/graphs/system/disk/($disk_re)$} => \&graphs_disk_mount_point_all;
 
@@ -276,8 +267,7 @@ if ($q->path_info =~ qr{^/graphs}) {
     GET qr{^/graphs/interfaces/($nic_re|$vlan_re)$} => \&get_iface_graphs;
 
     #  GET frequency interfaces graphs
-    GET qr{^/graphs/interfaces/($nic_re)/($frequency_re)$} =>
-      \&get_frec_iface_graphs;
+    GET qr{^/graphs/interfaces/($nic_re)/($frequency_re)$} => \&get_frec_iface_graphs;
 
     ##### /graphs/farms
 
@@ -288,8 +278,7 @@ if ($q->path_info =~ qr{^/graphs}) {
     GET qr{^/graphs/farms/($farm_re)$} => \&get_farm_graphs;
 
     #  GET frequency farm graphs
-    GET qr{^/graphs/farms/($farm_re)/($frequency_re)$} =>
-      \&get_frec_farm_graphs;
+    GET qr{^/graphs/farms/($farm_re)/($frequency_re)$} => \&get_frec_farm_graphs;
 }
 
 # System
@@ -319,10 +308,10 @@ if ($q->path_info =~ qr{^/system/users}) {
 
     my $user_re = &getValidFormat('user');
 
-    GET qr{^/system/users$}            => \&get_all_users;  #  GET users
-    GET qr{^/system/users/($user_re)$} => \&get_user;       #  GET user settings
-    POST qr{^/system/users/zapi$}       => \&set_user_zapi;   #  POST zapi user
-    POST qr{^/system/users/($user_re)$} => \&set_user;        #  POST other user
+    GET qr{^/system/users$}            => \&get_all_users;     #  GET users
+    GET qr{^/system/users/($user_re)$} => \&get_user;          #  GET user settings
+    POST qr{^/system/users/zapi$}       => \&set_user_zapi;    #  POST zapi user
+    POST qr{^/system/users/($user_re)$} => \&set_user;         #  POST other user
 }
 
 if ($q->path_info =~ qr{^/system/log}) {
@@ -344,13 +333,10 @@ if ($q->path_info =~ qr{^/system/backup}) {
     POST qr{^/system/backup$} => \&create_backup;    #  POST create backups
 
     my $backup_re = &getValidFormat('backup');
-    GET qr{^/system/backup/($backup_re)$} =>
-      \&download_backup;                             #  GET download backups
-    PUT qr{^/system/backup/($backup_re)$} =>
-      \&upload_backup;                               #  PUT  upload backups
-    DELETE qr{^/system/backup/($backup_re)$} => \&del_backup; #  DELETE  backups
-    POST qr{^/system/backup/($backup_re)/actions$} =>
-      \&apply_backup;    #  POST  apply backups
+    GET qr{^/system/backup/($backup_re)$} => \&download_backup;          #  GET download backups
+    PUT qr{^/system/backup/($backup_re)$} => \&upload_backup;            #  PUT  upload backups
+    DELETE qr{^/system/backup/($backup_re)$} => \&del_backup;            #  DELETE  backups
+    POST qr{^/system/backup/($backup_re)/actions$} => \&apply_backup;    #  POST  apply backups
 }
 
 if ($q->path_info =~ qr{^/system/(?:version|license|supportsave)}) {

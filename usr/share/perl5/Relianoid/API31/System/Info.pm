@@ -25,8 +25,7 @@ use strict;
 
 # show license
 sub get_license {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $format = shift;
 
     require Relianoid::System;
@@ -51,8 +50,7 @@ sub get_license {
 }
 
 sub get_supportsave {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $desc = "Get supportsave file";
 
     require Relianoid::System;
@@ -64,12 +62,11 @@ sub get_supportsave {
 
 # GET /system/version
 sub get_version {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     require Relianoid::SystemInfo;
     require Relianoid::Certificate;
 
-    my $desc    = "Get version";
+    my $desc      = "Get version";
     my $relianoid = &getGlobalConfiguration('version');
 
     my $kernel     = &getKernelVersion();
@@ -79,7 +76,7 @@ sub get_version {
 
     my $params = {
         'kernel_version'    => $kernel,
-        'relianoid_version'   => $relianoid,
+        'zevenet_version'   => $relianoid,
         'hostname'          => $hostname,
         'system_date'       => $date,
         'appliance_version' => $applicance,

@@ -31,8 +31,7 @@ if (eval { require Relianoid::ELoad; }) {
 # POST /farms/<farmname>/actions Set an action in a Farm
 sub farm_actions    # ( $json_obj, $farmname )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj = shift;
     my $farmname = shift;
 
@@ -84,8 +83,7 @@ sub farm_actions    # ( $json_obj, $farmname )
         my $status = &runFarmStop($farmname, "true");
 
         if ($status) {
-            my $msg =
-"Error trying to stop the farm in the action restart in farm $farmname.";
+            my $msg = "Error trying to stop the farm in the action restart in farm $farmname.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
 
@@ -101,22 +99,19 @@ sub farm_actions    # ( $json_obj, $farmname )
 
         if ($status) {
             my $msg =
-"ZAPI error, trying to start the farm in the action restart in farm $farmname.";
+              "ZAPI error, trying to start the farm in the action restart in farm $farmname.";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
 
         &setFarmNoRestart($farmname);
     }
     else {
-        my $msg =
-          "Invalid action; the actions available are stop, start and restart";
+        my $msg = "Invalid action; the actions available are stop, start and restart";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-    &zenlog(
-"Success, the action $json_obj->{ action } has been performed in farm $farmname.",
-        "info", "FARMS"
-    );
+    &zenlog("Success, the action $json_obj->{ action } has been performed in farm $farmname.",
+        "info", "FARMS");
 
     &eload(
         module => 'Relianoid::Cluster',
@@ -137,10 +132,9 @@ sub farm_actions    # ( $json_obj, $farmname )
 
 # Set an action in a backend of http|https farm
 # PUT /farms/<farmname>/services/<service>/backends/<backend>/maintenance
-sub service_backend_maintenance # ( $json_obj, $farmname, $service, $backend_id )
+sub service_backend_maintenance    # ( $json_obj, $farmname, $service, $backend_id )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj   = shift;
     my $farmname   = shift;
     my $service    = shift;
@@ -190,7 +184,7 @@ sub service_backend_maintenance # ( $json_obj, $farmname, $service, $backend_id 
         &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
     }
 
-# Do not allow to modify the maintenance status if the farm needs to be restarted
+    # Do not allow to modify the maintenance status if the farm needs to be restarted
     require Relianoid::Farm::Action;
     if (&getFarmRestartStatus($farmname)) {
         my $msg = "The farm needs to be restarted before to apply this action.";
@@ -212,22 +206,19 @@ sub service_backend_maintenance # ( $json_obj, $farmname, $service, $backend_id 
         }
 
         $status =
-          &setHTTPFarmBackendMaintenance($farmname, $backend_id,
-            $maintenance_mode, $service);
+          &setHTTPFarmBackendMaintenance($farmname, $backend_id, $maintenance_mode, $service);
 
         &zenlog(
-"Changing status to maintenance of backend $backend_id in service $service in farm $farmname",
+            "Changing status to maintenance of backend $backend_id in service $service in farm $farmname",
             "info", "FARMS"
         );
     }
     elsif ($json_obj->{action} eq "up") {
-        $status =
-          &setHTTPFarmBackendNoMaintenance($farmname, $backend_id, $service);
+        $status = &setHTTPFarmBackendNoMaintenance($farmname, $backend_id, $service);
 
         &zenlog(
-"Changing status to up of backend $backend_id in service $service in farm $farmname",
-            "info", "FARMS"
-        );
+            "Changing status to up of backend $backend_id in service $service in farm $farmname",
+            "info", "FARMS");
     }
     else {
         my $msg = "Invalid action; the possible actions are up and maintenance";
@@ -235,8 +226,7 @@ sub service_backend_maintenance # ( $json_obj, $farmname, $service, $backend_id 
     }
 
     if ($status->{code} == 1 or $status->{code} == -1) {
-        my $msg =
-"Errors found trying to change status backend to $json_obj->{ action }";
+        my $msg = "Errors found trying to change status backend to $json_obj->{ action }";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
@@ -261,8 +251,7 @@ sub service_backend_maintenance # ( $json_obj, $farmname, $service, $backend_id 
 # PUT /farms/<farmname>/backends/<backend>/maintenance
 sub backend_maintenance    # ( $json_obj, $farmname, $backend_id )
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )",
-        "debug", "PROFILING");
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $json_obj   = shift;
     my $farmname   = shift;
     my $backend_id = shift;
@@ -315,20 +304,15 @@ sub backend_maintenance    # ( $json_obj, $farmname, $backend_id )
             $maintenance_mode = $json_obj->{mode};
         }
 
-        $status =
-          &setFarmBackendMaintenance($farmname, $backend_id, $maintenance_mode);
+        $status = &setFarmBackendMaintenance($farmname, $backend_id, $maintenance_mode);
 
-        &zenlog(
-"Changing status to maintenance of backend $backend_id in farm $farmname",
-            "info", "FARMS"
-        );
+        &zenlog("Changing status to maintenance of backend $backend_id in farm $farmname",
+            "info", "FARMS");
     }
     elsif ($json_obj->{action} eq "up") {
         $status = &setFarmBackendNoMaintenance($farmname, $backend_id);
 
-        &zenlog(
-            "Changing status to up of backend $backend_id in farm $farmname",
-            "info", "FARMS");
+        &zenlog("Changing status to up of backend $backend_id in farm $farmname", "info", "FARMS");
     }
     else {
         my $msg = "Invalid action; the possible actions are up and maintenance";
@@ -336,8 +320,7 @@ sub backend_maintenance    # ( $json_obj, $farmname, $backend_id )
     }
 
     if ($status->{code} == 1 or $status->{code} == -1) {
-        my $msg =
-"Errors found trying to change status backend to $json_obj->{ action }";
+        my $msg = "Errors found trying to change status backend to $json_obj->{ action }";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
