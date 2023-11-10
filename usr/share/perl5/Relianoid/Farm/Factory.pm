@@ -125,6 +125,8 @@ sub runFarmCreateFrom {
     my $params = shift;
     my $err    = 0;
 
+    require Relianoid::Lock;
+
     # lock farm
     my $lock_file = &getLockFile($params->{farmname});
     my $lock_fh   = &openlock($lock_file, 'w');
