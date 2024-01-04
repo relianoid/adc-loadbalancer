@@ -22,12 +22,29 @@
 ###############################################################################
 
 use strict;
-require JSON::XS;
-require Relianoid::Lock;
+use warnings;
 
-JSON::XS->import;
-my $json = JSON::XS->new->utf8->pretty(1);
+use JSON;
+use Relianoid::Lock;
+
+my $json = JSON->new->utf8->pretty(1);
+
+# canonical: if true or missing => sort keys
 $json->canonical([1]);
+
+=pod
+
+=head1 Module
+
+Relianoid::JSON
+
+=cut
+
+=pod
+
+=head1 decodeJSONFile
+
+=cut
 
 sub decodeJSONFile {
     my $file = shift;
@@ -43,20 +60,30 @@ sub decodeJSONFile {
     close $fh;
 
     my $f_json;
+
     eval { $f_json = $json->decode($file_str); };
     if ($@) {
         &zenlog("Error decoding the file $file", 'error');
         &zenlog("json: $@",                      'debug');
     }
+
     return $f_json;
 }
+
+=pod
+
+=head1 encodeJSONFile
+
+=cut
 
 sub encodeJSONFile {
     my $f_json = shift;
     my $file   = shift;
 
     my $file_str;
+
     eval { $file_str = $json->encode($f_json); };
+
     if ($@) {
         &zenlog("Error encoding the file $file");
         &zenlog("json: $@", 'debug');
@@ -67,6 +94,7 @@ sub encodeJSONFile {
 
     print $fh $file_str;
     close $fh;
+
     return 0;
 }
 

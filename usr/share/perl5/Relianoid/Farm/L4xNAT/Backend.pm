@@ -35,26 +35,39 @@ if (eval { require Relianoid::ELoad; }) {
     $eload = 1;
 }
 
-=begin nd
-Function: setL4FarmServer
+=pod
 
-	Edit a backend or add a new one if the id is not found
+=head1 Module
+
+Relianoid::Farm::L4xNAT::Backend
+
+=cut
+
+=pod
+
+=head1 setL4FarmServer
+
+Edit a backend or add a new one if the id is not found
 
 Parameters:
-	farmname - Farm name
-	id - Backend id
-	rip - Backend IP
-	port - Backend port
-	weight - Backend weight. The backend with more weight will manage more connections
-	priority - The priority of this backend (between 1 and 9). Higher priority backends will be used more often than lower priority ones
-	maxconn - Maximum connections for the given backend
+
+    farmname - Farm name
+    id - Backend id
+    rip - Backend IP
+    port - Backend port
+    weight - Backend weight. The backend with more weight will manage more connections
+    priority - The priority of this backend (between 1 and 9). Higher priority backends will be used more often than lower priority ones
+    maxconn - Maximum connections for the given backend
 
 Returns:
-	Integer - return 0 on success, -1 on NFTLB failure or -2 on IP duplicated.
+
+    Integer - return 0 on success, -1 on NFTLB failure or -2 on IP duplicated.
 
 Returns:
-	Scalar - 0 on success or other value on failure
-	FIXME: Stop returning -2 when IP duplicated, nftlb should do this
+
+    Scalar - 0 on success or other value on failure
+    FIXME: Stop returning -2 when IP duplicated, nftlb should do this
+
 =cut
 
 sub setL4FarmServer {
@@ -190,17 +203,20 @@ sub setL4FarmServer {
     return $output;
 }
 
-=begin nd
-Function: runL4FarmServerDelete
+=pod
 
-	Delete a backend from a l4 farm
+=head1 runL4FarmServerDelete
+
+Delete a backend from a l4 farm
 
 Parameters:
-	backend - Backend id
-	farmname - Farm name
+
+    backend - Backend id
+    farmname - Farm name
 
 Returns:
-	Scalar - 0 on success or other value on failure
+
+    Scalar - 0 on success or other value on failure
 
 =cut
 
@@ -246,18 +262,21 @@ sub runL4FarmServerDelete {
     return $output;
 }
 
-=begin nd
-Function: setL4FarmBackendsSessionsRemove
+=pod
 
-	Remove all the active sessions enabled to a backend
+=head1 setL4FarmBackendsSessionsRemove
+
+Remove all the active sessions enabled to a backend
 
 Parameters:
-	farm_name - Farm name
-	backend_ref - Hash ref of Backend 
-	farm_mode - Farm Mode
+
+    farm_name - Farm name
+    backend_ref - Hash ref of Backend 
+    farm_mode - Farm Mode
 
 Returns:
-	Integer - 0 on success , 1 on failure
+
+    Integer - 0 on success , 1 on failure
 
 =cut
 
@@ -342,22 +361,32 @@ sub setL4FarmBackendsSessionsRemove {
     return $output;
 }
 
-=begin nd
-Function: setL4FarmBackendStatus
+=pod
 
-	Set backend status for an l4 farm and stops traffic to that backend when needed.
+=head1 setL4FarmBackendStatus
+
+Set backend status for an l4 farm and stops traffic to that backend when needed.
 
 Parameters:
-	farmname - Farm name
-	backend - Backend id
-	status - Backend status. The possible values are: "up", "down", "maintenance" or "fgDOWN".
-	cutmode - "cut" to force the traffic stop for such backend
-Returns:
-	$error_ref: $error_ref->{ code } - 0 on success, 1 on failure changing status,
-				2 on failure removing sessions, 3 on failure removing connections,
-				4 on failure removing sessions and connections.
-				$error_ref->{ desc } - error message.
 
+    farmname - Farm name
+    backend - Backend id
+    status - Backend status. The possible values are: "up", "down", "maintenance" or "fgDOWN".
+    cutmode - "cut" to force the traffic stop for such backend
+
+Returns:
+
+    hash reference 
+
+    $error_ref->{ code }
+
+        - 0 on success
+        - 1 on failure changing status,
+        - 2 on failure removing sessions
+        - 3 on failure removing connections,
+        - 4 on failure removing sessions and connections.
+
+    $error_ref->{ desc } - error message.
 
 =cut
 
@@ -554,16 +583,19 @@ sub setL4FarmBackendStatus {
     return $error_ref;
 }
 
-=begin nd
-Function: getL4FarmServers
+=pod
 
-	 Get all backends and their configuration
+=head1 getL4FarmServers
+
+Get all backends and their configuration
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	Array - array of hash refs of backend struct
+
+    Array - array of hash refs of backend struct
 
 =cut
 
@@ -580,17 +612,36 @@ sub getL4FarmServers {
     return &_getL4FarmParseServers(\@content);
 }
 
-=begin nd
-Function: _getL4FarmParseServers
+=pod
 
-	Return the list of backends with all data about a backend in a l4 farm
+=head1 _getL4FarmParseServers
+
+Return the list of backends with all data about a backend in a l4 farm
 
 Parameters:
-	config - plain text server list
+
+    config - plain text server list
 
 Returns:
-	backends array - array of backends structure
-		\%backend = { $id, $alias, $family, $ip, $port, $tag, $weight, $priority, $status, $rip = $ip, $max_conns }
+
+    array reference - reference to a list of backend hashes
+
+    [
+        {
+            $id, 
+            $alias, 
+            $family, 
+            $ip, 
+            $port, 
+            $tag, 
+            $weight, 
+            $priority, 
+            $status, 
+            $rip = $ip, 
+            $max_conns
+        },
+        ...
+    ]
 
 =cut
 
@@ -629,7 +680,7 @@ sub _getL4FarmParseServers {
         }
 
         if ($stage == 3 && $line =~ /\"name\"/) {
-            my @l     = split /"/, $line;
+            my @l     = split(/"/, $line);
             my $index = $l[3];
             $index =~ s/bck//;
             $server->{id}        = $index + 0;
@@ -639,18 +690,18 @@ sub _getL4FarmParseServers {
         }
 
         if ($stage == 3 && $line =~ /\"ip-addr\"/) {
-            my @l = split /"/, $line;
+            my @l = split(/"/, $line);
             $server->{ip}  = $l[3];
             $server->{rip} = $l[3];
         }
 
         if ($stage == 3 && $line =~ /\"source-addr\"/) {
-            my @l = split /"/, $line;
+            my @l = split(/"/, $line);
             $server->{sourceip} = $l[3];
         }
 
         if ($stage == 3 && $line =~ /\"port\"/) {
-            my @l = split /"/, $line;
+            my @l = split(/"/, $line);
             $server->{port} = $l[3];
 
             require Relianoid::Net::Validate;
@@ -662,30 +713,35 @@ sub _getL4FarmParseServers {
                     $server->{rip} = "[$server->{ip}]\:$server->{port}";
                 }
             }
+
+            # Convert to number after being used as string.
+            if (defined $server->{port} and length $server->{port}) {
+                $server->{port} += 0; 
+            }
         }
 
         if ($stage == 3 && $line =~ /\"weight\"/) {
-            my @l = split /"/, $line;
+            my @l = split(/"/, $line);
             $server->{weight} = $l[3] + 0;
         }
 
         if ($stage == 3 && $line =~ /\"priority\"/) {
-            my @l = split /"/, $line;
+            my @l = split(/"/, $line);
             $server->{priority} = $l[3] + 0;
         }
 
         if ($stage == 3 && $line =~ /\"mark\"/) {
-            my @l = split /"/, $line;
+            my @l = split(/"/, $line);
             $server->{tag} = $l[3];
         }
 
         if ($stage == 3 && $line =~ /\"est-connlimit\"/) {
-            my @l = split /"/, $line;
+            my @l = split(/"/, $line);
             $server->{max_conns} = $l[3] + 0;
         }
 
         if ($stage == 3 && $line =~ /\"state\"/) {
-            my @l = split /"/, $line;
+            my @l = split(/"/, $line);
             $server->{status} = $l[3];
             $server->{status} = "undefined"
               if ($server->{status} eq "config_error");
@@ -698,16 +754,19 @@ sub _getL4FarmParseServers {
     return \@servers;
 }
 
-=begin nd
-Function: getL4ServerWithLowestPriority
+=pod
 
-	Look for backend with the lowest priority
+=head1 getL4ServerWithLowestPriority
+
+Look for backend with the lowest priority
 
 Parameters:
-	farm - Farm hash ref. It is a hash with all information about the farm
+
+    farm - Farm hash ref. It is a hash with all information about the farm
 
 Returns:
-	hash ref - reference to the selected server for prio algorithm
+
+    hash ref - reference to the selected server for prio algorithm
 
 =cut
 
@@ -730,16 +789,19 @@ sub getL4ServerWithLowestPriority {
     return $prio_server;
 }
 
-=begin nd
-Function: getL4BackendsWeightProbability
+=pod
 
-	Get probability for every backend
+=head1 getL4BackendsWeightProbability
+
+Get probability for every backend
 
 Parameters:
-	farm - Farm hash ref. It is a hash with all information about the farm
+
+    farm - Farm hash ref. It is a hash with all information about the farm
 
 Returns:
-	none - .
+
+    none
 
 =cut
 
@@ -762,18 +824,23 @@ sub getL4BackendsWeightProbability {
             $$server{prob} = 0;
         }
     }
+
+    return;
 }
 
-=begin nd
-Function: resetL4FarmBackendConntrackMark
+=pod
 
-	Reset Connection tracking for a given backend
+=head1 resetL4FarmBackendConntrackMark
+
+Reset Connection tracking for a given backend
 
 Parameters:
-	server - Backend hash reference. It uses the backend unique mark in order to deletes the conntrack entries.
+
+    server - Backend hash reference. It uses the backend unique mark in order to deletes the conntrack entries.
 
 Returns:
-	scalar - 0 if deleted, 1 if not deleted
+
+    scalar - 0 if deleted, 1 if not deleted
 
 =cut
 
@@ -817,16 +884,19 @@ sub resetL4FarmBackendConntrackMark {
     return $return_code;
 }
 
-=begin nd
-Function: getL4FarmBackendAvailableID
+=pod
 
-	Get next available backend ID
+=head1 getL4FarmBackendAvailableID
+
+Get next available backend ID
 
 Parameters:
-	farmname - farm name
+
+    farmname - farm name
 
 Returns:
-	integer - .
+
+    integer - backend ID available
 
 =cut
 
@@ -847,17 +917,21 @@ sub getL4FarmBackendAvailableID {
     return $nbackends;
 }
 
-=begin nd
-Function: getL4ServerByMark
+=pod
 
-	Obtain the backend id from the mark
+=head1 getL4ServerByMark
+
+Obtain the backend id from the mark
 
 Parameters:
-	servers_ref - reference to the servers array
-	mark - backend mark to discover the id
+
+    servers_ref - reference to the servers array
+
+    mark - backend mark to discover the id
 
 Returns:
-	integer - > 0 if successful, -1 if error.
+
+    integer - > 0 if successful, -1 if error.
 
 =cut
 
@@ -877,16 +951,19 @@ sub getL4ServerByMark {
     return -1;
 }
 
-=begin nd
-Function: getL4FarmPriorities
+=pod
 
-	Get the list of the backends priorities in a L4 farm
+=head1 getL4FarmPriorities
+
+Get the list of the backends priorities in a L4 farm
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	Array Ref - it returns an array ref of priority values
+
+    Array Ref - it returns an array ref of priority values
 
 =cut
 

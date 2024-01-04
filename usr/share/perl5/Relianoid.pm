@@ -21,9 +21,9 @@
 #
 ###############################################################################
 
-use 5.036;
 use strict;
 use warnings;
+
 use Relianoid::Core;
 use Relianoid::Log;
 use Relianoid::Config;
@@ -38,8 +38,16 @@ use Relianoid::SNMP;
 use Relianoid::Stats;
 use Relianoid::SystemInfo;
 use Relianoid::System;
-use Relianoid::Zapi;
+use Relianoid::API;
 
 require Relianoid::CGI if defined $ENV{GATEWAY_INTERFACE};
+
+=pod
+
+=head1 Module
+
+Relianoid
+
+=cut
 
 1;

@@ -1,3 +1,4 @@
+#!/usr/bin/perl
 ###############################################################################
 #
 #    RELIANOID Software License
@@ -21,6 +22,8 @@
 ###############################################################################
 
 use strict;
+use warnings;
+
 use Relianoid::Farm::HTTP::Config;
 
 # farm parameters
@@ -52,7 +55,7 @@ sub getHTTPOutService {
 
 sub getHTTPOutBackend {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
+    return;
 }
 
 1;

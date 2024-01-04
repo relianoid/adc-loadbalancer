@@ -1,3 +1,4 @@
+#!/usr/bin/perl
 ###############################################################################
 #
 #    RELIANOID Software License
@@ -21,14 +22,13 @@
 ###############################################################################
 
 use strict;
+use warnings;
+
 use Relianoid::Net::Util;
 use Relianoid::Farm::Core;
 use Relianoid::Farm::Factory;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
 sub new_farm    # ( $json_obj )
 {
@@ -73,7 +73,7 @@ sub new_farm    # ( $json_obj )
     my $ip_list = &getIpAddressList();
 
     # Check allowed parameters
-    my $params = &getZAPIModel("farm-create.json");
+    my $params = &getAPIModel("farm-create.json");
     $params->{vport}->{interval} = "1,65535"
       if (exists $json_obj->{profile}
         and $json_obj->{profile} =~ /(?:http|gslb)/);
@@ -81,7 +81,7 @@ sub new_farm    # ( $json_obj )
       if (exists $json_obj->{profile} and $json_obj->{profile} ne 'datalink');
     $params->{vip}->{values} = $ip_list;
 
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -160,7 +160,7 @@ sub new_farm    # ( $json_obj )
     }
 
     &httpResponse({ code => 201, body => $body });
+    return;
 }
 
 1;
-

@@ -22,31 +22,44 @@
 ###############################################################################
 
 use strict;
+use warnings;
+use feature qw(signatures);
+no warnings 'experimental::args_array_with_signatures';
 
 use Relianoid::Config;
 
 my $configdir = &getGlobalConfiguration('configdir');
 
-=begin nd
-Function: getFarmType
+=pod
 
-	Get the farm type for a farm
+=head1 Module
 
-Parameters:
-	farmname - Farm name
-
-Returns:
-	String - "http", "https", "datalink", "l4xnat", "gslb" or 1 on failure
-
-NOTE:
-	Generic function
+Relianoid::Farm::Core
 
 =cut
 
-sub getFarmType    # ($farm_name)
-{
+=pod
+
+=head1 getFarmType
+
+Get the farm type for a farm
+
+Parameters:
+
+    farmname - Farm name
+
+Returns:
+
+    String - "http", "https", "datalink", "l4xnat", "gslb" or 1 on failure
+
+NOTE:
+
+    Generic function
+
+=cut
+
+sub getFarmType ($farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
 
@@ -73,26 +86,28 @@ sub getFarmType    # ($farm_name)
     return 1;
 }
 
-=begin nd
-Function: getFarmFile
+=pod
 
-	Returns farm file name
+=head1 getFarmFile
+
+Returns farm file name
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	String - file name or -1 on failure
+
+    String - file name or -1 on failure
 
 NOTE:
-	Generic function
+
+    Generic function
 
 =cut
 
-sub getFarmFile    # ($farm_name)
-{
+sub getFarmFile ($farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name) = @_;
 
     opendir(my $dir, "$configdir") || return -1;
     my @farm_files =
@@ -111,86 +126,91 @@ sub getFarmFile    # ($farm_name)
     }
 }
 
-=begin nd
-Function: getFarmName
+=pod
 
-	Returns farms configuration filename list
+=head1 getFarmName
+
+Returns farms configuration filename list
 
 Parameters:
-	file - Farm file
+
+    file - Farm file
 
 Returns:
-	String - farm name
+
+    String - farm name
 
 NOTE:
-	Generic function
+
+    Generic function
 
 =cut
 
-sub getFarmName    # ($farm_filename)
-{
+sub getFarmName ($farm_filename) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm_filename = shift;
 
     my @filename_split = split("_", $farm_filename);
-
     return $filename_split[0];
 }
 
-=begin nd
-Function: getFarmList
+=pod
 
-	Returns farms configuration filename list
+=head1 getFarmList
+
+Returns farms configuration filename list
 
 Parameters:
-	none - .
+
+    none
 
 Returns:
-	Array - List of configuration files
+
+    Array - List of configuration files
 
 NOTE:
-	Generic function
+
+    Generic function
 
 =cut
 
-sub getFarmList    # ()
-{
+sub getFarmList() {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     opendir(my $directory, $configdir);
-    my @cfgFiles = sort (grep (/\.cfg$/, readdir($directory)));
+    my @cfgFiles = sort (grep { /\.cfg$/ } readdir($directory));
     closedir($directory);
 
-    my @files1 = grep (/_proxy\.cfg$/,    @cfgFiles);
-    my @files2 = grep (/_datalink\.cfg$/, @cfgFiles);
-    my @files3 = grep (/_l4xnat\.cfg$/,   @cfgFiles);
-    my @files4 = grep (/_gslb\.cfg$/,     @cfgFiles);
-
-    my @files = (@files1, @files2, @files3, @files4);
+    my @files1 = grep { /_proxy\.cfg$/ } @cfgFiles;
+    my @files2 = grep { /_datalink\.cfg$/ } @cfgFiles;
+    my @files3 = grep { /_l4xnat\.cfg$/ } @cfgFiles;
+    my @files4 = grep { /_gslb\.cfg$/ } @cfgFiles;
+    my @files  = (@files1, @files2, @files3, @files4);
 
     return @files;
 }
 
-=begin nd
-Function: getFarmsByType
+=pod
 
-	Get all farms of a type
+=head1 getFarmsByType
+
+Get all farms of a type
 
 Parameters:
-	type - Farm type. The available options are "http", "https", "datalink", "l4xnat" or "gslb"
+
+    type - Farm type. The available options are "http", "https", "datalink", "l4xnat" or "gslb"
 
 Returns:
-	Array - List of farm name of a type
+
+    Array - List of farm name of a type
 
 NOTE:
-	Generic function
+
+    Generic function
 
 =cut
 
-sub getFarmsByType    # ($farm_type)
-{
+sub getFarmsByType ($farm_type) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_type) = @_;
 
     my @farm_names = ();
 
@@ -214,49 +234,55 @@ sub getFarmsByType    # ($farm_type)
     return @farm_names;
 }
 
-=begin nd
-Function: getFarmNameList
+=pod
 
-	Returns a list with the farm names.
+=head1 getFarmNameList
+
+Returns a list with the farm names.
 
 Parameters:
-	none - .
+
+    none
 
 Returns:
-	array - list of farm names.
+
+    array - list of farm names.
+
 =cut
 
 sub getFarmNameList {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my @farm_names = ();    # output: returned list
 
-    # take every farm filename
+    my @farm_names = ();
+
     foreach my $farm_filename (&getFarmList()) {
-
-        # add the farm name to the list
         push(@farm_names, &getFarmName($farm_filename));
     }
 
     return @farm_names;
 }
 
-=begin nd
-Function: getFarmExists
+=pod
 
-	Check if a farm exists
+=head1 getFarmExists
+
+Check if a farm exists
 
 Parameters:
-	Farm - Farm name
+
+    Farm - Farm name
 
 Returns:
-	Integer - 1 if the farm exists or 0 if it is not
+
+    Integer - 1 if the farm exists or 0 if it is not
+
 =cut
 
-sub getFarmExists {
+sub getFarmExists ($farmname) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farmname = shift;
-    my $out      = 0;
-    $out = 1 if (grep /^$farmname$/, &getFarmNameList());
+
+    my $out = 0;
+    $out = 1 if (grep { /^$farmname$/ } &getFarmNameList());
     return $out;
 }
 

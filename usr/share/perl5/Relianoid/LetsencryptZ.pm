@@ -22,22 +22,32 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
-=begin nd
-Function: getLetsencryptConfigPath
+=pod
 
-	Returns the dirpath for Letsencrypt Config
+=head1 Module
+
+Relianoid::LetsencryptZ
+
+=cut
+
+=pod
+
+=head1 getLetsencryptConfigPath
+
+Returns the dirpath for Letsencrypt Config
 
 Parameters:
-	none - .
+
+    none
 
 Returns:
-	string -  dir path.
+
+    string -  dir path.
+
 =cut
 
 sub getLetsencryptConfigPath    # ( )
@@ -46,16 +56,20 @@ sub getLetsencryptConfigPath    # ( )
     return &getGlobalConfiguration('le_config_path');
 }
 
-=begin nd
-Function: getLetsencryptConfig
+=pod
 
-	Returns the Letsencrypt Config
+=head1 getLetsencryptConfig
+
+Returns the Letsencrypt Config
 
 Parameters:
-	none - .
+
+    none
 
 Returns:
-	Hash ref - Letsencrypt Configuration
+
+    Hash ref - Letsencrypt Configuration
+
 =cut
 
 sub getLetsencryptConfig    # ( )
@@ -66,16 +80,20 @@ sub getLetsencryptConfig    # ( )
     return $le_conf_re;
 }
 
-=begin nd
-Function: setLetsencryptConfig
+=pod
 
-	Set the Letsencrypt Config
+=head1 setLetsencryptConfig
+
+Set the Letsencrypt Config
 
 Parameters:
-	Hash ref - .
+
+    Hash ref
 
 Returns:
-	Integer - 0 on succesfull, otherwise on error.
+
+    Integer - 0 on succesfull, otherwise on error.
+
 =cut
 
 sub setLetsencryptConfig    # ( $le_conf_re )
@@ -87,16 +105,20 @@ sub setLetsencryptConfig    # ( $le_conf_re )
     return $rc;
 }
 
-=begin nd
-Function: getLetsencryptCronFile
+=pod
 
-	Returns the Letsencrypt Cron Filepath
+=head1 getLetsencryptCronFile
+
+Returns the Letsencrypt Cron Filepath
 
 Parameters:
-	none - .
+
+    none
 
 Returns:
-	 - Letsencrypt Cron filepath
+
+    string - Letsencrypt Cron filepath
+
 =cut
 
 sub getLetsencryptCronFile    # ( )
@@ -107,16 +129,20 @@ sub getLetsencryptCronFile    # ( )
     return $rs;
 }
 
-=begin nd
-Function: getLetsencryptCertificates
+=pod
 
-	Returns Letsencrypt Certificates
+=head1 getLetsencryptCertificates
+
+Returns Letsencrypt Certificates
 
 Parameters:
-	le_cert_name - String. LE Certificate Name. None means all certificates.
+
+    le_cert_name - String. LE Certificate Name. None means all certificates.
 
 Returns:
-	Hash ref - Letsencrypt Certificates
+
+    Hash ref - Letsencrypt Certificates
+
 =cut
 
 sub getLetsencryptCertificates    # ( )
@@ -178,16 +204,20 @@ sub getLetsencryptCertificates    # ( )
     return $le_certs_ref;
 }
 
-=begin nd
-Function: getLetsencryptCertificateInfo
+=pod
 
-	Returns the Letsencrypt no Wildcard Certificates Info
+=head1 getLetsencryptCertificateInfo
+
+Returns the Letsencrypt no Wildcard Certificates Info
 
 Parameters:
-	le_cert_name . LE Certificate name
+
+    le_cert_name . LE Certificate name
 
 Returns:
-	Hash ref - Letsencrypt Certificate Info
+
+    Hash ref - Letsencrypt Certificate Info
+
 =cut
 
 sub getLetsencryptCertificateInfo    # ( $le_cert_name )
@@ -208,6 +238,7 @@ sub getLetsencryptCertificateInfo    # ( $le_cert_name )
     my $ISSUER = "";
     my $x509;
     my @domains;
+
     eval {
         $x509 = Crypt::OpenSSL::X509->new_from_file($cert_info->{certpath});
         my $time_offset = 60 * 60 * 24 * 15;    # 15 days
@@ -229,8 +260,8 @@ sub getLetsencryptCertificateInfo    # ( $le_cert_name )
             my $value = $exts->{"subjectAltName"}->to_string() . ", ";
             @domains = $value =~ /(?:DNS:(.*?), )/g;
         }
-
     };
+
     $cert_ref->{file}     = $cert_info->{certpath};
     $cert_ref->{type}     = 'LE Certificate';
     $cert_ref->{wildcard} = 'false';
@@ -257,17 +288,21 @@ sub getLetsencryptCertificateInfo    # ( $le_cert_name )
     return $cert_ref;
 }
 
-=begin nd
-Function: setLetsencryptFarmService
+=pod
 
-	Configure the Letsencrypt Service on a Farm
+=head1 setLetsencryptFarmService
+
+Configure the Letsencrypt Service on a Farm
 
 Parameters:
-	farm_name - Farm Name.
-	vip - Virtual IP to use with Temporal Farm.
+
+    farm_name - Farm Name.
+    vip - Virtual IP to use with Temporal Farm.
 
 Returns:
-	Integer - 0 on succesfull, otherwise on error.
+
+    Integer - 0 on succesfull, otherwise on error.
+
 =cut
 
 sub setLetsencryptFarmService {
@@ -386,16 +421,20 @@ sub setLetsencryptFarmService {
     return 0;
 }
 
-=begin nd
-Function: unsetLetsencryptFarmService
+=pod
 
-	Remove the Letsencrypt Service on a Farm
+=head1 unsetLetsencryptFarmService
+
+Remove the Letsencrypt Service on a Farm
 
 Parameters:
-	farm_name - Farm Name.
+
+    farm_name - Farm Name.
 
 Returns:
-	Integer - 0 on succesfull, otherwise on error.
+
+    Integer - 0 on succesfull, otherwise on error.
+
 =cut
 
 sub unsetLetsencryptFarmService {
@@ -467,16 +506,20 @@ sub unsetLetsencryptFarmService {
     return 0;
 }
 
-=begin nd
-Function: runLetsencryptLocalWebserverStart
+=pod
 
-	Start Local Webserver listening on localhost:80
+=head1 runLetsencryptLocalWebserverStart
+
+Start Local Webserver listening on localhost:80
 
 Parameters:
-	None - .
+
+    None
 
 Returns:
-	Integer - 0 on succesfull, otherwise on error.
+
+    Integer - 0 on succesfull, otherwise on error.
+
 =cut
 
 sub runLetsencryptLocalWebserverStart {
@@ -514,16 +557,20 @@ sub runLetsencryptLocalWebserverStart {
 
 }
 
-=begin nd
-Function: runLetsencryptLocalWebserverStop
+=pod
 
-	Stop Local Webserver listening on localhost:80
+=head1 runLetsencryptLocalWebserverStop
+
+Stop Local Webserver listening on localhost:80
 
 Parameters:
-	None - .
+
+    None
 
 Returns:
-	Integer - 0 on succesfull, otherwise on error.
+
+    Integer - 0 on succesfull, otherwise on error.
+
 =cut
 
 sub runLetsencryptLocalWebserverStop {
@@ -558,16 +605,20 @@ sub runLetsencryptLocalWebserverStop {
 
 }
 
-=begin nd
-Function: getLetsencryptLocalWebserverRunning
+=pod
 
-	Check Local Webserver is running
+=head1 getLetsencryptLocalWebserverRunning
+
+Check Local Webserver is running
 
 Parameters:
-	None - .
+
+    None
 
 Returns:
-	Integer - 0 on succesfull, otherwise on error.
+
+    Integer - 0 on succesfull, otherwise on error.
+
 =cut
 
 sub getLetsencryptLocalWebserverRunning {
@@ -602,16 +653,20 @@ sub getLetsencryptLocalWebserverRunning {
     return $rc;
 }
 
-=begin nd
-Function: setLetsencryptCert
+=pod
 
-	Create RELIANOID Pem Certificate. Dot characters are replaced with underscore character.
+=head1 setLetsencryptCert
+
+Create RELIANOID Pem Certificate. Dot characters are replaced with underscore character.
 
 Parameters:
-	le_cert_name - Certificate main domain name.
+
+    le_cert_name - Certificate main domain name.
 
 Returns:
-	Integer - 0 on succesfull, otherwise on error.
+
+    Integer - 0 on succesfull, otherwise on error.
+
 =cut
 
 sub setLetsencryptCert    # ( $le_cert_name )
@@ -645,20 +700,24 @@ sub setLetsencryptCert    # ( $le_cert_name )
     return $rc;
 }
 
-=begin nd
-Function: runLetsencryptObtain
+=pod
 
-	Obtain a new LetsEncrypt Certificate for the Domains especified.
+=head1 runLetsencryptObtain
+
+Obtain a new LetsEncrypt Certificate for the Domains especified.
 
 Parameters:
-	farm_name - Farm Name where Letsencrypt will connect.
-	vip - VIP where the new Farm and service is created. The virtual Port will be 80.
-	domains_list - List of Domains the certificate is created for.
-	test - if "true" the action simulates all the process but no certificate is created.
-	force_update - if "true" forces an update cert and renewal the domains if exists.
+
+    farm_name - Farm Name where Letsencrypt will connect.
+    vip - VIP where the new Farm and service is created. The virtual Port will be 80.
+    domains_list - List of Domains the certificate is created for.
+    test - if "true" the action simulates all the process but no certificate is created.
+    force_update - if "true" forces an update cert and renewal the domains if exists.
 
 Returns:
-	Integer - 0 on succesfull, otherwise on error.
+
+    Integer - 0 on succesfull, otherwise on error.
+
 =cut
 
 sub runLetsencryptObtain    # ( $farm_name, $vip, $domains_list, $test, $force)
@@ -734,16 +793,20 @@ sub runLetsencryptObtain    # ( $farm_name, $vip, $domains_list, $test, $force)
     return $rc;
 }
 
-=begin nd
-Function: runLetsencryptDestroy
+=pod
 
-	Revoke a LetsEncrypt Certificate.
+=head1 runLetsencryptDestroy
+
+Revoke a LetsEncrypt Certificate.
 
 Parameters:
-	le_cert_name - LE Certificate name.
+
+    le_cert_name - LE Certificate name.
 
 Returns:
-	Integer - 0 on succesfull, otherwise on error.
+
+    Integer - 0 on succesfull, otherwise on error.
+
 =cut
 
 sub runLetsencryptDestroy    # ( $le_cert_name )
@@ -780,27 +843,30 @@ sub runLetsencryptDestroy    # ( $le_cert_name )
     return 0;
 }
 
-=begin nd
-Function: runLetsencryptRenew
+=pod
 
-	Renew a LetsEncrypt Certificate.
+=head1 runLetsencryptRenew
+
+Renew a LetsEncrypt Certificate.
 
 Parameters:
-	le_cert_name - LE Cert Name
-	farm_name - Farm Name where Letsencrypt will connect.
-	vip - VIP where the new Farm and service is created. The virtual Port will be 80.
-	force_renewal - if "true" forces a renew even the cert not yet due for renewal( over 30 days for expire ).
-	lock_fh - FileHandle to lock the process
+
+    le_cert_name  - LetsEncrypt Certificate Name
+    farm_name     - Farm Name where Letsencrypt will connect.
+    vip           - VIP where the new Farm and service is created. The virtual Port will be 80.
+    force_renewal - if "true" forces a renew even the cert not yet due for renewal( over 30 days for expire ).
+    lock_fh       - FileHandle to lock the process
 
 Returns:
-	error_ref - error object. code = 0, on success
+
+    error_ref - error object. code = 0, on success
 
 Variable: $error_ref.
 
-	A hashref that maps error code and description
+    A hashref that maps error code and description
 
-	$error_ref->{ code } - Integer. Error code
-	$error_ref->{ desc } - String. Description of the error.
+    $error_ref->{ code } - Integer. Error code
+    $error_ref->{ desc } - String. Description of the error.
 
 =cut
 
@@ -882,7 +948,7 @@ sub runLetsencryptRenew    # ( $le_cert_name, $farm_name, $vip, $force, $lock_fh
     alarm(0);
     if ($status->{stderr}) {
         my $error_response = "Error creating new order";
-        if (my ($le_msg) = grep (/$error_response/, @{ $status->{stdout} })) {
+        if (my ($le_msg) = grep { /$error_response/ } @{ $status->{stdout} }) {
             &zenlog("$le_msg", "error", "LetsencryptZ");
             $error_ref->{code} = 6;
             $error_ref->{desc} = $le_msg;
@@ -898,7 +964,7 @@ sub runLetsencryptRenew    # ( $le_cert_name, $farm_name, $vip, $force, $lock_fh
 
         # check is not due to renewal response
         my $renewal_response = "Cert not yet due for renewal";
-        if (grep (/$renewal_response/, @{ $status->{stdout} })) {
+        if (grep { /$renewal_response/ } @{ $status->{stdout} }) {
             my $le_msg = "Letsencryptz certificate '$le_cert_name' not yet due for renewal!";
             &zenlog($le_msg, "error", "LetsencryptZ");
             $error_ref->{code} = 5;
@@ -927,13 +993,19 @@ sub runLetsencryptRenew    # ( $le_cert_name, $farm_name, $vip, $force, $lock_fh
     return $error_ref;
 }
 
-=begin nd
-Function: checkLetsencryptStaging
-	check the LetsEncrypt Certificate API server.
+=pod
+
+=head1 checkLetsencryptStaging
+
+check the LetsEncrypt Certificate API server.
+
 Parameters:
-	le_cert_name - Certificate Name.
+
+    le_cert_name - Certificate Name.
+
 Returns:
-	Integer - 0 on using Stating server, otherwise 1.
+
+    Integer - 0 on using Stating server, otherwise 1.
 
 =cut
 
@@ -957,20 +1029,24 @@ sub checkLetsencryptStaging    # ( $le_cert_name )
     return $rc;
 }
 
-=begin nd
-Function: setLetsencryptCron
+=pod
 
-	Set a cron entry for an automatic renewal Letsencrypt certificate
+=head1 setLetsencryptCron
+
+Set a cron entry for an automatic renewal Letsencrypt certificate
 
 Parameters:
-	le_cert_name - LE Cert Name
-	farm_name - Farm Name where Letsencrypt will connect.
-	VIP - VIP where the new Farm and service is created. The virtual Port will be 80.
-	force - if "true" forces a renew flag even the cert not yet due for renewal( over 30 days for expire ).
-	restart - if "true" forces a restart flag to restart farms affected by the certificate.
+
+    le_cert_name - LE Cert Name
+    farm_name    - Farm Name where Letsencrypt will connect.
+    VIP          - VIP where the new Farm and service is created. The virtual Port will be 80.
+    force        - if "true" forces a renew flag even the cert not yet due for renewal( over 30 days for expire ).
+    restart      - if "true" forces a restart flag to restart farms affected by the certificate.
 
 Returns:
-	Integer - 0 on succesfull, otherwise on error.
+
+    Integer - 0 on succesfull, otherwise on error.
+
 =cut
 
 sub setLetsencryptCron    # ( $le_cert_name, $farm_name, $nic, $force, $restart )
@@ -989,7 +1065,7 @@ sub setLetsencryptCron    # ( $le_cert_name, $farm_name, $nic, $force, $restart 
     &ztielock(\my @le_cron_list, $le_cron_file);
     my $frequency = "0 22 * * * ";
     my $command   = "root $le_renewal_bin --cert $le_cert_name";
-    @le_cron_list = grep (!/ $command /, @le_cron_list);
+    @le_cron_list = grep { !/ $command / } @le_cron_list;
 
     $command .= " --farm $farm_name" if $farm_name;
     $command .= " --vip $vip"        if $vip;
@@ -1002,16 +1078,20 @@ sub setLetsencryptCron    # ( $le_cert_name, $farm_name, $nic, $force, $restart 
     return $rc;
 }
 
-=begin nd
-Function: unsetLetsencryptCron
+=pod
 
-	Delete a cron entry for an automatic renewal Letsencrypt certificate
+=head1 unsetLetsencryptCron
+
+Delete a cron entry for an automatic renewal Letsencrypt certificate
 
 Parameters:
-	le_cert_name - LE Cert Name
+
+    le_cert_name - LE Cert Name
 
 Returns:
-	Integer - 0 on succesfull, otherwise on error.
+
+    Integer - 0 on succesfull, otherwise on error.
+
 =cut
 
 sub unsetLetsencryptCron    # ( $le_cert_name )
@@ -1028,22 +1108,26 @@ sub unsetLetsencryptCron    # ( $le_cert_name )
     require Relianoid::Lock;
     &ztielock(\my @le_cron_list, $le_cron_file);
     my $command = "root $le_renewal_bin --cert $le_cert_name";
-    @le_cron_list = grep (!/ $command /, @le_cron_list);
+    @le_cron_list = grep { !/ $command / } @le_cron_list;
     untie @le_cron_list;
 
     return $rc;
 }
 
-=begin nd
-Function: getLetsencryptCron
+=pod
 
-	get the cron entry for an automatic renewal Letsencrypt certificate
+=head1 getLetsencryptCron
+
+get the cron entry for an automatic renewal Letsencrypt certificate
 
 Parameters:
-	le_cert_name - LE Cert Name
+
+    le_cert_name - LE Cert Name
 
 Returns:
-	Hash - cron entry Hash ref with values on successful.
+
+    Hash - cron entry Hash ref with values on successful.
+
 =cut
 
 sub getLetsencryptCron    # ( $le_cert_name )
@@ -1066,7 +1150,7 @@ sub getLetsencryptCron    # ( $le_cert_name )
     close $fd;
 
     my $command = "root $le_renewal_bin --cert $le_cert_name";
-    my @le_cron = grep / $command /, @le_cron_list;
+    my @le_cron = grep { / $command / } @le_cron_list;
 
     if (scalar @le_cron > 0) {
         require Relianoid::Validate;

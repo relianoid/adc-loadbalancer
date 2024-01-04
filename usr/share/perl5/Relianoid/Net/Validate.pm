@@ -22,28 +22,40 @@
 ###############################################################################
 
 use strict;
+use warnings;
+use feature qw(signatures);
+no warnings 'experimental::args_array_with_signatures';
 
+use Carp;
 use Relianoid::Core;
 
-=begin nd
-Function: getNetIpFormat
+=pod
 
-	It gets an IP and it retuns the same IP with the format that system uses for
-	the binary choosed
+=head1 Module
 
-Parameters:
-	ip - String with the ipv6
-	bin - It is the binary for the format
-
-Returns:
-	String - It is the IPv6 with the format of the binary parameter.
+Relianoid::Net::Validate
 
 =cut
 
-sub getNetIpFormat {
-    my $ip  = shift;
-    my $bin = shift;
+=pod
 
+=head1 getNetIpFormat
+
+It gets an IP and it retuns the same IP with the format that system uses for
+the binary choosed
+
+Parameters:
+
+    ip - String with the ipv6
+    bin - It is the binary for the format
+
+Returns:
+
+    String - It is the IPv6 with the format of the binary parameter.
+
+=cut
+
+sub getNetIpFormat ($ip, $bin) {
     require Net::IPv6Addr;
     my $x = Net::IPv6Addr->new($ip);
 
@@ -58,25 +70,27 @@ sub getNetIpFormat {
     return $ip;
 }
 
-=begin nd
-Function: getProtoTransport
+=pod
 
-	It returns the protocols of layer 4 that use a profile or another protocol.
+=head1 getProtoTransport
+
+It returns the protocols of layer 4 that use a profile or another protocol.
 
 Parameters:
-	profile or protocol - This parameter accepts a load balancer profile (for l4
-	it returns the default one when the farm is created): "http", "https", "l4xnat", "gslb";
-	or another protocol: "tcp", "udp", "sctp", "amanda", "tftp", "netbios-ns",
-	"snmp", "ftp", "irc", "pptp", "sane", "all", "sip" or "h323"
+
+    profile or protocol - This parameter accepts a load balancer profile (for l4
+    it returns the default one when the farm is created): "http", "https", "l4xnat", "gslb";
+    or another protocol: "tcp", "udp", "sctp", "amanda", "tftp", "netbios-ns",
+    "snmp", "ftp", "irc", "pptp", "sane", "all", "sip" or "h323"
 
 Returns:
-	Array ref - It the list of transport protocols that use the passed protocol. The
-		possible values are "udp", "tcp" or "sctp"
+
+    Array ref - It the list of transport protocols that use the passed protocol. The
+        possible values are "udp", "tcp" or "sctp"
 =cut
 
-sub getProtoTransport {
+sub getProtoTransport ($profile) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $profile = shift;
 
     my $proto = [];
     my $all   = [ "tcp", "udp", "sctp" ];
@@ -122,40 +136,50 @@ sub getProtoTransport {
     return $proto;
 }
 
-=begin nd
-Function: validatePortKernelSpace
+=pod
 
-	It checks if the IP, port and protocol are used in some l4xnat farm.
-	This function does the following actions to validate that the protocol
-	is not used:
-	* Remove the incoming farmname from the farm list
-	* Check only with l4xnat farms
-	* Check with farms with up status
-	* Check that farms contain the same VIP
-	* There is not collision with multiport
+=head1 validatePortKernelSpace
+
+It checks if the IP, port and protocol are used in some l4xnat farm.
+This function does the following actions to validate that the protocol
+is not used:
+
+    * Remove the incoming farmname from the farm list
+    * Check only with l4xnat farms
+    * Check with farms with up status
+    * Check that farms contain the same VIP
+    * There is not collision with multiport
 
 Parameters:
-	vip - virtual IP
-	port - It accepts multiport string format
-	proto - it is an array reference with the list of protocols to check in the port. The protocols can be 'sctp', 'udp', 'tcp' or 'all'
-	farmname - It is the farm that is being modified, if this parameter is passed, the configuration of this farm is ignored to avoid checking with itself. This parameter is optional
+
+    vip      - virtual IP
+    port     - It accepts multiport string format
+    proto    - it is an array reference with the list of protocols to check in the port. 
+                The protocols can be 'sctp', 'udp', 'tcp' or 'all'
+    farmname - It is the farm that is being modified, if this parameter is passed, 
+                the configuration of this farm is ignored to avoid checking with itself. 
+                This parameter is optional
 
 Returns:
-	Integer - It returns 1 if the incoming info is valid, or 0 if there is another farm with that networking information
+
+    Integer - It returns 1 if the incoming info is valid, or 0 if there is another farm with that networking information
+
 =cut
 
-sub validatePortKernelSpace {
+sub validatePortKernelSpace ($ip, $port, $proto, $farmname = undef) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($ip, $port, $proto, $farmname) = @_;
 
     # get l4 farms
     require Relianoid::Farm::Base;
     require Relianoid::Arrays;
+
     my @farm_list = &getFarmListByVip($ip);
     return 1 if !@farm_list;
 
-    @farm_list = grep (!/^$farmname$/, @farm_list) if defined $farmname;
-    return 1                                       if !@farm_list;
+    if (defined $farmname) {
+        @farm_list = grep { !/^$farmname$/ } @farm_list;
+        return 1 if !@farm_list;
+    }
 
     # check intervals
     my $port_list = &getMultiporExpanded($port);
@@ -188,21 +212,25 @@ sub validatePortKernelSpace {
     return 1;
 }
 
-=begin nd
-Function: getMultiporExpanded
+=pod
 
-	It returns the list of ports that a multiport string contains.
+=head1 getMultiporExpanded
+
+It returns the list of ports that a multiport string contains.
 
 Parameters:
-	port - multiport port
+
+    port - multiport port
 
 Returns:
-	Array ref - It is the list of ports used by the farm
+
+    Array ref - It is the list of ports used by the farm
+
 =cut
 
-sub getMultiporExpanded {
+sub getMultiporExpanded ($port) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $port       = shift;
+
     my @total_port = ();
     if ($port ne '*') {
         foreach my $p (split(',', $port)) {
@@ -218,23 +246,27 @@ sub getMultiporExpanded {
     return \@total_port;
 }
 
-=begin nd
-Function: getMultiportRegex
+=pod
 
-	It creates a regular expression to look for a list of ports.
-	It expands the l4xnat port format (':' for ranges and ',' for listing ports).
+=head1 getMultiportRegex
+
+It creates a regular expression to look for a list of ports.
+It expands the l4xnat port format (':' for ranges and ',' for listing ports).
 
 Parameters:
-	port - port or multiport
+
+    port - port or multiport
 
 Returns:
-	String - Regular expression
+
+    String - Regular expression
+
 =cut
 
-sub getMultiportRegex {
+sub getMultiportRegex ($port) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $port = shift;
-    my $reg  = $port;
+
+    my $reg = $port;
 
     if ($port eq '*') {
         $reg = '\d+';
@@ -247,26 +279,29 @@ sub getMultiportRegex {
     return $reg;
 }
 
-=begin nd
-Function: validatePortUserSpace
+=pod
 
-	It validates if the port is being used for some process in the user space
+=head1 validatePortUserSpace
+
+It validates if the port is being used for some process in the user space
 
 Parameters:
-	ip - IP address. If the IP is '0.0.0.0', it checks that other farm or process are not using the port
-	port - TCP port number. It accepts l4xnat multport format: intervals (55:66,70), all ports (*).
-	protocol - It is an array reference with the protocols to check ("udp", "tcp" and "sctp"), if some of them is used, the function returns 0.
-	farmname - If the configuration is set in this farm, the check is ignored and true. This parameters is optional.
-	process - It is the process name to ignore. It is used when a process wants to be modified with all IPs parameter. The services to ignore are: "cherokee", "sshd" and "snmp"
+
+    ip       - IP address. If the IP is '0.0.0.0', it checks that other farm or process are not using the port
+    port     - TCP port number. It accepts l4xnat multport format: intervals (55:66,70), all ports (*).
+    protocol - It is an array reference with the protocols to check ("udp", "tcp" and "sctp"), if some of them is used, the function returns 0.
+    farmname - If the configuration is set in this farm, the check is ignored and true. This parameters is optional.
+    process  - It is the process name to ignore. It is used when a process wants to be modified with all IPs parameter. 
+                The services to ignore are: "cherokee", "sshd" and "snmp"
 
 Returns:
-	Integer - It returns '1' if the port and IP are valid to be used or '0' if the port and IP are already applied in the system
+
+    Integer - It returns '1' if the port and IP are valid to be used or '0' if the port and IP are already applied in the system
 
 =cut
 
-sub validatePortUserSpace {
+sub validatePortUserSpace ($ip, $port, $proto, $farmname, $process = undef) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($ip, $port, $proto, $farmname, $process) = @_;
 
     my $override;
 
@@ -315,7 +350,7 @@ sub validatePortUserSpace {
 
     if (defined $process) {
         my $filter = '^\s*(?:[^\s]+\s+){5,6}\d+\/' . $process;
-        @out = grep (!/$filter/, @out);
+        @out = grep { !/$filter/ } @out;
         return 1 if (!@out);
     }
 
@@ -338,7 +373,7 @@ sub validatePortUserSpace {
     my $port_reg = &getMultiportRegex($port);
 
     my $filter = '^\s*(?:[^\s]+\s+){3,3}' . $ip_reg . ':' . $port_reg . '\s';
-    @out = grep (/$filter/, @out);
+    @out = grep { /$filter/ } @out;
     if (@out) {
         &zenlog("The ip '$ip' and the port '$port' are being used for some process",
             "warning", "networking");
@@ -348,41 +383,46 @@ sub validatePortUserSpace {
     return 1;
 }
 
-=begin nd
-Function: validatePort
+=pod
 
-	It checks if an IP and a port (checking the protocol) are already configured in the system.
-	This is used to validate that more than one process or farm are not running with the same
-	networking configuration.
+=head1 validatePort
 
-	It checks the information with the "netstat" command, if the port is not found it will look for
-	between the l4xnat farms (that are up).
+It checks if an IP and a port (checking the protocol) are already configured in the system.
+This is used to validate that more than one process or farm are not running with the same
+networking configuration.
 
-	If this function is called with more than one protocol. It will recall itself recursively
-	for each one.
+It checks the information with the "netstat" command, if the port is not found it will look for
+between the l4xnat farms (that are up).
+
+If this function is called with more than one protocol. It will recall itself recursively
+for each one.
 
 Parameters:
-	ip - IP address. If the IP is '0.0.0.0', it checks that other farm or process are not using the port
-	port - TCP port number. It accepts l4xnat multport format: intervals (55:66,70), all ports (*).
-	protocol - It is an array reference with the protocols to check, if some of them is used, the function returns 0. The accepted protocols are: 'all' (no one is checked), sctp, tcp and udp
-	farmname - If the configuration is set in this farm, the check is ignored and true. This parameters is optional.
-	process - It is the process name to ignore. It is used when a process wants to be modified with all IPs parameter. The services to ignore are: "cherokee", "sshd" and "snmp"
+
+    ip       - IP address. If the IP is '0.0.0.0', it checks that other farm or process are not using the port
+    port     - TCP port number. It accepts l4xnat multport format: intervals (55:66,70), all ports (*).
+    protocol - It is an array reference with the protocols to check, if some of them is used, the function returns 0. 
+                The accepted protocols are: 'all' (no one is checked), sctp, tcp and udp
+    farmname - If the configuration is set in this farm, the check is ignored and true. This parameters is optional.
+    process  - It is the process name to ignore. It is used when a process wants to be modified with all IPs parameter. 
+                The services to ignore are: "cherokee", "sshd" and "snmp"
 
 Returns:
-	Integer - It returns '1' if the port and IP are valid to be used or '0' if the port and IP are already applied in the system
+
+    Integer - It returns '1' if the port and IP are valid to be used or '0' if the port and IP are already applied in the system
 
 See Also:
-	<getFarmProto> <getProfileProto>
+
+    <getFarmProto> <getProfileProto>
 
 =cut
 
-sub validatePort {
+sub validatePort ($ip, $port, $proto, $farmname = undef, $process = undef) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($ip, $port, $proto, $farmname, $process) = @_;
 
     # validate inputs
     $ip = '0.0.0.0' if $ip eq '*';
-    if (!defined $proto and !defined $farmname) {
+    if (!defined $proto && !defined $farmname) {
         &zenlog("Check port needs the protocol to validate the ip '$ip' and the port '$port'",
             "error", "networking");
         return 0;
@@ -407,25 +447,27 @@ sub validatePort {
     return 1;
 }
 
-=begin nd
-Function: ipisok
+=pod
 
-	Check if a string has a valid IP address format.
+=head1 ipisok
+
+Check if a string has a valid IP address format.
 
 Parameters:
-	checkip - IP address string.
-	version - 4 or 6 to validate IPv4 or IPv6 only. Optional.
+
+    checkip - IP address string.
+    version - 4 or 6 to validate IPv4 or IPv6 only. Optional.
 
 Returns:
-	boolean - string "true" or "false".
+
+    boolean - string "true" or "false".
+
 =cut
 
-sub ipisok    # ($checkip, $version)
-{
+sub ipisok ($checkip, $version = undef) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $checkip = shift;
-    my $version = shift;
-    my $return  = "false";
+
+    my $return = "false";
 
     require Data::Validate::IP;
     Data::Validate::IP->import();
@@ -445,54 +487,57 @@ sub ipisok    # ($checkip, $version)
     return $return;
 }
 
-=begin nd
-Function: validIpAndNet
+=pod
 
-	Validate if the input is a valid IP or networking segement
+=head1 validIpAndNet
+
+Validate if the input is a valid IP or networking segement
 
 Parameters:
-	ip - IP address or IP network segment. ipv4 or ipv6
+
+    ip - IP address or IP network segment. ipv4 or ipv6
 
 Returns:
-	integer - 1 if the input is a valid IP or 0 if it is not valid
+
+    integer - 1 if the input is a valid IP or 0 if it is not valid
 
 =cut
 
-sub validIpAndNet {
-    my $ip = shift;
-
+sub validIpAndNet ($ip) {
     use NetAddr::IP;
-    my $out = new NetAddr::IP($ip);
+    my $out = NetAddr::IP->new($ip);
 
     return (defined $out) ? 1 : 0;
 }
 
-=begin nd
-Function: ipversion
+=pod
 
-	IP version number of an input IP address
+=head1 ipversion
+
+IP version number of an input IP address
 
 Parameters:
-	ip - ip to get the version
+
+    ip - ip to get the version
 
 Returns:
-	scalar - 4 for ipv4, 6 for ipv6, 0 if unknown
+
+    scalar - 4 for ipv4, 6 for ipv6, 0 if unknown
 
 =cut
 
-sub ipversion    # ($checkip)
-{
+sub ipversion ($ip) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $checkip = shift;
-    my $output  = "-";
+
+    my $output = "-";
 
     require Data::Validate::IP;
     Data::Validate::IP->import();
 
-    if (is_ipv4($checkip)) {
+    if (is_ipv4($ip)) {
         $output = 4;
     }
-    elsif (is_ipv6($checkip)) {
+    elsif (is_ipv6($ip)) {
         $output = 6;
     }
     else {
@@ -502,28 +547,29 @@ sub ipversion    # ($checkip)
     return $output;
 }
 
-=begin nd
-Function: validateGateway
+=pod
 
-	Check if the network configuration is valid. This function receive two IP
-	address and a net segment and check if both address are in the segment.
-	It is usefull to check if the gateway is correct or to check a new IP
-	for a interface
+=head1 validateGateway
+
+Check if the network configuration is valid. This function receive two IP
+address and a net segment and check if both address are in the segment.
+It is usefull to check if the gateway is correct or to check a new IP
+for a interface
 
 Parameters:
-	ip - IP from net segment
-	netmask - Net segment
-	new_ip - IP to check if it is from net segment
+
+    ip - IP from net segment
+    netmask - Net segment
+    new_ip - IP to check if it is from net segment
 
 Returns:
-	Integer - 1 if the configuration is correct or 0 on incorrect
+
+    Integer - 1 if the configuration is correct or 0 on incorrect
 
 =cut
 
-sub validateGateway    # ($ip, $mask, $ip2)
-{
+sub validateGateway ($ip, $mask, $ip2) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($ip, $mask, $ip2) = @_;
 
     require NetAddr::IP;
 
@@ -535,29 +581,32 @@ sub validateGateway    # ($ip, $mask, $ip2)
       : 0;
 }
 
-=begin nd
-Function: ifexist
+=pod
 
-	Check if interface exist.
+=head1 ifexist
 
-	Look for link interfaces, Virtual interfaces return "false".
-	If the interface is IFF_RUNNING or configuration file exists return "true".
-	If interface found but not IFF_RUNNING nor configutaion file exists returns "created".
+Check if an interface exists.
+
+Look for link interfaces, Virtual interfaces return "false".
+If the interface is IFF_RUNNING or configuration file exists return "true".
+If interface found but not IFF_RUNNING nor configutaion file exists returns "created".
 
 Parameters:
-	nif - network interface name.
+
+    nif - network interface name.
 
 Returns:
-	string - "true", "false" or "created".
+
+    string - "true", "false" or "created".
 
 Bugs:
-	"created"
+
+    "created"
+
 =cut
 
-sub ifexist    # ($nif)
-{
+sub ifexist ($nif) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $nif = shift;
 
     use IO::Interface qw(:flags);    # Needs to load with 'use'
 
@@ -587,27 +636,30 @@ sub ifexist    # ($nif)
     return "false";
 }
 
-=begin nd
-Function: checkNetworkExists
+=pod
 
-	Check if a network exists in other interface
+=head1 checkNetworkExists
+
+Check if a network exists in other interface
 
 Parameters:
-	ip - A ip in the network segment
-	mask - mask of the network segment
-	exception - This parameter is optional, if it is sent, that interface will not be checked.
-		It is used to exclude the interface that is been changed
-	duplicateNetwork - This parameter is optional, if it is sent, defines duplicated network is enabled or disabled.
+
+    ip - A ip in the network segment
+    mask - mask of the network segment
+    exception - This parameter is optional, if it is sent, that interface will not be checked.
+                It is used to exclude the interface that is been changed
+    duplicateNetwork - This parameter is optional, if it is sent, defines duplicated network is enabled or disabled.
 
 Returns:
-	String - interface name where the checked network exists
 
-	v3.2/interface/vlan, v3.2/interface/nic, v3.2/interface/bonding
+    String - interface name where the checked network exists
+
+    v3.2/interface/vlan, v3.2/interface/nic, v3.2/interface/bonding
+
 =cut
 
-sub checkNetworkExists {
+sub checkNetworkExists ($net, $mask, $exception = undef, $duplicated = undef) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($net, $mask, $exception, $duplicated) = @_;
 
     #if duplicated network is allowed then don't check if network exists.
     if (defined $duplicated) {
@@ -654,20 +706,25 @@ sub checkNetworkExists {
     return "";
 }
 
-=begin nd
-Function: checkDuplicateNetworkExists
+=pod
 
-	Check if duplicate network exists in the interfaces
+=head1 checkDuplicateNetworkExists
+
+Check if duplicate network exists in the interfaces
 
 Parameters:
 
-Returns:
-	String - interface name where the checked network exists
+    none
 
-	v3.2/interface/vlan, v3.2/interface/nic, v3.2/interface/bonding
+Returns:
+
+    String - interface name where the checked network exists
+
+    v3.2/interface/vlan, v3.2/interface/nic, v3.2/interface/bonding
+
 =cut
 
-sub checkDuplicateNetworkExists {
+sub checkDuplicateNetworkExists () {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     #if duplicated network is not allowed then don't check if network exists.
@@ -689,23 +746,26 @@ sub checkDuplicateNetworkExists {
     return "";
 }
 
-=begin nd
-Function: validBackendStack
+=pod
 
-	Check if an IP is in the same networking segment that a list of backend
+=head1 validBackendStack
+
+Check if an IP is in the same networking segment that a list of backend
 
 Parameters:
-	backend_array - It is an array with the backend configuration
-	ip - A ip is going to be compared with the backends IPs
+
+    backend_array - It is an array with the backend configuration
+    ip - A ip is going to be compared with the backends IPs
 
 Returns:
-	Integer - Returns 1 if the ip is valid or 0 if it is not in the same networking segment
+
+    Integer - Returns 1 if the ip is valid or 0 if it is not in the same networking segment
 
 =cut
 
-sub validBackendStack {
+sub validBackendStack ($be_aref, $ip) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($be_aref, $ip) = @_;
+
     my $ip_stack     = &ipversion($ip);
     my $ipv_mismatch = 0;
 
@@ -719,26 +779,32 @@ sub validBackendStack {
     return (!$ipv_mismatch);
 }
 
-=begin nd
-Function: validateNetmask
+=pod
 
-	It validates if a netmask is valid for IPv4 or IPv6
+=head1 validateNetmask
+
+It validates if a netmask is valid for IPv4 or IPv6
 
 Parameters:
-	netmask - Netmask to check
-	ip_version - it is optionally, it accepts '4' or '6' for the ip versions.
-		If no value is passed, it checks if the netmask is valid in some of the ip version
+
+    netmask - Netmask to check
+    ip_version - it is optionally, it accepts '4' or '6' for the ip versions.
+        If no value is passed, it checks if the netmask is valid in some of the ip version
 
 Returns:
-	Integer - Returns 1 on success or 0 on failure
+
+    Integer - Returns 1 on success or 0 on failure
 
 =cut
 
-sub validateNetmask {
-    my $mask      = shift;
-    my $ipversion = shift // 0;
-    my $success   = 0;
-    my $ip        = "127.0.0.1";
+sub validateNetmask ($mask, $ipversion = undef) {
+    unless (defined $mask) {
+        croak("mask is required");
+    }
+
+    $ipversion //= 0;
+    my $success = 0;
+    my $ip      = "127.0.0.1";
 
     if ($ipversion == 0 or $ipversion == 6) {
         return 1 if ($mask =~ /^\d+$/ and $mask <= 64);

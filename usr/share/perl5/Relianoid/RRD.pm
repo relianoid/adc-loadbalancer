@@ -23,14 +23,13 @@
 
 use strict;
 use warnings;
+
+use Carp;
 use RRDs;
 use MIME::Base64;
 use Relianoid::Config;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
 my $basedir   = &getGlobalConfiguration('basedir');
 my $rrdap_dir = &getGlobalConfiguration('rrdap_dir');
@@ -40,17 +39,28 @@ my $width     = "600";
 my $height    = "150";
 my $imagetype = "PNG";
 
-=begin nd
-Function: translateRRDTime
+=pod
 
-	It translates a time from API format (11-09-2020-14:05) to RRD format (11/09/2020 14:05).
-	Also, it returns the rrd format for daily, weekly, monthly or yearly.
+=head1 Module
+
+Relianoid::RRD
+
+=cut
+
+=pod
+
+=head1 translateRRDTime
+
+It translates a time from API format (11-09-2020-14:05) to RRD format (11/09/2020 14:05).
+Also, it returns the rrd format for daily, weekly, monthly or yearly.
 
 Parameters:
-	time - Time in API format
+
+    time - Time in API format
 
 Returns:
-	scalar - It is the time in RRD format
+
+    scalar - It is the time in RRD format
 
 =cut
 
@@ -75,16 +85,19 @@ sub translateRRDTime {
     return $time;
 }
 
-=begin nd
-Function: logRRDError
+=pod
 
-	It checks if some error exists in the last RRD read and it logs it
+=head1 logRRDError
+
+It checks if some error exists in the last RRD read and it logs it
 
 Parameters:
-	graph file - it is the graph file created of reading the RRD
+
+    graph file - it is the graph file created of reading the RRD
 
 Returns:
-	Integer - Error code. 1 on failure or 0 on success
+
+    Integer - Error code. 1 on failure or 0 on success
 
 =cut
 
@@ -101,18 +114,21 @@ sub logRRDError {
     return 0;
 }
 
-=begin nd
-Function: getRRDAxisXLimits
+=pod
 
-	It returns the first and last time value for a graph.
-	It returns the times with the RELIANOID API format (11-09-2020-14:05)
+=head1 getRRDAxisXLimits
+
+It returns the first and last time value for a graph.
+It returns the times with the RELIANOID API format (11-09-2020-14:05)
 
 Parameters:
-	rrd file - It is the rrd bbdd file
+
+    rrd file - It is the rrd bbdd file
 
 Returns:
-	Array - It returns an array with 2 values: the first and last times samples
-		of the graph
+
+    Array - It returns an array with 2 values: the first and last times samples
+        of the graph
 
 =cut
 
@@ -137,19 +153,24 @@ sub getRRDAxisXLimits {
     return ($start, $last);
 }
 
-=begin nd
-Function: printImgFile
+=pod
 
-	Get a file encoded in base64 and remove it.
+=head1 printImgFile
+
+Get a file encoded in base64 and remove it.
 
 Parameters:
-	file - Path to image file.
+
+    file - Path to image file.
 
 Returns:
-	scalar - Base64 encoded image on success, or an empty string on failure.
+
+    scalar - Base64 encoded image on success, or an empty string on failure.
 
 See Also:
-	<printGraph>
+
+    <printGraph>
+
 =cut
 
 sub printImgFile    #($file)
@@ -171,20 +192,25 @@ sub printImgFile    #($file)
     }
 }
 
-=begin nd
-Function: delGraph
+=pod
 
-	Remove a farm,  network interface or vpn graph.
+=head1 delGraph
+
+Remove a farm,  network interface or vpn graph.
 
 Parameters:
-	name - Name of the graph resource, without sufixes.
-	type - 'farm', 'iface', 'vpn'.
+
+    name - Name of the graph resource, without sufixes.
+    type - 'farm', 'iface', 'vpn'.
 
 Returns:
-	none - .
+
+    none - .
 
 See Also:
-	<runFarmDelete>, <setBondMaster>, <delIf>
+
+    <runFarmDelete>, <setBondMaster>, <delIf>
+
 =cut
 
 sub delGraph    #($name, type)
@@ -211,32 +237,41 @@ sub delGraph    #($name, type)
             args   => [$name],
         ) if $eload;
     }
+
     if ($type =~ /vpn/) {
         &zenlog("Delete graph file: $rrdap_dir/$rrd_dir/$name-vpn.rrd", "info", "MONITOR");
         unlink glob("$rrdap_dir/$rrd_dir/$name-vpn.rrd");
     }
+
+    return;
 }
 
-=begin nd
-Function: printGraph
+=pod
 
-	Get a graph 'type' of a period of time base64 encoded.
+=head1 printGraph
+
+Get a graph 'type' of a period of time base64 encoded.
 
 Parameters:
-	type - Name of the graph.
-	time/start - This parameter can have one of the following values: *
-		* Period of time shown in the image (Possible values: daily, d, weekly, w, monthly, m, yearly, y).
-		* time which the graph starts. Format: MM-DD-YYYY-HH:mm (ie: 11-09-2020-14:05)
-	end - time which the graph stops. The default value is "now", the current time.
+
+    type - Name of the graph.
+    time/start - This parameter can have one of the following values: *
+        * Period of time shown in the image (Possible values: daily, d, weekly, w, monthly, m, yearly, y).
+        * time which the graph starts. Format: MM-DD-YYYY-HH:mm (ie: 11-09-2020-14:05)
+    end - time which the graph stops. The default value is "now", the current time.
 
 Returns:
-	hash ref - The output hash contains the following keys:
-		img => Base64 encoded image, or an empty string on failure,
-		start => firt time of the graph
-		last => last time of the graph
+
+    hash ref - The output hash contains the following keys:
+
+        img => Base64 encoded image, or an empty string on failure,
+        start => firt time of the graph
+        last => last time of the graph
 
 See Also:
-	<genCpuGraph>, <genDiskGraph>, <genLoadGraph>, <genMemGraph>, <genMemSwGraph>, <genNetGraph>, <genFarmGraph>, <genLoadGraph>
+
+    <genCpuGraph>, <genDiskGraph>, <genLoadGraph>, <genMemGraph>, <genMemSwGraph>, <genNetGraph>, <genFarmGraph>, <genLoadGraph>
+
 =cut
 
 sub printGraph    #($type,$time)
@@ -282,6 +317,7 @@ sub printGraph    #($type,$time)
         &zenlog("The requested graph '$type' is unknown", "error");
         return {};
     }
+
     if ($type =~ /-vpn$/) {
         &genVPNGraph($type, $graph, $time);
     }
@@ -289,6 +325,7 @@ sub printGraph    #($type,$time)
     return {} if (&logRRDError($graph));
 
     ($time, $end) = &getRRDAxisXLimits($time, $end);
+
     return {
         img   => &printImgFile($graph),
         start => $time,
@@ -296,25 +333,30 @@ sub printGraph    #($type,$time)
     };
 }
 
-=begin nd
-Function: genCpuGraph
+=pod
 
-	Generate CPU usage graph image file for a period of time.
+=head1 genCpuGraph
+
+Generate CPU usage graph image file for a period of time.
 
 Parameters:
-	type - Database name without extension.
-	graph - Path to file to be generated.
-	time - time which the graph starts. Format: MM-DD-YYYY-HH:mm (ie: 11-09-2020-14:05)
-	end - time which the graph stops
+
+    type - Database name without extension.
+    graph - Path to file to be generated.
+    time - time which the graph starts. Format: MM-DD-YYYY-HH:mm (ie: 11-09-2020-14:05)
+    end - time which the graph stops
 
 
 Returns:
-	none - .
+
+    none
 
 See Also:
-	<printGraph>
 
-	<genDiskGraph>, <genLoadGraph>, <genMemGraph>, <genMemSwGraph>, <genNetGraph>, <genFarmGraph>, <genLoadGraph>
+    <printGraph>
+
+    <genDiskGraph>, <genLoadGraph>, <genMemGraph>, <genMemSwGraph>, <genNetGraph>, <genFarmGraph>, <genLoadGraph>
+
 =cut
 
 sub genCpuGraph    #($type,$graph,$time)
@@ -386,26 +428,33 @@ sub genCpuGraph    #($type,$graph,$time)
             "GPRINT:tused:MAX:Max\\:%8.2lf %%\\n"
         );
     }
+
+    return;
 }
 
-=begin nd
-Function: genDiskGraph
+=pod
 
-	Generate disk partition usage graph image file for a period of time.
+=head1 genDiskGraph
+
+Generate disk partition usage graph image file for a period of time.
 
 Parameters:
-	type - Database name without extension.
-	graph - Path to file to be generated.
-	time - time which the graph starts. Format: MM-DD-YYYY-HH:mm (ie: 11-09-2020-14:05)
-	end - time which the graph stops
+
+    type - Database name without extension.
+    graph - Path to file to be generated.
+    time - time which the graph starts. Format: MM-DD-YYYY-HH:mm (ie: 11-09-2020-14:05)
+    end - time which the graph stops
 
 Returns:
-	none - .
+
+    none
 
 See Also:
-	<printGraph>
 
-	<genCpuGraph>, <genLoadGraph>, <genMemGraph>, <genMemSwGraph>, <genNetGraph>, <genFarmGraph>, <genLoadGraph>
+    <printGraph>
+
+    <genCpuGraph>, <genLoadGraph>, <genMemGraph>, <genMemSwGraph>, <genNetGraph>, <genFarmGraph>, <genLoadGraph>
+
 =cut
 
 sub genDiskGraph    #($type,$graph,$time)
@@ -442,25 +491,32 @@ sub genDiskGraph    #($type,$graph,$time)
             "GPRINT:total:AVERAGE:Avg\\:%8.2lf %s", "GPRINT:total:MAX:Max\\:%8.2lf %s\\n"
         );
     }
+
+    return;
 }
 
-=begin nd
-Function: genLoadGraph
+=pod
 
-	Generate system load graph image file for a period of time.
+=head1 genLoadGraph
+
+Generate system load graph image file for a period of time.
 
 Parameters:
-	type - Database name without extension.
-	graph - Path to file to be generated.
-	time - Period of time shown in the graph.
+
+    type - Database name without extension.
+    graph - Path to file to be generated.
+    time - Period of time shown in the graph.
 
 Returns:
-	none - .
+
+    none
 
 See Also:
-	<printGraph>
 
-	<genCpuGraph>, <genDiskGraph>, <genMemGraph>, <genMemSwGraph>, <genNetGraph>, <genFarmGraph>, <genLoadGraph>
+    <printGraph>
+
+    <genCpuGraph>, <genDiskGraph>, <genMemGraph>, <genMemSwGraph>, <genNetGraph>, <genFarmGraph>, <genLoadGraph>
+
 =cut
 
 sub genLoadGraph    #($type,$graph,$time)
@@ -488,26 +544,33 @@ sub genLoadGraph    #($type,$graph,$time)
             "GPRINT:load15:AVERAGE:Avg\\:%3.2lf",   "GPRINT:load15:MAX:Max\\:%3.2lf\\n"
         );
     }
+
+    return;
 }
 
-=begin nd
-Function: genMemGraph
+=pod
 
-	Generate RAM memory usage graph image file for a period of time.
+=head1 genMemGraph
+
+Generate RAM memory usage graph image file for a period of time.
 
 Parameters:
-	type - Database name without extension.
-	graph - Path to file to be generated.
-	time - time which the graph starts. Format: MM-DD-YYYY-HH:mm (ie: 11-09-2020-14:05)
-	end - time which the graph stops
+
+    type - Database name without extension.
+    graph - Path to file to be generated.
+    time - time which the graph starts. Format: MM-DD-YYYY-HH:mm (ie: 11-09-2020-14:05)
+    end - time which the graph stops
 
 Returns:
-	none - .
+
+    none
 
 See Also:
-	<printGraph>
 
-	<genCpuGraph>, <genDiskGraph>, <genLoadGraph>, <genMemSwGraph>, <genNetGraph>, <genFarmGraph>, <genLoadGraph>
+    <printGraph>
+
+    <genCpuGraph>, <genDiskGraph>, <genLoadGraph>, <genMemSwGraph>, <genNetGraph>, <genFarmGraph>, <genLoadGraph>
+
 =cut
 
 sub genMemGraph    #($type,$graph,$time)
@@ -539,26 +602,33 @@ sub genMemGraph    #($type,$graph,$time)
             "GPRINT:memt:MAX:Max\\:%8.2lf %s\\n"
         );
     }
+
+    return;
 }
 
-=begin nd
-Function: genMemSwGraph
+=pod
 
-	Generate swap memory usage graph image file for a period of time.
+=head1 genMemSwGraph
+
+Generate swap memory usage graph image file for a period of time.
 
 Parameters:
-	type - Database name without extension.
-	graph - Path to file to be generated.
-	time - time which the graph starts. Format: MM-DD-YYYY-HH:mm (ie: 11-09-2020-14:05)
-	end - time which the graph stops
+
+    type - Database name without extension.
+    graph - Path to file to be generated.
+    time - time which the graph starts. Format: MM-DD-YYYY-HH:mm (ie: 11-09-2020-14:05)
+    end - time which the graph stops
 
 Returns:
-	none - .
+
+    none
 
 See Also:
-	<printGraph>
 
-	<genCpuGraph>, <genDiskGraph>, <genLoadGraph>, <genMemGraph>, <genNetGraph>, <genFarmGraph>, <genLoadGraph>
+    <printGraph>
+
+    <genCpuGraph>, <genDiskGraph>, <genLoadGraph>, <genMemGraph>, <genNetGraph>, <genFarmGraph>, <genLoadGraph>
+
 =cut
 
 sub genMemSwGraph    #($type,$graph,$time)
@@ -590,26 +660,33 @@ sub genMemSwGraph    #($type,$graph,$time)
             "GPRINT:swt:MAX:Max\\:%8.2lf %s\\n",
         );
     }
+
+    return;
 }
 
-=begin nd
-Function: genNetGraph
+=pod
 
-	Generate network interface usage graph image file for a period of time.
+=head1 genNetGraph
+
+Generate network interface usage graph image file for a period of time.
 
 Parameters:
-	type - Database name without extension.
-	graph - Path to file to be generated.
-	time - time which the graph starts. Format: MM-DD-YYYY-HH:mm (ie: 11-09-2020-14:05)
-	end - time which the graph stops
+
+    type - Database name without extension.
+    graph - Path to file to be generated.
+    time - time which the graph starts. Format: MM-DD-YYYY-HH:mm (ie: 11-09-2020-14:05)
+    end - time which the graph stops
 
 Returns:
-	none - .
+
+    none
 
 See Also:
-	<printGraph>
 
-	<genCpuGraph>, <genDiskGraph>, <genLoadGraph>, <genMemGraph>, <genMemSwGraph>, <genFarmGraph>, <genLoadGraph>
+    <printGraph>
+
+    <genCpuGraph>, <genDiskGraph>, <genLoadGraph>, <genMemGraph>, <genMemSwGraph>, <genFarmGraph>, <genLoadGraph>
+
 =cut
 
 sub genNetGraph    #($type,$graph,$time)
@@ -654,26 +731,33 @@ sub genNetGraph    #($type,$graph,$time)
             "HRULE:0#000000"
         );
     }
+
+    return;
 }
 
-=begin nd
-Function: genFarmGraph
+=pod
 
-	Generate farm connections graph image file for a period of time.
+=head1 genFarmGraph
+
+Generate farm connections graph image file for a period of time.
 
 Parameters:
-	type - Database name without extension.
-	graph - Path to file to be generated.
-	time - time which the graph starts. Format: MM-DD-YYYY-HH:mm (ie: 11-09-2020-14:05)
-	end - time which the graph stops
+
+    type - Database name without extension.
+    graph - Path to file to be generated.
+    time - time which the graph starts. Format: MM-DD-YYYY-HH:mm (ie: 11-09-2020-14:05)
+    end - time which the graph stops
 
 Returns:
-	none - .
+
+    none
 
 See Also:
-	<printGraph>
 
-	<genCpuGraph>, <genDiskGraph>, <genLoadGraph>, <genMemGraph>, <genMemSwGraph>, <genNetGraph>, <genLoadGraph>
+    <printGraph>
+
+    <genCpuGraph>, <genDiskGraph>, <genLoadGraph>, <genMemGraph>, <genMemSwGraph>, <genNetGraph>, <genLoadGraph>
+
 =cut
 
 sub genFarmGraph    #($type,$graph,$time)
@@ -722,25 +806,32 @@ sub genFarmGraph    #($type,$graph,$time)
               # "GPRINT:closed:MAX:Max\\:%6.0lf \\n"
         );
     }
+
+    return;
 }
 
-=begin nd
-Function: genVPNGraph
+=pod
 
-	Generate VPN usage graph image file for a period of time.
+=head1 genVPNGraph
+
+Generate VPN usage graph image file for a period of time.
 
 Parameters:
-	type - Database name without extension.
-	graph - Path to file to be generated.
-	time - Period of time shown in the graph.
+
+    type - Database name without extension.
+    graph - Path to file to be generated.
+    time - Period of time shown in the graph.
 
 Returns:
-	none - .
+
+    none
 
 See Also:
-	<printGraph>
 
-	<genCpuGraph>, <genDiskGraph>, <genLoadGraph>, <genMemGraph>, <genMemSwGraph>, <genFarmGraph>, <genLoadGraph>
+    <printGraph>
+
+    <genCpuGraph>, <genDiskGraph>, <genLoadGraph>, <genMemGraph>, <genMemSwGraph>, <genFarmGraph>, <genLoadGraph>
+
 =cut
 
 sub genVPNGraph    #($type,$graph,$time)
@@ -787,21 +878,28 @@ sub genVPNGraph    #($type,$graph,$time)
         my $rrdError = RRDs::error;
         print "$0: unable to generate $graph: $rrdError\n" if ($rrdError);
     }
+
+    return;
 }
 
-=begin nd
-Function: getGraphs2Show
+=pod
 
-	Get list of graph names by type or all of them.
+=head1 getGraphs2Show
+
+Get list of graph names by type or all of them.
 
 Parameters:
-	graphtype - 'System', 'Network', 'Farm' or ... else?.
+
+    graphtype - 'System', 'Network', 'Farm' or ... else?.
 
 Returns:
-	list - List of graph names or -1!!!.
+
+    list - List of graph names or -1!!!.
 
 See Also:
-	zapi/v3/system_stats.cgi
+
+    zapi/v3/system_stats.cgi
+
 =cut
 
 #function that returns the graph list to show
@@ -810,41 +908,39 @@ sub getGraphs2Show    #($graphtype)
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($graphtype) = @_;
 
-    my @list = -1;
-
-    if ($graphtype eq 'System') {
-        opendir(my $dir, "$rrdap_dir/$rrd_dir");
-        my @disk = grep (/^dev-.*$/, readdir($dir));
+    my @results = ();
+    my @dir_list;
+    if (opendir(my $dir, "$rrdap_dir/$rrd_dir")) {
+        @dir_list = readdir($dir);
         closedir($dir);
-        for (@disk) { s/.rrd$//g };    # remove filenames .rrd trailing
-        @list = ("cpu", @disk, "load", "mem", "memsw");
-    }
-    elsif ($graphtype eq 'Network') {
-        opendir(my $dir, "$rrdap_dir/$rrd_dir");
-        @list = grep (/iface.rrd$/, readdir($dir));
-        closedir($dir);
-        for (@list) { s/.rrd$//g };    # remove filenames .rrd trailing
-    }
-    elsif ($graphtype eq 'Farm') {
-        opendir(my $dir, "$rrdap_dir/$rrd_dir");
-        @list = grep (/farm.rrd$/, readdir($dir));
-        closedir($dir);
-        for (@list) { s/.rrd$//g };    # remove filenames .rrd trailing
-    }
-    elsif ($graphtype eq 'VPN') {
-        opendir(my $dir, "$rrdap_dir/$rrd_dir");
-        @list = grep (/vpn.rrd$/, readdir($dir));
-        closedir($dir);
-        for (@list) { s/.rrd$//g };    # remove filenames .rrd trailing
     }
     else {
-        opendir(my $dir, "$rrdap_dir/$rrd_dir");
-        @list = grep (/.rrd$/, readdir($dir));
-        closedir($dir);
-        for (@list) { s/.rrd$//g };    # remove filenames .rrd trailing
+        croak("Could not open directory '$rrdap_dir/$rrd_dir/'");
     }
 
-    return @list;
+    if ($graphtype eq 'System') {
+        my @disk = grep { /^dev-.*$/ } @dir_list;
+        for (@disk) { s/.rrd$//g };
+        @results = ("cpu", @disk, "load", "mem", "memsw");
+    }
+    elsif ($graphtype eq 'Network') {
+        @results = grep { /iface.rrd$/ } @dir_list;
+        for (@results) { s/.rrd$//g };
+    }
+    elsif ($graphtype eq 'Farm') {
+        @results = grep { /farm.rrd$/ } @dir_list;
+        for (@results) { s/.rrd$//g };
+    }
+    elsif ($graphtype eq 'VPN') {
+        @results = grep { /vpn.rrd$/ } @dir_list;
+        for (@results) { s/.rrd$//g };
+    }
+    else {
+        @results = grep { /.rrd$/ } @dir_list;
+        for (@results) { s/.rrd$//g };
+    }
+
+    return @results;
 }
 
 1;

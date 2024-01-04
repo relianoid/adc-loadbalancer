@@ -21,17 +21,17 @@
 #
 ###############################################################################
 
-use 5.036;
 use strict;
 use warnings;
+use feature qw(signatures);
 
 use Relianoid::Log;
 use Relianoid::Debug;
 use Relianoid::CGI;
 use Relianoid::API40::HTTP;
-use Relianoid::Zapi;
+use Relianoid::API;
 
-&setZapiVersion("4.0");
+&setApiVersion("4.0");
 
 my $q = &getCGI();
 
@@ -51,10 +51,10 @@ my $q = &getCGI();
 #~ &zenlog( "HTTP_ZAPI_KEY: <$ENV{HTTP_ZAPI_KEY}>" )
 #~ if exists $ENV{ HTTP_ZAPI_KEY };
 #~
-#~ #my $session = new CGI::Session( $q );
+#~ #my $session = CGI::Session->new( $q );
 #~
 #~ my $param_zapikey = $ENV{'HTTP_ZAPI_KEY'};
-#~ my $param_session = new CGI::Session( $q );
+#~ my $param_session = CGI::Session->new( $q );
 #~
 #~ my $param_client = $q->param('client');
 #~
@@ -81,13 +81,12 @@ require Relianoid::API40::Options if ($ENV{REQUEST_METHOD} eq 'OPTIONS');
 
 ##### Authentication #################################################
 require Relianoid::API40::Auth;
-require Relianoid::Zapi;
 
 # Session request
 require Relianoid::API40::Session if ($q->path_info eq '/session');
 
 # Verify authentication
-unless ((exists $ENV{HTTP_ZAPI_KEY} && &validZapiKey())
+unless ((exists $ENV{HTTP_ZAPI_KEY} && &validApiKey())
     or (exists $ENV{HTTP_COOKIE} && &validCGISession()))
 {
     &httpResponse({ code => 401, body => { message => 'Authorization required' } });

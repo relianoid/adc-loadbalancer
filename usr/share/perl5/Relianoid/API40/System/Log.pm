@@ -22,6 +22,8 @@
 ###############################################################################
 
 use strict;
+use warnings;
+
 use Relianoid::System::Log;
 
 #	GET	/system/logs
@@ -31,6 +33,7 @@ sub get_logs {
     my $logs = &getLogs();
 
     &httpResponse({ code => 200, body => { description => $desc, params => $logs } });
+    return;
 }
 
 #	GET	/system/logs/LOG
@@ -59,6 +62,7 @@ sub download_logs {
     my $logdir = &getGlobalConfiguration('logdir');
 
     &httpDownloadResponse(desc => $desc, dir => $logdir, file => $logFile);
+    return;
 }
 
 #	GET	/system/logs/LOG/lines/LINES
@@ -88,6 +92,7 @@ sub show_logs {
     my $body  = { description => $desc, log => $lines };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 1;

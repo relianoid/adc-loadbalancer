@@ -22,27 +22,39 @@
 ###############################################################################
 
 use strict;
+use warnings;
 use feature 'state';
 use CGI::Simple;
 
 $CGI::Simple::DISABLE_UPLOADS = 0;                # enable uploads
 $CGI::Simple::POST_MAX        = 1_048_576_000;    # allow 1000MB uploads
 
-=begin nd
-Function: getCGI
+=pod
 
-	Get a cgi object only once per http request and reuse the same object if the function is used more than once.
+=head1 Module
+
+Relianoid::CGI
+
+=cut
+
+=pod
+
+=head1 getCGI
+
+Get a cgi object only once per http request and reuse the same object if the function is used more than once.
 
 Parameters:
-	none - .
+
+    none - .
 
 Returns:
-	CGI Object - CGI Object reference.
 
-Bugs:
+    CGI Object - CGI Object reference.
 
 See Also:
-	zapi/v3/zapi.cgi, zapi/v3/certificates.cgi, zapi/v3/system.cgi, <downloadBackup>
+
+    zapi/v3/zapi.cgi, zapi/v3/certificates.cgi, zapi/v3/system.cgi, <downloadBackup>
+
 =cut
 
 sub getCGI {
@@ -52,33 +64,36 @@ sub getCGI {
     return $cgi;
 }
 
-=begin nd
-Function: getCgiParam
+=pod
 
-	Get CGI variables.
+=head1 getCgiParam
 
-	This functions can be used in two diferent ways:
+Get CGI variables.
 
-	1- When a variable name is passed as an argument, the variable value is returned:
+This functions can be used in two diferent ways:
 
-		$var = &getCgiParam( 'variableName' );
+1- When a variable name is passed as an argument, the variable value is returned:
 
-	2- When no arguments are passed, a hash reference with all the variables is returned:
+    $var = &getCgiParam( 'variableName' );
 
-		$hash_ref = &getCgiParam();
-		print $hash_ref->{ 'variableName' };
+2- When no arguments are passed, a hash reference with all the variables is returned:
+
+    $hash_ref = &getCgiParam();
+    print $hash_ref->{ 'variableName' };
 
 Parameters:
-	String - CGI variable name. Optional.
+
+    String - CGI variable name. Optional.
 
 Returns:
-	Scalar - Variable value. When a variable name has been passed as an argument.
-	Scalar - Reference to a hash with all the CGI variables. When the function is run without arguments.
 
-Bugs:
+    Scalar - Variable value. When a variable name has been passed as an argument.
+    Scalar - Reference to a hash with all the CGI variables. When the function is run without arguments.
 
 See Also:
-	zapi/v3/zapi.cgi
+
+    zapi/v3/zapi.cgi
+
 =cut
 
 sub getCgiParam {

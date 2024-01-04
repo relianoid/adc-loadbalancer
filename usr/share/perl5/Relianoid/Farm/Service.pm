@@ -22,25 +22,34 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
 my $configdir = &getGlobalConfiguration('configdir');
 
-=begin nd
-Function: getFarmServices
+=pod
 
-	Get a list of services name for a farm
-	
+=head1 Module
+
+Relianoid::Farm::Service
+
+=cut
+
+=pod
+
+=head1 getFarmServices
+
+Get a list of services name for a farm
+    
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	Array - list of service names 
-	
+
+    Array - list of service names 
+    
 =cut
 
 sub getFarmServices    # ($farm_name)

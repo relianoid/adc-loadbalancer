@@ -22,11 +22,9 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
 # 	GET /system/users
 sub get_system_user {
@@ -37,14 +35,14 @@ sub get_system_user {
     my $desc = "Retrieve the user $user";
 
     if ('root' eq $user) {
-        require Relianoid::Zapi;
+        require Relianoid::API;
         my $params = {
             'user'             => $user,
-            'zapi_permissions' => &getZAPI("status"),
+            'zapi_permissions' => &getAPI("status"),
             'service'          => 'local'
 
               # it is configured if the status is up
-              # 'zapikey'	=> &getZAPI( "zapikey" ),
+              # 'zapikey'	=> &getAPI( "zapikey" ),
         };
 
         &httpResponse(
@@ -75,6 +73,7 @@ sub get_system_user {
         my $msg = "The user is not found";
         &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
     }
+    return;
 }
 
 #  POST /system/users
@@ -89,10 +88,10 @@ sub set_system_user {
     my $user  = &getUser();
     my $desc  = "Modify the user $user";
 
-    my $params = &getZAPIModel("system_user-modify.json");
+    my $params = &getAPIModel("system_user-modify.json");
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -169,13 +168,13 @@ sub set_system_user {
                     );
                 }
             }
-            &setZAPI('key', $json_obj->{'zapikey'});
+            &setAPI('key', $json_obj->{'zapikey'});
         }
 
         # modify zapi permissions
         if (exists $json_obj->{'zapi_permissions'}) {
             if ($json_obj->{'zapi_permissions'} eq 'true'
-                && !&getZAPI('zapikey'))
+                && !&getAPI('zapikey'))
             {
                 my $msg = "It is necessary a zapikey to enable the zapi permissions.";
                 return &httpErrorResponse(
@@ -185,14 +184,14 @@ sub set_system_user {
                 );
             }
             if (   $json_obj->{'zapi_permissions'} eq 'true'
-                && &getZAPI("status") eq 'false')
+                && &getAPI("status") eq 'false')
             {
-                &setZAPI("enable");
+                &setAPI("enable");
             }
             elsif ($json_obj->{'zapi_permissions'} eq 'false'
-                && &getZAPI("status") eq 'true')
+                && &getAPI("status") eq 'true')
             {
-                &setZAPI("disable");
+                &setAPI("disable");
             }
         }
     }
@@ -214,6 +213,7 @@ sub set_system_user {
     my $body = { description => $desc, message => $msg };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 1;

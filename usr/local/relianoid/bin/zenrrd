@@ -32,9 +32,10 @@
 # name-rrd.pl, the system will include them automatically to run them
 # and view them in RELIANOID load balancer GUI (Monitoring section)
 
-use 5.036;
 use strict;
 use warnings;
+use feature qw(signatures);
+
 use Relianoid::Config;
 use Relianoid::Log;
 

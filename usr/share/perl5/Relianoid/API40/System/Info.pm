@@ -22,11 +22,9 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
 require Relianoid::System;
 
@@ -52,6 +50,7 @@ sub get_license {
     my $file = &slurpFile($licenseFile);
 
     &httpResponse({ code => 200, body => $file, type => 'text/plain' });
+    return;
 }
 
 sub get_supportsave {
@@ -69,6 +68,7 @@ sub get_supportsave {
     my $ss_filename = &getSupportSave();
 
     &httpDownloadResponse(desc => $desc, dir => '/tmp', file => $ss_filename);
+    return;
 }
 
 # GET /system/version
@@ -85,6 +85,7 @@ sub get_version {
 
     my $params = {
         'kernel_version'    => $kernel,
+        'relianoid_version' => $relianoid,
         'zevenet_version'   => $relianoid,
         'hostname'          => $hostname,
         'system_date'       => $date,
@@ -93,6 +94,7 @@ sub get_version {
     my $body = { description => $desc, params => $params };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # GET /system/info
@@ -101,30 +103,31 @@ sub get_system_info {
 
     require Relianoid::SystemInfo;
     require Relianoid::User;
-    require Relianoid::Zapi;
+    require Relianoid::API;
 
     my $desc = "Get the system information";
 
-    my $relianoid     = &getGlobalConfiguration('version');
-    my $lang          = &getGlobalConfiguration('lang');
-    my $kernel        = &getKernelVersion();
-    my $hostname      = &getHostname();
-    my $date          = &getDate();
-    my $applicance    = &getApplianceVersion();
-    my $user          = &getUser();
-    my @zapi_versions = &listZapiVersions();
-    my $edition       = ($eload) ? "enterprise" : "community";
-    my $platform      = &getGlobalConfiguration('cloud_provider');
+    my $relianoid    = &getGlobalConfiguration('version');
+    my $lang         = &getGlobalConfiguration('lang');
+    my $kernel       = &getKernelVersion();
+    my $hostname     = &getHostname();
+    my $date         = &getDate();
+    my $applicance   = &getApplianceVersion();
+    my $user         = &getUser();
+    my @api_versions = &listApiVersions();
+    my $edition      = ($eload) ? "enterprise" : "community";
+    my $platform     = &getGlobalConfiguration('cloud_provider');
 
     my $params = {
         'system_date'             => $date,
         'appliance_version'       => $applicance,
         'kernel_version'          => $kernel,
+        'relianoid_version'       => $relianoid,
         'zevenet_version'         => $relianoid,
         'hostname'                => $hostname,
         'user'                    => $user,
-        'supported_zapi_versions' => \@zapi_versions,
-        'last_zapi_version'       => $zapi_versions[-1],
+        'supported_zapi_versions' => \@api_versions,
+        'last_zapi_version'       => $api_versions[-1],
         'edition'                 => $edition,
         'language'                => $lang,
         'platform'                => $platform,
@@ -140,6 +143,7 @@ sub get_system_info {
 
     my $body = { description => $desc, params => $params };
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 #  POST /system/language
@@ -149,10 +153,10 @@ sub set_language {
 
     my $desc = "Modify the WebGUI language";
 
-    my $params = &getZAPIModel("system_language-modify.json");
+    my $params = &getAPIModel("system_language-modify.json");
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -169,6 +173,7 @@ sub set_language {
             }
         }
     );
+    return;
 }
 
 #  GET /system/language
@@ -187,6 +192,7 @@ sub get_language {
             }
         }
     );
+    return;
 }
 
 # GET /system/packages
@@ -201,7 +207,8 @@ sub get_packages_info {
 
     $output->{number} += 0 if (defined $output->{number});
 
-    return &httpResponse({ code => 200, body => { description => $desc, params => $output } });
+    &httpResponse({ code => 200, body => { description => $desc, params => $output } });
+    return;
 }
 
 1;

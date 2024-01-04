@@ -1,19 +1,19 @@
 #!/usr/bin/perl
 
-use 5.036;
 use strict;
+use warnings
+use feature qw(signatures say);
+
+use Config::Tiny;
 use Relianoid::Config;
 use Relianoid::Net::Interface;
 use Relianoid::Validate;
 use Relianoid::Log;
-use feature qw( say );
-use Config::Tiny;
 
 my $iface_files_dir = "/usr/local/relianoid/config";
-my @iface_files;
+
 opendir(my $dir, $iface_files_dir);
-@iface_files =
-  grep { /^if_.*_conf/ && -f "$iface_files_dir/$_" } readdir($dir);
+my @iface_files = grep { /^if_.*_conf/ && -f "$iface_files_dir/$_" } readdir($dir);
 closedir $dir;
 
 foreach my $file (@iface_files) {

@@ -22,6 +22,7 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
 my $q = getCGI();
 
@@ -262,9 +263,9 @@ if ($q->path_info =~ qr{^/interfaces/virtual}) {
 if ($q->path_info =~ qr{^/interfaces/gateway(?:/ipv([46]))?$}) {
     require Relianoid::API40::Interface::Gateway;
 
-    GET qr{^/interfaces/gateway(?:/ipv([46]))?$} => \&get_gateway;
-    PUT qr{^/interfaces/gateway(?:/ipv([46]))?$} => \&modify_gateway;
-    DELETE qr{^/interfaces/gateway(?:/ipv([46]))?$} => \&delete_gateway;
+    GET qr{^/interfaces/gateway/ipv([46])$} => \&get_gateway;
+    PUT qr{^/interfaces/gateway/ipv([46])$} => \&modify_gateway;
+    DELETE qr{^/interfaces/gateway/ipv([46])$} => \&delete_gateway;
 }
 
 if ($q->path_info =~ qr{^/interfaces$}) {

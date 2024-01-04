@@ -22,31 +22,48 @@
 ###############################################################################
 
 use strict;
+use warnings;
+use feature qw(signatures);
+no warnings 'experimental::args_array_with_signatures';
 
-=begin nd
-Function: getDns
+=pod
 
-	Get the dns servers.
+=head1 Module
+
+Relianoid::System::DNS
+
+=cut
+
+=pod
+
+=head1 getDns
+
+Get the dns servers.
 
 Parameters:
-	none - .
+
+    none - .
 
 Returns:
-	scalar - Hash reference.
 
-	Example:
+    scalar - Hash reference.
 
-	$dns = {
-			primary => "value",
-			secundary => "value",
-	};
+    Example:
+
+    $dns = {
+        primary => "value",
+        secundary => "value",
+    };
 
 See Also:
-	zapi/v3/system.cgi
+
+    zapi/v3/system.cgi
+
 =cut
 
 sub getDns {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+
     my $dns     = { 'primary' => '', 'secondary' => '' };
     my $dnsFile = &getGlobalConfiguration('filedns');
 
@@ -72,28 +89,33 @@ sub getDns {
     return $dns;
 }
 
-=begin nd
-Function: setDns
+=pod
 
-	Set a primary or secondary dns server.
+=head1 setDns
+
+Set a primary or secondary dns server.
 
 Parameters:
-	dns - 'primary' or 'secondary'.
-	value - ip addres of dns server.
+
+    dns - 'primary' or 'secondary'.
+    value - ip addres of dns server.
 
 Returns:
-	none - .
+
+    none - .
 
 Bugs:
-	Returned value.
+
+    Returned value.
 
 See Also:
-	zapi/v3/system.cgi
+
+    zapi/v3/system.cgi
+
 =cut
 
-sub setDns {
+sub setDns ($dns, $value) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($dns, $value) = @_;
 
     my $dnsFile = &getGlobalConfiguration('filedns');
 
@@ -135,4 +157,3 @@ sub setDns {
 }
 
 1;
-

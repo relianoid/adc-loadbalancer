@@ -22,13 +22,11 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
 use Relianoid::System;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
 # Get all farm stats
 sub getAllFarmStats {
@@ -228,6 +226,7 @@ sub farm_stats    # ( $farmname, $servicename )
 
         &httpResponse({ code => 200, body => $body });
     }
+    return;
 }
 
 #Get Farm Stats
@@ -242,6 +241,7 @@ sub all_farms_stats    # ()
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 #GET /stats
@@ -304,6 +304,7 @@ sub stats    # ()
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 #GET /stats/network
@@ -325,6 +326,7 @@ sub stats_network    # ()
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 1;

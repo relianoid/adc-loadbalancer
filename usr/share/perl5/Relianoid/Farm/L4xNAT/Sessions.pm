@@ -26,34 +26,61 @@ use warnings;
 
 use Relianoid::Farm::L4xNAT::Config;
 
-=begin nd
-Function: parseL4FarmSessions
+=pod
 
-	It transform the session output of nftlb output in a Relianoid session struct
+=head1 Module
+
+Relianoid::Farm::L4xNAT::Sessions
+
+=cut
+
+=pod
+
+=head1 parseL4FarmSessions
+
+It transform the session output of nftlb output in a Relianoid session struct
 
 Parameters:
-	session ref - It is the session hash returned for nftlb. Example:
-		session = {
-			'expiration' => '1h25m31s364ms',
-			'backend' => 'bck0',
-			'client' => '192.168.10.162'
-		}
+
+    session ref - It is the session hash returned for nftlb. Example:
+
+    session = {
+        'expiration' => '1h25m31s364ms',
+        'backend' => 'bck0',
+        'client' => '192.168.10.162'
+    }
 
 Returns:
-	Hash ref - It is a hash with the following keys:
-		'session' returns the session token.
-		'id' returns the backen linked with the session token. If any session was found
-		the function will return 'undef'.
-		'type' will have the value 'static' if the session is preloaded by the user;
-			or 'dynamic' if the session is created automatically by the system when the connection arrives.
-		'ttl' is the time out of the session. This field will be 'undef' when the session is static.
 
-		{
-			"id" : 3,
-			"session" : "192.168.1.186"
-			"type" : "dynamic"
-			"ttl" : "1h25m31s364ms"
-		}
+    Hash ref - It is a hash with the following keys:
+
+    'session' 
+    
+        Returns the session token.
+
+    'id'
+    
+        Returns the backen linked with the session token.
+        If any session was found the function will return 'undef'.
+
+    'type'
+    
+        Will have the value:
+
+        - 'static' if the session is preloaded by the user.
+        - 'dynamic' if the session is created automatically by the system when the connection arrives.
+
+    'ttl'
+
+        Is the time out of the session.
+        This field will be 'undef' when the session is static.
+
+        {
+            "id" : 3,
+            "session" : "192.168.1.186"
+            "type" : "dynamic"
+            "ttl" : "1h25m31s364ms"
+        }
 
 =cut
 
@@ -77,30 +104,45 @@ sub parseL4FarmSessions {
     return $obj;
 }
 
-=begin nd
-Function: listL4FarmSessions
+=pod
 
-	Get a list of the static and dynamic l4 sessions in a farm. Using nftlb
+=head1 listL4FarmSessions
+
+Get a list of the static and dynamic l4 sessions in a farm. Using nftlb
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	array ref - Returns a list of hash references with the following parameters:
-		"client" is the client position entry in the session table
-		"id" is the backend id assigned to session
-		"session" is the key that identifies the session
-		"type" is the key that identifies the session
 
-		[
-			{
-				"client" : 0,
-				"id" : 3,
-				"session" : "192.168.1.186",
-				"type" : "dynamic",
-				"ttl" : "54m5s",
-			}
-		]
+    array ref - Returns a list of hash references with the following parameters:
+
+    "client" 
+    
+        is the client position entry in the session table
+
+    "id"
+    
+        is the backend id assigned to session
+
+    "session"
+    
+        is the key that identifies the session
+
+    "type"
+    
+        is the key that identifies the session
+
+    [
+        {
+            "client" : 0,
+            "id" : 3,
+            "session" : "192.168.1.186",
+            "type" : "dynamic",
+            "ttl" : "54m5s",
+        }
+    ]
 
 =cut
 
@@ -136,7 +178,10 @@ sub listL4FarmSessions {
     }
 
     close $lock_fd;
-    return [] if ($err or !defined $nftlb_resp);
+
+    if ($err or not defined $nftlb_resp) {
+        return [];
+    }
 
     my $client_id = 0;
     my $backend_info;
@@ -156,28 +201,41 @@ sub listL4FarmSessions {
     return \@sessions;
 }
 
-=begin nd
-Function: getL4FarmSession
+=pod
 
-	It selects an session item of the sessions list. The session key is used to select the item
+=head1 getL4FarmSession
+
+It selects an session item of the sessions list. The session key is used to select the item
 
 Parameters:
-	farmname - Farm name
-	session - Session value. It is the session tocken used to forward the connection
+
+    farmname - Farm name
+
+    session - Session value. It is the session tocken used to forward the connection
 
 Returns:
-	Hash ref - Returns session struct with information about the session.
-		"client" is the client position entry in the session table
-		"id" is the backend id assigned to session
-		"session" is the key that identifies the session
 
-		{
-			"client" : 0,
-			"id" : 3,
-			"session" : "192.168.1.186",
-			"type" : "dynamic",
-			"ttl" : "54m5s",
-		}
+    Hash ref - Returns session struct with information about the session.
+
+    "client"
+
+        is the client position entry in the session table
+
+    "id"
+
+        is the backend id assigned to session
+
+    "session"
+
+        is the key that identifies the session
+
+    {
+        "client" : 0,
+        "id" : 3,
+        "session" : "192.168.1.186",
+        "type" : "dynamic",
+        "ttl" : "54m5s",
+    }
 
 =cut
 

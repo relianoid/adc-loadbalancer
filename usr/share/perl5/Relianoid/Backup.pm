@@ -22,23 +22,37 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
 use File::stat;
 use File::Basename;
 
-=begin nd
-Function: getBackup
+=pod
 
-	List the backups in the system.
+=head1 Module
+
+Relianoid::Backup
+
+=cut
+
+=pod
+
+=head1 getBackup
+
+List the backups in the system.
 
 Parameters:
-	none - .
+
+    none
 
 Returns:
-	scalar - Array reference.
+
+    scalar - Array reference.
 
 See Also:
-	<getExistsBackup>, zapi/v3/system.cgi
+
+    <getExistsBackup>, zapi/v3/system.cgi
+
 =cut
 
 sub getBackup {
@@ -48,7 +62,7 @@ sub getBackup {
     my $backup_re = &getValidFormat('backup');
 
     opendir(my $directory, $backupdir);
-    my @files = grep (/^backup.*/, readdir($directory));
+    my @files = grep { /^backup.*/ } readdir($directory);
     closedir($directory);
 
     foreach my $line (@files) {
@@ -74,20 +88,25 @@ sub getBackup {
     return \@backups;
 }
 
-=begin nd
-Function: getExistsBackup
+=pod
 
-	Check if there is a backup with the given name.
+=head1 getExistsBackup
+
+Check if there is a backup with the given name.
 
 Parameters:
-	name - Backup name.
+
+    name - Backup name.
 
 Returns:
-	1     - if the backup exists.
-	undef - if the backup does not exist.
+
+    1     - if the backup exists.
+    undef - if the backup does not exist.
 
 See Also:
-	zapi/v3/system.cgi
+
+    zapi/v3/system.cgi
+
 =cut
 
 sub getExistsBackup {
@@ -104,19 +123,24 @@ sub getExistsBackup {
     return $find;
 }
 
-=begin nd
-Function: createBackup
+=pod
 
-	Creates a backup with the given name
+=head1 createBackup
+
+Creates a backup with the given name
 
 Parameters:
-	name - Backup name.
+
+    name - Backup name.
 
 Returns:
-	integer - ERRNO or return code of backup creation process.
+
+    integer - ERRNO or return code of backup creation process.
 
 See Also:
-	zapi/v3/system.cgi
+
+    zapi/v3/system.cgi
+
 =cut
 
 sub createBackup {
@@ -128,41 +152,55 @@ sub createBackup {
     return $error;
 }
 
-=begin nd
-Function: downloadBackup
+=pod
 
-	Get zapi client to download a backup file.
+=head1 downloadBackup
+
+Get API client to download a backup file.
+
+This function finishes the process on success.
 
 Parameters:
-	backup - Backup name.
+
+    backup - Backup name.
 
 Returns:
-	1 - on error.
 
-	Does not return on success.
+    This function finishes the process on success.
+
+    Returns an error message on failure.
 
 See Also:
-	zapi/v3/system.cgi
+
+    API40/System/Backup.pm::download_backup()
+
 =cut
 
 sub downloadBackup {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+
     my $backup = shift;
-    my $error;
-
     $backup = "backup-$backup.tar.gz";
-    my $backupdir = &getGlobalConfiguration('backupdir');
-    open(my $download_fh, '<', "$backupdir/$backup");
 
-    if (-f "$backupdir\/$backup" && $download_fh) {
+    my $backup_dir = &getGlobalConfiguration('backupdir');
+    my $backup_filename = "${backup_dir}\/${backup}";
+
+    unless (-f $backup_filename) {
+        my $msg = "Backup file '$backup_filename' not found";
+        zenlog($msg, 'error');
+        return $msg;
+    }
+
+    if (open(my $download_fh, '<', $backup_filename)) {
         my $cgi = &getCGI();
+        my $access_control_allow_origin =
+        (exists $ENV{HTTP_ZAPI_KEY}) ? '*' : "https://$ENV{ HTTP_HOST }/";
+
         print $cgi->header(
-            -type                         => 'application/x-download',
-            -attachment                   => $backup,
-            'Content-length'              => -s "$backupdir/$backup",
-            'Access-Control-Allow-Origin' => (exists $ENV{HTTP_ZAPI_KEY})
-            ? '*'
-            : "https://$ENV{ HTTP_HOST }/",
+            -type                              => 'application/x-download',
+            -attachment                        => $backup,
+            'Content-length'                   => -s "${backup_filename}",
+            'Access-Control-Allow-Origin'      => $access_control_allow_origin,
             'Access-Control-Allow-Credentials' => 'true',
         );
 
@@ -171,28 +209,34 @@ sub downloadBackup {
         close $download_fh;
         exit;
     }
-    else {
-        $error = 1;
-    }
-    return $error;
+
+    my $msg = "Could not open backup file '$backup_filename': $!";
+    zenlog($msg, 'error');
+
+    return $msg;
 }
 
-=begin nd
-Function: uploadBackup
+=pod
 
-	Store an uploaded backup.
+=head1 uploadBackup
+
+Store an uploaded backup.
 
 Parameters:
-	filename - Uploaded backup file name.
-	upload_filehandle - File handle or file content.
+
+    filename          - Uploaded backup file name.
+    upload_filehandle - File handle or file content.
 
 Returns:
-	2     - The file is not a .tar.gz
-	1     - on failure.
-	0 - on success.
+
+    2 - The file is not a .tar.gz
+    1 - on failure.
+    0 - on success.
 
 See Also:
-	zapi/v3/system.cgi
+
+    zapi/v3/system.cgi
+
 =cut
 
 sub uploadBackup {
@@ -239,20 +283,25 @@ sub uploadBackup {
     return $error;
 }
 
-=begin nd
-Function: deleteBackup
+=pod
 
-	Delete a backup.
+=head1 deleteBackup
+
+Delete a backup.
 
 Parameters:
-	file - Backup name.
+
+    file - Backup name.
 
 Returns:
-	1     - on failure.
-	undef - on success.
+
+    1     - on failure.
+    undef - on success.
 
 See Also:
-	zapi/v3/system.cgi
+
+    zapi/v3/system.cgi
+
 =cut
 
 sub deleteBackup {
@@ -275,19 +324,24 @@ sub deleteBackup {
     return $error;
 }
 
-=begin nd
-Function: applyBackup
+=pod
 
-	Restore files from a backup.
+=head1 applyBackup
+
+Restore files from a backup.
 
 Parameters:
-	backup - Backup name.
+
+    backup - Backup name.
 
 Returns:
-	integer - 0 on success or another value on failure.
+
+    integer - 0 on success or another value on failure.
 
 See Also:
-	zapi/v3/system.cgi
+
+    zapi/v3/system.cgi
+
 =cut
 
 sub applyBackup {
@@ -342,16 +396,19 @@ sub applyBackup {
     return $error;
 }
 
-=begin nd
-Function: getBackupVersion
+=pod
 
-	It gets the version of relianoid from which the backup was created
+=head1 getBackupVersion
+
+It gets the version of relianoid from which the backup was created
 
 Parameters:
-	backup - Backup name.
+
+    backup - Backup name.
 
 Returns:
-	String - Relianoid version
+
+    String - Relianoid version
 
 =cut
 

@@ -22,35 +22,46 @@
 ###############################################################################
 
 use strict;
-sub include;
+use warnings;
+
 require Relianoid::Netfilter;
 require Relianoid::Farm::Config;
+
+sub include;
 
 my $configdir = &getGlobalConfiguration('configdir');
 my $proxy_ng  = &getGlobalConfiguration('proxy_ng');
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
-=begin nd
-Function: setHTTPFarmServer
+=pod
 
-	Add a new backend to a HTTP service or modify if it exists
+=head1 Module
+
+Relianoid::Farm::HTTP::Backend
+
+=cut
+
+=pod
+
+=head1 setHTTPFarmServer
+
+Add a new backend to a HTTP service or modify if it exists
 
 Parameters:
-	ids - backend id
-	rip - backend ip
-	port - backend port
-	weight - The weight of this backend (between 1 and 9). Higher weight backends will be used more often than lower weight ones.
-	timeout - Override the global time out for this backend
-	farmname - Farm name
-	service - service name
-	priority - The priority of this backend (greater than 1). Lower value indicates higher priority
+
+    ids - backend id
+    rip - backend ip
+    port - backend port
+    weight - The weight of this backend (between 1 and 9). Higher weight backends will be used more often than lower weight ones.
+    timeout - Override the global time out for this backend
+    farmname - Farm name
+    service - service name
+    priority - The priority of this backend (greater than 1). Lower value indicates higher priority
 
 Returns:
-	Integer - return 0 on success or -1 on failure
+
+    Integer - return 0 on success or -1 on failure
 
 =cut
 
@@ -213,6 +224,7 @@ sub setHTTPFarmServer  # ($ids,$rip,$port,$weight,$timeout,$farm_name,$service,$
 
             # if backend added then go out of form
         }
+
         if ($nsflag eq "true") {
             my $idservice = &getFarmVSI($farm_name, $service);
             if ($idservice ne "") {
@@ -226,23 +238,26 @@ sub setHTTPFarmServer  # ($ids,$rip,$port,$weight,$timeout,$farm_name,$service,$
     return $output;
 }
 
-=begin nd
-Function: setHTTPNGFarmServer
+=pod
 
-	Add a new backend to a HTTP service or modify if it exists
+=head1 setHTTPNGFarmServer
+
+Add a new backend to a HTTP service or modify if it exists
 
 Parameters:
-	ids - backend id
-	rip - backend ip
-	port - backend port
-	weight - The weight of this backend (between 1 and 9). Higher weight backends will be used more often than lower weight ones.
-	timeout - Override the global time out for this backend
-	farmname - Farm name
-	service - service name
-	priority - The priority of this backend (greater than 1). Lower value indicates higher priority
+
+    ids - backend id
+    rip - backend ip
+    port - backend port
+    weight - The weight of this backend (between 1 and 9). Higher weight backends will be used more often than lower weight ones.
+    timeout - Override the global time out for this backend
+    farmname - Farm name
+    service - service name
+    priority - The priority of this backend (greater than 1). Lower value indicates higher priority
 
 Returns:
-	Integer - return 0 on success or -1 on failure
+
+    Integer - return 0 on success or -1 on failure
 
 =cut
 
@@ -251,6 +266,7 @@ sub setHTTPNGFarmServer # ($ids,$rip,$port,$weight,$timeout,$farm_name,$service,
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my ($ids, $rip, $port, $weight, $timeout, $farm_name, $service, $priority, $connlimit) = @_;
+
     my $farm_filename = &getFarmFile($farm_name);
     my $output        = -1;
 
@@ -454,8 +470,10 @@ sub setHTTPNGFarmServer # ($ids,$rip,$port,$weight,$timeout,$farm_name,$service,
 
             # if backend added then go out of form
         }
+
         if ($nsflag eq "true") {
             my $idservice = &getFarmVSI($farm_name, $service);
+
             if ($idservice ne "") {
                 &setHTTPFarmBackendStatusFile($farm_name, $backend, "active", $idservice);
             }
@@ -467,18 +485,21 @@ sub setHTTPNGFarmServer # ($ids,$rip,$port,$weight,$timeout,$farm_name,$service,
     return $output;
 }
 
-=begin nd
-Function: runHTTPFarmServerDelete
+=pod
 
-	Delete a backend in a HTTP service
+=head1 runHTTPFarmServerDelete
+
+Delete a backend in a HTTP service
 
 Parameters:
-	ids - backend id to delete it
-	farmname - Farm name
-	service - service name where is the backend
+
+    ids      - backend id to delete it
+    farmname - Farm name
+    service  - service name where is the backend
 
 Returns:
-	Integer - return 0 on success or -1 on failure
+
+    Integer - return 0 on success or -1 on failure
 
 =cut
 
@@ -563,17 +584,21 @@ sub runHTTPFarmServerDelete    # ($ids,$farm_name,$service)
     return $output;
 }
 
-=begin nd
-Function: setHTTPFarmBackendsMarks
+=pod
 
-	Set marks in the backends of an HTTP farm
+=head1 setHTTPFarmBackendsMarks
+
+Set marks in the backends of an HTTP farm
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	$error_ref: $error_ref->{ code } - 0 on success, 1 on failure.
-				$error_ref->{ desc } - error message.
+
+    $error_ref: $error_ref->{ code } - 0 on success, 1 on failure.
+                $error_ref->{ desc } - error message.
+
 =cut
 
 sub setHTTPFarmBackendsMarks    # ($farm_name)
@@ -581,9 +606,13 @@ sub setHTTPFarmBackendsMarks    # ($farm_name)
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my ($farm_name) = @_;
+
     my $error_ref->{code} = -1;
+
     require Relianoid::Farm::Core;
+
     my $farm_filename = &getFarmFile($farm_name);
+
     if ($farm_filename == -1) {
         my $msg = "Backend Marks for farm $farm_name could not be set, config file does not exist";
         $error_ref->{code} = 1;
@@ -634,16 +663,19 @@ sub setHTTPFarmBackendsMarks    # ($farm_name)
     return $error_ref;
 }
 
-=begin nd
-Function: removeHTTPFarmBackendsMarks
+=pod
 
-	Remove marks from the backends of an HTTP farm
+=head1 removeHTTPFarmBackendsMarks
+
+Remove marks from the backends of an HTTP farm
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	None
+
+    None
 
 =cut
 
@@ -662,6 +694,7 @@ sub removeHTTPFarmBackendsMarks    # ($farm_name)
 
     require Tie::File;
     tie my @contents, 'Tie::File', "$configdir\/$farm_filename";
+
     foreach my $line (@contents) {
         $i++;
         if ($line =~ /^\tService\s*\".*\"/) {
@@ -686,20 +719,26 @@ sub removeHTTPFarmBackendsMarks    # ($farm_name)
             $bw = 0;
         }
     }
+
     untie @contents;
+
+    return;
 }
 
-=begin nd
-Function: getHTTPFarmBackendStatusCtl
+=pod
 
-	Get status of a HTTP farm and its backends, sessions can be not included
+=head1 getHTTPFarmBackendStatusCtl
+
+Get status of a HTTP farm and its backends, sessions can be not included
 
 Parameters:
-	farmname - Farm name
-	sessions - "true" show sessions info. "false" sessions are not shown.
+
+    farmname - Farm name
+    sessions - "true" show sessions info. "false" sessions are not shown.
 
 Returns:
-	array - return the output of proxyctl command for a farm
+
+    array - return the output of proxyctl command for a farm
 
 =cut
 
@@ -717,19 +756,22 @@ sub getHTTPFarmBackendStatusCtl    # ($farm_name, $sessions)
     return @{ &logAndGet("$proxyctl $sessions_option -c /tmp/$farm_name\_proxy.socket", "array") };
 }
 
-=begin nd
-Function: getHTTPFarmBackends
+=pod
 
-	Return a list with all backends in a service and theirs configuration
+=head1 getHTTPFarmBackends
+
+Return a list with all backends in a service and theirs configuration
 
 Parameters:
-	farmname - Farm name
-	service - Service name
-	param_status - "true" or "false" to indicate to get backend status.
+
+    farmname     - Farm name
+    service      - Service name
+    param_status - "true" or "false" to indicate to get backend status.
 
 Returns:
-	array ref - Each element in the array it is a hash ref to a backend.
-	the array index is the backend id
+
+    array ref - Each element in the array it is a hash ref to a backend.
+                the array index is the backend id
 
 =cut
 
@@ -744,12 +786,13 @@ sub getHTTPFarmBackends    # ($farm_name,$service,$param_status)
     my $backendsvs = &getHTTPFarmVS($farmname, $service, "backends");
     my @be         = split("\n", $backendsvs);
     my @be_status;
-    if (!$param_status or $param_status eq "true") {
+    my @out_ba;
+    my $backend_ref;
+
+    if (not $param_status or $param_status eq "true") {
         @be_status = @{ &getHTTPFarmBackendsStatus($farmname, $service) };
     }
-    my @out_ba;
 
-    my $backend_ref;
     foreach my $subl (@be) {
         my @subbe = split(' ', $subl);
         my $id    = $subbe[1] + 0;
@@ -769,7 +812,7 @@ sub getHTTPFarmBackends    # ($farm_name,$service,$param_status)
         $tag  = $tag eq '-'  ? undef : $tag + 0;
 
         my $status = "undefined";
-        if (!$param_status or $param_status eq "true") {
+        if (not $param_status or $param_status eq "true") {
             $status = $be_status[$id] if $be_status[$id];
         }
 
@@ -795,34 +838,36 @@ sub getHTTPFarmBackends    # ($farm_name,$service,$param_status)
                 weight  => $prio
             };
         }
-        if (!$param_status or $param_status eq "true") {
+        if (not $param_status or $param_status eq "true") {
             $backend_ref->{status} = $status;
         }
+
         push @out_ba, $backend_ref;
         $backend_ref = undef;
-
     }
 
     return \@out_ba;
 }
 
-=begin nd
-Function: getHTTPFarmBackendsStatus
+=pod
 
-	Get the status of all backends in a service. The possible values are:
+=head1 getHTTPFarmBackendsStatus
 
-	- up = The farm is in up status and the backend is OK.
-	- down = The farm is in up status and the backend is unreachable
-	- maintenace = The backend is in maintenance mode.
-	- undefined = The farm is in down status and backend is not in maintenance mode.
+Get the status of all backends in a service. The possible values are:
 
+    up         - The farm is in up status and the backend is OK.
+    down       - The farm is in up status and the backend is unreachable
+    maintenace - The backend is in maintenance mode.
+    undefined  - The farm is in down status and backend is not in maintenance mode.
 
 Parameters:
-	farmname - Farm name
-	service - Service name
+
+    farmname - Farm name
+    service - Service name
 
 Returns:
-	Array ref - the index is backend index, the value is the backend status
+
+    Array ref - the index is backend index, the value is the backend status
 
 =cut
 
@@ -867,35 +912,49 @@ sub getHTTPFarmBackendsStatus    # ($farm_name,@content)
     return \@status;
 }
 
-=begin nd
-Function: setHTTPFarmBackendStatus
+=pod
 
-	Set backend status for an http farm and stops traffic to that backend when needed.
+=head1 setHTTPFarmBackendStatus
+
+Set backend status for an http farm and stops traffic to that backend when needed.
 
 Parameters:
-	$farm_name - Farm name
-	$service - Service name
-	$backend_index - Backend index
-	$status - Backend status. The possible values are: "up", "maintenance" or "fgDOWN".
-	$cutmode - "cut" to remove sessions for such backend
-	$backends_info_ref - array ref including status and prio of all backends of the service.
+
+    $farm_name          - Farm name
+    $service            - Service name
+    $backend_index      - Backend index
+    $status             - Backend status. The possible values are: "up", "maintenance" or "fgDOWN".
+    $cutmode            - "cut" to remove sessions for such backend
+    $backends_info_ref  - array ref including status and prio of all backends of the service.
+
 Returns:
-	$error_ref: $error_ref->{ code } - 0 on success, 1 on failure changing status,
-				2 on failure removing sessions.
-				$error_ref->{ desc } - error message.
+
+    hash reference
+    
+    $error_ref->{ code }
+
+        0 on success
+        1 on failure changing status,
+        2 on failure removing sessions.
+
+    $error_ref->{ desc } - error message.
+
 =cut
 
 sub setHTTPFarmBackendStatus # ($farm_name,$service,$backend_index,$status,$cutmode,$backends_info_ref)
 {
     &zenlog(__FILE__ . q{:} . __LINE__ . q{:} . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+
     my ($farm_name, $service, $backend_index, $status, $cutmode, $backends_info_ref) = @_;
 
     require Relianoid::Farm::HTTP::Service;
     require Relianoid::Farm::HTTP::Config;
+
     my $socket_file       = &getHTTPFarmSocket($farm_name);
     my $service_id        = &getFarmVSI($farm_name, $service);
     my $error_ref->{code} = -1;
     my $output;
+
     $cutmode = "" if &getHTTPFarmVS($farm_name, $service, "sesstype") eq "";
 
     if ($proxy_ng eq 'true') {
@@ -1049,27 +1108,32 @@ sub setHTTPFarmBackendStatus # ($farm_name,$service,$backend_index,$status,$cutm
             &setHTTPFarmBackendStatusFile($farm_name, $backend_index, 'active', $service_id);
         }
     }
+
     return $error_ref;
 }
 
-=begin nd
-Function: getHTTPBackendStatusFromFile
+=pod
 
-	Function that return if a l7 proxy backend is active, down by farmguardian or it's in maintenance mode
+=head1 getHTTPBackendStatusFromFile
+
+Function that return if a l7 proxy backend is active, down by farmguardian or it's in maintenance mode
 
 Parameters:
-	farmname - Farm name
-	backend - backend id
-	service - service name
+
+    farmname - Farm name
+    backend  - backend id
+    service  - service name
 
 Returns:
-	scalar - return backend status: "maintentance", "fgDOWN", "active" or -1 on failure
+
+    scalar - return backend status: "maintentance", "fgDOWN", "active" or -1 on failure
 
 =cut
 
 sub getHTTPBackendStatusFromFile    # ($farm_name,$backend,$service)
 {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+
     my ($farm_name, $backend, $service) = @_;
 
     require Relianoid::Farm::HTTP::Service;
@@ -1079,48 +1143,57 @@ sub getHTTPBackendStatusFromFile    # ($farm_name,$backend,$service)
 
     # if the status file does not exist the backend is ok
     my $output = "active";
+
     if (!-e $stfile) {
         return $output;
     }
 
     $index = &getFarmVSI($farm_name, $service);
-    open my $fd, '<', $stfile;
 
-    while (my $line = <$fd>) {
+    if (open(my $fh, '<', $stfile)) {
+        my @lines = <$fh>;
+        close $fh;
 
-        #service index
-        if ($line =~ /\ 0\ ${index}\ ${backend}/) {
-            if ($line =~ /maintenance/) {
-                $output = "maintenance";
-            }
-            elsif ($line =~ /fgDOWN/) {
-                $output = "fgDOWN";
-            }
-            else {
-                $output = "active";
+        for my $line (@lines) {
+
+            #service index
+            if ($line =~ /\ 0\ ${index}\ ${backend}/) {
+                if ($line =~ /maintenance/) {
+                    $output = "maintenance";
+                }
+                elsif ($line =~ /fgDOWN/) {
+                    $output = "fgDOWN";
+                }
+                else {
+                    $output = "active";
+                }
             }
         }
     }
-    close $fd;
+
     return $output;
 }
 
-=begin nd
-Function: setHTTPFarmBackendStatusFile
+=pod
 
-	Function that save in a file the backend status (maintenance or not)
+=head1 setHTTPFarmBackendStatusFile
+
+Function that save in a file the backend status (maintenance or not)
 
 Parameters:
-	farmname - Farm name
-	backend - Backend id
-	status - backend status to save in the status file
-	service_id - Service id
+
+    farmname    - Farm name
+    backend     - Backend id
+    status      - backend status to save in the status file
+    service_id  - Service id
 
 Returns:
-	none - .
+
+    none
 
 FIXME:
-	Not return anything, do error control
+
+    Not return anything, do error control
 
 =cut
 
@@ -1194,20 +1267,24 @@ sub setHTTPFarmBackendStatusFile    # ($farm_name,$backend,$status,$idsv)
         close $fd;
     }
 
+    return;
 }
 
-=begin nd
-Function: getHTTPFarmBackendsClients
+=pod
 
-	Function that return number of clients with session in a backend server
+=head1 getHTTPFarmBackendsClients
+
+Function that return number of clients with session in a backend server
 
 Parameters:
-	backend - backend id
-	content - command output where parsing backend status
-	farmname - Farm name
+
+    backend  - backend id
+    content  - command output where parsing backend status
+    farmname - Farm name
 
 Returns:
-	Integer - return number of clients in the backend
+
+    Integer - return number of clients in the backend
 
 =cut
 
@@ -1231,20 +1308,24 @@ sub getHTTPFarmBackendsClients    # ($idserver,@content,$farm_name)
     return $numclients;
 }
 
-=begin nd
-Function: getHTTPFarmBackendsClientsList
+=pod
 
-	Function that return sessions of clients
+=head1 getHTTPFarmBackendsClientsList
+
+Function that return sessions of clients
 
 Parameters:
-	farmname - Farm name
-	content - command output where it must be parsed backend status
+
+    farmname - Farm name
+    content - command output where it must be parsed backend status
 
 Returns:
-	array - return information about existing sessions. The format for each line is: "service" . "\t" . "session_id" . "\t" . "session_value" . "\t" . "backend_id"
+
+    array - return information about existing sessions. The format for each line is: "service" . "\t" . "session_id" . "\t" . "session_value" . "\t" . "backend_id"
 
 FIXME:
-	will be useful change output format to hash format
+
+    will be useful change output format to hash format
 
 =cut
 
@@ -1279,21 +1360,24 @@ sub getHTTPFarmBackendsClientsList    # ($farm_name,@content)
     return @client_list;
 }
 
-=begin nd
-Function: setHTTPFarmBackendMaintenance
+=pod
 
-	Function that enable the maintenance mode for backend
+=head1 setHTTPFarmBackendMaintenance
+
+Function that enable the maintenance mode for backend
 
 Parameters:
-	farmname - Farm name
-	backend - Backend id
-	mode - Maintenance mode, the options are: drain, the backend continues working with
-	  the established connections; or cut, the backend cuts all the established
-	  connections
-	service - Service name
+
+    farmname - Farm name
+    backend  - Backend id
+    mode     - Maintenance mode, the options are:
+               - drain, the backend continues working with the established connections
+               - cut, the backend cuts all the established connections
+    service  - Service name
 
 Returns:
-	Integer - return 0 on success or -1 on failure
+
+    Integer - return 0 on success or -1 on failure
 
 =cut
 
@@ -1314,18 +1398,21 @@ sub setHTTPFarmBackendMaintenance    # ($farm_name,$backend,$mode,$service)
     return $output;
 }
 
-=begin nd
-Function: setHTTPFarmBackendNoMaintenance
+=pod
 
-	Function that disable the maintenance mode for backend
+=head1 setHTTPFarmBackendNoMaintenance
+
+Function that disable the maintenance mode for backend
 
 Parameters:
-	farmname - Farm name
-	backend - Backend id
-	service - Service name
+
+    farmname - Farm name
+    backend  - Backend id
+    service  - Service name
 
 Returns:
-	Integer - return 0 on success or -1 on failure
+
+    Integer - return 0 on success or -1 on failure
 
 =cut
 
@@ -1346,21 +1433,25 @@ sub setHTTPFarmBackendNoMaintenance    # ($farm_name,$backend,$service)
     return $output;
 }
 
-=begin nd
-Function: runRemoveHTTPBackendStatus
+=pod
 
-	Function that removes a backend from the status file
+=head1 runRemoveHTTPBackendStatus
+
+Function that removes a backend from the status file
 
 Parameters:
-	farmname - Farm name
-	backend - Backend id
-	service - Service name
+
+    farmname - Farm name
+    backend  - Backend id
+    service  - Service name
 
 Returns:
-	none - .
+
+    none
 
 FIXME:
-	This function returns nothing, do error control
+
+    This function returns nothing, do error control
 
 =cut
 
@@ -1399,21 +1490,27 @@ sub runRemoveHTTPBackendStatus    # ($farm_name,$backend,$service)
         }
     }
     untie @filelines;
+
+    return;
 }
 
-=begin nd
-Function: setHTTPFarmBackendStatusFromFile
+=pod
 
-	For a HTTP farm, it gets each backend status from status file and set it in ly proxy daemon
+=head1 setHTTPFarmBackendStatusFromFile
+
+For a HTTP farm, it gets each backend status from status file and set it in ly proxy daemon
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	none - .
+
+    none
 
 FIXME:
-	This function returns nothing, do error control
+
+    This function returns nothing, do error control
 
 =cut
 
@@ -1425,46 +1522,49 @@ sub setHTTPFarmBackendStatusFromFile    # ($farm_name)
     &zenlog("Setting backends status in farm $farm_name", "info", "LSLB");
 
     my $be_status_filename = "$configdir\/$farm_name\_status.cfg";
+    my $proxyctl           = &getGlobalConfiguration('proxyctl');
 
     unless (-f $be_status_filename) {
         open my $fh, ">", $be_status_filename;
         close $fh;
+        return;
     }
 
-    open my $fh, "<", $be_status_filename;
+    if (open(my $fh, "<", $be_status_filename)) {
+        my @lines = <$fh>;
+        close $fh;
 
-    unless ($fh) {
+        for my $line_aux (@lines) {
+            my @line = split("\ ", $line_aux);
+            &logAndRun(
+                "$proxyctl -c /tmp/$farm_name\_proxy.socket $line[0] $line[1] $line[2] $line[3]");
+        }
+    }
+    else {
         my $msg = "Error opening $be_status_filename: $!. Aborting execution.";
-
         &zenlog($msg, "error", "LSLB");
         die $msg;
     }
 
-    my $proxyctl = &getGlobalConfiguration('proxyctl');
-
-    while (my $line_aux = <$fh>) {
-        my @line = split("\ ", $line_aux);
-        &logAndRun(
-            "$proxyctl -c /tmp/$farm_name\_proxy.socket $line[0] $line[1] $line[2] $line[3]");
-    }
-    close $fh;
+    return;
 }
 
-=begin nd
-Function: setHTTPFarmBackendsSessionsRemove
+=pod
 
-	Remove all the active sessions enabled to a backend in a given service
-	Used by farmguardian
+=head1 setHTTPFarmBackendsSessionsRemove
+
+Remove all the active sessions enabled to a backend in a given service
+Used by farmguardian
 
 Parameters:
-	farmname - Farm name
-	service - Service name
-	backend - Backend id
+
+    farmname - Farm name
+    service  - Service name
+    backend  - Backend id
 
 Returns:
-	Integer - Error code: It returns 0 on success or another value if it fails deleting some sessions
 
-FIXME:
+    Integer - Error code: It returns 0 on success or another value if it fails deleting some sessions
 
 =cut
 
@@ -1531,32 +1631,33 @@ sub getHTTPFarmBackendAvailableID {
     return $id;
 }
 
-=begin nd
-Function: getHTTPFarmBackendsStatusInfo
+=pod
 
-	This function take data from proxy and it gives hash format
+=head1 getHTTPFarmBackendsStatusInfo
+
+This function take data from proxy and it gives hash format
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	hash ref - hash with backends farm status
 
-		services =>
-		[
-			"id" => $service_id,				 # it is the index in the backend array too
-			"name" => $service_name,
-			"backends" =>
-			[
-				{
-					"id" = $backend_id		# it is the index in the backend array too
-					"ip" = $backend_ip
-					"port" = $backend_port
-					"status" = $backend_status
-					"service" = $service_name
-				}
-			]
-		]
+    hash ref - hash with backends farm status
+
+    services => [
+        "id" => $service_id,            # index in the service array
+        "name" => $service_name,
+        "backends" => [
+            {
+                "id" = $backend_id      # index in the backend array
+                "ip" = $backend_ip
+                "port" = $backend_port
+                "status" = $backend_status
+                "service" = $service_name
+            }
+        ]
+    ]
 
 =cut
 

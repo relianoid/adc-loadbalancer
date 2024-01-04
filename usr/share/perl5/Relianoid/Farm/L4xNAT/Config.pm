@@ -23,45 +23,55 @@
 
 use strict;
 use warnings;
-
-my $configdir = &getGlobalConfiguration('configdir');
+use feature qw(signatures);
 
 use Relianoid::Config;
 use Relianoid::Nft;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
+my $configdir = &getGlobalConfiguration('configdir');
 
-=begin nd
-Function: getL4FarmParam
+=pod
 
-	Returns farm parameter
+=head1 Module
+
+Relianoid::Farm::L4xNAT::Config
+
+=cut
+
+=pod
+
+=head1 getL4FarmParam
+
+Returns farm parameter
 
 Parameters:
-	param - requested parameter. The options are:
-		"vip": get the virtual IP
-		"vipp": get the virtual port
-		"bootstatus": get boot status
-		"status": get the current status
-		"mode": get the topology (or nat type)
-		"alg": get the algorithm
-		"proto": get the protocol
-		"persist": get persistence
-		"persisttm": get client persistence timeout
-		"limitrst": limit RST request per second
-		"limitrstbrst": limit RST request per second burst
-		"limitsec": connection limit per second
-		"limitsecbrst": Connection limit per second burst
-		"limitconns": total connections limit per source IP
-		"bogustcpflags": check bogus TCP flags
-		"nfqueue": queue to verdict the packets
-		"sourceaddr": get the source address
-	farmname - Farm name
+
+    param - requested parameter. The options are:
+
+        "vip":          get the virtual IP
+        "vipp":         get the virtual port
+        "bootstatus":   get boot status
+        "status":       get the current status
+        "mode":         get the topology (or nat type)
+        "alg":          get the algorithm
+        "proto":        get the protocol
+        "persist":      get persistence
+        "persisttm":    get client persistence timeout
+        "limitrst":     limit RST request per second
+        "limitrstbrst": limit RST request per second burst
+        "limitsec":     connection limit per second
+        "limitsecbrst": Connection limit per second burst
+        "limitconns":   total connections limit per source IP
+        "bogustcpflags": check bogus TCP flags
+        "nfqueue":      queue to verdict the packets
+        "sourceaddr":   get the source address
+
+    farmname - Farm name
 
 Returns:
-	Scalar - return the parameter as a string or -1 on failure
+
+    Scalar - return the parameter as a string or -1 on failure
 
 =cut
 
@@ -93,37 +103,44 @@ sub getL4FarmParam {
     return $output;
 }
 
-=begin nd
-Function: setL4FarmParam
+=pod
 
-	Writes a farm parameter
+=head1 setL4FarmParam
+
+    Writes a farm parameter
 
 Parameters:
-	param - requested parameter. The options are:
-		"name": new farm name
-		"family": write ipv4 or ipv6
-		"vip": write the virtual IP
-		"vipp": write the virtual port
-		"status" or "bootstatus" : write the status and boot status
-		"mode": write the topology (or nat type)
-		"alg": write the algorithm
-		"proto": write the protocol
-		"persist": write persistence
-		"persisttm": write client persistence timeout
-		"limitrst": limit RST request per second
-		"limitrstbrst": limit RST request per second burst
-		"limitsec": connection limit per second
-		"limitsecbrst": Connection limit per second burst
-		"limitconns": total connections limit per source IP
-		"bogustcpflags": check bogus TCP flags
-		"nfqueue": queue to verdict the packets
-		"policy": policy list to be applied
-		"sourceaddr": set the source address
-	value - the new value of the given parameter of a certain farm
-	farmname - Farm name
+
+    param - requested parameter. The options are:
+
+        "name":         new farm name
+        "family":       write ipv4 or ipv6
+        "vip":          write the virtual IP
+        "vipp":         write the virtual port
+        "status" or "bootstatus":
+                        write the status and boot status
+        "mode":         write the topology (or nat type)
+        "alg":          write the algorithm
+        "proto":        write the protocol
+        "persist":      write persistence
+        "persisttm":    write client persistence timeout
+        "limitrst":     limit RST request per second
+        "limitrstbrst": limit RST request per second burst
+        "limitsec":     connection limit per second
+        "limitsecbrst": Connection limit per second burst
+        "limitconns":   total connections limit per source IP
+        "bogustcpflags": check bogus TCP flags
+        "nfqueue":      queue to verdict the packets
+        "policy":       policy list to be applied
+        "sourceaddr":   set the source address
+
+    value - the new value of the given parameter of a certain farm
+
+    farmname - Farm name
 
 Returns:
-	Scalar - return the parameter as a string or -1 on failure
+
+    Scalar - return the parameter as a string or -1 on failure
 
 =cut
 
@@ -343,18 +360,40 @@ sub setL4FarmParam {
     return $output;
 }
 
-=begin nd
-Function: _getL4ParseFarmConfig
+=pod
 
-	Parse the farm file configuration and read/write a certain parameter
+=head1 _getL4ParseFarmConfig
+
+Parse the farm file configuration and read/write a certain parameter
 
 Parameters:
-	param - requested parameter. The options are "family", "vip", "vipp", "status", "mode", "alg", "proto", "persist", "presisttm", "limitsec", "limitsecbrst", "limitconns", "limitrst", "limitrstbrst", "bogustcpflags", "nfqueue", "sourceaddr"
-	value - value to be changed in case of write operation, undef for read only cases
-	config - reference of an array with the full configuration file
+
+    param - requested parameter. The options are 
+            "family", 
+            "vip", 
+            "vipp", 
+            "status", 
+            "mode", 
+            "alg", 
+            "proto", 
+            "persist", 
+            "presisttm", 
+            "limitsec", 
+            "limitsecbrst", 
+            "limitconns", 
+            "limitrst", 
+            "limitrstbrst", 
+            "bogustcpflags", 
+            "nfqueue", 
+            "sourceaddr"
+
+    value - value to be changed in case of write operation, undef for read only cases
+
+    config - reference of an array with the full configuration file
 
 Returns:
-	Scalar - return the parameter value on read or the changed value in case of write as a string or -1 in other case
+
+    Scalar - return the parameter value on read or the changed value in case of write as a string or -1 in other case
 
 =cut
 
@@ -519,17 +558,21 @@ sub _getL4ParseFarmConfig {
     return $output;
 }
 
-=begin nd
-Function: modifyLogsParam
+=pod
 
-	It enables or disables the logs for a l4xnat farm
+=head1 modifyLogsParam
+
+It enables or disables the logs for a l4xnat farm
 
 Parameters:
-	farmname - Farm name
-	log value - The possible values are: 'true' to enable the logs or 'false' to disable them
+
+    farmname - Farm name
+
+    log value - The possible values are: 'true' to enable the logs or 'false' to disable them
 
 Returns:
-	String - return an error message on error or undef on success
+
+    String - return an error message on error or undef on success
 
 =cut
 
@@ -540,10 +583,11 @@ sub modifyLogsParam {
 
     my $msg;
     my $err = 0;
+
     if ($logsValue =~ /(?:true|false)/) {
         $err = &setL4FarmParam('logs',       $logsValue, $farmname);
         $err = &setL4FarmParam('log-prefix', undef,      $farmname)
-          if (!$err and $logsValue eq 'true');
+          if (not $err and $logsValue eq 'true');
     }
     else {
         $msg = "Invalid value for logs parameter.";
@@ -555,16 +599,19 @@ sub modifyLogsParam {
     return $msg;
 }
 
-=begin nd
-Function: getL4FarmStatus
+=pod
 
-	Return current farm status
+=head1 getL4FarmStatus
+
+Return current farm status
 
 Parameters:
-	farm_name - Farm name
+
+    farm_name - Farm name
 
 Returns:
-	String - "up" or "down"
+
+    String - "up" or "down"
 
 =cut
 
@@ -587,18 +634,38 @@ sub getL4FarmStatus {
     return $output;
 }
 
-=begin nd
-Function: getL4FarmStruct
+=pod
 
-	Return a hash with all data about a l4 farm
+=head1 getL4FarmStruct
+
+Return a hash with all data about a l4 farm
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	hash ref -
-		\%farm = { $name, $filename, $nattype, $lbalg, $vip, $vport, $vproto, $sourceip, $persist, $ttl, $proto, $status, \@servers }
-		\@servers = [ \%backend1, \%backend2, ... ]
+
+    hash ref - hash with farm values
+
+    # %farm = 
+    {
+        $name,
+        $filename,
+        $nattype,
+        $lbalg, 
+        $vip, 
+        $vport, 
+        $vproto, 
+        $sourceip, 
+        $persist, 
+        $ttl, 
+        $proto, 
+        $status, 
+        \@servers
+    }
+
+    \@servers = [ \%backend1, \%backend2, ... ]
 
 =cut
 
@@ -650,16 +717,19 @@ sub getL4FarmStruct {
     return \%farm;
 }
 
-=begin nd
-Function: getL4FarmsPorts
+=pod
 
-	Get all port used of L4xNAT farms in up status and using a protocol
+=head1 getL4FarmsPorts
+
+Get all port used of L4xNAT farms in up status and using a protocol
 
 Parameters:
-	protocol - protocol used by l4xnat farm
+
+    protocol - protocol used by l4xnat farm
 
 Returns:
-	String - return a list with the used ports by all L4xNAT farms. Format: "portList1,portList2,..."
+
+    String - return a list with the used ports by all L4xNAT farms. Format: "portList1,portList2,..."
 
 =cut
 
@@ -697,16 +767,19 @@ sub getL4FarmsPorts {
     return $port_list;
 }
 
-=begin nd
-Function: loadL4Modules
+=pod
 
-	Load sip, ftp or tftp conntrack module for l4 farms
+=head1 loadL4Modules
+
+Load sip, ftp or tftp conntrack module for l4 farms
 
 Parameters:
-	protocol - protocol module to load
+
+    protocol - protocol module to load
 
 Returns:
-	Integer - 0 if success, otherwise error
+
+    Integer - 0 if success, otherwise error
 
 =cut
 
@@ -729,16 +802,19 @@ sub loadL4Modules {
     return $status;
 }
 
-=begin nd
-Function: unloadL4Modules
+=pod
 
-	Unload conntrack helpers modules for l4 farms
+=head1 unloadL4Modules
+
+Unload conntrack helpers modules for l4 farms
 
 Parameters:
-	protocol - protocol module to load
+
+    protocol - protocol module to load
 
 Returns:
-	Integer - 0 if success, otherwise error
+
+    Integer - 0 if success, otherwise error
 
 =cut
 
@@ -766,17 +842,21 @@ sub unloadL4Modules {
     return $status;
 }
 
-=begin nd
-Function: validL4ExtPort
+=pod
 
-	check if the port is valid for a sip, ftp or tftp farm
+=head1 validL4ExtPort
+
+check if the port is valid for a sip, ftp or tftp farm
 
 Parameters:
-	protocol - protocol module to load
-	ports - port string
+
+    protocol - protocol module to load
+
+    ports - port string
 
 Returns:
-	Integer - 1 is valid or 0 is not valid
+
+    Integer - 1 is valid or 0 is not valid
 
 =cut
 
@@ -797,16 +877,19 @@ sub validL4ExtPort {
     return $status;
 }
 
-=begin nd
-Function: getFarmPortList
+=pod
 
-	If port is multiport, it removes range port and it passes it to a port list
+=head1 getFarmPortList
+
+If port is multiport, it removes range port and it passes it to a port list
 
 Parameters:
-	fvipp - Port string
+
+    fvipp - Port string
 
 Returns:
-	array - return a list of ports
+
+    array - return a list of ports
 
 =cut
 
@@ -817,7 +900,7 @@ sub getFarmPortList {
     my @portlist    = split(',', $fvipp);
     my @retportlist = ();
 
-    if (!grep (/\*/, @portlist)) {
+    if (!grep { /\*/ } @portlist) {
         foreach my $port (@portlist) {
             if ($port =~ /:/) {
                 my @intlimits = split(':', $port);
@@ -838,16 +921,19 @@ sub getFarmPortList {
     return @retportlist;
 }
 
-=begin nd
-Function: getL4ProtocolTransportLayer
+=pod
 
-	Return basic transport protocol used by l4 farm protocol
+=head1 getL4ProtocolTransportLayer
+
+Return basic transport protocol used by l4 farm protocol
 
 Parameters:
-	protocol - L4xnat farm protocol
+
+    protocol - L4xnat farm protocol
 
 Returns:
-	String - "udp" or "tcp"
+
+    String - "udp" or "tcp"
 
 =cut
 
@@ -861,16 +947,19 @@ sub getL4ProtocolTransportLayer {
       :                           $vproto;
 }
 
-=begin nd
-Function: doL4FarmProbability
+=pod
 
-	Create in the passed hash a new key called "prob". In this key is saved total weight of all backends
+=head1 doL4FarmProbability
+
+Create in the passed hash a new key called "prob". In this key is saved total weight of all backends
 
 Parameters:
-	farm - farm hash ref. It is a hash with all information about the farm
+
+    farm - farm hash ref. It is a hash with all information about the farm
 
 Returns:
-	none - .
+
+    none
 
 =cut
 
@@ -885,20 +974,27 @@ sub doL4FarmProbability {
             $$farm{prob} += $$server_ref{weight};
         }
     }
+
+    return;
 }
 
-=begin nd
-Function: doL4FarmRules
+=pod
 
-	Created to operate with setBackendRule in order to start, stop or reload ip rules
+=head1 doL4FarmRules
+
+Created to operate with setBackendRule in order to start, stop or reload ip rules
 
 Parameters:
-	action - stop (delete all ip rules), start (create ip rules) or reload (delete old one stored in prev_farm_ref and create new)
-	farm_name - farm hash ref. It is a hash with all information about the farm
-	prev_farm_ref - farm ref of the old configuration
+
+    action - stop (delete all ip rules), start (create ip rules) or reload (delete old one stored in prev_farm_ref and create new)
+
+    farm_name - farm hash ref. It is a hash with all information about the farm
+
+    prev_farm_ref - farm ref of the old configuration
 
 Returns:
-	none - .
+
+    none
 
 =cut
 
@@ -920,19 +1016,25 @@ sub doL4FarmRules {
         &setBackendRule("add", $farm_ref, $server->{tag})
           if ($action eq "start" || $action eq "reload");
     }
+
+    return;
 }
 
-=begin nd
-Function: writeL4NlbConfigFile
+=pod
 
-	Write the L4 config file from a curl Nlb request, by filtering IPDS parameters.
+=head1 writeL4NlbConfigFile
+
+Write the L4 config file from a curl Nlb request, by filtering IPDS parameters.
 
 Parameters:
-	nftfile - temporary file captured from the nftlb farm configuration
-	cfgfile - definitive file where the definitive nftlb farm configuration will be stored
+
+    nftfile - temporary file captured from the nftlb farm configuration
+
+    cfgfile - definitive file where the definitive nftlb farm configuration will be stored
 
 Returns:
-	Integer - 0 if success, other if error.
+
+    Integer - 0 if success, other if error.
 
 =cut
 
@@ -951,12 +1053,19 @@ sub writeL4NlbConfigFile {
     &zenlog("Saving farm conf '$cfgfile'", "debug");
 
     my $fo = &openlock($cfgfile, 'w');
-    open my $fi, '<', "$nftfile";
-    my $line  = <$fi>;
+
+    my @lines = ();
+    if (open(my $fi, '<', "$nftfile")) {
+        @lines = <$fi>;
+        close $fi;
+    }
+
+    my $line  = shift @lines;
     my $write = 1;
     my $next_line;
+
     while (defined $line) {
-        $next_line = <$fi>;
+        $next_line = shift @lines;
         $write     = 0 if ($line =~ /\"policies\"\:/);
 
         if (   defined($next_line)
@@ -982,23 +1091,26 @@ sub writeL4NlbConfigFile {
 
         $line = $next_line;
     }
+
     close $fo;
-    close $fi;
     unlink $nftfile;
 
     return 0;
 }
 
-=begin nd
-Function: doL4FarmRules
+=pod
 
-	Reset Connection tracking for a given farm
+=head1 doL4FarmRules
+
+Reset Connection tracking for a given farm
 
 Parameters:
-	farm_name
+
+    farm_name
 
 Returns:
-	error: 1 in case of error and 0 otherwise
+
+    error: 1 in case of error and 0 otherwise
 
 =cut
 

@@ -22,13 +22,11 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
 use Relianoid::RRD;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
 #GET the list of graphs availables in the load balancer
 sub list_possible_graphs    #()
@@ -36,7 +34,11 @@ sub list_possible_graphs    #()
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     require Relianoid::Stats;
 
-    my @farms = grep (s/-farm$//, &getGraphs2Show("Farm"));
+    my @farms = ();
+    for my $graph (&getGraphs2Show("Farm")) {
+        $graph =~ s/-farm$//;
+        push(@farms, $graph);
+    }
 
     if ($eload) {
         @farms = @{
@@ -48,7 +50,12 @@ sub list_possible_graphs    #()
         };
     }
 
-    my @net = grep (s/iface$//, &getGraphs2Show("Network"));
+    my @net = ();
+    for my $graph (&getGraphs2Show("Network")) {
+        $graph =~ s/iface$//;
+        push(@net, $graph);
+    }
+
     my @sys = ("cpu", "load", "ram", "swap");
 
     # Get mount point of disks
@@ -64,9 +71,12 @@ sub list_possible_graphs    #()
     @mount_points = sort @mount_points;
     push @sys, { disks => \@mount_points };
 
-    my @vpns;
+    my @vpns = ();
     if ($eload) {
-        @vpns = grep (s/-vpn$//, &getGraphs2Show("VPN"));
+        for my $graph (&getGraphs2Show("VPN")) {
+            $graph =~ s/-vpn$//;
+            push(@vpns, $graph);
+        }
         @vpns = @{
             &eload(
                 module => 'Relianoid::RBAC::Group::Core',
@@ -82,13 +92,14 @@ sub list_possible_graphs    #()
         interfaces => \@net,
         farms      => \@farms
     };
-    $body->{"vpns"} = \@vpns if $eload;
 
     if ($eload) {
         $body->{ipds} = \@farms;
+        $body->{vpns} = \@vpns;
     }
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # GET all system graphs
@@ -120,6 +131,7 @@ sub list_sys_graphs    #()
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # GET system graphs
@@ -149,6 +161,7 @@ sub get_sys_graphs    #()
     my $body = { description => $desc, graphs => \@graphs };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # GET frequency system graphs
@@ -173,6 +186,7 @@ sub get_sys_graphs_freq    #()
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # GET a system graph using an interval
@@ -199,13 +213,20 @@ sub get_sys_graphs_interval    #()
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # GET all interface graphs
 sub list_iface_graphs    #()
 {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my @iface = grep (s/iface$//, &getGraphs2Show("Network"));
+
+    my @iface = ();
+    for my $graph (&getGraphs2Show("Network")) {
+        $graph =~ s/iface$//;
+        push(@iface, $graph);
+    }
+
     my $body  = {
         description =>
           "These are the possible interface graphs, you'll be able to access to the daily, weekly, monthly or yearly graph",
@@ -213,6 +234,7 @@ sub list_iface_graphs    #()
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # GET interface graphs
@@ -227,13 +249,13 @@ sub get_iface_graphs    #()
     my @system_interfaces = &getInterfaceList();
 
     # validate NIC NAME
-    if (!grep (/^$iface$/, @system_interfaces)) {
+    if (!grep { /^$iface$/ } @system_interfaces) {
         my $msg = "Nic interface not found.";
         &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
     }
 
     # graph for this farm doesn't exist
-    elsif (!grep (/${iface}iface$/, &getGraphs2Show("Network"))) {
+    elsif (!grep { /${iface}iface$/ } &getGraphs2Show("Network")) {
         my $msg = "There is no rrd files yet.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
@@ -254,6 +276,7 @@ sub get_iface_graphs    #()
     my $body = { description => $desc, graphs => \@graphs };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # GET frequency interface graphs
@@ -269,11 +292,11 @@ sub get_iface_graphs_frec    #()
     my @system_interfaces = &getInterfaceList();
 
     # validate NIC NAME
-    if (!grep (/^$iface$/, @system_interfaces)) {
+    if (!grep { /^$iface$/ } @system_interfaces) {
         my $msg = "Nic interface not found.";
         &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
     }
-    elsif (!grep (/${iface}iface$/, &getGraphs2Show("Network"))) {
+    elsif (!grep { /${iface}iface$/ } &getGraphs2Show("Network")) {
         my $msg = "There is no rrd files yet.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
@@ -288,6 +311,7 @@ sub get_iface_graphs_frec    #()
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # GET interface graph in an interval
@@ -304,11 +328,11 @@ sub get_iface_graphs_interval    #()
     my @system_interfaces = &getInterfaceList();
 
     # validate NIC NAME
-    if (!grep (/^$iface$/, @system_interfaces)) {
+    if (!grep { /^$iface$/ } @system_interfaces) {
         my $msg = "Nic interface not found.";
         &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
     }
-    elsif (!grep (/${iface}iface$/, &getGraphs2Show("Network"))) {
+    elsif (!grep { /${iface}iface$/ } &getGraphs2Show("Network")) {
         my $msg = "There is no rrd files yet.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
@@ -323,13 +347,19 @@ sub get_iface_graphs_interval    #()
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # GET all farm graphs
 sub list_farm_graphs    #()
 {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my @farms = grep (s/-farm$//, &getGraphs2Show("Farm"));
+
+    my @farms = ();
+    for my $graph (&getGraphs2Show("Farm")) {
+        $graph =~ s/-farm$//;
+        push(@farms, $graph);
+    }
 
     if ($eload) {
         my $ref_farm = &eload(
@@ -347,6 +377,7 @@ sub list_farm_graphs    #()
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # GET farm graphs
@@ -366,7 +397,7 @@ sub get_farm_graphs    #()
     }
 
     # graph for this farm doesn't exist
-    elsif (!grep (/^$farmName-farm$/, &getGraphs2Show("Farm"))) {
+    elsif (!grep { /^$farmName-farm$/ } &getGraphs2Show("Farm")) {
         my $msg = "There are no rrd files yet.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
@@ -387,6 +418,7 @@ sub get_farm_graphs    #()
     my $body = { description => $desc, graphs => \@graphs };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # GET frequency farm graphs
@@ -407,7 +439,7 @@ sub get_farm_graphs_frec    #()
     }
 
     # graph for this farm doesn't exist
-    elsif (!grep (/$farmName-farm/, &getGraphs2Show("Farm"))) {
+    elsif (!grep { /$farmName-farm/ } &getGraphs2Show("Farm")) {
         my $msg = "There is no rrd files yet.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
@@ -422,6 +454,7 @@ sub get_farm_graphs_frec    #()
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # GET farm graph in an interval
@@ -443,7 +476,7 @@ sub get_farm_graphs_interval    #()
     }
 
     # graph for this farm doesn't exist
-    elsif (!grep (/$farmName-farm/, &getGraphs2Show("Farm"))) {
+    elsif (!grep { /$farmName-farm/ } &getGraphs2Show("Farm")) {
         my $msg = "There is no rrd files yet.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
@@ -458,6 +491,7 @@ sub get_farm_graphs_interval    #()
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 #GET mount points list
@@ -483,6 +517,7 @@ sub list_disks_graphs    #()
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 #GET disk graphs for all periods
@@ -523,6 +558,7 @@ sub get_disk_graphs    #()
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 #GET disk graph for a single period
@@ -556,6 +592,7 @@ sub get_disk_graphs_freq    #()
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 #GET disk graph in an interval
@@ -591,6 +628,7 @@ sub get_disk_graphs_interval    #()
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 1;

@@ -21,7 +21,6 @@
 #
 ###############################################################################
 
-use 5.036;
 use strict;
 use warnings;
 use Relianoid::Config;
@@ -30,6 +29,13 @@ use Relianoid::Farm::Backend;
 use Relianoid::Farm::Action;
 
 my ($farmname, $count) = @ARGV;
+
+if (not $farmname) {
+    my $msg = "Expecting at least a farm name. Ie: $0 FARM_NAME [COUNT]";
+    say {STDERR} $msg;
+    zenlog($msg, 'warn');
+    return 1;
+}
 
 $count = 1 if not $count;
 

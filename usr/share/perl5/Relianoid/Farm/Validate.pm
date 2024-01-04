@@ -22,26 +22,39 @@
 ###############################################################################
 
 use strict;
+use warnings;
+use feature qw(signatures);
+no warnings 'experimental::args_array_with_signatures';
 
-=begin nd
-Function: priorityAlgorithmIsOK
+=pod
 
-	This funcion receives a list of priority values and it checks if all backends will be started according to priority Algorithm
+=head1 Module
 
-Parameters:
-	Priorities - List of priorities to check
-
-Returns:
-	Integer - Return 0 if valid priority settings, unsuitable priority value if not.
+Relianoid::Farm::Validate
 
 =cut
 
-sub priorityAlgorithmIsOK    # ( \@Priorities )
-{
-    use List::Util qw( min max );
+=pod
+
+=head1 priorityAlgorithmIsOK
+
+This funcion receives a list of priority values and it checks if all backends will be started according to priority Algorithm
+
+Parameters:
+
+    Priorities - Array reference to priorities to check
+
+Returns:
+
+    Integer - Return 0 if valid priority settings, unsuitable priority value if not.
+
+=cut
+
+sub priorityAlgorithmIsOK ($priority_ref) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $priority_ref = shift;
-    my @backends     = sort @{$priority_ref};
+
+    use List::Util qw( min max );
+    my @backends = sort @{$priority_ref};
     my @backendstmp;
 
     my $prio_last = 0;

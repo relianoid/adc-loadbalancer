@@ -22,6 +22,7 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
 # GET /system/dns
 sub get_dns {
@@ -32,6 +33,7 @@ sub get_dns {
     my $dns  = &getDns();
 
     &httpResponse({ code => 200, body => { description => $desc, params => $dns } });
+    return;
 }
 
 #  POST /system/dns
@@ -43,10 +45,10 @@ sub set_dns {
 
     my $desc = "Modify the DNS";
 
-    my $params = &getZAPIModel("system_dns-modify.json");
+    my $params = &getAPIModel("system_dns-modify.json");
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -66,6 +68,7 @@ sub set_dns {
             }
         }
     );
+    return;
 }
 
 1;

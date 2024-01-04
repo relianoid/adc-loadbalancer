@@ -22,28 +22,40 @@
 ###############################################################################
 
 use strict;
+use warnings;
+use feature qw(signatures);
+no warnings 'experimental::args_array_with_signatures';
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
-
+my $eload = eval { require Relianoid::ELoad };
 my $configdir = &getGlobalConfiguration('configdir');
 
-=begin nd
-Function: setFarmHTTPNewService
+=pod
 
-	Create a new Service in a HTTP farm
+=head1 Module
+
+Relianoid::Farm::HTTP::Service
+
+=cut
+
+=pod
+
+=head1 setFarmHTTPNewService
+
+Create a new Service in a HTTP farm
 
 Parameters:
-	farmname - Farm name
-	service - Service name
+
+    farmname - Farm name
+
+    service - Service name
 
 Returns:
-	Integer - Error code: 0 on success, other value on failure
+
+    Integer - Error code: 0 on success, other value on failure
 
 FIXME:
-	This function returns nothing, do error control
+
+    This function returns nothing, do error control
 
 =cut
 
@@ -95,8 +107,8 @@ sub setFarmHTTPNewService    # ($farm_name,$service)
         }
         untie @proxytpl;
 
-        $newservice[0] =~ s/#//g;
-        $newservice[$#newservice] =~ s/#//g;
+        $newservice[0]  =~ s/#//g;
+        $newservice[-1] =~ s/#//g;
 
         my $lock_file = &getLockFile($farm_name);
         my $lock_fh   = &openlock($lock_file, 'w');
@@ -142,17 +154,21 @@ sub setFarmHTTPNewService    # ($farm_name,$service)
     return $output;
 }
 
-=begin nd
-Function: setFarmHTTPNewServiceFirst
+=pod
 
-	Create a new Service in a HTTP farm on first position
+=head1 setFarmHTTPNewServiceFirst
+
+Create a new Service in a HTTP farm on first position
 
 Parameters:
-	farmname - Farm name
-	service - Service name
+
+    farmname - Farm name
+
+    service - Service name
 
 Returns:
-	Integer - Error code: 0 on success, other value on failure
+
+    Integer - Error code: 0 on success, other value on failure
 
 =cut
 
@@ -204,8 +220,8 @@ sub setFarmHTTPNewServiceFirst    # ($farm_name,$service)
         }
         untie @proxytpl;
 
-        $newservice[0] =~ s/#//g;
-        $newservice[$#newservice] =~ s/#//g;
+        $newservice[0]  =~ s/#//g;
+        $newservice[-1] =~ s/#//g;
 
         my $lock_file = &getLockFile($farm_name);
         my $lock_fh   = &openlock($lock_file, 'w');
@@ -251,17 +267,20 @@ sub setFarmHTTPNewServiceFirst    # ($farm_name,$service)
     return $output;
 }
 
-=begin nd
-Function: delHTTPFarmService
+=pod
 
-	Delete a service in a Farm
+=head1 delHTTPFarmService
+
+Delete a service in a Farm
 
 Parameters:
-	farmname - Farm name
-	service - Service name
+
+    farmname - Farm name
+    service - Service name
 
 Returns:
-	Integer - Error code: 0 on success, -1 on failure
+
+    Integer - Error code: 0 on success, -1 on failure
 
 =cut
 
@@ -375,26 +394,31 @@ sub delHTTPFarmService    # ($farm_name,$service)
     return $output;
 }
 
-=begin nd
-Function: getHTTPFarmServices
+=pod
 
-	Get an array containing all service name configured in an HTTP farm.
-	If Service name is sent, get an array containing the service name foundand index.
+=head1 getHTTPFarmServices
+
+Get an array containing all service name configured in an HTTP farm.
+
+If Service name is sent, get an array containing the service name foundand index.
 
 Parameters:
-	farmname - Farm name
-	servicename - Service name
+
+    farmname - Farm name
+    servicename - Service name
 
 Returns:
-	Array - service names if service name param does not exist. 
-	Hash ref  - Hash ref $service_ref if service name param exists.
+
+    Array - service names if service name param does not exist. 
+    Hash ref  - Hash ref $service_ref if service name param exists.
 
 Variable: $service_ref
 
-	$service_ref->{ $service_name } - Service index
+    $service_ref->{ $service_name } - Service index
 
 FIXME:
-	&getHTTPFarmVS(farmname) does same but in a string
+
+    &getHTTPFarmVS(farmname) does same but in a string
 
 =cut
 
@@ -430,82 +454,84 @@ sub getHTTPFarmServices {
     return @output;
 }
 
-=begin nd
-Function: getHTTPServiceBlocks
+=pod
 
-	Return a struct with configuration about the configuration farm and its services
+=head1 getHTTPServiceBlocks
+
+Return a struct with configuration about the configuration farm and its services
 
 Parameters:
-	farmname - Farm name
-	service - Service to move
+
+    farmname - Farm name
+    service - Service to move
 
 Returns:
-	Hash ref - Return 3 keys: farm, it is the part of the farm configuration file with the configuration; request, it is the block of code for the request service;
-	services, it is a hash reference with the id service, the code of the service is appending from the id, it is excluid the request service from this list.
 
-	example:
+    Hash ref - Return 3 keys: farm, it is the part of the farm configuration file with the configuration; request, it is the block of code for the request service;
+    services, it is a hash reference with the id service, the code of the service is appending from the id, it is excluid the request service from this list.
 
-	{
-		farm => [
-			'######################################################################',
-			'##GLOBAL OPTIONS                                                      ',
-			'User		"root"                                                     ',
-			'Group		"root"                                                     ',
-			'Name		AAmovesrv                                                  ',
-			'## allow PUT and DELETE also (by default only GET, POST and HEAD)?:   ',
-			'#ExtendedHTTP	0                                                      ',
-			'## Logging: (goes to syslog by default)                               ',
-			'##	0	no logging                                                     ',
-			'##	1	normal                                                         ',
-			'...																   '
-		],
-		request => [
-			'Service "sev3"											 ',
-			'	##False##HTTPS-backend##                             ',
-			'	#DynScale 1                                          ',
-			'	#BackendCookie "ZENSESSIONID" "domainname.com" "/" 0 ',
-			'	#HeadRequire "Host: "                                ',
-			'	#Url ""                                              ',
-			'	Redirect "https://SEFAwwwwwwwwwwFA.hf"               ',
-			'	#StrictTransportSecurity 21600000                    ',
-			'	#Session                                             ',
-			'	...													 '
-		],
-		services => {
-			'0' => [
-				'Service "sev1"											 ',
-				'	##False##HTTPS-backend##                             ',
-				'	#DynScale 1                                          ',
-				'	#BackendCookie "ZENSESSIONID" "domainname.com" "/" 0 ',
-				'	#HeadRequire "Host: "                                ',
-				'	#Url ""                                              ',
-				'	Redirect "https://SEFAwwwwwwwwwwFA.hf"               ',
-				'	#StrictTransportSecurity 21600000                    ',
-				'	#Session                                             ',
-				'	...													 '
-			],
-			'1' => [
-				'Service "sev2"											 ',
-				'	##False##HTTPS-backend##                             ',
-				'	#DynScale 1                                          ',
-				'	#BackendCookie "ZENSESSIONID" "domainname.com" "/" 0 ',
-				'	#HeadRequire "Host: "                                ',
-				'	#Url ""                                              ',
-				'	Redirect "https://SEFAwwwwwwwwwwFA.hf"               ',
-				'	#StrictTransportSecurity 21600000                    ',
-				'	#Session                                             ',
-				'	...													 '
-			],
-		}
-	}
+    example:
+
+    {
+        farm => [
+            '######################################################################',
+            '##GLOBAL OPTIONS                                                      ',
+            'User		"root"                                                     ',
+            'Group		"root"                                                     ',
+            'Name		AAmovesrv                                                  ',
+            '## allow PUT and DELETE also (by default only GET, POST and HEAD)?:   ',
+            '#ExtendedHTTP	0                                                      ',
+            '## Logging: (goes to syslog by default)                               ',
+            '##	0	no logging                                                     ',
+            '##	1	normal                                                         ',
+            '...																   '
+        ],
+        request => [
+            'Service "sev3"											 ',
+            '	##False##HTTPS-backend##                             ',
+            '	#DynScale 1                                          ',
+            '	#BackendCookie "ZENSESSIONID" "domainname.com" "/" 0 ',
+            '	#HeadRequire "Host: "                                ',
+            '	#Url ""                                              ',
+            '	Redirect "https://SEFAwwwwwwwwwwFA.hf"               ',
+            '	#StrictTransportSecurity 21600000                    ',
+            '	#Session                                             ',
+            '	...													 '
+        ],
+        services => {
+            '0' => [
+                'Service "sev1"											 ',
+                '	##False##HTTPS-backend##                             ',
+                '	#DynScale 1                                          ',
+                '	#BackendCookie "ZENSESSIONID" "domainname.com" "/" 0 ',
+                '	#HeadRequire "Host: "                                ',
+                '	#Url ""                                              ',
+                '	Redirect "https://SEFAwwwwwwwwwwFA.hf"               ',
+                '	#StrictTransportSecurity 21600000                    ',
+                '	#Session                                             ',
+                '	...													 '
+            ],
+            '1' => [
+                'Service "sev2"											 ',
+                '	##False##HTTPS-backend##                             ',
+                '	#DynScale 1                                          ',
+                '	#BackendCookie "ZENSESSIONID" "domainname.com" "/" 0 ',
+                '	#HeadRequire "Host: "                                ',
+                '	#Url ""                                              ',
+                '	Redirect "https://SEFAwwwwwwwwwwFA.hf"               ',
+                '	#StrictTransportSecurity 21600000                    ',
+                '	#Session                                             ',
+                '	...													 '
+            ],
+        }
+    }
 
 =cut
 
-sub getHTTPServiceBlocks {
+sub getHTTPServiceBlocks ($farm, $srv) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm = shift;
-    my $srv  = shift;
-    my $out  = {
+
+    my $out = {
         farm     => [],
         services => {},
         request  => [],
@@ -515,10 +541,14 @@ sub getHTTPServiceBlocks {
     my $farm_flag = 1;
 
     my $farm_filename = &getFarmFile($farm);
-    open my $fileconf, '<', "$configdir/$farm_filename";
+    my @lines         = ();
+    if (open my $fileconf, '<', "$configdir/$farm_filename") {
+        @lines = <$fileconf>;
+        close $fileconf;
+    }
 
     my $ind = 0;
-    foreach my $line (<$fileconf>) {
+    foreach my $line (@lines) {
         if ($line =~ /^\tService \"(.+)\"/) {
             $srv_flag    = 1;
             $farm_flag   = 0;
@@ -545,60 +575,66 @@ sub getHTTPServiceBlocks {
     return $out;
 }
 
-=begin nd
-Function: getHTTPServiceStruct
+=pod
 
-	Get a struct with all parameters of a HTTP service
+=head1 getHTTPServiceStruct
+
+Get a struct with all parameters of a HTTP service
 
 Parameters:
-	farmname - Farm name
-	service  - Farm name
+
+    farmname - Farm name
+    service  - Farm name
 
 Returns:
-	hash ref - hash with service configuration
 
-	Example output:
-	{
-	  "services" : {
-      "backends" : [
-         {
-            "id" : 0,
-            "ip" : "48.5.25.5",
-            "port" : 70,
-            "status" : "up",
-            "timeout" : null,
-            "weight" : null
-         }
-      ],
-      "fgenabled" : "false",
-      "fglog" : "false",
-      "fgscript" : "",
-      "fgtimecheck" : 5,
-      "httpsb" : "false",
-      "id" : "srv3",
-      "leastresp" : "false",
-      "persistence" : "",
-      "redirect" : "",
-      "redirecttype" : "",
-      "sessionid" : "",
-      "ttl" : 0,
-      "urlp" : "",
-      "vhost" : ""
-      }
+    hash ref - hash with service configuration
+
+    Example output:
+
+    {
+        "backends" : [
+            {
+                "id" : 0,
+                "ip" : "48.5.25.5",
+                "port" : 70,
+                "status" : "up",
+                "timeout" : null,
+                "weight" : null
+            }
+        ],
+        "fgenabled" : "false",
+        "fglog" : "false",
+        "fgscript" : "",
+        "fgtimecheck" : 5,
+        "httpsb" : "false",
+        "id" : "srv3",
+        "leastresp" : "false",
+        "persistence" : "",
+        "redirect" : "",
+        "redirecttype" : "",
+        "sessionid" : "",
+        "ttl" : 0,
+        "urlp" : "",
+        "vhost" : ""
     };
 
-	Enterprise Edition also includes:
+    Enterprise Edition also includes:
 
-      ...
-      "cookiedomain" : "",
-      "cookieinsert" : "false",
-      "cookiename" : "",
-      "cookiepath" : "",
-      "cookiettl" : 0,
-      ...
+    {
+        ...
+        "cookiedomain" : "",
+        "cookieinsert" : "false",
+        "cookiename" : "",
+        "cookiepath" : "",
+        "cookiettl" : 0,
+        ...
+    };
 
 Notes:
-	Similar to the function get_http_service_struct
+
+    Similar to the function get_http_service_struct
+
 =cut
 
 sub getHTTPServiceStruct {
@@ -724,15 +760,35 @@ sub getHTTPServiceStruct {
     return $service_ref;
 }
 
+=pod
+
+=head1 getHTTPServiceId
+
+Returns the service id
+
+Parameters:
+
+    farmname - Farm name
+    service - Service name
+
+Returns:
+
+    integer - id of service
+
+    undefined - if the service was not found
+
+=cut
+
 sub getHTTPServiceId {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+
     my ($farmname, $service_name) = @_;
+
     my $id = undef;
-
     my @services = getHTTPFarmServices($farmname);
-
     my $index = 0;
     my $exist = 0;
+
     foreach my $service (@services) {
         if ($service eq $service_name) {
             $id    = $index;
@@ -745,21 +801,28 @@ sub getHTTPServiceId {
     return $id;
 }
 
-=begin nd
-Function: getHTTPFarmVS
+=pod
 
-	Return virtual server parameter
+=head1 getHTTPFarmVS
+
+Return virtual server parameter
 
 Parameters:
-	farmname - Farm name
-	service - Service name
-	tag - Indicate which field will be returned. The options are: vs, urlp, redirect, redirecttype, dynscale, sesstype, ttl, sessionid, httpsbackend or backends
+
+    farmname - Farm name
+
+    service - Service name
+
+    tag - Indicate which field will be returned. The options are: vs, urlp, redirect, redirecttype, dynscale, sesstype, ttl, sessionid, httpsbackend or backends
 
 Returns:
-	scalar - if service and tag is blank, return all services in a string: "service0 service1 ..." else return the parameter value
+
+    scalar - if service and tag is blank, return all services in a string: "service0 service1 ..." else return the parameter value
 
 FIXME:
-	return a hash with all parameters
+
+    return a hash with all parameters
+
 =cut
 
 sub getHTTPFarmVS    # ($farm_name,$service,$tag)
@@ -788,8 +851,12 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
     }
 
     my $directive_index = 0;
+    my @lines           = ();
 
-    open my $fileconf, '<', "$configdir/$farm_filename";
+    if (open my $fileconf, '<', "$configdir/$farm_filename") {
+        @lines = <$fileconf>;
+        close $fileconf;
+    }
 
     my $sw         = 0;
     my $be_section = 0;
@@ -808,7 +875,7 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
     my $outputp;
     my @return;
 
-    foreach my $line (<$fileconf>) {
+    foreach my $line (@lines) {
         if ($line =~ /^\tService \"$service\"/) { $sw = 1; }
         if ($line =~ /^\tEnd\s*$/)              { $sw = 0; }
 
@@ -1312,26 +1379,31 @@ sub getHTTPFarmVS    # ($farm_name,$service,$tag)
             }
         }
     }
-    close $fileconf;
 
     return $output;
 }
 
-=begin nd
-Function: setHTTPFarmVS
+=pod
 
-	Set values for service parameters. The parameters are: vs, urlp, redirect, redirectappend, dynscale, sesstype, ttl, sessionid, httpsbackend or backends
+=head1 setHTTPFarmVS
 
-	A blank string comment the tag field in config file
+Set values for service parameters. The parameters are: vs, urlp, redirect, redirectappend, dynscale, sesstype, ttl, sessionid, httpsbackend or backends
+
+A blank string comment the tag field in config file
 
 Parameters:
-	farmname - Farm name
-	service - Service name
-	tag - Indicate which parameter modify
-	string - value for the field "tag"
+
+    farmname - Farm name
+
+    service - Service name
+
+    tag - Indicate which parameter modify
+
+    string - value for the field "tag"
 
 Returns:
-	Integer - Error code: 0 on success or -1 on failure
+
+    Integer - Error code: 0 on success or -1 on failure
 
 =cut
 
@@ -1410,7 +1482,7 @@ sub setHTTPFarmVS    # ($farm_name,$service,$tag,$string)
         if ($tag eq "redirect") {
             if ($line =~ /^\t\t#?(Redirect(?:Append)?) (30[127] )?.*/) {
                 my $policy        = $1;
-                my $redirect_code = $2;
+                my $redirect_code = $2 // '';
                 my $comment       = '';
                 if ($string eq "") {
                     $comment = '#';
@@ -1594,47 +1666,53 @@ sub setHTTPFarmVS    # ($farm_name,$service,$tag,$string)
     return $output;
 }
 
-=begin nd
-Function: getFarmVSI
+=pod
 
-	Get the index of a service in a http farm
+=head1 getFarmVSI
+
+Get the index of a service in a http farm
 
 Parameters:
-	farmname - Farm name
-	service - Service name
+
+    farmname - Farm name
+
+    service - Service name
 
 Returns:
-	integer - Service index, it returns -1 if the service does not exist
+
+    integer - Service index, it returns -1 if the service does not exist
 
 FIXME:
-	Rename with intuitive name, something like getHTTPFarmServiceIndex
+
+    Rename with intuitive name, something like getHTTPFarmServiceIndex
+
 =cut
 
-sub getFarmVSI    # ($farm_name,$service)
-{
+sub getFarmVSI ($farm_name, $target_service) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farmname, $service) = @_;
 
-    # get service position
-    my $srv_position = -1;
-    my @services     = &getHTTPFarmServices($farmname);
-    my $index        = 0;
-    foreach my $srv (@services) {
-        if ($srv eq $service) {
-
-            # found
-            $srv_position = $index;
-            last;
+    my @services = &getHTTPFarmServices($farm_name);
+    my $index    = 0;
+    foreach my $service (@services) {
+        if ($service eq $target_service) {
+            return $index;
         }
-        else {
-            $index++;
-        }
+        $index++;
     }
 
-    return $srv_position;
+    return -1;
 }
 
-# esta funcion es solo para API32. borrar y usar getHTTPServiceStruct
+=pod
+
+=head1 get_http_service_struct
+
+FIXME:
+
+    This function is only used in API 3.2. getHTTPServiceStruct should be used.
+
+=cut
+
 sub get_http_service_struct {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farmname, $service_name) = @_;
@@ -1675,7 +1753,16 @@ sub get_http_service_struct {
     return $service_ref;
 }
 
-# esta funcion es solo para API32.
+=pod
+
+=head1 get_http_all_services_struct
+
+FIXME:
+
+    This function is only used in API 3.2.
+
+=cut
+
 sub get_http_all_services_struct {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farmname) = @_;
@@ -1701,6 +1788,12 @@ sub get_http_all_services_struct {
     return \@services_list;
 }
 
+=pod
+
+=head1 get_http_all_services_summary_struct
+
+=cut
+
 sub get_http_all_services_summary_struct {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farmname) = @_;
@@ -1715,17 +1808,21 @@ sub get_http_all_services_summary_struct {
     return \@services_list;
 }
 
-=begin nd
-Function: getHTTPFarmPriorities
+=pod
 
-        Get the list of the backends priorities of the service in a http farm
+=head1 getHTTPFarmPriorities
+
+Get the list of the backends priorities of the service in a http farm
 
 Parameters:
-        farmname - Farm name
-        service - Service name
+
+    farmname - Farm name
+
+    service - Service name
 
 Returns:
-        Array Ref - it returns an array ref of priority values
+
+    Array Ref - it returns an array ref of priority values
 
 =cut
 

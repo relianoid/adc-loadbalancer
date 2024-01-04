@@ -1,3 +1,4 @@
+#!/usr/bin/perl
 ##############################################################################
 #
 #    RELIANOID Software License
@@ -21,11 +22,9 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
 # GET /certificates/letsencryptz
 sub get_le_certificates    # ()
@@ -66,6 +65,7 @@ sub get_le_certificates    # ()
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # GET /certificates/letsencryptz/le_cert_re
@@ -78,7 +78,8 @@ sub get_le_certificate    # ( $cert_filename )
 
     my $desc    = "Show Let's Encrypt certificate $le_cert_name";
     my $le_cert = &getLetsencryptCertificates($le_cert_name);
-    if (!defined $le_cert_name or !@{$le_cert}) {
+
+    if (not defined $le_cert_name or not @{$le_cert}) {
         my $msg = "Let's Encrypt certificate $le_cert_name not found!";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
@@ -91,6 +92,7 @@ sub get_le_certificate    # ( $cert_filename )
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # POST /certificates/letsencryptz
@@ -103,24 +105,25 @@ sub create_le_certificate    # ()
     require Relianoid::Certificate;
     require Relianoid::LetsencryptZ;
     require Relianoid::Net::Interface;
-    my $ip_list = &getIpAddressList();
     require Relianoid::Farm::Core;
+
+    my $ip_list   = &getIpAddressList();
     my @farm_list = &getFarmsByType("http");
 
     my $desc   = "Create LetsEncrypt certificate";
-    my $params = &getZAPIModel("letsencryptz-create.json");
+    my $params = &getAPIModel("letsencryptz-create.json");
     $params->{vip}->{values}      = $ip_list;
     $params->{farmname}->{values} = \@farm_list;
 
     # avoid farmname when no HTTP Farm exists
-    if (!@farm_list and defined $json_obj->{farmname}) {
+    if (not @farm_list and defined $json_obj->{farmname}) {
         my $msg = "There is no HTTP Farms in the system, use 'vip' param instead.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
     # vip or farmname has to be defined
-    if (    !$json_obj->{vip}
-        and !$json_obj->{farmname}
+    if (    not $json_obj->{vip}
+        and not $json_obj->{farmname}
         and defined $json_obj->{domains})
     {
         my $msg = "No 'vip' or 'farmname' param found.";
@@ -128,13 +131,13 @@ sub create_le_certificate    # ()
     }
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     if ($error_msg) {
         &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg);
     }
 
     # avoid wildcards domains
-    if (grep (/^\*/, @{ $json_obj->{domains} })) {
+    if (grep { /^\*/ } @{ $json_obj->{domains} }) {
         my $msg = "Wildcard domains are not allowed.";
         &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
     }
@@ -216,6 +219,7 @@ sub create_le_certificate    # ()
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # DELETE /certificates/letsencryptz/le_cert_re
@@ -292,6 +296,7 @@ sub delete_le_certificate    # ( $cert_filename )
         message     => $msg,
     };
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # POST /certificates/letsencryptz/le_cert_re/actions
@@ -317,25 +322,25 @@ sub actions_le_certificate    # ( $le_cert_name )
     require Relianoid::Farm::Core;
     my @farm_list = &getFarmsByType("http");
 
-    my $params = &getZAPIModel("letsencryptz-action.json");
+    my $params = &getAPIModel("letsencryptz-action.json");
     $params->{vip}->{values}      = $ip_list;
     $params->{farmname}->{values} = \@farm_list;
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     if ($error_msg) {
         &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg);
     }
 
     # avoid farmname when no HTTP Farm exists
-    if (!@farm_list and defined $json_obj->{farmname}) {
+    if (not @farm_list and defined $json_obj->{farmname}) {
         my $msg = "There is no HTTP Farms in the system, use 'vip' param instead.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
     # vip or farmname has to be defined
-    if (    !$json_obj->{vip}
-        and !$json_obj->{farmname})
+    if (    not $json_obj->{vip}
+        and not $json_obj->{farmname})
     {
         my $msg = "No 'vip' or 'farmname' param found.";
         &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
@@ -457,7 +462,7 @@ sub actions_le_certificate    # ( $le_cert_name )
     };
     $body->{warning} = $info_msg if defined $info_msg;
     &httpResponse({ code => 200, body => $body });
-
+    return;
 }
 
 # PUT /certificates/letsencryptz/le_cert_re
@@ -478,7 +483,7 @@ sub modify_le_certificate    # ( $le_cert_name )
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-    my $params = &getZAPIModel("letsencryptz-modify.json");
+    my $params = &getAPIModel("letsencryptz-modify.json");
 
     # dyn_values model
     if (defined $json_obj->{vip}) {
@@ -508,15 +513,15 @@ sub modify_le_certificate    # ( $le_cert_name )
     }
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     if ($error_msg) {
         &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg);
     }
 
     # depends_on model
     # vip or farmname has to be defined
-    if (    !$json_obj->{vip}
-        and !$json_obj->{farmname}
+    if (    not $json_obj->{vip}
+        and not $json_obj->{farmname}
         and $json_obj->{autorenewal} eq "true")
     {
         my $msg = "No 'vip' or 'farmname' param found.";
@@ -608,6 +613,7 @@ sub modify_le_certificate    # ( $le_cert_name )
         message     => $msg,
     };
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # GET /certificates/letsencryptz/config
@@ -624,6 +630,7 @@ sub get_le_conf    # ( )
         params      => $out,
     };
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # PUT /certificates/letsencryptz/config
@@ -633,10 +640,10 @@ sub modify_le_conf    # ( )
     my $json_obj = shift;
 
     my $desc   = "Modify LetsEncrypt Config";
-    my $params = &getZAPIModel("letsencryptz_config-modify.json");
+    my $params = &getAPIModel("letsencryptz_config-modify.json");
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     if ($error_msg) {
         &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg);
     }
@@ -656,6 +663,7 @@ sub modify_le_conf    # ( )
         params      => $out,
     };
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 1;

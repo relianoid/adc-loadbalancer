@@ -22,6 +22,7 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
 use Relianoid::Backup;
 
@@ -32,6 +33,7 @@ sub get_backup {
     my $backups = &getBackup();
 
     &httpResponse({ code => 200, body => { description => $desc, params => $backups } });
+    return;
 }
 
 #	POST  /system/backup
@@ -41,10 +43,10 @@ sub create_backup {
 
     my $desc = "Create a backups";
 
-    my $params = &getZAPIModel("system_backup-create.json");
+    my $params = &getAPIModel("system_backup-create.json");
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -67,6 +69,7 @@ sub create_backup {
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 #	GET	/system/backup/BACKUP
@@ -87,6 +90,7 @@ sub download_backup {
 
     my $msg = "Error, downloading backup.";
     &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    return;
 }
 
 #	PUT	/system/backup/BACKUP
@@ -124,6 +128,7 @@ sub upload_backup {
     my $body = { description => $desc, params => $name, message => $msg };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 #	DELETE /system/backup/BACKUP
@@ -153,6 +158,7 @@ sub del_backup {
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 #	POST /system/backup/BACKUP/actions
@@ -163,10 +169,10 @@ sub apply_backup {
 
     my $desc = "Apply a backup to the system";
 
-    my $params = &getZAPIModel("system_backup-apply.json");
+    my $params = &getAPIModel("system_backup-apply.json");
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -178,7 +184,7 @@ sub apply_backup {
     my $b_version   = &getBackupVersion($backup);
     my $sys_version = &getGlobalConfiguration('version');
     if ($b_version ne $sys_version) {
-        if (!exists $json_obj->{force}
+        if (not exists $json_obj->{force}
             or (exists $json_obj->{force} and $json_obj->{force} ne 'true'))
         {
             my $msg =
@@ -201,6 +207,7 @@ sub apply_backup {
     }
 
     &httpResponse({ code => 200, body => { description => $desc, message => $msg } });
+    return;
 }
 
 1;

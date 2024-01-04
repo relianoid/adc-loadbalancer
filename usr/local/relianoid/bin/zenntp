@@ -21,9 +21,9 @@
 #
 ###############################################################################
 
-use 5.036;
 use strict;
 use warnings;
+
 use Relianoid::Config;
 
 my $ntp     = &getGlobalConfiguration('ntp');

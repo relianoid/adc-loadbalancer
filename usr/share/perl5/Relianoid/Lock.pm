@@ -22,6 +22,7 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
 use Fcntl ':flock';    #use of lock functions
 
@@ -30,7 +31,22 @@ require Relianoid::Log;
 my $lock_file = undef;
 my $lock_fh   = undef;
 
-# generate a lock file based on a input path
+=pod
+
+=head1 Module
+
+Relianoid::Lock
+
+=cut
+
+=pod
+
+=head1 getLockFile
+
+Write a lock file based on a input path
+
+=cut
+
 sub getLockFile {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $lock = shift;
@@ -41,42 +57,47 @@ sub getLockFile {
     return $lock;
 }
 
-=begin nd
-Function: openlock
+=pod
 
-	Open file and lock it, return the filehandle.
+=head1 openlock
 
-	Usage:
+Open file and lock it, return the filehandle.
 
-		my $filehandle = &openlock( $path );
-		my $filehandle = &openlock( $path, 'r' );
+    Usage:
 
-	Lock is exclusive when the file is openend for writing.
-	Lock is shared when the file is openend for reading.
-	So only opening for writing is blocking the file for other uses.
+        my $filehandle = &openlock( $path );
+        my $filehandle = &openlock( $path, 'r' );
 
-	Opening modes:
-		r - Read
-		w - Write
-		a - Append
+    Lock is exclusive when the file is openend for writing.
+    Lock is shared when the file is openend for reading.
+    So only opening for writing is blocking the file for other uses.
 
-		t - text mode. To enforce encoding UTF-8.
-		b - binary mode. To make sure no information is lost.
+    Opening modes:
 
-	'r', 'w' and 'a' are mutually exclusive.
-	't' and 'b' are mutually exclusive.
+        r - Read
+        w - Write
+        a - Append
 
-	If neither 't' or 'b' are used on the mode parameter, the default Perl mode is used.
+        t - text mode. To enforce encoding UTF-8.
+        b - binary mode. To make sure no information is lost.
 
-	Take in mind, if you are executing process in parallel, if any of them remove the tmp locking file,
-	the resource will be unlocked.
+    'r', 'w' and 'a' are mutually exclusive.
+    't' and 'b' are mutually exclusive.
+
+    If neither 't' or 'b' are used on the mode parameter, the default Perl mode is used.
+
+    Take in mind, if you are executing process in parallel, if any of them remove the tmp locking file,
+    the resource will be unlocked.
 
 Parameters:
-	path - Absolute or relative path to the file to be opened.
-	mode - Mode used to open the file.
+
+    path - Absolute or relative path to the file to be opened.
+    mode - Mode used to open the file.
 
 Returns:
-	scalar - Filehandle
+
+    scalar - Filehandle
+
 =cut
 
 sub openlock    # ( $path, $mode )
@@ -96,10 +117,16 @@ sub openlock    # ( $path, $mode )
     $encoding = ":encoding(UTF-8)" if $textmode;
     $encoding = ":raw :bytes"      if $binmode;
 
-    open(my $fh, "$mode $encoding", $path)
-      or do { &zenlog("Error openning the file $path: $!"); return; };
-
-    binmode $fh if $fh && $binmode;
+    my $fh;
+    if (open($fh, "$mode $encoding", $path)) {
+        if ($binmode) {
+            binmode $fh;
+        }
+    }
+    else {
+        &zenlog("Error openning the file $path: $!");
+        return;
+    }
 
     if ($mode =~ />/) {
 
@@ -115,41 +142,52 @@ sub openlock    # ( $path, $mode )
     return $fh;
 }
 
-=begin nd
-Function: ztielock
+=pod
 
-	tie aperture with lock
+=head1 ztielock
 
-	Usage:
+tie aperture with lock
 
-		$handleArray = &tielock($file);
+    Usage:
 
-	Examples:
+        $handleArray = &tielock($file);
 
-		$handleArray = &tielock("test.dat");
-		$handleArray = &tielock($filename);
+    Examples:
+
+        $handleArray = &tielock("test.dat");
+        $handleArray = &tielock($filename);
 
 Parameters:
-	file_name - Path to File.
+
+    file_name - Path to File.
 
 Returns:
-	scalar - Reference to the array with the content of the file.
+
+    scalar - Reference to the array with the content of the file.
 
 Bugs:
-	Not used yet.
+
+    Not used yet.
+
 =cut
 
 sub ztielock    # ($file_name)
 {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $array_ref = shift;    #parameters
-    my $file_name = shift;    #parameters
+    my $array_ref = shift;
+    my $file_name = shift;
 
     require Tie::File;
 
     my $o = tie @{$array_ref}, "Tie::File", $file_name;
-    $o->flock;
+    return $o->flock;
 }
+
+=pod
+
+=head1 copyLock
+
+=cut
 
 sub copyLock {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
@@ -159,7 +197,7 @@ sub copyLock {
     my $fhOri = &openlock($ori, 'r') or return 1;
     my $fhDst = &openlock($dst, 'w') or do { close $fhOri; return 1; };
 
-    foreach my $line (<$fhOri>) {
+    while (my $line = <$fhOri>) {
         print $fhDst $line;
     }
 
@@ -169,17 +207,21 @@ sub copyLock {
     return 0;
 }
 
-=begin nd
-Function: lockResource
+=pod
 
-	lock or release an API resource.
+=head1 lockResource
+
+    lock or release an API resource.
 
 Parameters:
-	resource - Path to file.
-	operation - l (lock), u (unlock), ud (unlock, delete the lock file), r (read)
+
+    resource - Path to file.
+    operation - l (lock), u (unlock), ud (unlock, delete the lock file), r (read)
 
 Bugs:
-	Not used yet.
+
+    Not used yet.
+
 =cut
 
 sub lockResource {

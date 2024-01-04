@@ -21,9 +21,9 @@
 #
 ###############################################################################
 
-use 5.036;
 use strict;
 use warnings;
+use feature qw(signatures);
 
 use Relianoid::Log;
 use Relianoid::Config;

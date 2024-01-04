@@ -23,46 +23,58 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
+no warnings 'experimental::args_array_with_signatures';
+
 use POSIX 'strftime';
 require Tie::File;
 
-=begin nd
-Function: listL7FarmSessions
+=pod
 
-	Get a list of the static and dynamic l7 sessions in a farm. Using zproxy. If the farm is down, 
-	get the static sessions list from the config file.
+=head1 Module
 
-Parameters:
-	farmname - Farm name
-	service  - Service name
-
-Returns:
-	array ref - Returns a list of hash references with the following parameters:
-		"backend" is the client position entry in the session table
-		"id" is the backend id assigned to session
-		"session" is the key that identifies the session
-		"type" is the key that identifies the session
-
-		[
-			{
-				"backend" : 0,
-				"session" : "192.168.1.186",
-				"type" : "dynamic",
-				"ttl" : "54m5s",
-			}
-		]
-	
-	or 
-
-	Integer 1 - on error
+Relianoid::Farm::HTTP::Sessions
 
 =cut
 
-sub listL7FarmSessions {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+=pod
 
-    my $farmname = shift;
-    my $service  = shift;
+=head1 listL7FarmSessions
+
+Get a list of the static and dynamic l7 sessions in a farm. Using zproxy. If the farm is down, 
+get the static sessions list from the config file.
+
+Parameters:
+
+    farmname - Farm name
+    service  - Service name
+
+Returns:
+
+    array ref - Returns a list of hash references with the following parameters:
+
+    "backend" is the client position entry in the session table
+    "id" is the backend id assigned to session
+    "session" is the key that identifies the session
+    "type" is the key that identifies the session
+
+    [
+        {
+            "backend" : 0,
+            "session" : "192.168.1.186",
+            "type" : "dynamic",
+            "ttl" : "54m5s",
+        }
+    ]
+
+    or 
+
+    Integer 1 - on error
+
+=cut
+
+sub listL7FarmSessions ($farmname, $service) {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     require Relianoid::Farm::HTTP::Action;
     require Relianoid::Farm::HTTP::Service;
@@ -70,11 +82,9 @@ sub listL7FarmSessions {
     require Relianoid::Farm::Config;
     use POSIX 'floor';
 
-    my $service_id = &getHTTPServiceId($farmname, $service);
-
     my $output;
-
-    my $farm_st = &getFarmStruct($farmname);
+    my $service_id = &getHTTPServiceId($farmname, $service);
+    my $farm_st    = &getFarmStruct($farmname);
 
     if ($farm_st->{status} eq 'down') {
         my $static_sessions = &listConfL7FarmSessions($farmname, $service);
@@ -131,56 +141,64 @@ sub listL7FarmSessions {
 
 }
 
-=begin nd
-Function: getSessionsFile
+=pod
 
-	The function returns the path of the sessions file, where static sessions are saved.
+=head1 getSessionsFile
+
+The function returns the path of the sessions file, where static sessions are saved.
 
 Parameters:
-	fname - Farm name
+
+    fname - Farm name
 
 Returns:
-	String - file path
+
+    String - file path
 
 =cut
 
-sub getSessionsFileName {
+sub getSessionsFileName ($farm) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm = shift;
 
     my $configdir = &getGlobalConfiguration("configdir");
 
     return "$configdir\/$farm\_sessions.cfg";
 }
 
-=begin nd
-Function: listConfL7FarmSessions
+=pod
 
-	Get from <farm>_sessions.cfg file the list of the static l7 sessions in <farm>.
+=head1 listConfL7FarmSessions
+
+Get from <farm>_sessions.cfg file the list of the static l7 sessions in <farm>.
 
 Parameters:
-	farmname - Farm name
-	servicename - Service name
-    session  - session name
-Returns:
-	array ref - Returns a list of hash references with the following parameters:
-		"client" is the client position entry in the session table
-		"backend" is the backend id assigned to session
-		"service" is the service name
 
-		[
-			{
-				"client" : 10.0.0.2,
-				"backend" : 3,
-				"service" : service
-			}
-		]
+    farmname - Farm name
+
+    servicename - Service name
+
+    session  - session name
+
+Returns:
+
+    array ref - Returns a list of hash references with the following parameters:
+
+    "client" is the client position entry in the session table
+    "backend" is the backend id assigned to session
+    "service" is the service name
+
+    [
+        {
+            "client" : 10.0.0.2,
+            "backend" : 3,
+            "service" : service
+        }
+    ]
+
 =cut
 
-sub listConfL7FarmSessions {
+sub listConfL7FarmSessions ($farmname, $servicename, $backendId = undef) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my ($farmname, $servicename, $backendId) = @_;
 
     my $filepath = &getSessionsFileName($farmname);
 
@@ -206,28 +224,28 @@ sub listConfL7FarmSessions {
     return \@output;
 }
 
-=begin nd
-Function: addConfL7FarmSessions
+=pod
 
-	Add new static session to from <farm>_sessions.cfg file.
+=head1 addConfL7FarmSessions
+
+Add new static session to from <farm>_sessions.cfg file.
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
     service  - service name
     backend  - backend id
     client   - client ip
+
 Returns:
-	- 0 on success 1 on failure
+
+    - 0 on success
+    - 1 on failure
 
 =cut
 
-sub addConfL7FarmSession {
+sub addConfL7FarmSession ($farmname, $service, $backend, $client) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my $farmname = shift;
-    my $service  = shift;
-    my $backend  = shift;
-    my $client   = shift;
 
     my $filepath = &getSessionsFileName($farmname);
 
@@ -254,27 +272,27 @@ sub addConfL7FarmSession {
     return 0;
 }
 
-=begin nd
-Function: deleteConfL7FarmSessions
+=pod
 
-	Delete a static session from <farm>_sessions.cfg file.
+=head1 deleteConfL7FarmSessions
+
+Delete a static session from <farm>_sessions.cfg file.
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
     service  - service name
-    backend  - backend id
     client   - client ip
+
 Returns:
-	- 0 on success 1 on failure
+
+    - 0 on success
+    - 1 on failure
 
 =cut
 
-sub deleteConfL7FarmSession {
+sub deleteConfL7FarmSession ($farmname, $service, $client) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my $farmname = shift;
-    my $service  = shift;
-    my $client   = shift;
 
     my $filepath = &getSessionsFileName($farmname);
 
@@ -295,25 +313,26 @@ sub deleteConfL7FarmSession {
     return 0;
 }
 
-=begin nd
-Function: deleteConfL7FarmAllSessions
+=pod
 
-	Delete new static session to from <farm>_sessions.cfg file.
+=head1 deleteConfL7FarmAllSessions
+
+Delete new static session to from <farm>_sessions.cfg file.
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
     service  - service name
+
 Returns:
-	- 0 on success 1 on failure
+
+    - 0 on success
+    - 1 on failure
 
 =cut
 
-sub deleteConfL7FarmAllSession {
+sub deleteConfL7FarmAllSession ($farmname, $service = undef, $id = undef) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my $farmname = shift;
-    my $service  = shift;
-    my $id       = shift;
 
     my $filepath = &getSessionsFileName($farmname);
 
@@ -327,7 +346,7 @@ sub deleteConfL7FarmAllSession {
 
         my $index = 0;
         if (defined $id) {
-            @file = grep (!/^$service\s+$id\s+/, @file);
+            @file = grep { !/^$service\s+$id\s+/ } @file;
             foreach my $line (@file) {
                 if ($line =~ /^$service\s+(\d+)\s+([^\s]+)/ && $id < $1) {
                     my $newid = $1 - 1;
@@ -337,7 +356,7 @@ sub deleteConfL7FarmAllSession {
             }
         }
         else {
-            @file = grep (!/^$service\s+/, @file);
+            @file = grep { !/^$service\s+/ } @file;
         }
 
         untie @file;

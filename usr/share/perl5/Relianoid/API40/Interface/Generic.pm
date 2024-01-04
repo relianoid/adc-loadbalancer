@@ -22,11 +22,9 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
 # GET /interfaces Get params of the interfaces
 sub get_interfaces    # ()
@@ -53,6 +51,7 @@ sub get_interfaces    # ()
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 1;

@@ -22,20 +22,32 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
-=begin nd
-Function: moveByIndex
+=pod
 
-	This function moves an element of an list to another position using its index.
-	This funcion uses the original array to apply the changes, so it does not return anything.
+=head1 Module
+
+Relianoid::Arrays
+
+=cut
+
+=pod
+
+=head1 moveByIndex
+
+This function moves an element of an list to another position using its index.
+This funcion uses the original array to apply the changes, so it does not return anything.
 
 Parameters:
-	Array - Array reference with the list to modify.
-	Origin index - Index of the element will be moved.
-	Destination index - Position in the list that the element will have.
+
+    Array - Array reference with the list to modify.
+    Origin index - Index of the element will be moved.
+    Destination index - Position in the list that the element will have.
 
 Returns:
-	None - .
+
+    None
 
 =cut
 
@@ -50,19 +62,24 @@ sub moveByIndex {
 
     # add item
     splice(@{$list}, $dst_index, 0, $elem);
+
+    return;
 }
 
-=begin nd
-Function: getARRIndex
+=pod
 
-	It retuns the index of for a value of a list. It retunrs the first index where the value appears.
+=head1 getARRIndex
+
+It retuns the index of for a value of a list. It retunrs the first index where the value appears.
 
 Parameters:
-	Array ref - Array reference with the list to look for.
-	Value - Value to get its index
+
+    Array ref - Array reference with the list to look for.
+    Value     - Value to get its index
 
 Returns:
-	Integer - index for an array value
+
+    Integer - index for an array value
 
 =cut
 
@@ -84,17 +101,20 @@ sub getARRIndex {
     return $ind;
 }
 
-=begin nd
-Function: uniqueArray
+=pod
 
-	It gets an array for reference and it removes the items that are repeated.
-	The original input array is modified. This function does not return anything
+=head1 uniqueArray
+
+It gets an array for reference and it removes the items that are repeated.
+The original input array is modified. This function does not return anything
 
 Parameters:
-	Array ref - It is the array is going to be managed
+
+    Array ref - It is the array is going to be managed
 
 Returns:
-	None - .
+
+    None
 
 =cut
 
@@ -113,20 +133,25 @@ sub uniqueArray {
     }
 
     @{$arr} = @hold;
+
+    return;
 }
 
-=begin nd
-Function: getArrayCollision
+=pod
 
-	It checks if two arrays have some value repeted.
-	The arrays have to contain scalar values.
+=head1 getArrayCollision
+
+It checks if two arrays have some value repeted.
+The arrays have to contain scalar values.
 
 Parameters:
-	Array ref 1 - List of values 1
-	Array ref 2 - List of values 2
+
+    Array ref 1 - List of values 1
+    Array ref 2 - List of values 2
 
 Returns:
-	scalar - It returns the first value which is contained in both arrays
+
+    scalar - It returns the first value which is contained in both arrays
 
 =cut
 
@@ -136,7 +161,7 @@ sub getArrayCollision {
     my $arr2 = shift;
 
     foreach my $it (sort @{$arr1}) {
-        if (grep (/^$it$/, @{$arr2})) {
+        if (grep { /^$it$/ } @{$arr2}) {
             return $it;
         }
     }

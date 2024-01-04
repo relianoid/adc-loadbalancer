@@ -27,24 +27,31 @@ use warnings;
 use Relianoid::Config;
 use Relianoid::Nft;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
-
+my $eload = eval { require Relianoid::ELoad };
 my $configdir = &getGlobalConfiguration('configdir');
 
-=begin nd
-Function: startL4Farm
+=pod
 
-	Run a l4xnat farm
+=head1 Module
+
+Relianoid::Farm::L4xNAT::Action
+
+=cut
+
+=pod
+
+=head1 startL4Farm
+
+Run a l4xnat farm
 
 Parameters:
-	farm_name - Farm name
-	writeconf - write this change in configuration status "writeconf" for true or omit it for false
+
+    farm_name - Farm name
+    writeconf - write this change in configuration status "writeconf" for true or omit it for false
 
 Returns:
-	Integer - return 0 on success or different of 0 on failure
+
+    Integer - return 0 on success or different of 0 on failure
 
 =cut
 
@@ -88,17 +95,20 @@ sub startL4Farm    # ($farm_name)
     return $status;
 }
 
-=begin nd
-Function: stopL4Farm
+=pod
 
-	Stop a l4xnat farm
+=head1 stopL4Farm
+
+Stop a l4xnat farm
 
 Parameters:
-	farm_name - Farm name
-	writeconf - write this change in configuration status "writeconf" for true or omit it for false
+
+    farm_name - Farm name
+    writeconf - write this change in configuration status "writeconf" for true or omit it for false
 
 Returns:
-	Integer - return 0 on success or other value on failure
+
+    Integer - return 0 on success or other value on failure
 
 =cut
 
@@ -141,17 +151,20 @@ sub stopL4Farm    # ($farm_name)
     return $status;
 }
 
-=begin nd
-Function: setL4NewFarmName
+=pod
 
-	Function that renames a farm
+=head1 setL4NewFarmName
+
+Function that renames a farm
 
 Parameters:
-	farmname - Farm name
-	newfarmname - New farm name
+
+    farmname - Farm name
+    newfarmname - New farm name
 
 Returns:
-	Integer - return 0 on success or <> 0 on failure
+
+    Integer - return 0 on success or <> 0 on failure
 
 =cut
 
@@ -172,19 +185,24 @@ sub setL4NewFarmName    # ($farm_name, $new_farm_name)
     return $err;
 }
 
-=begin nd
-Function: copyL4Farm
+=pod
 
-	Function that copies a l4xnat farm.
-	If the flag has the value 'del', the old farm will be deleted.
+=head1 copyL4Farm
+
+Function that copies a l4xnat farm.
+If the flag has the value 'del', the old farm will be deleted.
 
 Parameters:
-	farmname - Farm name
-	newfarmname - New farm name
-	flag - It expets a 'del' string to delete the old farm. It is used to copy or rename the farm.
+
+    farmname - Farm name
+
+    newfarmname - New farm name
+
+    flag - It expets a 'del' string to delete the old farm. It is used to copy or rename the farm.
 
 Returns:
-	Integer - return 0 on success or <> 0 on failure
+
+    Integer - return 0 on success or <> 0 on failure
 
 =cut
 
@@ -235,16 +253,19 @@ sub copyL4Farm    # ($farm_name, $new_farm_name)
     return $output;
 }
 
-=begin nd
-Function: loadL4NlbFarm
+=pod
 
-	Load farm configuration in nftlb
+=head1 loadL4NlbFarm
+
+Load farm configuration in nftlb
 
 Parameters:
-	farm_name - farm name configuration to be loaded
+
+    farm_name - farm name configuration to be loaded
 
 Returns:
-	Integer - 0 on success or -1 on failure
+
+    Integer - 0 on success or -1 on failure
 
 =cut
 
@@ -269,17 +290,20 @@ sub loadL4FarmNlb    # ($farm_name)
     );
 }
 
-=begin nd
-Function: startL4FarmNlb
+=pod
 
-	Start a new farm in nftlb
+=head1 startL4FarmNlb
+
+Start a new farm in nftlb
 
 Parameters:
-	farm_name - farm name to be started
-	writeconf - write this change in configuration status "writeconf" for true or omit it for false
+
+    farm_name - farm name to be started
+    writeconf - write this change in configuration status "writeconf" for true or omit it for false
 
 Returns:
-	Integer - 0 on success or -1 on failure
+
+    Integer - 0 on success or -1 on failure
 
 =cut
 
@@ -303,17 +327,20 @@ sub startL4FarmNlb    # ($farm_name)
     return $output;
 }
 
-=begin nd
-Function: stopL4FarmNlb
+=pod
 
-	Stop an existing farm in nftlb
+=head1 stopL4FarmNlb
+
+Stop an existing farm in nftlb
 
 Parameters:
-	farm_name - farm name to be started
-	writeconf - write this change in configuration status "writeconf" for true or omit it for false
+
+    farm_name - farm name to be started
+    writeconf - write this change in configuration status "writeconf" for true or omit it for false
 
 Returns:
-	Integer - 0 on success or -1 on failure
+
+    Integer - 0 on success or -1 on failure
 
 =cut
 
@@ -330,16 +357,19 @@ sub stopL4FarmNlb    # ($farm_name)
     return $out;
 }
 
-=begin nd
-Function: getL4FarmPidFile
+=pod
 
-	Return the farm pid file
+=head1 getL4FarmPidFile
+
+Return the farm pid file
 
 Parameters:
-	farm_name - Name of the given farm
+
+    farm_name - Name of the given farm
 
 Returns:
-	String - Pid file path or -1 on failure
+
+    String - Pid file path or -1 on failure
 
 =cut
 
@@ -353,28 +383,34 @@ sub getL4FarmPidFile {
     return $pidfile;
 }
 
-=begin nd
-Function: sendL4NlbCmd
+=pod
 
-	Send the param to Nlb for a L4 Farm
+=head1 sendL4NlbCmd
+
+Send the param to Nlb for a L4 Farm
 
 Parameters:
-	self - hash that includes hash_keys:
-		farm, it is the farm that is going to be modified
-		farm_new_name, this field is defined when the farm name is going to be modified.
-		backend, backend id to modify
-		file, file where the HTTP body response of the nftlb is saved
-		method, HTTP verb for nftlb request
-		body, body to use in POST and PUT requests
+
+    self - hash that includes hash_keys:
+
+    farm        - it is the farm that is going to be modified
+    farm_new_name - this field is defined when the farm name is going to be modified.
+    backend     - backend id to modify
+    file        - file where the HTTP body response of the nftlb is saved
+    method      - HTTP verb for nftlb request
+    body        - body to use in POST and PUT requests
 
 Returns:
-	Integer - return code of the request command
+
+    Integer - return code of the request command
 
 =cut
 
 sub sendL4NlbCmd {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+
     my $self    = shift;
+
     my $cfgfile = "";
     my $output  = -1;
 
@@ -439,11 +475,14 @@ sub sendL4NlbCmd {
 
     $output = &httpNlbRequest($self);
 
-    return $output if ($self->{method} eq "GET" or !defined $self->{file});
+    if ($self->{method} eq "GET" or not defined $self->{file}) {
+        return $output;
+    }
 
     # end if the farm was deleted
-    return $output
-      if ($self->{method} eq "DELETE" and !exists $self->{backend});
+    if ($self->{method} eq "DELETE" and not exists $self->{backend}) {
+        return $output;
+    }
 
     # save the conf
     if ($self->{method} =~ /PUT|DELETE/) {
@@ -458,6 +497,12 @@ sub sendL4NlbCmd {
 
     return $output;
 }
+
+=pod
+
+=head1 saveL4Conf
+
+=cut
 
 sub saveL4Conf {
     my $farm = shift;

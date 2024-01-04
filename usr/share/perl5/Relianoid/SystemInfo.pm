@@ -22,89 +22,114 @@
 ###############################################################################
 
 use strict;
-use feature 'state';
+use warnings;
+use feature qw(signatures state);
+no warnings 'experimental::args_array_with_signatures';
 
-=begin nd
-Function: getDate
+=pod
 
-	Get date string
+=head1 Module
 
-Parameters:
-	none - .
+Relianoid::SystemInfo
 
-Returns:
-	string - Date string.
-
-	Example:
-
-		"Mon May 22 10:42:39 2017"
-
-See Also:
-	zapi/v3/system.cgi, zapi/v3/system_stats.cgi, zapi/v2/system_stats.cgi
 =cut
 
-sub getDate {
+=pod
+
+=head1 getDate
+
+Get date string
+
+Parameters:
+
+    none
+
+Returns:
+
+    string - Date string.
+
+    Example:
+
+        "Mon May 22 10:42:39 2017"
+
+See Also:
+
+    zapi/v3/system.cgi, zapi/v3/system_stats.cgi, zapi/v2/system_stats.cgi
+
+=cut
+
+sub getDate() {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     return scalar CORE::localtime();
 }
 
-=begin nd
-Function: getHostname
+=pod
 
-	Get system hostname, and it is saved all the process life time
+=head1 getHostname
+
+Get system hostname, and it is saved all the process life time
 
 Parameters:
-	none - .
+
+    none - .
 
 Returns:
-	string - Hostname.
+
+    string - Hostname.
 
 See Also:
-	setConntrackdConfig
 
-	getZClusterLocalIp, setKeepalivedConfig, getZClusterRemoteHost, runSync, getZCusterStatusInfo
+    setConntrackdConfig
 
-	setNotifCreateConfFile, setNotifData, getNotifData
+    getZClusterLocalIp, setKeepalivedConfig, getZClusterRemoteHost, runSync, getZCusterStatusInfo
 
-	zapi/v3/cluster.cgi, zapi/v3/system_stats.cgi, zapi/v3/zapi.cgi, zapi/v2/system_stats.cgi
+    setNotifCreateConfFile, setNotifData, getNotifData
 
-	relianoid
+    zapi/v3/cluster.cgi, zapi/v3/system_stats.cgi, zapi/v3/zapi.cgi, zapi/v2/system_stats.cgi
+
+    relianoid
+
 =cut
 
-sub getHostname {
+sub getHostname() {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
-    my $uname = &getGlobalConfiguration('uname');
-    state $hostname = &logAndGet("$uname -n");
-
-    return $hostname;
+    require Sys::Hostname;
+    state $hostname = Sys::Hostname::hostname();
+    return Sys::Hostname::hostname();
 }
 
-=begin nd
-Function: getApplianceVersion
+=pod
 
-	Returns a string with the description of the appliance.
+=head1 getApplianceVersion
 
-	NOTE: This function uses Tie::File, this module should be used only for writing files.
+Returns a string with the description of the appliance.
+
+NOTE: This function uses Tie::File, this module should be used only for writing files.
 
 Parameters:
-	none - .
+
+    none - .
 
 Returns:
-	string - Version string.
+
+    string - Version string.
 
 See Also:
-	zapi/v3/system.cgi, zenbui.pl, relianoid
+
+    zapi/v3/system.cgi, zenbui.pl, relianoid
+
 =cut
 
-sub getApplianceVersion {
+sub getApplianceVersion() {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+
     my $version;
     my $hyperv;
     my $applianceFile = &getGlobalConfiguration('applianceVersionFile');
     my $lsmod         = &getGlobalConfiguration('lsmod');
     my @packages      = @{ &logAndGet("$lsmod", "array") };
-    my @hypervisor    = grep (/(xen|vm|hv|kvm)_/, @packages);
+    my @hypervisor    = grep { /(xen|vm|hv|kvm)_/ } @packages;
 
     # look for appliance vesion
     if (-f $applianceFile) {
@@ -127,7 +152,7 @@ sub getApplianceVersion {
         my @ifaces = @{ &logAndGet("$ifconfig -s | $awk '{print $1}'", "array") };
 
         # Network appliance
-        if (grep (/mgmt/, @ifaces)) {
+        if (grep { /mgmt/ } @ifaces) {
             $version = "ZNA 3300";
         }
         else {
@@ -175,23 +200,29 @@ sub getApplianceVersion {
     return $version;
 }
 
-=begin nd
-Function: getCpuCores
+=pod
 
-	Get the number of CPU cores in the system.
+=head1 getCpuCores
+
+Get the number of CPU cores in the system.
 
 Parameters:
-	none - .
+
+    none
 
 Returns:
-	integer - Number of CPU cores.
+
+    integer - Number of CPU cores.
 
 See Also:
-	zapi/v3/system_stats.cgi
+
+    zapi/v3/system_stats.cgi
+
 =cut
 
-sub getCpuCores {
+sub getCpuCores() {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+
     my $cpuinfo_filename = '/proc/stat';
     my $cores            = 1;
 
@@ -207,50 +238,57 @@ sub getCpuCores {
     return $cores;
 }
 
-=begin nd
-Function: getCPUSecondToJiffy
+=pod
 
-	Is returns the number of jiffies for X seconds.
-	If any value is sent. The function calculate the how many jiffies are 1 second
+=head1 getCPUSecondToJiffy
+
+Is returns the number of jiffies for X seconds.
+If any value is sent. The function calculate the how many jiffies are 1 second
 
 Parameters:
-	seconds - Number of seconds to pass to jiffies
+
+    seconds - Number of seconds to pass to jiffies
 
 Returns:
-	integer - Number of jiffies
+
+    integer - Number of jiffies
 
 =cut
 
-sub getCPUSecondToJiffy {
+sub getCPUSecondToJiffy ($sec) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $sec   = shift // 1;
+
+    $sec //= 1;
     my $ticks = &getCPUTicks();
 
     return -1 unless ($ticks > 0);
-
     return $sec * $ticks;
 }
 
-=begin nd
-Function: getCPUJiffiesNow
+=pod
 
-	Get the number of jiffies since the last boot
+=head1 getCPUJiffiesNow
+
+Get the number of jiffies since the last boot
 
 Parameters:
-	none - .
+
+    none
 
 Returns:
-	integer - number of jiffies
+
+    integer - number of jiffies
 
 =cut
 
-sub getCPUJiffiesNow {
+sub getCPUJiffiesNow() {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+
     my $jiffies = -1;
     my $file    = '/proc/timer_list';
     open my $fh, '<', $file or return -1;
 
-    foreach my $line (<$fh>) {
+    while (my $line = <$fh>) {
         if ($line =~ /^jiffies: ([\d]+)/) {
             $jiffies = $1;
             last;
@@ -262,73 +300,97 @@ sub getCPUJiffiesNow {
     return $jiffies;
 }
 
-=begin nd
-Function: getCPUTicks
+=pod
 
-	Get how many ticks are for a Hertz
+=head1 getCPUTicks
+
+Get how many ticks are for a Hertz
 
 Parameters:
-	none - .
+
+    none
 
 Returns:
-	integer - Number of ticks
+
+    integer - Number of ticks
 
 =cut
 
-sub getCPUTicks {
+sub getCPUTicks() {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $ticks = -1;
-    my $file  = '/boot/config-';    # end file with the kernel version
 
+    my $ticks  = -1;
     my $kernel = &getKernelVersion();
+    my $file   = "/boot/config-${kernel}";
 
-    open my $fh, '<', "${file}$kernel" or return -1;
-
-    foreach my $line (<$fh>) {
-        if ($line =~ /^CONFIG_HZ[=: ](\d+)/) {
-            $ticks = $1;
-            last;
+    if (open my $fh, '<', $file) {
+        while (my $line = <$fh>) {
+            if ($line =~ /^CONFIG_HZ[=: ](\d+)/) {
+                $ticks = $1;
+                last;
+            }
         }
+        close $fh;
     }
-
-    close $fh;
+    else {
+        &zenlog("Could not open file $file: $!", "error");
+    }
 
     return $ticks;
 }
 
-=begin nd
-Function: setEnv
+=pod
 
-	Set envorioment variables. It get variables from global.conf
+=head1 setEnv
+
+Set envorioment variables. Get variables from global.conf
 
 Parameters:
-	none - .
+
+    none
 
 Returns:
-	none - .
+
+    none
 
 =cut
 
-sub setEnv {
+sub setEnv() {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+
     use Relianoid::Config;
-    $ENV{http_proxy}  = &getGlobalConfiguration('http_proxy')  // "";
-    $ENV{https_proxy} = &getGlobalConfiguration('https_proxy') // "";
+    local $ENV{http_proxy}  = &getGlobalConfiguration('http_proxy')  // "";
+    local $ENV{https_proxy} = &getGlobalConfiguration('https_proxy') // "";
 
     my $provider = &getGlobalConfiguration('cloud_provider');
     if ($provider eq 'aws') {
-        $ENV{AWS_SHARED_CREDENTIALS_FILE} = &getGlobalConfiguration('aws_credentials') // "";
-        $ENV{AWS_CONFIG_FILE}             = &getGlobalConfiguration('aws_config')      // "";
+        local $ENV{AWS_SHARED_CREDENTIALS_FILE} = &getGlobalConfiguration('aws_credentials') // "";
+        local $ENV{AWS_CONFIG_FILE}             = &getGlobalConfiguration('aws_config')      // "";
     }
+    return;
 }
 
-sub getKernelVersion {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    require Relianoid::Config;
+=pod
 
+=head1 getKernelVersion
+
+Returns the kernel version
+
+Parameters:
+
+    none
+
+Returns:
+
+    string - kernel version
+
+=cut
+sub getKernelVersion() {
+    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+
+    require Relianoid::Config;
     my $uname   = &getGlobalConfiguration('uname');
     my $version = &logAndGet("$uname -r");
-
     return $version;
 }
 

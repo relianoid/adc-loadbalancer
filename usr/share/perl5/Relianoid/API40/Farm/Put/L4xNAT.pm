@@ -1,3 +1,4 @@
+#!/usr/bin/perl
 ###############################################################################
 #
 #    RELIANOID Software License
@@ -21,15 +22,14 @@
 ###############################################################################
 
 use strict;
+use warnings;
+
 use Relianoid::Farm::Base;
 use Relianoid::Farm::L4xNAT::Config;
 use Relianoid::Net::Interface;
 use Relianoid::Farm::Config;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
 # PUT /farms/<farmname> Modify a l4xnat Farm
 sub modify_l4xnat_farm    # ( $json_obj, $farmname )
@@ -72,10 +72,10 @@ sub modify_l4xnat_farm    # ( $json_obj, $farmname )
     }
 
     # Check allowed parameters
-    my $params = &getZAPIModel("farm_l4xnat-modify.json");
+    my $params = &getAPIModel("farm_l4xnat-modify.json");
     $params->{vip}->{values} = $ip_list;
 
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -123,7 +123,7 @@ sub modify_l4xnat_farm    # ( $json_obj, $farmname )
     {
         require Relianoid::Net::Validate;
         require Relianoid::Farm::L4xNAT::Config;
-        if ($status eq 'up' and !&validatePort($vip, $vport, $proto, $farmname)) {
+        if ($status eq 'up' and not &validatePort($vip, $vport, $proto, $farmname)) {
             my $msg =
               "The '$vip' ip and '$vport' port are being used for another farm. This farm should be stopped before modifying it";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
@@ -157,7 +157,7 @@ sub modify_l4xnat_farm    # ( $json_obj, $farmname )
         if (exists($json_obj->{vport})) {
 
             # VPORT validation
-            if (!&getValidPort($vport, "L4XNAT", $farmname)) {
+            if (!&getValidPort($vport, "L4XNAT")) {
                 my $msg = "The virtual port must be an acceptable value and must be available.";
                 &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
             }
@@ -330,6 +330,7 @@ sub modify_l4xnat_farm    # ( $json_obj, $farmname )
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 1;

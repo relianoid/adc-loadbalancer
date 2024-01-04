@@ -22,32 +22,43 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
+use Carp;
 use Relianoid::Farm::Backend::Maintenance;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
-=begin nd
-Function: getFarmServerIds
+=pod
 
-	It returns a list with the backend servers for a farm and service.
-	The backends are read from the config file.
-	This function is to not use the getFarmservers that does stats checks.
+=head1 Module
+
+Relianoid::Farm::Backend
+
+=cut
+
+=pod
+
+=head1 getFarmServerIds
+
+It returns a list with the backend servers for a farm and service.
+The backends are read from the config file.
+This function is to not use the getFarmservers that does stats checks.
 
 Parameters:
-	farmname - Farm name
-	service - service backends related (optional)
+
+    farmname - Farm name
+    service - service backends related (optional)
 
 Returns:
-	array ref - list of backends IDs
+
+    array ref - list of backends IDs
 
 =cut
 
 sub getFarmServerIds {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+
     my ($farm_name, $service) = @_;
     my @servers   = ();
     my $farm_type = &getFarmType($farm_name);
@@ -68,11 +79,11 @@ sub getFarmServerIds {
         my $farm_filename = &getFarmFile($farm_name);
         open my $fh, '<', "$configdir/$farm_filename";
         {
-            foreach my $line (<$fh>) {
+            while (my $line = <$fh>) {
                 push @servers, $line if ($line =~ /^;server;/);
             }
+            close $fh;
         }
-        close $fh;
         @servers = 0 .. $#servers if (@servers);
     }
     elsif ($farm_type eq "gslb" && $eload) {
@@ -100,26 +111,31 @@ sub getFarmServerIds {
     return \@servers;
 }
 
-=begin nd
-Function: getFarmServers
+=pod
 
-	List all farm backends and theirs configuration
+=head1 getFarmServers
+
+List all farm backends and theirs configuration
 
 Parameters:
-	farmname - Farm name
-	service - service backends related (optional)
+
+    farmname - Farm name
+    service - service backends related (optional)
 
 Returns:
-	array ref - list of backends
+
+    array ref - list of backends
 
 FIXME:
-	changes output to hash format
+
+    changes output to hash format
 
 =cut
 
 sub getFarmServers    # ($farm_name, $service)
 {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+
     my ($farm_name, $service) = @_;
 
     my $farm_type = &getFarmType($farm_name);
@@ -148,18 +164,21 @@ sub getFarmServers    # ($farm_name, $service)
     return $servers;
 }
 
-=begin nd
-Function: getFarmServer
+=pod
 
-	Return the backend with the specified value on the specified parameter.
+=head1 getFarmServer
+
+Return the backend with the specified value on the specified parameter.
 
 Parameters:
-	backends_ref - Array ref of backends hashes.
-	value - Parameter value to match
-	param - Parameter to match. Default value "id"
+
+    backends_ref - Array ref of backends hashes.
+    value - Parameter value to match
+    param - Parameter to match. Default value "id"
 
 Returns:
-	hash ref - bachend hash reference or undef if there aren't backends
+
+    hash ref - bachend hash reference or undef if there aren't backends
 
 =cut
 
@@ -185,20 +204,24 @@ sub getFarmServer    # ( $bcks_ref, $value, $param )
     return;
 }
 
-=begin nd
-Function: setFarmServer
+=pod
 
-	Add a new Backend
+=head1 setFarmServer
+
+Add a new Backend
 
 Parameters:
-	farmname - Farm name
-	service - service name. For HTTP farms
-	id - Backend id, if this id doesn't exist, it will create a new backend
-	backend - hash with backend configuration. Depend on the type of farms, the backend can have the following keys:
-		ip, port, weight, priority, timeout, max_conns or interface
+
+    farmname -  Farm name
+    service  -  service name. For HTTP farms
+    id       -  Backend id, if this id doesn't exist, it will create a new backend
+    backend  -  hash with backend configuration. 
+                Depend on the type of farms, the backend can have the following keys:
+                ip, port, weight, priority, timeout, max_conns or interface
 
 Returns:
-	Scalar - Error code: undef on success or -1 on error
+
+    Scalar - Error code: undef on success or -1 on error
 
 =cut
 
@@ -240,22 +263,24 @@ sub setFarmServer    # $output ($farm_name,$service,$bk_id,$bk_params)
     }
 
     # FIXME: include setGSLBFarmNewBackend
-
     return $output;
 }
 
-=begin nd
-Function: runFarmServerDelete
+=pod
 
-	Delete a Backend
+=head1 runFarmServerDelete
+
+Delete a Backend
 
 Parameters:
-	id - Backend id, if this id doesn't exist, it will create a new backend
-	farmname - Farm name
-	service - service name. For HTTP farms
+
+    id       - Backend id, if this id doesn't exist, it will create a new backend
+    farmname - Farm name
+    service  - service name. For HTTP farms
 
 Returns:
-	Scalar - Error code: undef on success or -1 on error
+
+    Scalar - Error code: undef on success or -1 on error
 
 =cut
 
@@ -292,16 +317,19 @@ sub runFarmServerDelete    # ($ids,$farm_name,$service)
     return $output;
 }
 
-=begin nd
-Function: getFarmBackendAvailableID
+=pod
 
-	Get next available backend ID
+=head1 getFarmBackendAvailableID
+
+Get next available backend ID
 
 Parameters:
-	farmname - farm name
+
+    farmname - farm name
 
 Returns:
-	integer - .
+
+    integer
 
 =cut
 
@@ -322,19 +350,22 @@ sub getFarmBackendAvailableID {
     return $nbackends;
 }
 
-=begin nd
-Function: setBackendRule
+=pod
 
-	Add or delete the route rule according to the backend mark.
+=head1 setBackendRule
+
+Add or delete the route rule according to the backend mark.
 
 Parameters:
-	action - "add" to create the mark or "del" to remove it.
-	farm_ref - farm reference.
-	mark - backend mark to apply in the rule.
-	farm_type - type of farm (l4xnat, http, https).
+
+    action    - "add" to create the mark or "del" to remove it.
+    farm_ref  - farm reference.
+    mark      - backend mark to apply in the rule.
+    farm_type - type of farm (l4xnat, http, https).
 
 Returns:
-	integer - 0 if successful, otherwise error.
+
+    integer - 0 if successful, otherwise error.
 
 =cut
 
@@ -345,11 +376,17 @@ sub setBackendRule {
     my $mark      = shift;
     my $farm_type = shift // getFarmType($farm_ref->{name});
 
-    return -1
-      if ( $action !~ /add|del/
-        || !defined $farm_ref
-        || $mark eq ""
-        || $mark eq "0x0");
+    unless ($action eq "add" or $action eq "del") {
+        croak("Rule action must be 'add' or 'del'");
+    }
+
+    unless (defined $farm_ref) {
+        croak("A farm configuration is required");
+    }
+
+    unless (length $mark and hex $mark) {
+        croak("Invalid mark received");
+    }
 
     require Relianoid::Net::Util;
     require Relianoid::Net::Route;
@@ -368,36 +405,47 @@ sub setBackendRule {
     return &setRule($action, $rule);
 }
 
-=begin nd
-Function: getPriorityAlgorithmStatus
-        Calculates the Priroty algorithm status of the backend list
+=pod
+
+=head1 getPriorityAlgorithmStatus
+
+Calculates the Priroty algorithm status of the backend list
 
 Parameters:
 
-        $backends_ref - list of backend_ref
-		$bk_index - backend index if defined, only returns this index values. Optional. 
+    $backends_ref - list of backend_ref
+    $bk_index     - backend index if defined, only returns this index values. Optional. 
 
+    $backend_ref->{ status }   - Status of the backend. Possibles values:"up","down".
+    $backend_ref->{ priority } - Priority of the backend
+    
 Returns:
 
-        $availability_ref - Hash of algorithm values.
+    $availability_ref - Hash of algorithm values.
 
 Variable:
 
-        $backend_ref->{ status } - Status of the backend. Possibles values:"up","down".
-        $backend_ref->{ priority } - Priority of the backend
-		
-		$availability_ref->{ priority } - algorithm priority.
-        $availability_ref->{ status } - Array - list of backend availability.
-        If defined parameter $backend_ref->{ status} , "true" if the backend is used, "false" if is available to be used.
-		If not defined parameter $backend_ref->{ status} , "true" if the backend is used or available to be used, "false" if the backend will never be used.	
+    $availability_ref->{ priority } - algorithm priority.
+    $availability_ref->{ status }   - Array - list of backend availability.
+
+    If defined parameter $backend_ref->{ status }:
+    - "true" if the backend is used.
+    - "false" if is available to be used.
+
+    If not defined parameter $backend_ref->{ status }:
+    - "true" if the backend is used or available to be used.
+    - "false" if the backend will never be used.
+
 =cut
 
 sub getPriorityAlgorithmStatus {
     &zenlog(__FILE__ . q{:} . __LINE__ . q{:} . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+
     my ($backends_ref, $bk_index) = @_;
 
     my $alg_status_ref;
     my $sum_prio_ref;
+
     foreach my $bk (@{$backends_ref}) {
 
         #determine number of backends down for each level of priority
@@ -409,6 +457,7 @@ sub getPriorityAlgorithmStatus {
     #determine the lowest priority level where backends are being used
     my $current_alg_prio = 1;
     my $alg_prio         = 1;
+
     while ($current_alg_prio <= $alg_prio) {
 
         #when the level of priority matches the number of down backends, loop stops
@@ -442,6 +491,7 @@ sub getPriorityAlgorithmStatus {
             }
         }
     }
+
     return $alg_status_ref;
 }
 

@@ -22,12 +22,24 @@
 ###############################################################################
 
 use strict;
+use warnings;
+use feature qw(signatures);
+no warnings 'experimental::args_array_with_signatures';
+
+use Carp;
 use Regexp::IPv6 qw($IPv6_re);
-require Relianoid::Net::Validate;
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+use Relianoid::Net::Validate;
+
+my $eload = eval { require Relianoid::ELoad };
+
+=pod
+
+=head1 Module
+
+Relianoid::Validate
+
+=cut
+
 
 # Notes about regular expressions:
 #
@@ -307,10 +319,9 @@ my %format_re = (
 
 );
 
-sub getZAPIModel {
-    my $file = shift;
-    require Relianoid::Zapi;
-    my $api_version = &getZapiVersion();
+sub getAPIModel ($file) {
+    require Relianoid::API;
+    my $api_version = &getApiVersion();
     my $dir         = &getGlobalConfiguration("zapi_model_path") . "/v$api_version/json";
 
     require JSON;
@@ -322,44 +333,53 @@ sub getZAPIModel {
         $content = <$fh>;
         close $fh;
     }
-    return JSON::decode_json($content)->{params} if ($content ne "");
+
+    if ($content ne "") {
+        return JSON::decode_json($content)->{params};
+    }
+    else {
+        return $content;
+    }
 }
 
-=begin nd
-Function: getValidFormat
+=pod
 
-	Validates a data format matching a value with a regular expression.
-	If no value is passed as an argument the regular expression is returned.
+=head1 getValidFormat
 
-	Usage:
+Validates a data format matching a value with a regular expression.
+If no value is passed as an argument the regular expression is returned.
 
-	# validate exact data
-	if ( ! &getValidFormat( "farm_name", $input_farmname ) ) {
-		print "error";
-	}
+Usage:
 
-	# use the regular expression as a component for another regular expression
-	my $file_regex = &getValidFormat( "certificate" );
-	if ( $file_path =~ /$configdir\/$file_regex/ ) { ... }
+    # validate exact data
+    if ( ! &getValidFormat( "farm_name", $input_farmname ) ) {
+        print "error";
+    }
+
+    # use the regular expression as a component for another regular expression
+    my $file_regex = &getValidFormat( "certificate" );
+    if ( $file_path =~ /$configdir\/$file_regex/ ) { ... }
 
 Parameters:
-	format_name	- type of format
-	value		- value to be validated (optional)
-	new_format_re	- structure with the formats to use. (optional)
+
+    format_name	- type of format
+    value		- value to be validated (optional)
+    new_format_re	- structure with the formats to use. (optional)
 
 Returns:
-	false	- If value failed to be validated
-	true	- If value was successfuly validated
-	regex	- If no value was passed to be matched
+
+    false	- If value failed to be validated
+    true	- If value was successfuly validated
+    regex	- If no value was passed to be matched
 
 See also:
-	Mainly but not exclusively used in zapi v3.
+
+    Mainly but not exclusively used in zapi v3.
+
 =cut
 
-# &getValidFormat ( $format_name, $value );
-sub getValidFormat {
+sub getValidFormat ($format_name, $value = undef, %new_format_re) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($format_name, $value, %new_format_re) = @_;
 
     # Checks if it should use the formats passed by parameters.
     %format_re = %new_format_re if (%new_format_re);
@@ -370,7 +390,7 @@ sub getValidFormat {
 
             #~ print "$format_re{ $format_name }\n"; # DEBUG
             if (ref($value) eq "ARRAY") {
-                return !grep (!/^$format_re{ $format_name }$/, @{$value}) > 0;
+                return !grep { !/^$format_re{ $format_name }$/ } @{$value} > 0;
             }
             else {
                 return $value =~ /^$format_re{ $format_name }$/;
@@ -389,29 +409,29 @@ sub getValidFormat {
     }
 }
 
-=begin nd
-Function: getValidPort
+=pod
 
-	Validate if the port is valid for a type of farm.
+=head1 getValidPort
+
+Validate if the port is valid for a type of farm.
 
 Parameters:
-	port - Port number.
-	profile - Farm profile (HTTP, L4XNAT, GSLB or DATALINK). Optional.
+
+    port - Port number.
+    profile - Farm profile (HTTP, L4XNAT, GSLB or DATALINK). Optional.
 
 Returns:
-	Boolean - TRUE for a valid port number, FALSE otherwise.
 
-Bugs:
+    Boolean - TRUE for a valid port number, FALSE otherwise.
 
 See Also:
-	zapi/v3/post.cgi
+
+    zapi/v3/post.cgi
+
 =cut
 
-sub getValidPort    # ( $ip, $port, $profile )
-{
+sub getValidPort ($port, $profile = undef) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $port    = shift;
-    my $profile = shift;    # farm profile, optional
 
     if ($profile =~ /^(?:HTTP|GSLB)$/i) {
         return &getValidFormat('port', $port);
@@ -431,25 +451,24 @@ sub getValidPort    # ( $ip, $port, $profile )
     }
 }
 
-=begin nd
-Function: getValidOptParams
+=pod
 
-[DEPRECATED]: It is used untill the API 3.2. Now, use checkZAPIParams
+=head1 getValidOptParams
 
-	Check parameters when all params are optional
+[DEPRECATED]: It is used untill the API 3.2. Now, use checkApiParams
 
-	Before called:	getValidPutParams
+Check parameters when all params are optional
+
+Before called:	getValidPutParams
 
 Parameters:
-	\%json_obj - .
-	\@allowParams - .
+
+    \%json_obj - .
+    \@allowParams - .
 
 Returns:
-	none - .
 
-Bugs:
-
-See Also:
+    none
 
 =cut
 
@@ -480,26 +499,25 @@ sub getValidOptParams    # ( \%json_obj, \@allowParams )
     return $output;
 }
 
-=begin nd
-Function: getValidReqParams
+=pod
 
-[DEPRECATED]: It is used untill the API 3.2. Now, use checkZAPIParams
+=head1 getValidReqParams
 
-	Check parameters when there are required params
+[DEPRECATED]: It is used untill the API 3.2. Now, use checkApiParams
 
-	Before called:	getValidPostParams
+Check parameters when there are required params
+
+Before called:	getValidPostParams
 
 Parameters:
-	\%json_obj - .
-	\@requiredParams - .
-	\@optionalParams - .
+
+    \%json_obj - .
+    \@requiredParams - .
+    \@optionalParams - .
 
 Returns:
-	none - .
 
-Bugs:
-
-See Also:
+    none
 
 =cut
 
@@ -544,61 +562,66 @@ sub getValidReqParams    # ( \%json_obj, \@requiredParams, \@optionalParams )
     return $output;
 }
 
-=begin nd
-Function: checkZAPIParams
+=pod
 
-	Function to check parameters of a PUT or POST call.
-	It check a list of parameters, and apply it some checks:
-	- Almost 1 parameter
-	- All required parameters must exist
-	- All required parameters are correct
+=head1 checkApiParams
 
-	Also, it checks: getValidFormat funcion, if black is allowed, intervals, aditionals regex, excepts regex and a list with the possbile values
+Function to check parameters of a PUT or POST call.
+It check a list of parameters, and apply it some checks:
 
-	It is possible add a error message with the correct format. For example: $parameter . "must have letters and digits"
+    - Almost 1 parameter
+    - All required parameters must exist
+    - All required parameters are correct
 
+Also, it checks: getValidFormat funcion, if black is allowed, intervals, aditionals regex, excepts regex and a list with the possbile values
+
+It is possible add a error message with the correct format. 
+
+For example: $parameter . "must have letters and digits"
 
 Parameters:
-	Json_obj - Parameters sent in a POST or PUT call
-	Parameters - Hash of parameter objects
 
-	parameter object:
-	{
-		parameter :
-		{		# parameter is the key or parameter name
-			"required" 	: "true",		# or not defined
-			"non_blank" : "true",		# or not defined
-			"interval" 	: "1,65535",	# it is possible define strings matchs ( non implement). For example: "ports" = "1-65535", "log_level":"1-3", ...
-										# ",10" indicates that the value has to be less than 10 but without low limit
-										# "10," indicates that the value has to be more than 10 but without high limit
-										# The values of the interval has to be integer numbers
-			"exceptions"	: [ "zapi", "webgui", "root" ],	# The parameter can't have got any of the listed values
-			"values" : ["priority", "weight"],		# list of possible values for a parameter
-			"length" : 32,				# it is the maximum string size for the value
-			"regex"	: "/\w+,\d+/",		# regex format
-			"ref"	: "array|hash",		# the expected input must be an array or hash ref. To allow ref inputs and non ref for a parameter use the word 'none'. Example:  'ref' => 'array|none'
-			"valid_format"	: "farmname",		# regex stored in Validate.pm file, it checks with the function getValidFormat
-			"function" : \&func,		# function of validating, the input parameter is the value of the argument. The function has to return 0 or 'false' when a error exists
-			"format_msg"	: "must have letters and digits",	# used message when a value is not correct
-		}
-		param2 :
-		{
-			...
-		}
-		....
-	}
+    Json_obj - Parameters sent in a POST or PUT call
+    Parameters - Hash of parameter objects
 
+    parameter object:
+
+    {
+        parameter :
+
+        {		# parameter is the key or parameter name
+            "required" 	: "true",		# or not defined
+            "non_blank" : "true",		# or not defined
+            "interval" 	: "1,65535",	# it is possible define strings matchs ( non implement). For example: "ports" = "1-65535", "log_level":"1-3", ...
+                                        # ",10" indicates that the value has to be less than 10 but without low limit
+                                        # "10," indicates that the value has to be more than 10 but without high limit
+                                        # The values of the interval has to be integer numbers
+            "exceptions"	: [ "zapi", "webgui", "root" ],	# The parameter can't have got any of the listed values
+            "values" : ["priority", "weight"],		# list of possible values for a parameter
+            "length" : 32,				# it is the maximum string size for the value
+            "regex"	: "/\w+,\d+/",		# regex format
+            "ref"	: "array|hash",		# the expected input must be an array or hash ref. To allow ref inputs and non ref for a parameter use the word 'none'. Example:  'ref' => 'array|none'
+            "valid_format"	: "farmname",		# regex stored in Validate.pm file, it checks with the function getValidFormat
+            "function" : \&func,		# function of validating, the input parameter is the value of the argument. The function has to return 0 or 'false' when a error exists
+            "format_msg"	: "must have letters and digits",	# used message when a value is not correct
+        }
+        param2 :
+
+        {
+            ...
+        }
+        ....
+    }
 
 Returns:
-	String - Return a error message with the first error found or undef on success
+
+    String - Return a error message with the first error found or undef on success
 
 =cut
 
-sub checkZAPIParams {
+sub checkApiParams ($json_obj, $param_obj, $description) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $json_obj    = shift;
-    my $param_obj   = shift;
-    my $description = shift;
+
     my $err_msg;
 
     ## Remove parameters do not according to the edition
@@ -632,25 +655,33 @@ sub checkZAPIParams {
 
     # check for each parameter
     foreach my $param (@rec_keys) {
-        my $custom_msg =
-          (exists $param_obj->{$param}->{format_msg})
-          ? "$param $param_obj->{ $param }->{ format_msg }"
-          : "The parameter '$param' has not a valid value.";
+        my $custom_msg = "The parameter '$param' has not a valid value.";
+
+        # Store the input value to keep the data type,
+        # and to be restored at the end of the loop.
+        # This is because numeric type are converted to string
+        # when used in a string context, like in a regex. 
+        my $current_param_value = $json_obj->{$param};
+
+        if (exists $param_obj->{$param}->{format_msg}) {
+            $custom_msg = "$param $param_obj->{ $param }->{ format_msg }";
+        }
 
         if (
-               $json_obj->{$param} eq ''
-            or not defined $json_obj->{$param}
-            or (ref $json_obj->{$param} eq 'ARRAY'
+               not defined $json_obj->{$param}
+            or not length $json_obj->{$param}
+            or (    ref $json_obj->{$param}
+                and ref $json_obj->{$param} eq 'ARRAY'
                 and @{ $json_obj->{$param} } == 0)
           )
         {
-
             # if blank value is allowed
-            if ($param_obj->{$param}->{'non_blank'} eq 'true') {
+            if (    $param_obj->{$param}->{'non_blank'}
+                and $param_obj->{$param}->{'non_blank'} eq 'true')
+            {
                 return "The parameter '$param' can't be in blank.";
             }
 
-            # parameter validated, pass to next one
             next;
         }
 
@@ -675,7 +706,7 @@ sub checkZAPIParams {
         if ((exists $param_obj->{$param}->{'values'})) {
             if ($r eq 'ARRAY') {
                 foreach my $value (@{ $json_obj->{$param} }) {
-                    if (!grep (/^$value$/, @{ $param_obj->{$param}->{'values'} })) {
+                    if (!grep { /^$value$/ } @{ $param_obj->{$param}->{'values'} }) {
                         return
                           "The parameter '$param' expects some of the following values: '"
                           . join("', '", @{ $param_obj->{$param}->{'values'} }) . "'";
@@ -683,7 +714,7 @@ sub checkZAPIParams {
                 }
             }
             else {
-                if (!grep (/^$json_obj->{ $param }$/, @{ $param_obj->{$param}->{'values'} })) {
+                if (!grep { $json_obj->{ $param } eq $_ } @{ $param_obj->{$param}->{'values'} }) {
                     return
                       "The parameter '$param' expects one of the following values: '"
                       . join("', '", @{ $param_obj->{$param}->{'values'} }) . "'";
@@ -715,7 +746,7 @@ sub checkZAPIParams {
 
         # exceptions
         if (    (exists $param_obj->{$param}->{'exceptions'})
-            and (grep (/^$json_obj->{ $param }$/, @{ $param_obj->{$param}->{'exceptions'} })))
+            and (grep { /^$json_obj->{ $param }$/ } @{ $param_obj->{$param}->{'exceptions'} }))
         {
             return
               "The value '$json_obj->{ $param }' is a reserved word of the parameter '$param'.";
@@ -729,7 +760,7 @@ sub checkZAPIParams {
                 if (ref($json_obj->{$param}) eq "ARRAY") {
                     foreach my $value (@{ $json_obj->{$param} }) {
                         return "The value '$value' is not valid for the parameter '$param'."
-                          if (grep (!/^$param_obj->{ $param }->{ 'regex' }$/, $value));
+                          if (grep { !/^$param_obj->{ $param }->{ 'regex' }$/ } $value);
                     }
                 }
                 else {
@@ -748,7 +779,7 @@ sub checkZAPIParams {
                 if (ref($json_obj->{$param}) eq "ARRAY") {
                     foreach my $value (@{ $json_obj->{$param} }) {
                         return "The value '$value' is not valid for the parameter '$param'."
-                          if (grep (/^$param_obj->{ $param }->{ 'regex' }$/, $value));
+                          if (grep { /^$param_obj->{ $param }->{ 'regex' }$/ } $value);
                     }
                 }
                 else {
@@ -760,7 +791,9 @@ sub checkZAPIParams {
         }
 
         # is_regex
-        if ($param_obj->{$param}->{'is_regex'} eq 'true') {
+        if (defined $param_obj->{$param}->{'is_regex'}
+            and $param_obj->{$param}->{'is_regex'} eq 'true')
+        {
             if (defined $json_obj->{$param}) {
                 my $regex = eval { qr/$json_obj->{ $param }/ };
                 return "The value of field $param is an invalid regex" if $@;
@@ -771,31 +804,38 @@ sub checkZAPIParams {
             my $result =
               &{ $param_obj->{$param}->{'function'} }($json_obj->{$param});
 
-            return $custom_msg if (!$result or $result eq 'false');
+            return $custom_msg if (!$result || $result eq 'false');
         }
+
+        # Restore the data type that was received as input
+        # from the beginning of the loop 
+        $json_obj->{$param} = $current_param_value;
     }
 
     return;
 }
 
-=begin nd
-Function: checkParamsInterval
+=pod
 
-	Check parameters when there are required params. The value has to be a integer number
+=head1 checkParamsInterval
+
+Check parameters when there are required params. The value has to be a integer number
 
 Parameters:
-	Interval - String with the expected interval. The low and high limits must be splitted with a comma character ','
-	Parameter - Parameter name
-	Value - Parameter value
+
+    Interval - String with the expected interval. The low and high limits must be splitted with a comma character ','
+    Parameter - Parameter name
+    Value - Parameter value
 
 Returns:
-	String - It returns a string with the error message or undef on success
+
+    String - It returns a string with the error message or undef on success
 
 =cut
 
-sub checkParamsInterval {
+sub checkParamsInterval ($interval, $param, $value) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($interval, $param, $value) = @_;
+
     my $err_msg;
 
     if ($interval =~ /,/) {
@@ -814,8 +854,8 @@ sub checkParamsInterval {
 
         $err_msg = $msg
           if ( ($value !~ /^\d*$/)
-            || ($value > $high_limit and length $high_limit)
-            || ($value < $low_limit  and length $low_limit));
+            || ($high_limit and $value > $high_limit)
+            || ($low_limit  and $value < $low_limit));
     }
     else {
         die "Expected a interval string, got: $interval";
@@ -824,28 +864,31 @@ sub checkParamsInterval {
     return $err_msg;
 }
 
-=begin nd
-Function: checkParamsInvalid
+=pod
 
-	Check if some of the sent parameters is invalid for the current API call
+=head1 checkParamsInvalid
+
+Check if some of the sent parameters is invalid for the current API call
 
 Parameters:
-	Receive Parameters - It is the list of sent parameters in the API call
-	Expected parameters - It is the list of expected parameters for a API call
+
+    Receive Parameters - It is the list of sent parameters in the API call
+    Expected parameters - It is the list of expected parameters for a API call
 
 Returns:
-	String - It returns a string with the error message or undef on success
+
+    String - It returns a string with the error message or undef on success
 
 =cut
 
-sub checkParamsInvalid {
+sub checkParamsInvalid ($rec_keys, $expect_params) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($rec_keys, $expect_params) = @_;
+
     my $err_msg;
     my @non_valid;
 
     foreach my $param (@{$rec_keys}) {
-        push @non_valid, "'$param'" if (!grep (/^$param$/, @{$expect_params}));
+        push @non_valid, "'$param'" if (!grep { /^$param$/ } @{$expect_params});
     }
 
     if (@non_valid) {
@@ -858,24 +901,27 @@ sub checkParamsInvalid {
     return $err_msg;
 }
 
-=begin nd
-Function: checkParamsRequired
+=pod
 
-	Check if all the mandatory parameters has been sent in the current API call
+=head1 checkParamsRequired
+
+Check if all the mandatory parameters has been sent in the current API call
 
 Parameters:
-	Receive Parameters - It is the list of sent parameters in the API call
-	Expected parameters - It is the list of expected parameters for a API call
-	Model - It is the struct with all allowed parameters and its possible values and options
+
+    Receive Parameters - It is the list of sent parameters in the API call
+    Expected parameters - It is the list of expected parameters for a API call
+    Model - It is the struct with all allowed parameters and its possible values and options
 
 Returns:
-	String - It returns a string with the error message or undef on success
+
+    String - It returns a string with the error message or undef on success
 
 =cut
 
-sub checkParamsRequired {
+sub checkParamsRequired ($rec_keys, $expect_params, $param_obj) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($rec_keys, $expect_params, $param_obj) = @_;
+
     my @miss_params;
     my $err_msg;
 
@@ -884,7 +930,7 @@ sub checkParamsRequired {
 
         if ($param_obj->{$param}->{'required'} eq 'true') {
             push @miss_params, "'$param'"
-              if (!grep (/^$param$/, @{$rec_keys}));
+              if (!grep { /^$param$/ } @{$rec_keys});
         }
     }
 
@@ -895,26 +941,28 @@ sub checkParamsRequired {
     return $err_msg;
 }
 
-=begin nd
-Function: httpResponseHelp
+=pod
 
-	This function sends a response to client with the expected input parameters model.
+=head1 httpResponseHelp
 
-	This function returns a 400 HTTP error code
+This function sends a response to client with the expected input parameters model.
+
+This function returns a 400 HTTP error code
 
 Parameters:
-	Model - It is the struct with all allowed parameters and its possible values and options
-	Description - Descriptive message about the zapi call
+
+    Model - It is the struct with all allowed parameters and its possible values and options
+    Description - Descriptive message about the zapi call
 
 Returns:
-	None - .
+
+    None
 
 =cut
 
-sub httpResponseHelp {
+sub httpResponseHelp ($param_obj, $desc) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $param_obj  = shift;
-    my $desc       = shift;
+
     my $resp_param = [];
 
     # build the output
@@ -963,42 +1011,45 @@ sub httpResponseHelp {
     return &httpResponse({ code => 400, body => $body });
 }
 
-=begin nd
-Function: putArrayAsText
+=pod
 
-	This funcion receives a text string and a list of values and it generates a
-	text with the values.
+=head1 putArrayAsText
 
-	It uses a delimited to modify the text string passed as argument:
-	put list - <pl>
-	select plural - <sp>text</sp>
-	select single - <ss>text</ss>
-	select between single or plural - <bs>text_single<|>text_plural</bp>
+This funcion receives a text string and a list of values and it generates a
+text with the values.
 
-	Examples:
-		putArrayAsText ( ["password", "user", "key"], "The possible value<sp>s</sp> <sp>are</sp>: <pl>")
-			return: ""
-		putArrayAsText ( ["", "", ""], "The values are")
-			return: ""
+It uses a delimited to modify the text string passed as argument:
 
+    put list - <pl>
+    select plural - <sp>text</sp>
+    select single - <ss>text</ss>
+    select between single or plural - <bs>text_single<|>text_plural</bp>
+
+Examples:
+
+    putArrayAsText ( ["password", "user", "key"], "The possible value<sp>s</sp> <sp>are</sp>: <pl>")
+        return: ""
+    putArrayAsText ( ["", "", ""], "The values are")
+        return: ""
 
 Parameters:
-	Parameters - List of parameters to add to the string message
-	Text string - Text
+
+    Parameters - List of parameters to add to the string message
+    Text string - Text
 
 Returns:
-	String - Return a message adjust to the number of parameters passed
+
+    String - Return a message adjust to the number of parameters passed
 
 =cut
 
-sub putArrayAsText {
+sub putArrayAsText ($array_ref, $msg) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $array_ref = shift;
-    my $msg       = shift;
-    my @array     = @{$array_ref};
+
+    my @array = @{$array_ref};
 
     # one element
-    if (scalar @array eq 1) {
+    if (scalar @array == 1) {
 
         # save single tags
         $msg =~ s/<\/?ss>//g;

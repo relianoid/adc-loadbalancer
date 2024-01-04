@@ -22,33 +22,48 @@
 ###############################################################################
 
 use strict;
+use warnings;
+use feature qw(signatures);
+no warnings 'experimental::args_array_with_signatures';
 
 my $passfile = "/etc/shadow";
 
-=begin nd
-Function: changePassword
+=pod
 
-	Change the password of a username.
+=head1 Module
 
-Parameters:
-	user - User name.
-	newpass - New password.
-	verifypass - New password again.
+Relianoid::Login
 
-Returns:
-	integer - ERRNO or return code .
-
-Bugs:
-	Verify password? Really?!
-
-See Also:
-	Zapi v3: <set_user>, <set_user_zapi>
 =cut
 
-sub changePassword    #($user, $newpass, $verifypass)
-{
+=pod
+
+=head1 changePassword
+
+Change the password of a username.
+
+Parameters:
+
+    user - User name.
+    newpass - New password.
+    verifypass - New password again.
+
+Returns:
+
+    integer - ERRNO or return code .
+
+Bugs:
+
+    Verify password? Really?!
+
+See Also:
+
+    Zapi v3: <set_user>, <set_user_zapi>
+
+=cut
+
+sub changePassword ($user, $newpass, $verifypass) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($user, $newpass, $verifypass) = @_;
 
     $verifypass = $newpass if (!$verifypass);
 
@@ -65,7 +80,7 @@ sub changePassword    #($user, $newpass, $verifypass)
 $newpass
 $verifypass
 EOF
-	";
+    ";
 
     my $output = system($cmd );
     if ($output) {
@@ -76,34 +91,38 @@ EOF
     return $output;
 }
 
-=begin nd
-Function: checkValidUser
+=pod
 
-	Validate an user's password.
+=head1 checkValidUser
+
+Validate an user's password.
 
 Parameters:
-	user - User name.
-	curpasswd - Password.
+
+    user - User name.
+    curpasswd - Password.
 
 Returns:
-	scalar - Boolean. 1 for valid password, or 0 for invalid one.
+
+    scalar - Boolean. 1 for valid password, or 0 for invalid one.
 
 Bugs:
-	Not a bug, but using pam would be desirable.
+
+    Not a bug, but using pam would be desirable.
 
 See Also:
-	Zapi v3: <set_user>
+
+    Zapi v3: <set_user>
+
 =cut
 
-sub checkValidUser    #($user,$curpasswd)
-{
+sub checkValidUser ($user, $passwd_in) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($user, $curpasswd) = @_;
 
     my $output = 0;
     use Authen::Simple::Passwd;
     my $passwd = Authen::Simple::Passwd->new(path => "$passfile");
-    if ($passwd->authenticate($user, $curpasswd)) {
+    if ($passwd->authenticate($user, $passwd_in)) {
         $output = 1;
     }
 

@@ -22,14 +22,13 @@
 ###############################################################################
 
 use strict;
+use warnings;
+use feature qw(signatures);
+no warnings 'experimental::args_array_with_signatures';
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
-sub validCGISession    # ()
-{
+sub validCGISession() {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     require Relianoid::CGI;
     require CGI::Session;
@@ -59,8 +58,7 @@ sub validCGISession    # ()
     return $validSession;
 }
 
-sub getAuthorizationCredentials    # ()
-{
+sub getAuthorizationCredentials() {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $base64_digest;
     my $username;
@@ -90,7 +88,7 @@ sub getAuthorizationCredentials    # ()
         }
     }
 
-    return if !$username or !$password;
+    return if not $username or not $password;
 
     require Relianoid::User;
     &setUser($username);
@@ -98,12 +96,10 @@ sub getAuthorizationCredentials    # ()
     return ($username, $password);
 }
 
-sub authenticateCredentials    #($user,$curpasswd)
-{
+sub authenticateCredentials ($user, $pass) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($user, $pass) = @_;
 
-    return if !defined $user or !defined $pass;
+    return if not defined $user or not defined $pass;
 
     my $valid_credentials = 0;    # output
 

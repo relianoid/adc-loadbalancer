@@ -22,28 +22,42 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
 my $eload;
 $eload = 1 if (eval { require Relianoid::ELoad; });
 
-=begin nd
-Function: getZAPI
+=pod
 
-	Get zapi status
+=head1 Module
 
-Parameters:
-	name - 'status' to get if the user 'zapi' is enabled, or 'zapikey' to get the 'zapikey'.
+Relianoid::API
 
-Returns:
-	For 'status': Boolean. 'true' if the zapi user is enabled, or 'false' if it is disabled.
-
-	For 'zapikey': Returns the current zapikey.
-
-See Also:
-	zapi/v3/system.cgi
 =cut
 
-sub getZAPI    #($name)
+=pod
+
+=head1 getAPI
+
+Get zapi status
+
+Parameters:
+
+    name - 'status' to get if the user 'zapi' is enabled, or 'zapikey' to get the 'zapikey'.
+
+Returns:
+
+    For 'status': Boolean. 'true' if the zapi user is enabled, or 'false' if it is disabled.
+
+    For 'zapikey': Returns the current zapikey.
+
+See Also:
+
+    zapi/v3/system.cgi
+
+=cut
+
+sub getAPI    #($name)
 {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($name) = @_;
@@ -65,33 +79,39 @@ sub getZAPI    #($name)
     return $result;
 }
 
-=begin nd
-Function: setZAPI
+=pod
 
-	Set zapi values
+=head1 setAPI
+
+Set zapi values
 
 Parameters:
-	name - Actions to be taken: 'enable', 'disable', 'randomkey' to set a random key, or 'key' to set the key specified in value.
 
-		enable - Enables the user 'zapi'.
-		disable - Disables the user 'zapi'.
-		randomkey - Generates a random key.
-		key - Sets $value a the zapikey.
+    name - Actions to be taken: 'enable', 'disable', 'randomkey' to set a random key, or 'key' to set the key specified in value.
 
-	value - New key to be used. Only apply when the action 'key' is used.
+        enable - Enables the user 'zapi'.
+        disable - Disables the user 'zapi'.
+        randomkey - Generates a random key.
+        key - Sets $value a the zapikey.
+
+    value - New key to be used. Only apply when the action 'key' is used.
 
 Returns:
-	none - .
+
+    none
 
 Bugs:
-	-setGlobalConfig should be used to set the zapikey.
-	-Randomkey is not used.
+
+    -setGlobalConfig should be used to set the zapikey.
+    -Randomkey is not used.
 
 See Also:
-	zapi/v3/system.cgi
+
+    zapi/v3/system.cgi
+
 =cut
 
-sub setZAPI    #($name,$value)
+sub setAPI    #($name,$value)
 {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($name, $value) = @_;
@@ -128,7 +148,7 @@ sub setZAPI    #($name,$value)
     #Set Random key for zapi
     if ($name eq "randomkey") {
         require Tie::File;
-        my $random = &setZAPIKey(64);
+        my $random = &setAPIKey(64);
         tie my @contents, 'Tie::File', "$globalcfg";
         foreach my $line (@contents) {
             if ($line =~ /zapi/) {
@@ -161,35 +181,59 @@ sub setZAPI    #($name,$value)
         # Update zapikey global configuration
         &getGlobalConfiguration('zapikey', 1);
     }
+
+    return;
 }
 
-=begin nd
-Function: setZAPIKey
+=pod
 
-	Generate random key for ZAPI user.
+=head1 setAPIKey
+
+Generate random key for ZAPI user.
 
 Parameters:
-	passwordsize - Number of characters in the new key.
+
+    passwordsize - Number of characters in the new key.
 
 Returns:
-	string - Random key.
+
+    string - Random key.
 
 See Also:
-	<setZAPI>
+
+    <setAPI>
+
 =cut
 
-sub setZAPIKey    #()
+sub setAPIKey    #()
 {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $passwordsize = shift;
 
     my @alphanumeric = ('a' .. 'z', 'A' .. 'Z', 0 .. 9);
-    my $randpassword = join '', map $alphanumeric[ rand @alphanumeric ], 0 .. $passwordsize;
+    my $randpassword = join '', map { $alphanumeric[ rand @alphanumeric ] } 0 .. $passwordsize;
 
     return $randpassword;
 }
 
-sub validZapiKey    # ()
+=pod
+
+=head1 validApiKey
+
+Parameters:
+
+    Read the enviroment variable $ENV{HTTP_ZAPI_KEY}
+
+Returns:
+
+    integer
+
+    0 - If the API key was invalid
+    1 - If the API key was valid
+
+=cut
+
+sub validApiKey    # ()
 {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
@@ -197,13 +241,10 @@ sub validZapiKey    # ()
     my $key      = "HTTP_ZAPI_KEY";
 
     require Relianoid::User;
-    if (exists $ENV{$key})            # zapi key was provided
-    {
-        if (
-            &getZAPI("status") eq "true"            # zapi user is enabled
-            && &getZAPI("zapikey") eq $ENV{$key}    # matches key
-          )
-        {
+    if (exists $ENV{$key}) {
+
+        # zapi user is enabled and matches key
+        if (&getAPI("status") eq "true" && &getAPI("zapikey") eq $ENV{$key}) {
             &setUser('root');
             $validKey = 1;
         }
@@ -225,19 +266,63 @@ sub validZapiKey    # ()
     return $validKey;
 }
 
-sub listZapiVersions {
+=pod
+
+=head1 listApiVersions
+
+Parameters:
+
+    none
+
+Returns:
+
+    list of API versions (as strings)
+
+=cut
+
+sub listApiVersions {
     my $version_st     = &getGlobalConfiguration("zapi_versions");
     my @versions       = split(' ', $version_st);
     my @versions_array = sort @versions;
     return @versions_array;
 }
 
-sub setZapiVersion {
+=pod
+
+=head1 setApiVersion
+
+Parameters:
+
+    string - API version
+
+Returns:
+
+    none
+
+=cut
+
+sub setApiVersion {
     my $version = shift;
     $ENV{ZAPI_VERSION} = $version;
+
+    return;
 }
 
-sub getZapiVersion {
+=pod
+
+=head1 getApiVersion
+
+Parameters:
+
+    none
+
+Returns:
+
+    string - API version or empty string.
+
+=cut
+
+sub getApiVersion {
     return $ENV{ZAPI_VERSION} // "";
 }
 

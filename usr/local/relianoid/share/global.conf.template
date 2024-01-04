@@ -11,7 +11,7 @@ $debug="0";
 # nftlb debug level
 $nftlb_debug="5";
 #ZAPI Versions
-$zapi_versions="3 3.1 3.2 4.0.2";#update
+$zapi_versions="3 3.1 3.2 4.0.3";#update
 # API model path
 $zapi_model_path="/usr/local/relianoid/zapi-model";#update
 #ZAPI KEY
@@ -97,9 +97,9 @@ $bios_version="/sys/devices/virtual/dmi/id/bios_version";
 $networking_service="/etc/init.d/networking";
 
 #SNMP Service
-$snmpdconfig_tpl="$templatedir/snmpd.conf.template";
 $snmpdconfig_file="/etc/snmp/snmpd.conf";
 $snmpd_service="/etc/init.d/snmpd";
+$snmptrap_cmd="/usr/bin/snmptrap";#update
 
 # start / stop scripts
 $zlb_start_script="$configdir/zlb-start";
@@ -327,7 +327,7 @@ $default_reboot_bin="/usr/sbin/reboot";#update
 #This variable is modified from postinst
 $reboot_bin="/usr/sbin/reboot";
 #Where is arpsend
-$arpsend_bin="/usr/sbin/arpsend";
+$arpsend_bin="/usr/local/relianoid/bin/arpsend";#update
 #Where is dhclient
 $aws_dhcp_bin="/sbin/dhclient";#update
 $default_dhcp_bin="/usr/sbin/dhclient";#update
@@ -509,6 +509,7 @@ $bonding_hwaddr_filename="bonding_slave/perm_hwaddr";
 
 #Notifications Module
 # How time wait to execute the logs rotate
+$notifSnmpOIDs="$configdir/notifications/snmp_oids.status";#update
 
 #IPDS Module
 

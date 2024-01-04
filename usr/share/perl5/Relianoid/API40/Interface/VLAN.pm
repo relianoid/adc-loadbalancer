@@ -22,11 +22,9 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
 #  POST /interfaces/vlan Create a new vlan network interface
 sub new_vlan    # ( $json_obj )
@@ -44,10 +42,10 @@ sub new_vlan    # ( $json_obj )
     my $nic_re      = &getValidFormat('nic_interface');
     my $vlan_tag_re = &getValidFormat('vlan_tag');
 
-    my $params = &getZAPIModel("vlan-create.json");
+    my $params = &getAPIModel("vlan-create.json");
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -59,7 +57,7 @@ sub new_vlan    # ( $json_obj )
           or exists $json_obj->{netmask}
           or exists $json_obj->{gateway}
     );
-    unless (($dhcp_flag and !$ip_opt) or (!$dhcp_flag and $ip_mand)) {
+    unless (($dhcp_flag and not $ip_opt) or (not $dhcp_flag and $ip_mand)) {
         my $msg =
           "It is mandatory set an 'ip' and its 'netmask' or enabling the 'dhcp'. It is not allow to send 'ip', 'netmask' or 'gateway' when 'dhcp' is true.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
@@ -127,6 +125,7 @@ sub new_vlan    # ( $json_obj )
         vlan   => $json_obj->{tag},
         dhcp   => $json_obj->{dhcp} // 'false',
         mac    => $socket->if_hwaddr($json_obj->{parent}),
+        type   => 'vlan'
     };
     $if_ref->{mac} = lc $json_obj->{mac}
       if ($eload && exists $json_obj->{mac});
@@ -216,6 +215,7 @@ sub new_vlan    # ( $json_obj )
     };
 
     &httpResponse({ code => 201, body => $body });
+    return;
 }
 
 sub delete_interface_vlan    # ( $vlan )
@@ -330,6 +330,7 @@ sub delete_interface_vlan    # ( $vlan )
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 sub get_vlan_list    # ()
@@ -346,6 +347,7 @@ sub get_vlan_list    # ()
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 sub get_vlan    # ()
@@ -369,6 +371,7 @@ sub get_vlan    # ()
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 sub actions_interface_vlan    # ( $json_obj, $vlan )
@@ -382,10 +385,10 @@ sub actions_interface_vlan    # ( $json_obj, $vlan )
     my $desc = "Action on vlan interface";
     my $ip_v = 4;
 
-    my $params = &getZAPIModel("vlan-action.json");
+    my $params = &getAPIModel("vlan-action.json");
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -496,6 +499,7 @@ sub actions_interface_vlan    # ( $json_obj, $vlan )
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 sub modify_interface_vlan    # ( $json_obj, $vlan )
@@ -526,10 +530,10 @@ sub modify_interface_vlan    # ( $json_obj, $vlan )
         &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
     }
 
-    my $params = &getZAPIModel("vlan-modify.json");
+    my $params = &getAPIModel("vlan-modify.json");
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -549,7 +553,7 @@ sub modify_interface_vlan    # ( $json_obj, $vlan )
         }
     }
 
-    if (!exists $json_obj->{ip} and exists $json_obj->{dhcp} and @child) {
+    if (not exists $json_obj->{ip} and exists $json_obj->{dhcp} and @child) {
         my $msg =
           "This interface has appending some virtual interfaces, please, set up a new 'ip' in the current networking range.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
@@ -677,11 +681,11 @@ sub modify_interface_vlan    # ( $json_obj, $vlan )
 
             # check if network is changed
             my $mask = $json_obj->{netmask} // $if_ref->{mask};
-            if (  !&validateGateway($if_ref->{addr}, $if_ref->{mask}, $json_obj->{ip})
+            if (not &validateGateway($if_ref->{addr}, $if_ref->{mask}, $json_obj->{ip})
                 or $if_ref->{mask} ne $mask)
             {
                 my $net =
-                  new NetAddr::IP($if_ref->{addr}, $if_ref->{mask})->cidr();
+                  NetAddr::IP->new($if_ref->{addr}, $if_ref->{mask})->cidr();
                 $vpns_localnet = &eload(
                     module => 'Relianoid::VPN::Util',
                     func   => 'getVPNByNet',
@@ -691,7 +695,7 @@ sub modify_interface_vlan    # ( $json_obj, $vlan )
         }
 
         if (@farms or @{$vpns_localgw} or @{$vpns_localnet}) {
-            if (   !exists $json_obj->{ip}
+            if (    not exists $json_obj->{ip}
                 and exists $json_obj->{dhcp}
                 and $json_obj->{dhcp} eq 'false')
             {
@@ -796,7 +800,7 @@ sub modify_interface_vlan    # ( $json_obj, $vlan )
     my $vlan_config_file = &getGlobalConfiguration('configdir') . "/if_$if_ref->{ name }_conf";
     my $dhcp_flag        = $json_obj->{dhcp} // $if_ref->{dhcp};
 
-    if (($dhcp_flag ne 'true') and !($if_ref->{addr} && $if_ref->{mask})) {
+    if (($dhcp_flag ne 'true') and not($if_ref->{addr} and $if_ref->{mask})) {
         my $msg = "Cannot configure the interface without address or without netmask.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
@@ -832,7 +836,7 @@ sub modify_interface_vlan    # ( $json_obj, $vlan )
         $warning_msg .= $error->{desc} if ($error->{code});
     }
     if (@{$vpns_localnet}) {
-        my $net   = new NetAddr::IP($if_ref->{net}, $if_ref->{mask})->cidr();
+        my $net   = NetAddr::IP->new($if_ref->{net}, $if_ref->{mask})->cidr();
         my $error = &eload(
             module => 'Relianoid::VPN::Config',
             func   => 'setAllVPNLocalNetwork',
@@ -850,6 +854,7 @@ sub modify_interface_vlan    # ( $json_obj, $vlan )
     $body->{warning} = $warning_msg if ($warning_msg);
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 1;

@@ -29,24 +29,38 @@ use Relianoid::Farm::L4xNAT::Action;
 
 my $configdir = &getGlobalConfiguration('configdir');
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
-=begin nd
-Function: runL4FarmCreate
+=pod
 
-	Create a l4xnat farm
+=head1 Module
+
+Relianoid::Farm::L4xNAT::Factory
+
+=cut
+
+=pod
+
+=head1 runL4FarmCreate
+
+Create a l4xnat farm
 
 Parameters:
-	vip - Virtual IP
-	port - Virtual port. In l4xnat it ls possible to define multiport using ',' for add ports and ':' for ranges
-	farmname - Farm name
-	status - Set the initial status of the farm. The possible values are: 'down' for creating the farm and do not run it or 'up' (default) for running the farm when it has been created
+
+    vip - Virtual IP
+
+    port - Virtual port. In l4xnat it ls possible to define multiport 
+            using ',' to add ports and ':' for ranges
+
+    farmname - Farm name
+
+    status - Set the initial status of the farm. The possible values are: 
+             - 'down' for creating the farm and do not run it
+             - 'up' (default) for running the farm when it has been created
 
 Returns:
-	Integer - return 0 on success or other value on failure
+
+    Integer - return 0 on success or other value on failure
 
 =cut
 
@@ -100,17 +114,19 @@ sub runL4FarmCreate {
     return $output;
 }
 
-=begin nd
-Function: runL4FarmDelete
+=pod
 
-	Delete a l4xnat farm
+=head1 runL4FarmDelete
+
+Delete a l4xnat farm
 
 Parameters:
 
-	farm_name - Farm name
+    farm_name - Farm name
 
 Returns:
-	Integer - return 0 on success or other value on failure
+
+    Integer - return 0 on success or other value on failure
 
 =cut
 

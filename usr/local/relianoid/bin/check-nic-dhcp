@@ -22,9 +22,9 @@
 #
 ###############################################################################
 
-use 5.036;
 use strict;
 use warnings;
+
 use IO::Interface::Simple;
 
 require Relianoid;

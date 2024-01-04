@@ -27,20 +27,29 @@ require Relianoid::Log;
 use Relianoid::SystemInfo;
 use autodie;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
-=begin nd
-Function: setSystemPackagesRepo
+=pod
 
-    It configures the system to connect with the APT.
+=head1 Module
+
+Relianoid::System::Packages
+
+=cut
+
+=pod
+
+=head1 setSystemPackagesRepo
+
+It configures the system to connect with the APT.
 
 Parameters:
 
+    none
+
 Returns:
-	Integer - Error code, 0 on success or another value on failure
+
+    Integer - Error code, 0 on success or another value on failure
 
 =cut
 
@@ -75,23 +84,26 @@ sub setSystemPackagesRepo {
     return $error;
 }
 
-=begin nd
-Function: getSystemPackagesUpdatesList
+=pod
 
-    It returns information about the status of the system regarding updates.
-    This information is parsed from a file
+=head1 getSystemPackagesUpdatesList
+
+It returns information about the status of the system regarding updates.
+This information is parsed from a file
 
 Parameters:
 
+    none
+
 Returns:
-	Hash ref -
-		{
-			 'message'    := message with the instructions to update the system
-			 'last_check' := date of the last time that checkupgrades (or apt-get) was executed
-			 'status'     := information about if there is pending updates.
-			 'number'     := number of packages pending of updating
-			 'packages'   := list of packages pending of updating
-		};
+
+    Hash reference
+
+    'message'    : message with the instructions to update the system
+    'last_check' : date of the last time that checkupgrades (or apt-get) was executed
+    'status'     : information about if there is pending updates.
+    'number'     : number of packages pending of updating
+    'packages'   : list of packages pending of updating
 
 =cut
 

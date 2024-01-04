@@ -22,8 +22,32 @@
 ###############################################################################
 
 use strict;
+use warnings;
+use feature qw(signatures);
+no warnings 'experimental::args_array_with_signatures';
 
+use Carp;
 use Unix::Syslog qw(:macros :subs);    # Syslog macros
+
+use Relianoid::Debug;
+
+=pod
+
+=head1 Module
+
+Relianoid::Log 
+
+=cut
+
+sub warning_signal {    ## no critic Subroutines::RequireArgUnpacking
+    print STDERR @_;
+    zenlog("@_", "warn");
+}
+
+sub die_signal {    ## no critic Subroutines::RequireArgUnpacking
+    print STDERR @_;
+    zenlog("@_", "error");
+}
 
 # Get the program name for zenlog
 my $TAG = "[Log.pm]";
@@ -34,46 +58,50 @@ my $program_name =
 
 my $basename = (split('/', $program_name))[-1];
 
-=begin nd
-Function: zenlog
+=pod
 
-	Write logs through syslog
+=head1 zenlog
 
-	Usage:
+Write logs through syslog
 
-		&zenlog($text, $priority, $tag);
+Usage:
 
-	Examples:
+    &zenlog($text, $priority, $tag);
 
-		&zenlog("This is a message.", "info", "LSLB");
-		&zenlog("Some errors happened.", "err", "FG");
-		&zenlog("testing debug mode", "debug", "SYSTEM");
+Examples:
 
+    &zenlog("This is a message.", "info", "LSLB");
+    &zenlog("Some errors happened.", "err", "FG");
+    &zenlog("testing debug mode", "debug", "SYSTEM");
 
-	The different debug levels are:
-	1 - Command executions.
-		API inputs.
-	2 - The command standart output, when there isn't any error.
-		API outputs.
-		Parameters modified in configuration files.
-	3 - (reserved)
-	4 - (reserved)
-	5 - Profiling.
+The different debug levels are:
+
+    1 - Command executions.
+        API inputs.
+    2 - The command standart output, when there isn't any error.
+        API outputs.
+        Parameters modified in configuration files.
+    3 - (reserved)
+    4 - (reserved)
+    5 - Profiling.
 
 Parametes:
-	string - String to be written in log.
-	type   - Log level. info, error, debug, debug2, warn
-	tag    - RBAC, LSLB, GSLB, DSLB, IPDS, FG, NOTIF, NETWORK, MONITOR, SYSTEM, CLUSTER, AWS
+
+    message - String to be written in log.
+    type    - Log level. info, error, debug, debug2, warn. Default: info
+    tag     - RBAC, LSLB, GSLB, DSLB, IPDS, FG, NOTIF, NETWORK, MONITOR, SYSTEM, CLUSTER, AWS
 
 Returns:
-	none - .
+
+    none - .
+
 =cut
 
 sub zenlog    # ($string, $type)
 {
-    my $string = shift;              # string = message
-    my $type   = shift // 'info';    # type   = log level (Default: info))
-    my $tag    = shift // "";
+    my $message = shift;
+    my $type    = shift // 'info';
+    my $tag     = shift // "";
 
     if ($tag eq 'PROFILING') {
         $type = "debug5";
@@ -84,73 +112,71 @@ sub zenlog    # ($string, $type)
     if ($type =~ /^(debug)(\d*)?$/) {
         require Relianoid::Debug;
 
-        # debug lvl
-        my $debug_lvl = $2;
-        $debug_lvl = 1 if not $debug_lvl;
-        $type      = "$1$debug_lvl";
-        return 0 if (&debug() lt $debug_lvl);
+        my $debug_level = $2 // '1';
+        if (&debug() lt $debug_level) {
+            return;
+        }
+        $type = "${1}${debug_level}";
     }
 
-    $tag = lc $tag    if $tag;
-    $tag = "$tag :: " if $tag;
+    if ($tag) {
+        $tag = lc "${tag} :: ";
+    }
 
-    # Get the program name
     my $program = $basename;
+    $type = uc($type);
 
-    #~ openlog( $program, 'pid', 'local0' );    #open syslog
     openlog($program, LOG_PID, LOG_LOCAL0);
+    syslog(LOG_INFO, "(${type}) ${tag}${message}");
+    closelog();
 
-    my @lines = split /\n/, $string;
-
-    foreach my $line (@lines) {
-
-        #~ syslog( $type, "(" . uc ( $type ) . ") " . $line );
-        syslog(LOG_INFO, "(" . uc($type) . ") " . "${tag}$line");
-    }
-
-    closelog();    #close syslog
+    return;
 }
 
-=begin nd
-Function: notlog
+=pod
 
-	Write logs through syslog. Exclusive use for logging notifications.
+=head1 notlog
 
-	Usage:
+Write logs through syslog. Exclusive use for logging notifications.
 
-		&zenlog($text, $priority, $tag);
+Usage:
 
-	Examples:
+    &notlog($text, $priority, $tag);
 
-		&zenlog("This is a message.", "info", "LSLB");
-		&zenlog("Some errors happened.", "err", "FG");
-		&zenlog("testing debug mode", "debug", "SYSTEM");
+Examples:
 
+    &notlog("This is a message.", "info", "LSLB");
+    &notlog("Some errors happened.", "err", "FG");
+    &notlog("testing debug mode", "debug", "SYSTEM");
 
-	The different debug levels are:
-	1 - Command executions.
-		API inputs.
-	2 - The command standart output, when there isn't any error.
-		API outputs.
-		Parameters modified in configuration files.
-	3 - (reserved)
-	4 - (reserved)
-	5 - Profiling.
+The different debug levels are:
+
+    1 - Command executions.
+        API inputs.
+    2 - The command standart output, when there isn't any error.
+        API outputs.
+        Parameters modified in configuration files.
+    3 - (reserved)
+    4 - (reserved)
+    5 - Profiling.
 
 Parametes:
-	string - String to be written in log.
-	type   - Log level. info, error, debug, debug2, warn
-	tag    - RBAC, LSLB, GSLB, DSLB, IPDS, FG, NOTIF, NETWORK, MONITOR, SYSTEM, CLUSTER, AWS
+
+    message - String to be written in log.
+    type    - Log level. info, error, debug, debug2, warn. Default: info
+    tag     - RBAC, LSLB, GSLB, DSLB, IPDS, FG, NOTIF, NETWORK, MONITOR, SYSTEM, CLUSTER, AWS
 
 Returns:
-	none - .
+
+    none - .
+
 =cut
 
 sub notlog    # ($string, $type)
 {
-    my $string = shift;              # string = message
-    my $type   = shift // 'info';    # type   = log level (Default: info))
-    my $tag    = shift // "";
+    my $message = shift;
+    my $type    = shift // 'info';
+    my $tag     = shift // "";
 
     if ($tag eq 'PROFILING') {
         $type = "debug5";
@@ -161,43 +187,42 @@ sub notlog    # ($string, $type)
     if ($type =~ /^(debug)(\d*)?$/) {
         require Relianoid::Debug;
 
-        # debug lvl
         my $debug_lvl = $2;
         $debug_lvl = 1 if not $debug_lvl;
         $type      = "$1$debug_lvl";
         return 0 if (&debug() lt $debug_lvl);
     }
 
-    $tag = lc $tag    if $tag;
-    $tag = "$tag :: " if $tag;
-
-    # Get the program name
-    my $program = $basename;
-
-    #~ openlog( $program, 'pid', 'local1' );    #open syslog
-    openlog($program, LOG_PID, LOG_LOCAL2);
-
-    my @lines = split /\n/, $string;
-
-    foreach my $line (@lines) {
-        syslog(LOG_INFO, "(" . uc($type) . ") " . "${tag}$line");
+    if ($tag) {
+        $tag = lc "${tag} :: ";
     }
 
-    closelog();    #close syslog
+    my $program = $basename;
+    $type = uc($type);
+
+    openlog($program, LOG_PID, LOG_LOCAL2);
+    syslog(LOG_INFO, "(${type}) ${tag}${message}");
+    closelog();
+
+    return;
 }
 
-=begin nd
-Function: zlog
+=pod
 
-	Log some call stack information with an optional message.
+=head1 zlog
 
-	This function is only used for debugging pourposes.
+Log some call stack information with an optional message.
+
+This function is only used for debugging pourposes.
 
 Parameters:
-	message - Optional message to be printed with the stack information.
+
+    message - Optional message to be printed with the stack information.
 
 Returns:
-	none - .
+
+    none
+
 =cut
 
 sub zlog    # (@message)
@@ -228,25 +253,30 @@ sub zlog    # (@message)
     return;
 }
 
-=begin nd
-Function: logAndRun
+=pod
 
-	Log and run the command string input parameter returning execution error code.
+=head1 logAndRun
+
+Log and run the command string input parameter returning execution error code.
 
 Parameters:
-	command - String with the command to be run.
+
+    command - String with the command to be run.
 
 Returns:
-	integer - ERRNO or return code returned by the command.
+
+    integer - ERRNO or return code returned by the command.
 
 See Also:
-	Widely used.
+
+    Widely used.
+
 =cut
 
 sub logAndRun    # ($command)
 {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $command = shift;    # command string to log and run
+    my $command = shift;
 
     my $program     = $basename;
     my @cmd_output  = `$command 2>&1`;
@@ -254,7 +284,7 @@ sub logAndRun    # ($command)
 
     if ($return_code) {
         &zenlog($program . " running: $command", "error", "SYSTEM");
-        &zenlog("out: @cmd_output",     "error", "error", "SYSTEM");
+        &zenlog("out: @cmd_output",     "error", "error", "SYSTEM") if @cmd_output;
         &zenlog("last command failed!", "error", "SYSTEM");
     }
     else {
@@ -262,26 +292,29 @@ sub logAndRun    # ($command)
         &zenlog("out: @cmd_output",              "debug2", "SYSTEM");
     }
 
-    # returning error code from execution
     return $return_code;
 }
 
-=begin nd
-Function: logAndRunBG
+=pod
 
-	Non-blocking version of logging and running a command, returning execution error code.
+=head1 logAndRunBG()
+
+Non-blocking version of logging and running a command, returning execution error code.
 
 Parameters:
-	command - String with the command to be run.
+
+    command - String with the command to be run.
 
 Returns:
-	boolean - true on error, false on success launching the command.
+
+    boolean - true on error, false on success launching the command.
+
 =cut
 
 sub logAndRunBG    # ($command)
 {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $command = shift;    # command string to log and run
+    my $command = shift;
 
     my $program = $basename;
 
@@ -301,72 +334,83 @@ sub logAndRunBG    # ($command)
     return $return_code == -1;
 }
 
-sub zdie {
+# Only used in API 3.1, 3.2 and 4.0
+sub zdie ($message) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    require Carp;
-    Carp->import();
 
-    &zenlog(@_);
-    carp(@_);
+    &zenlog($message);
+    carp($message);
+
+    return;
 }
 
-=begin nd
-Function: zsystem
+=pod
 
-	Run a command with the environment parameters customized.
+=head1 zsystem
+
+Run a command with the environment parameters customized.
 
 Parameters:
-	exec - Command to run.
+
+    exec - Command to run.
 
 Returns:
-	integer - Returns 0 on success or another value on failure
+
+    integer - Returns 0 on success or another value on failure
 
 See Also:
-	<runFarmGuardianStart>, <_runHTTPFarmStart>, <runHTTPFarmCreate>, <_runGSLBFarmStart>, <_runGSLBFarmStop>, <runGSLBFarmReload>, <runGSLBFarmCreate>
+
+    <runFarmGuardianStart>, <_runHTTPFarmStart>, <runHTTPFarmCreate>, <_runGSLBFarmStart>, <_runGSLBFarmStop>, <runGSLBFarmReload>, <runGSLBFarmCreate>
+
 =cut
 
-sub zsystem {
+sub zsystem (@command) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my (@exec) = @_;
+
     my $program = $basename;
 
-    my @cmd_output = `. /etc/profile -notzenbui >/dev/null 2>&1 && @exec 2>&1`;
+    my @cmd_output = `. /etc/profile -notzenbui >/dev/null 2>&1 && @command 2>&1`;
     my $out        = $?;
 
     if ($out) {
-        &zenlog($program . " running: @exec", "error", "SYSTEM");
-        &zenlog("@cmd_output", "error", "error", "SYSTEM");
+        &zenlog($program . " running: @command", "error", "SYSTEM");
+        &zenlog("@cmd_output", "error", "error", "SYSTEM") if @cmd_output;
         &zenlog("last command failed!", "error", "SYSTEM");
     }
     else {
-        &zenlog($program . " running: @exec", "debug",  "SYSTEM");
-        &zenlog("out: @cmd_output",           "debug2", "SYSTEM");
+        &zenlog($program . " running: @command", "debug",  "SYSTEM");
+        &zenlog("out: @cmd_output",              "debug2", "SYSTEM");
     }
 
     return $out;
 }
 
-=begin nd
-Function: logAndGet
+=pod
 
-	Execute a command in the system to get the output. If the command fails,
-	it logs the error and returns a empty string or array.
-	It returns only the standard output, it does not return stderr.
+=head1 logAndGet
+
+Execute a command in the system to get the output. If the command fails,
+it logs the error and returns a empty string or array.
+It returns only the standard output, it does not return stderr.
 
 Parameters:
-	command - String with the command to be run in order to get info from the system.
-	output format - Force that the output will be convert to 'string' or 'array'. String by default
-	stderr flag - If this parameter is different of 0, the stderr will be added to the command output '2>&1'
+
+    command - String with the command to be run in order to get info from the system.
+    output format - Force that the output will be convert to 'string' or 'array'. String by default
+    stderr flag - If this parameter is different of 0, the stderr will be added to the command output '2>&1'
 
 Returns:
-	Array ref or string - data obtained from the system. The type of output is specified
-	in the type input param
+
+    Array ref or string - data obtained from the system. The type of output is specified
+    in the type input param
 
 See Also:
-	logAndRun
+
+    logAndRun
 
 TODO:
-	Add an option to manage exclusively the output error and discard the standard output
+
+    Add an option to manage exclusively the output error and discard the standard output
 
 =cut
 
@@ -383,7 +427,7 @@ sub logAndGet {
     my $err_code = $?;
     &zenlog("Executed (out: $err_code): $cmd", "debug", "system");
 
-    if ($err_code and !$add_stderr) {
+    if ($err_code and not $add_stderr) {
 
         # execute again, removing stdout and getting stderr
         if (open(my $fh, '<', $tmp_err)) {
@@ -412,22 +456,26 @@ sub logAndGet {
     return $out;
 }
 
-=begin nd
-Function: logAndRunCheck
+=pod
 
-	It executes a command but is does not log anything if it fails. This functions
-	is useful to check things in the system as if a process is running or doing connectibity tests.
-	This function will log the command if the loglevel is greater than 1, and will
-	log the error output if the loglevel is greater than 2.
+=head1 logAndRunCheck
+
+It executes a command but is does not log anything if it fails. This functions
+is useful to check things in the system as if a process is running or doing connectibity tests.
+This function will log the command if the loglevel is greater than 1, and will
+log the error output if the loglevel is greater than 2.
 
 Parameters:
-	command - String with the command to be run.
+
+    command - String with the command to be run.
 
 Returns:
-	integer - error code of the command. 0 on success or another value on failure
+
+    integer - error code of the command. 0 on success or another value on failure
 
 See Also:
-	logAndRun
+
+    logAndRun
 
 =cut
 
@@ -449,22 +497,26 @@ sub logAndRunCheck {
     return $return_code;
 }
 
-=begin nd
-Function: logRunAndGet
+=pod
 
-	Execute a command in the system to get both the standard output and the stderr.
+=head1 logRunAndGet
+
+Execute a command in the system to get both the standard output and the stderr.
 
 Parameters:
-	command - String with the command to be run in order to get info from the system.
-	format - Force that the output will be convert to 'string' or 'array'. String by default.
-	outflush - Flush standard output. If true, the standard output will be sent to null.
+
+    command - String with the command to be run in order to get info from the system.
+    format - Force that the output will be convert to 'string' or 'array'. String by default.
+    outflush - Flush standard output. If true, the standard output will be sent to null.
 
 Returns:
-	Hash ref - hash reference with the items:
 
-		stdout - standard output of the command executed in the given format. If 'array'
-			format is selected, then a hash array is provided. 'string' by default.
-		stderr - output error code of the command executed.
+    Hash ref - hash reference with the items:
+
+    stdout - standard output of the command executed in the given format. If 'array'
+             format is selected, then a hash array is provided. 'string' by default.
+
+    stderr - output error code of the command executed.
 
 =cut
 
@@ -491,6 +543,42 @@ sub logRunAndGet {
     }
 
     return $exit;
+}
+
+=pod
+
+=head1 run3
+
+Execute a command and returns errno, stdout and stderr of such command.
+
+Parameters:
+
+    command - String with the command to be run.
+
+Returns:
+
+    ($errno, \@stdout, \@stderr) - Array with:
+
+    errno  - Scalar integer. The value is the error number returned.
+    stdout - Array reference. Each element of the array is a line of stdout.
+    stderr - Array reference. Each element of the array is a line of stderr.
+
+=cut
+
+sub run3 ($command) {
+    require IPC::Open3;
+    require Symbol;
+
+    my $in_fh;
+    my $out_fh;
+    my $err_fh = Symbol::gensym();    # required to separate stdout and stderr
+    my $pid    = IPC::Open3::open3($in_fh, $out_fh, $err_fh, $command);
+    waitpid($pid, 0);
+    my $status = $? >> 8;
+
+    chomp(my @out = <$out_fh>);
+    chomp(my @err = <$err_fh>);
+    return ($status, \@out, \@err);
 }
 
 1;

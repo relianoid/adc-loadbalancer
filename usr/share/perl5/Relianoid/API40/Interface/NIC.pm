@@ -22,11 +22,9 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
 sub delete_interface_nic    # ( $nic )
 {
@@ -149,6 +147,7 @@ sub delete_interface_nic    # ( $nic )
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # GET /interfaces Get params of the interfaces
@@ -166,6 +165,7 @@ sub get_nic_list    # ()
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 sub get_nic    # ()
@@ -189,6 +189,7 @@ sub get_nic    # ()
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 sub actions_interface_nic    # ( $json_obj, $nic )
@@ -207,10 +208,10 @@ sub actions_interface_nic    # ( $json_obj, $nic )
         my $msg = "Nic interface not found";
         &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
     }
-    my $params = &getZAPIModel("nic-action.json");
+    my $params = &getAPIModel("nic-action.json");
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -245,10 +246,9 @@ sub actions_interface_nic    # ( $json_obj, $nic )
 
         # Delete routes in case that it is not a vini
         if ($if_ref->{addr}) {
-            &delRoutes("local", $if_ref) if $if_ref;
+            &delRoutes("local", $if_ref);
+            &addIp($if_ref);
         }
-
-        &addIp($if_ref) if $if_ref;
 
         my $state = &upIf($if_ref, 'writeconf');
 
@@ -299,6 +299,7 @@ sub actions_interface_nic    # ( $json_obj, $nic )
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 sub modify_interface_nic    # ( $json_obj, $nic )
@@ -321,10 +322,10 @@ sub modify_interface_nic    # ( $json_obj, $nic )
         my $msg = "NIC interface not found.";
         &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
     }
-    my $params = &getZAPIModel("nic-modify.json");
+    my $params = &getAPIModel("nic-modify.json");
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -382,7 +383,7 @@ sub modify_interface_nic    # ( $json_obj, $nic )
         my $ip_v = &ipversion($new_if->{addr});
         my $gw_v = &ipversion($new_if->{gateway});
 
-        if (!&validateNetmask($json_obj->{netmask}, $ip_v)) {
+        if (!&validateNetmask($new_if->{mask}, $ip_v)) {
             my $msg = "The netmask is not valid";
             &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
         }
@@ -449,12 +450,9 @@ sub modify_interface_nic    # ( $json_obj, $nic )
         }
     }
 
-    # check if some farm is using this ip
     my @farms;
-    my $vpns_localgw;
-    @{$vpns_localgw} = ();
-    my $vpns_localnet;
-    @{$vpns_localnet} = ();
+    my $vpns_localgw  = [];
+    my $vpns_localnet = [];
     my $warning_msg;
 
     if (   exists $json_obj->{ip}
@@ -504,8 +502,12 @@ sub modify_interface_nic    # ( $json_obj, $nic )
                 }
             }
 
-            require Relianoid::Farm::Base;
-            @farms        = &getFarmListByVip($if_ref->{addr});
+            # check if some farm is using this ip
+            if ($if_ref->{addr}) {
+                require Relianoid::Farm::Base;
+                @farms = &getFarmListByVip($if_ref->{addr});
+            }
+
             $vpns_localgw = &eload(
                 module => 'Relianoid::VPN::Util',
                 func   => 'getVPNByIp',
@@ -518,11 +520,11 @@ sub modify_interface_nic    # ( $json_obj, $nic )
 
             # check if network is changed
             my $mask = $json_obj->{netmask} // $if_ref->{mask};
-            if (  !&validateGateway($if_ref->{addr}, $if_ref->{mask}, $json_obj->{ip})
+            if (not &validateGateway($if_ref->{addr}, $if_ref->{mask}, $json_obj->{ip})
                 or $if_ref->{mask} ne $mask)
             {
                 my $net =
-                  new NetAddr::IP($if_ref->{addr}, $if_ref->{mask})->cidr();
+                  NetAddr::IP->new($if_ref->{addr}, $if_ref->{mask})->cidr();
                 $vpns_localnet = &eload(
                     module => 'Relianoid::VPN::Util',
                     func   => 'getVPNByNet',
@@ -532,7 +534,7 @@ sub modify_interface_nic    # ( $json_obj, $nic )
         }
 
         if (@farms or @{$vpns_localgw} or @{$vpns_localnet}) {
-            if (   !exists $json_obj->{ip}
+            if (    not exists $json_obj->{ip}
                 and exists $json_obj->{dhcp}
                 and $json_obj->{dhcp} eq 'false')
             {
@@ -600,7 +602,7 @@ sub modify_interface_nic    # ( $json_obj, $nic )
             &eload(
                 module => 'Relianoid::Net::Routing',
                 func   => 'updateRoutingVirtualIfaces',
-                args   => [ $if_ref->{parent}, $json_obj->{ip} ],
+                args   => [ $if_ref->{parent}, $json_obj->{ip} // $if_ref->{addr} ],
             );
         }
 
@@ -640,7 +642,7 @@ sub modify_interface_nic    # ( $json_obj, $nic )
             args   => [$if_ref],
         );
 
-        if (   $json_obj->{dhcp} eq 'false' and !exists $json_obj->{ip}
+        if (   $json_obj->{dhcp} eq 'false' and not exists $json_obj->{ip}
             or $json_obj->{dhcp} eq 'true')
         {
             $set_flag = 0;
@@ -662,9 +664,7 @@ sub modify_interface_nic    # ( $json_obj, $nic )
     }
 
     # set up
-    if (    $if_ref->{addr} && $if_ref->{mask}
-        and $set_flag)
-    {
+    if ($if_ref->{addr} and $if_ref->{mask} and $set_flag) {
         eval {
 
             # Add new IP, netmask and gateway
@@ -741,7 +741,7 @@ sub modify_interface_nic    # ( $json_obj, $nic )
             }
             if (@{$vpns_localnet}) {
                 my $net =
-                  new NetAddr::IP($if_ref->{net}, $if_ref->{mask})->cidr();
+                  NetAddr::IP->new($if_ref->{net}, $if_ref->{mask})->cidr();
                 my $error = &eload(
                     module => 'Relianoid::VPN::Config',
                     func   => 'setAllVPNLocalNetwork',
@@ -767,6 +767,7 @@ sub modify_interface_nic    # ( $json_obj, $nic )
     $body->{warning} = $warning_msg if ($warning_msg);
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 1;

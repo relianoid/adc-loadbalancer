@@ -24,7 +24,6 @@
 # Description:
 # Migrate from old Farmguardian configuration file to new Farmguardian configuration format
 
-use 5.036;
 use strict;
 use warnings;
 
@@ -97,6 +96,5 @@ while (my $file = readdir($dir)) {
         }
     }
 }
-closedir($dir);
-1;
 
+closedir($dir);

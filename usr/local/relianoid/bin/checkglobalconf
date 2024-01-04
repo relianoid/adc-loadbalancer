@@ -29,9 +29,9 @@
 # * If a variable on global.conf is not equal to variable on global.conf.template, the variable on globa.conf is not changed.
 # * If a valiable's line on global.conf.template ends with #update, the variable is updated on global.conf.
 
-use 5.036;
 use strict;
 use warnings;
+
 use File::Copy;
 
 my $gc_tmp_fn = "/tmp/global.conf.tmp";

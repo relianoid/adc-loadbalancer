@@ -22,28 +22,37 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
-=begin nd
-Function: setFarmBlacklistTime
+=pod
 
-	Configure check time for resurected back-end. It is a farm paramter.
+=head1 Module
+
+Relianoid::Farm::Config
+
+=cut
+
+=pod
+
+=head1 setFarmBlacklistTime
+
+Configure check time for resurected back-end. It is a farm paramter.
 
 Parameters:
-	checktime - time for resurrected checks
-	farmname - Farm name
+
+    checktime - time for resurrected checks
+    farmname  - Farm name
 
 Returns:
-	Integer - Error code: 0 on success, or -1 on failure.
+
+    Integer - Error code: 0 on success, or -1 on failure.
 
 See Also:
-	zapi/v3/put_http.cgi
-	zapi/v2/put_http.cgi
-	zapi/v2/put_tcp.cgi
+
+    zapi/v3/put_http.cgi
+
 =cut
 
 sub setFarmBlacklistTime    # ($blacklist_time,$farm_name)
@@ -62,21 +71,24 @@ sub setFarmBlacklistTime    # ($blacklist_time,$farm_name)
     return $output;
 }
 
-=begin nd
-Function: getFarmBlacklistTime
+=pod
 
-	Return time for resurrected checks for a farm.
+=head1 getFarmBlacklistTime
+
+Return time for resurrected checks for a farm.
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	integer - seconds for check or -1 on failure.
+
+    integer - seconds for check or -1 on failure.
 
 See Also:
-	zapi/v3/put_http.cgi
-	zapi/v2/put_http.cgi
-	zapi/v2/put_tcp.cgi
+
+    zapi/v3/put_http.cgi
+
 =cut
 
 sub getFarmBlacklistTime    # ($farm_name)
@@ -95,21 +107,25 @@ sub getFarmBlacklistTime    # ($farm_name)
     return $blacklist_time;
 }
 
-=begin nd
-Function: setFarmSessionType
+=pod
 
-	Configure type of persistence
+=head1 setFarmSessionType
+
+Configure type of persistence
 
 Parameters:
-	session - type of session: nothing, HEADER, URL, COOKIE, PARAM, BASIC or IP, for HTTP farms; none or ip, for l4xnat farms
-	farmname - Farm name
+
+    session  - type of session: nothing, HEADER, URL, COOKIE, PARAM, BASIC or IP, for HTTP farms; none or ip, for l4xnat farms
+    farmname - Farm name
 
 Returns:
-	Integer - Error code: 0 on success, or -1 on failure.
+
+    Integer - Error code: 0 on success, or -1 on failure.
 
 See Also:
-	zapi/v3/put_l4.cgi
-	zapi/v2/put_l4.cgi
+
+    zapi/v3/put_l4.cgi
+
 =cut
 
 sub setFarmSessionType    # ($session,$farm_name)
@@ -157,22 +173,25 @@ sub setFarmSessionType    # ($session,$farm_name)
     return $output;
 }
 
-=begin nd
-Function: setFarmTimeout
+=pod
 
-	Asign a timeout value to a farm
+=head1 setFarmTimeout
+
+Asign a timeout value to a farm
 
 Parameters:
-	timeout - Time out in seconds
-	farmname - Farm name
+
+    timeout  - Time out in seconds
+    farmname - Farm name
 
 Returns:
-	Integer - Error code: 0 on success, or -1 on failure.
+
+    Integer - Error code: 0 on success, or -1 on failure.
 
 See Also:
-	zapi/v3/put_http.cgi
-	zapi/v2/put_http.cgi
-	zapi/v2/put_tcp.cgi
+
+    zapi/v3/put_http.cgi
+
 =cut
 
 sub setFarmTimeout    # ($timeout,$farm_name)
@@ -194,21 +213,24 @@ sub setFarmTimeout    # ($timeout,$farm_name)
     return $output;
 }
 
-=begin nd
-Function: getFarmTimeout
+=pod
 
-	Return the farm time out
+=head1 getFarmTimeout
+
+Return the farm time out
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	Integer - Return time out, or -1 on failure.
+
+    Integer - Return time out, or -1 on failure.
 
 See Also:
-	zapi/v3/get_http.cgi
-	zapi/v2/get_http.cgi
-	zapi/v2/get_tcp.cgi
+
+    zapi/v3/get_http.cgi
+
 =cut
 
 sub getFarmTimeout    # ($farm_name)
@@ -227,29 +249,32 @@ sub getFarmTimeout    # ($farm_name)
     return $output;
 }
 
-=begin nd
-Function: setFarmAlgorithm
+=pod
 
-	Set the load balancing algorithm to a farm.
+=head1 setFarmAlgorithm
 
-	Supports farm types: TCP, Datalink, L4xNAT.
+Set the load balancing algorithm to a farm.
+
+Supports farm types: TCP, Datalink, L4xNAT.
 
 Parameters:
-	algorithm - Type of balancing mode
-	farmname - Farm name
+
+    algorithm - Type of balancing mode
+    farmname - Farm name
 
 Returns:
-	none - .
+
+    none
 
 FIXME:
-	set a return value, and do error control
+
+    set a return value, and do error control
 
 See Also:
-	zapi/v3/put_l4.cgi
-	zapi/v3/put_datalink.cgi
-	zapi/v2/put_l4.cgi
-	zapi/v2/put_datalink.cgi
-	zapi/v2/put_tcp.cgi
+
+    zapi/v3/put_l4.cgi
+    zapi/v3/put_datalink.cgi
+
 =cut
 
 sub setFarmAlgorithm    # ($algorithm,$farm_name)
@@ -274,27 +299,29 @@ sub setFarmAlgorithm    # ($algorithm,$farm_name)
     return $output;
 }
 
-=begin nd
-Function: getFarmAlgorithm
+=pod
 
-	Get type of balancing algorithm.
+=head1 getFarmAlgorithm
 
-	Supports farm types: Datalink, L4xNAT.
+Get type of balancing algorithm.
+
+Supports farm types: Datalink, L4xNAT.
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	scalar - return a string with type of balancing algorithm or -1 on failure
+
+    scalar - return a string with type of balancing algorithm or -1 on failure
 
 See Also:
-	<_runDatalinkFarmStart>
 
-	zapi/v3/get_l4.cgi
-	zapi/v3/get_datalink.cgi
+    <_runDatalinkFarmStart>
 
-	zapi/v2/get_l4.cgi
-	zapi/v2/get_datalink.cgi
+    zapi/v3/get_l4.cgi
+    zapi/v3/get_datalink.cgi
+
 =cut
 
 sub getFarmAlgorithm    # ($farm_name)
@@ -317,17 +344,21 @@ sub getFarmAlgorithm    # ($farm_name)
     return $algorithm;
 }
 
-=begin nd
-Function: setFarmMaxClientTime
+=pod
 
-	Set the maximum time for a client
+=head1 setFarmMaxClientTime
+
+Set the maximum time for a client
 
 Parameters:
-	maximumTO - Maximum client time
-	farmname - Farm name
+
+    maximumTO - Maximum client time
+    farmname - Farm name
 
 Returns:
-	Integer - Error code: 0 on success, or -1 on failure.
+
+    Integer - Error code: 0 on success, or -1 on failure.
+
 =cut
 
 sub setFarmMaxClientTime    # ($max_client_time,$track,$farm_name)
@@ -353,16 +384,20 @@ sub setFarmMaxClientTime    # ($max_client_time,$track,$farm_name)
     return $output;
 }
 
-=begin nd
-Function: getFarmMaxClientTime
+=pod
 
-	Return the maximum time for a client
+=head1 getFarmMaxClientTime
+
+Return the maximum time for a client
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	Integer - Return maximum time, or -1 on failure.
+
+    Integer - Return maximum time, or -1 on failure.
+
 =cut
 
 sub getFarmMaxClientTime    # ($farm_name)
@@ -385,21 +420,29 @@ sub getFarmMaxClientTime    # ($farm_name)
     return @max_client_time;
 }
 
-=begin nd
-Function: setFarmVirtualConf
+=pod
 
-	Set farm virtual IP and virtual PORT
+=head1 setFarmVirtualConf
+
+Set farm virtual IP and virtual PORT
 
 Parameters:
-	vip - virtual ip
-	port or inteface - virtual port (interface in datalink farms). If the port is not sent, the port will not be changed
-	farmname - Farm name
+
+    vip - virtual ip
+
+    port or inteface - virtual port (interface in datalink farms). 
+                       If the port is not sent, the port will not be changed
+
+    farmname - Farm name
 
 Returns:
-	Integer - return 0 on success or other value on failure
+
+    Integer - return 0 on success or other value on failure
 
 See Also:
-	To get values use getFarmVip.
+
+    To get values use getFarmVip.
+
 =cut
 
 sub setFarmVirtualConf    # ($vip,$vip_port,$farm_name)
@@ -442,18 +485,22 @@ sub setFarmVirtualConf    # ($vip,$vip_port,$farm_name)
     return $stat;
 }
 
-=begin nd
-Function: setAllFarmByVip
+=pod
 
-	This function change the virtual interface for a set of farms. If some farm
-	is up, this function will restart it.
+=head1 setAllFarmByVip
+
+This function change the virtual interface for a set of farms. If some farm
+is up, this function will restart it.
 
 Parameters:
-	IP - New virtual interface for the farms
-	farm list - List of farms to update. This list will send as reference
+
+    IP        - New virtual interface for the farms
+    farm list - List of farms to update. This list will send as reference
 
 Returns:
-	None - .
+
+    None
+
 =cut
 
 sub setAllFarmByVip {
@@ -462,6 +509,7 @@ sub setAllFarmByVip {
     my $farmList = shift;
 
     require Relianoid::Farm::Action;
+
     foreach my $farm (@{$farmList}) {
 
         # get status
@@ -477,26 +525,33 @@ sub setAllFarmByVip {
         if ($status eq 'up') { &runFarmStart($farm); }
     }
 
+    return;
 }
 
-=begin nd
-Function: checkFarmnameOK
+=pod
 
-	Checks the farmname has correct characters (number, letters and lowercases)
+=head1 checkFarmnameOK
+
+Checks the farmname has correct characters (number, letters and lowercases)
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	Integer - return 0 on success or -1 on failure
+
+    Integer - return 0 on success or -1 on failure
 
 FIXME:
-	Use check_function.cgi regexp instead.
 
-	WARNING: Only used in HTTP function setFarmHTTPNewService.
+    Use check_function.cgi regexp instead.
+
+    WARNING: Only used in HTTP function setFarmHTTPNewService.
 
 NOTE:
-	Generic function.
+
+    Generic function.
+
 =cut
 
 sub checkFarmnameOK    # ($farm_name)
@@ -509,18 +564,22 @@ sub checkFarmnameOK    # ($farm_name)
       : -1;
 }
 
-=begin nd
-Function: getFarmVS
+=pod
 
-	Return virtual server parameter
+=head1 getFarmVS
+
+Return virtual server parameter
 
 Parameters:
-	farmname - Farm name
-	service - Service name
-	tag - Indicate which field will be returned
+
+    farmname - Farm name
+    service  - Service name
+    tag      - Indicate which field will be returned
 
 Returns:
-	Integer - The requested parameter value
+
+    Integer - The requested parameter value
+
 =cut
 
 sub getFarmVS    # ($farm_name, $service, $tag)
@@ -547,19 +606,23 @@ sub getFarmVS    # ($farm_name, $service, $tag)
     return $output;
 }
 
-=begin nd
-Function: setFarmVS
+=pod
 
-	Set values for service parameters
+=head1 setFarmVS
+
+Set values for service parameters
 
 Parameters:
-	farmname - Farm name
-	service - Service name
-	tag - Indicate which parameter modify
-	string - value for the field "tag"
+
+    farmname - Farm name
+    service  - Service name
+    tag      - Indicate which parameter modify
+    string   - value for the field "tag"
 
 Returns:
-	Integer - Error code: 0 on success or -1 on failure
+
+    Integer - Error code: 0 on success or -1 on failure
+
 =cut
 
 sub setFarmVS    # ($farm_name,$service,$tag,$string)
@@ -585,16 +648,20 @@ sub setFarmVS    # ($farm_name,$service,$tag,$string)
     return $output;
 }
 
-=begin nd
-Function: getFarmStruct
+=pod
 
-	Generic subroutine for the struct retrieval
+=head1 getFarmStruct
+
+    Generic subroutine for the struct retrieval
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	farm - reference of the farm hash
+
+    farm - reference of the farm hash
+
 =cut
 
 sub getFarmStruct {
@@ -633,13 +700,15 @@ sub getFarmStruct {
 
 Function: getFarmPlainInfo
 
-	Return the L4 farm text configuration
+Return the L4 farm text configuration
 
 Parameters:
-	farm_name - farm name to get the status
+
+    farm_name - farm name to get the status
 
 Returns:
-	Scalar - Reference of the file content in plain text
+
+    Scalar - Reference of the file content in plain text
 
 =cut
 
@@ -668,20 +737,25 @@ sub getFarmPlainInfo    # ($farm_name)
     return \@content;
 }
 
-=begin nd
-Function: reloadFarmsSourceAddress
+=pod
 
-        Reload source address rules of farms
+=head1 reloadFarmsSourceAddress
+
+Reload source address rules of farms
 
 Parameters:
-        none
+
+    none
 
 Returns:
-        none
+
+    none
 
 
 FIXME:
-		one source address per farm, not for backend
+
+    one source address per farm, not for backend
+
 =cut
 
 sub reloadFarmsSourceAddress {
@@ -692,18 +766,23 @@ sub reloadFarmsSourceAddress {
     for my $farm_name (&getFarmNameList()) {
         &reloadFarmsSourceAddressByFarm($farm_name);
     }
+
+    return;
 }
 
-=begin nd
-Function: reloadL7FarmsSourceAddress
+=pod
 
-        Reload source address rules of HTTP/HTTPS farms
+=head1 reloadL7FarmsSourceAddress
+
+Reload source address rules of HTTP/HTTPS farms
 
 Parameters:
-        none
+
+    none
 
 Returns:
-        none
+
+    none
 
 =cut
 
@@ -718,23 +797,32 @@ sub reloadL7FarmsSourceAddress {
     for my $farm_name (@farms) {
         &reloadFarmsSourceAddressByFarm($farm_name);
     }
+
+    return;
 }
 
-=begin nd
-Function: reloadFarmsSourceAddressbyFarm
+=pod
 
-        Reload source address rules of a certain farm (l4 in NAT mode and HTTP)
-		HTTP:
-			Add backend only if use a different sourceaddr
+=head1 reloadFarmsSourceAddressbyFarm
+
+Reload source address rules of a certain farm (l4 in NAT mode and HTTP)
+
+HTTP:
+
+    Add backend only if use a different sourceaddr
 
 Parameters:
-        farm_name - name of the farm to apply the source address
+
+    farm_name - name of the farm to apply the source address
 
 Returns:
-        none
+
+    none
 
 FIXME:
-		one source address per farm, not for backend
+
+    one source address per farm, not per backend
+
 =cut
 
 sub reloadFarmsSourceAddressByFarm {
@@ -834,22 +922,27 @@ sub reloadFarmsSourceAddressByFarm {
     return;
 }
 
-=begin nd
-Function: checkLocalFarmSourceAddress
+=pod
 
-        Check if an HTTP farm should exist as a local farm in nftlb in order to do snat in any of its backends.
-		The function will return 1 in case the farm's vip contains floating ip or any of the farm's backends 
-		are on a network with floating ip or is on an unknown network or custom routes.
+=head1 checkLocalFarmSourceAddress
+
+Check if an HTTP farm should exist as a local farm in nftlb in order to do snat in any of its backends.
+The function will return 1 in case the farm's vip contains floating ip or any of the farm's backends 
+are on a network with floating ip or is on an unknown network or custom routes.
+
 Parameters:
-        farm_name - name of the farm to check
-	floating_ref - Hash ref with floating system information
+
+    farm_name    - name of the farm to check
+    floating_ref - Hash ref with floating system information
 
 Returns:
-        Scalar - Integer : 0 if sourceaddress is not needed.
-			   1 if farm must be configured for snat.
-        		   2 if some backend must be configured for snat.
-        		   3 if farm and some backend must be configured for snat.
-			   -1 if error.
+
+    Scalar - Integer : 0 if the source address is not needed.
+
+    1 - if farm must be configured for snat.
+    2 - if some backend must be configured for snat.
+    3 - if farm and some backend must be configured for snat.
+    -1 - if there is an error.
 
 =cut
 
@@ -917,6 +1010,7 @@ sub checkLocalFarmSourceAddress {
         my $ip_floating_ref;
         my $bk_floating;
         my $exists_floating_backend = 0;
+
         foreach my $serv_name (@services) {
             my $backends_ref = &getHTTPFarmBackends($farm_name, $serv_name, "false");
             foreach my $bk (@{$backends_ref}) {
@@ -950,19 +1044,23 @@ sub checkLocalFarmSourceAddress {
         }
         delete $farm_srcaddr_ref->{backends} if not $exists_floating_backend;
     }
+
     return $farm_srcaddr_ref;
 }
 
-=begin nd
-Function: reloadBackendsSourceAddressByIface
+=pod
 
-        Reload source address rules of a certain farm (l4 in NAT mode and HTTP) by Iface
+=head1 reloadBackendsSourceAddressByIface
+
+Reload source address rules of a certain farm (l4 in NAT mode and HTTP) by Iface
 
 Parameters:
-        iface_name - Interface which the the route is appplied in
+
+    iface_name - Interface which the the route is appplied in
 
 Returns:
-        none
+
+    none
 
 =cut
 
@@ -974,7 +1072,9 @@ sub reloadBackendsSourceAddressByIface {
 
     foreach my $farm_name (&getFarmNameList()) {
         my $farm_type = &getFarmType($farm_name);
+
         next if &getFarmStatus($farm_name) ne 'up';
+
         if ($farm_type eq 'http' || $farm_type eq 'https') {
             next if (&getGlobalConfiguration("proxy_ng") ne 'true');
             my $floating = 0;
@@ -991,18 +1091,23 @@ sub reloadBackendsSourceAddressByIface {
             &reloadFarmsSourceAddressByFarm($farm_name);
         }
     }
+
+    return;
 }
 
-=begin nd
-Function: getPersistence
+=pod
 
-        Checks if persistence is enabled in the farm through config file
+=head1 getPersistence
+
+Checks if persistence is enabled in the farm through config file
 
 Parameters:
-        farm_name - name of the farm where check persistence
+
+    farm_name - name of the farm where check persistence
 
 Returns:
-        int - 0 = "true" or 1 = "false"
+
+    int - 0 = "true" or 1 = "false"
 
 =cut
 
@@ -1012,7 +1117,9 @@ sub getPersistence {
     my $farm_type = &getFarmType($farm_name);
     my $farm_ref;
     my $nodestatus = "";
+
     return 1 if $farm_type !~ /l4xnat|http/;
+
     if ($eload) {
         $nodestatus = &eload(
             module => 'Relianoid::Cluster',
@@ -1022,12 +1129,14 @@ sub getPersistence {
     }
 
     return 1 if ($nodestatus ne "master");
+
     if ($farm_type eq 'l4xnat') {
         require Relianoid::Farm::L4xNAT::Config;
 
         #return 1 if (&getL4FarmStatus($farm_name)) ne "up";
         $farm_ref = &getL4FarmStruct($farm_name);
         my $persist = &getL4FarmParam('persist', $farm_name);
+
         if ($persist !~ /^$/) {
             &zenlog("Persistence enabled to $persist for farm $farm_name", "info", "farm");
             return 0;
@@ -1045,6 +1154,7 @@ sub getPersistence {
         my $farm_file = &getFarmFile($farm_name);
         my $pathconf  = &getGlobalConfiguration('configdir');
         my $lock_fh   = &openlock("$pathconf/$farm_file", 'r');
+
         while (<$lock_fh>) {
             if ($_ =~ /[^#]Session/) {
                 &zenlog("Persistence enabled for farm $farm_name", "info", "farm");

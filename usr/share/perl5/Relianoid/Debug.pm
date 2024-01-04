@@ -22,44 +22,65 @@
 ###############################################################################
 
 use strict;
+use warnings;
 use feature 'state';
 
-=begin nd
-Function: debug
+=pod
 
-	Get debugging level.
+=head1 Module
+
+Relianoid::Debug
+
+=cut
+
+=pod
+
+=head1 debug
+
+Get debugging level.
 
 Parameters:
-	none - .
+
+    none - .
 
 Returns:
-	integer - Debugging level.
+
+    integer - Debugging level, from 0 to 5.
 
 Bugs:
-	The debugging level should be stored as a variable.
+
+    The debugging level should be stored as a variable.
 
 See Also:
-	Widely used.
+
+    Widely used.
+
 =cut
 
 sub debug {
     require Relianoid::Config;
-    return &getGlobalConfiguration('debug') // 0;
+    state $debug = &getGlobalConfiguration('debug') // 0;
+    return $debug;
 }
 
-=begin nd
-Function: getMemoryUsage
+=pod
 
-	Get the resident memory usage of the current perl process.
+=head1 getMemoryUsage
+
+Get the resident memory usage of the current perl process.
 
 Parameters:
-	none - .
+
+    none
 
 Returns:
-	scalar - String with the memory usage.
+
+    scalar - String with the memory usage.
 
 See Also:
-	Used in zapi.cgi
+
+    Used in zapi.cgi
+
 =cut
 
 sub getMemoryUsage {

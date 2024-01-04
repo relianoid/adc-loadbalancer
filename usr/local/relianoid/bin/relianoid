@@ -21,9 +21,10 @@
 #
 ###############################################################################
 
-use 5.036;
 use strict;
 use warnings;
+use feature qw(signatures);
+no warnings 'experimental::args_array_with_signatures';
 
 use Relianoid::Log;
 use Relianoid::Farm::Core;
@@ -37,11 +38,9 @@ use Relianoid::Net::Util;
 use Relianoid::Lock;
 
 local $ENV{SCRIPT_NAME} = 'relianoid';
+local $SIG{__WARN__} = \&warning_signal;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
 my $mod          = 'Relianoid::Service';
 my $basedir      = &getGlobalConfiguration('basedir');

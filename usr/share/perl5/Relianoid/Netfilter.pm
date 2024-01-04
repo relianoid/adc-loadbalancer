@@ -24,12 +24,22 @@
 use strict;
 use warnings;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
-#
+=pod
+
+=head1 Module
+
+Relianoid::Netfilter
+
+=cut
+
+=pod
+
+=head1 loadNfModule
+
+=cut
+
 sub loadNfModule    # ($modname,$params)
 {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
@@ -50,7 +60,12 @@ sub loadNfModule    # ($modname,$params)
     return $status;
 }
 
-#
+=pod
+
+=head1 removeNfModule
+
+=cut
+
 sub removeNfModule    # ($modname)
 {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
@@ -64,7 +79,12 @@ sub removeNfModule    # ($modname)
     return &logAndRun("$modprobe_command");
 }
 
-#
+=pod
+
+=head1 getNewMark
+
+=cut
+
 sub getNewMark    # ($farm_name)
 {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
@@ -98,7 +118,12 @@ sub getNewMark    # ($farm_name)
     return $marknum;
 }
 
-#
+=pod
+
+=head1 delMarks
+
+=cut
+
 sub delMarks    # ($farm_name,$mark)
 {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
@@ -125,7 +150,12 @@ sub delMarks    # ($farm_name,$mark)
     return $status;
 }
 
-#
+=pod
+
+=head1 renameMarks
+
+=cut
+
 sub renameMarks    # ( $farm_name, $newfname )
 {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
@@ -151,4 +181,3 @@ sub renameMarks    # ( $farm_name, $newfname )
 }
 
 1;
-

@@ -53,15 +53,9 @@ sed -i 's/^\# Required-Start:.*/# Required-Start:\t\$remote_fs \$syslog relianoi
 sed -i 's/^\# Required-Stop:.*/# Required-Stop:\t\$remote_fs \$syslog relianoid/g'   /etc/init.d/ssh
 
 # SNMP service
-if [[ -f /etc/snmp/snmpd.conf && `grep -c '#zenlb' /etc/snmp/snmpd.conf` == '0' ]]; then
+if [[ -f /etc/snmp/snmpd.conf && `grep -c '#changed-by-relianoid' /etc/snmp/snmpd.conf` == '0' ]]; then
 	/etc/init.d/snmpd stop
 	update-rc.d snmpd disable
-	cp /usr/local/relianoid/share/snmpd.conf.template /etc/snmp/snmpd.conf
-fi
-
-# Disable SNMP debugging messages in log
-if [[ `grep -c 'LSd' /etc/default/snmpd` == '1' ]]; then
-	sed -i -e 's/LSd/LS6d/' /etc/default/snmpd
 fi
 
 # Grub disk configuration
@@ -100,8 +94,8 @@ if [ ! -L ${LIBEXEC_PATH}/check_uplink ]; then
 fi
 
 # Apply all migrating scripts to RELIANOID
-MIG_DIR="/usr/local/relianoid/migrating/"
-for SCRIPT in `ls $MIG_DIR`; do ${MIG_DIR}$SCRIPT; done
+MIGRATIONS_DIR="/usr/local/relianoid/migrating"
+for SCRIPT in `ls $MIGRATIONS_DIR`; do ${MIGRATIONS_DIR}/$SCRIPT; done
 
 # Restarting RELIANOID service
 echo "RELIANOID will be unavailable while the service is restarting."

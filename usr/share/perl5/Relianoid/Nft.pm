@@ -24,16 +24,27 @@
 use strict;
 use warnings;
 
-=begin nd
-Function: getNlbPid
+=pod
 
-	Return the nftlb pid
+=head1 Module
+
+Relianoid::Nft
+
+=cut
+
+=pod
+
+=head1 getNlbPid
+
+Return the nftlb pid
 
 Parameters:
-	none
+
+    none
 
 Returns:
-	Integer - PID if successful or -1 on failure
+
+    Integer - PID if successful or -1 on failure
 
 =cut
 
@@ -58,16 +69,19 @@ sub getNlbPid {
     return $nlbpid;
 }
 
-=begin nd
-Function: getNlbPidFile
+=pod
 
-	Return the nftlb pid file
+=head1 getNlbPidFile
+
+Return the nftlb pid file
 
 Parameters:
-	none
+
+    none
 
 Returns:
-	String - Pid file path or -1 on failure
+
+    String - Pid file path or -1 on failure
 
 =cut
 
@@ -80,17 +94,20 @@ sub getNlbPidFile {
     return $nlbpidfile;
 }
 
-=begin nd
-Function: startNlb
+=pod
 
-	Launch the nftlb daemon and create the PID file. Do
-	nothing if already is launched.
+=head1 startNlb
+
+Launch the nftlb daemon and create the PID file. Do
+nothing if already is launched.
 
 Parameters:
-	none
+
+    none
 
 Returns:
-	Integer - return PID on success or <= 0 on failure
+
+    Integer - return PID on success or <= 0 on failure
 
 =cut
 
@@ -121,16 +138,19 @@ sub startNlb {
     return $nlbpid;
 }
 
-=begin nd
-Function: stopNlb
+=pod
 
-	Stop the nftlb daemon. Do nothing if is already stopped.
+=head1 stopNlb
+
+Stop the nftlb daemon. Do nothing if is already stopped.
 
 Parameters:
-	none
+
+    none
 
 Returns:
-	Integer - return PID on success or <= 0 on failure
+
+    Integer - return PID on success or <= 0 on failure
 
 =cut
 
@@ -147,22 +167,26 @@ sub stopNlb {
     return $nlbpid;
 }
 
-=begin nd
-Function: httpNlbRequest
+=pod
 
-	Send an action to nftlb
+=head1 httpNlbRequest
+
+Send an action to nftlb
 
 Parameters:
-	self - hash that includes hash_keys:
-		file, file where the HTTP body response of the nftlb is saved
-		method, HTTP verb for nftlb request
-		uri, HTTP URI for nftlb request
-		body, body to use in POST and PUT requests
-		check, if this parameter is defined is a flag to not print error if
-				the request is used to check if a element exists.
+
+    self - hash that includes hash_keys:
+
+    file:   file where the HTTP body response of the nftlb is saved
+    method: HTTP verb for nftlb request
+    uri:    HTTP URI for nftlb request
+    body:   body to use in POST and PUT requests
+    check:  if this parameter is defined is a flag to not print error if
+            the request is used to check if a element exists.
 
 Returns:
-	Integer - return code of the request command
+
+    Integer - return code of the request command
 
 =cut
 
@@ -232,19 +256,22 @@ sub httpNlbRequest {
     return 0;
 }
 
-=begin nd
-Function: execNft
+=pod
 
-	Execute the nft command
+=head1 execNft
+
+Execute the nft command
 
 Parameters:
-	action		- "add", "delete", "check" or "flush"
-	table		- type and name of the table to be used (ej "netdev foo")
-	chain_def	- name and definition of the chain to be used
-	rule		- rule or pattern in case of deletion
+
+    action		- "add", "delete", "check" or "flush"
+    table		- type and name of the table to be used (ej "netdev foo")
+    chain_def	- name and definition of the chain to be used
+    rule		- rule or pattern in case of deletion
 
 Returns:
-	Integer - 0 on success or != 0 on failure. In case of check action,
+
+    Integer - 0 on success or != 0 on failure. In case of check action,
 
 =cut
 

@@ -24,16 +24,27 @@
 use strict;
 use warnings;
 
-=begin nd
-Function: runL4sdDaemon
+=pod
 
-	Launch the l4sd daemon if it's not already launched
+=head1 Module
+
+Relianoid::Farm::L4xNAT::L4sd
+
+=cut
+
+=pod
+
+=head1 runL4sdDaemon
+
+Launch the l4sd daemon if it's not already launched
 
 Parameters:
-	none
+
+    none
 
 Returns:
-	Integer - Error code: 0 on success or other value on failure
+
+    Integer - Error code: 0 on success or other value on failure
 =cut
 
 sub runL4sdDaemon {
@@ -49,16 +60,19 @@ sub runL4sdDaemon {
     return -1;
 }
 
-=begin nd
-Function: sendL4sdSignal
+=pod
 
-	Send a USR1 signal to L4sd
+=head1 sendL4sdSignal
+
+Send a USR1 signal to L4sd
 
 Parameters:
-	none
+
+    none
 
 Returns:
-	Integer - Error code: 0 on success or other value on failure
+
+    Integer - Error code: 0 on success or other value on failure
 =cut
 
 sub sendL4sdSignal {
@@ -80,16 +94,19 @@ sub sendL4sdSignal {
     return $output;
 }
 
-=begin nd
-Function: getL4sdType
+=pod
 
-	Obtain if a given farm has l4sd and its type
+=head1 getL4sdType
+
+Obtain if a given farm has l4sd and its type
 
 Parameters:
-	farm_name - Name of the farm to search for l4sd configuration
+
+    farm_name - Name of the farm to search for l4sd configuration
 
 Returns:
-	String - Returns a string with the type of dynamic scheduler, empty if none.
+
+    String - Returns a string with the type of dynamic scheduler, empty if none.
 =cut
 
 sub getL4sdType {
@@ -112,17 +129,22 @@ sub getL4sdType {
     return $output;
 }
 
-=begin nd
-Function: setL4sdType
+=pod
 
-	Obtain if a given farm has l4sd and its type
+=head1 setL4sdType
+
+Obtain if a given farm has l4sd and its type
 
 Parameters:
-	farm_name - Name of the farm to search for l4sd configuration
-	type - Type of dynamic scheduler (ex: leastconn, none )
+
+    farm_name - Name of the farm to search for l4sd configuration
+
+    type - Type of dynamic scheduler (ex: leastconn, none )
 
 Returns:
-	String - Returns a string with the type of dynamic scheduler, empty if none.
+
+    String - Returns a string with the type of dynamic scheduler, empty if none.
+
 =cut
 
 sub setL4sdType {

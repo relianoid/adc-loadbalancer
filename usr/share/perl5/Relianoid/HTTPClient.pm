@@ -25,29 +25,42 @@ use strict;
 use warnings;
 use Relianoid::Log;
 
-=begin nd
-Function: execHTTRrequest
+=pod
 
-	Execute a http request.
-	Load environment proxy variables.
-	The function has a default timeout, this parameter can be overwrite.
+=head1 Module
+
+Relianoid::HTTPClient
+
+=cut
+
+=pod
+
+=head1 execHTTRrequest
+
+Execute a http request.
+Load environment proxy variables.
+The function has a default timeout, this parameter can be overwrite.
 
 Parameters:
-	params - hash with parameters. The possible keys are:
-		$method, http method for the request: PUT, POST, DELETE, GET... GET is put by default
-		$url
-		\@headers, extra headers for the request. Not implemented
-		\@json, json object with request parameters
-		$file, file to write the output
-		$timeout, rewrite the timeout option. 3 seconds by default
+
+    params - hash with parameters. The possible keys are:
+
+    $method   - http method for the request: PUT, POST, DELETE, GET... 
+                GET is put by default $url
+    \@headers - extra headers for the request. Not implemented
+    \@json    - json object with request parameters
+    $file     - file to write the output
+    $timeout  - rewrite the timeout option. 3 seconds by default
 
 Returns:
-	hash ref - 	{
-					error, 0 or 1
-					content, response body
-					json, json object decoded
-					http_code, code of the request
-				}
+
+    hash reference
+    {
+        error:     0 or 1
+        content:   response body
+        json:      json object decoded
+        http_code: code of the request
+    }
 
 =cut
 
@@ -58,6 +71,12 @@ sub execHTTRequest {
     # return &execHTTRequestModule(@_);
     return &execHTTRequestCmd(@_);
 }
+
+=pod
+
+=head1 execHTTRequestModule
+
+=cut
 
 sub execHTTRequestModule {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
@@ -122,6 +141,12 @@ sub execHTTRequestModule {
 
     return $out;
 }
+
+=pod
+
+=head1 execHTTRequestCmd
+
+=cut
 
 sub execHTTRequestCmd {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");

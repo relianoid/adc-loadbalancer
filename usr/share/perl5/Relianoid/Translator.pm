@@ -22,14 +22,30 @@
 ###############################################################################
 
 use strict;
+use warnings;
+use feature qw(signatures);
+no warnings 'experimental::args_array_with_signatures';
 
-# expects a hash. the keys are the zapi parameters and the value the lib parameters
-sub createTRANSLATE {
+=pod
+
+=head1 Module
+
+Relianoid::Translator
+
+=cut
+
+=pod
+
+=head1 createTRANSLATE
+
+Expects a hash. The keys are the zapi parameters and the value the lib parameters
+
+=cut
+
+sub createTRANSLATE ($dictionary) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $dictionary = shift;
-    my %translator = ();
 
-    $translator{api} = $dictionary;
+    my %translator = { api => $dictionary };
 
     foreach my $key (keys %{$dictionary}) {
         $translator{lib}->{ $dictionary->{$key} } = $key;
@@ -38,9 +54,15 @@ sub createTRANSLATE {
     return \%translator;
 }
 
-sub getTRANSLATEInputs {
+=pod
+
+=head1 getTRANSLATEInputs
+
+=cut
+
+sub getTRANSLATEInputs ($tr) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $tr     = shift;
+
     my @values = sort keys(%{ $tr->{api} });
     return \@values;
 }

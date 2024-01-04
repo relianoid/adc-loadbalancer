@@ -21,9 +21,9 @@
 #
 ###############################################################################
 
-use 5.036;
 use strict;
 use warnings;
+use feature qw(signatures);
 
 use Linux::Inotify2;
 use Sys::Hostname;
@@ -53,7 +53,7 @@ if ($exclude ne "") {
 }
 print "Terminated the first replication...\n";
 
-my $inotify = new Linux::Inotify2();
+my $inotify = Linux::Inotify2->new();
 
 #foreach ($configdir $rttable)
 foreach (@alert) {

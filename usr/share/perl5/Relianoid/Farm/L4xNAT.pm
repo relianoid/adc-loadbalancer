@@ -22,6 +22,7 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
 use Relianoid::Farm::L4xNAT::Config;
 use Relianoid::Farm::L4xNAT::Action;
@@ -32,3 +33,10 @@ use Relianoid::Farm::L4xNAT::Service;
 
 1;
 
+=pod
+
+=head1 Module
+
+Relianoid::Farm::L4xNAT
+
+=cut

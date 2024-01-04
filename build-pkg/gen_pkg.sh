@@ -116,13 +116,13 @@ find ${WORK_DIR} -name .keep -exec rm {} \;
 cd ${WORK_DIR}
 msg "Removing warnings..."
 find -L usr/local/relianoid \
-        usr/share/perl5/Relianoid \
-        usr/local/relianoid/www/zapi/v3.1 \
-        usr/local/relianoid/www/zapi/v4.0 \
-        -type f \
-        -exec sed --follow-symlinks -i 's/^use warnings.*//' {} \; \
-        -exec sed --follow-symlinks -i '/zenlog.*FILE.*LINE.*caller/d' {} \; \
-        -exec sed --follow-symlinks -i '/debug.*PROFILING/d' {} \;
+    usr/share/perl5/Relianoid \
+    usr/local/relianoid/www/zapi/v4.0 \
+    -type f \
+    -exec sed --follow-symlinks -i 's/^use warnings.*//' {} \; \
+    -exec sed --follow-symlinks -i 's/^no warnings 'experimental::args_array_with_signatures';//' {} \; \
+    -exec sed --follow-symlinks -i '/zenlog.*FILE.*LINE.*caller/d' {} \; \
+    -exec sed --follow-symlinks -i '/debug.*PROFILING/d' {} \;
 
 cd - >/dev/null
 

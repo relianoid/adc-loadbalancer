@@ -32,17 +32,18 @@
 #	-d 			enable debug mode
 #	-h			print help
 
-use 5.036;
 use strict;
 use warnings;
+
 use Time::HiRes qw(ualarm usleep clock_gettime CLOCK_REALTIME);
+
 use Relianoid::Log;
 use Relianoid::Config;
 use Relianoid::Farm::Core;
 use Relianoid::Farm::Config;
 use Relianoid::Farm::Base;
 use Relianoid::Farm::Backend;
-require Relianoid::Nft;
+use Relianoid::Nft;
 
 my $conntrack = &getGlobalConfiguration('conntrack');
 my $pidfile   = &getGlobalConfiguration('l4sdpid');

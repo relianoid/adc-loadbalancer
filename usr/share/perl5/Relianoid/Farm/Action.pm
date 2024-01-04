@@ -22,33 +22,43 @@
 ###############################################################################
 
 use strict;
+use warnings;
+use feature qw(signatures);
+no warnings 'experimental::args_array_with_signatures';
+
 use Relianoid::Config;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
 my $configdir = &getGlobalConfiguration('configdir');
 
-=begin nd
-Function: _runFarmStart
+=pod
 
-	Run a farm
+=head1 Module
 
-Parameters:
-	farm_name - Farm name
-	writeconf - write this change in configuration status "writeconf" for true or omit it for false
-
-Returns:
-	Integer - return 0 on success, 2 if the ip:port is busy for another farm or another value on another failure
+Relianoid::Farm::Action
 
 =cut
 
-sub _runFarmStart    # ($farm_name, $writeconf)
-{
+=pod
+
+=head1 _runFarmStart
+
+Run a farm
+
+Parameters:
+
+    farm_name - Farm name
+    writeconf - write this change in configuration status "writeconf" for true or omit it for false
+
+Returns:
+
+    Integer - return 0 on success, 2 if the ip:port is busy for another farm or another value on another failure
+
+=cut
+
+sub _runFarmStart ($farm_name, $writeconf = 0) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $writeconf) = @_;
 
     # The parameter expect "undef" to not write it
     $writeconf = 0 if ($writeconf eq 'false');
@@ -109,27 +119,29 @@ sub _runFarmStart    # ($farm_name, $writeconf)
     return $status;
 }
 
-=begin nd
-Function: runFarmStart
+=pod
 
-	Run a farm completely a farm. Run farm, its farmguardian, ipds rules and ssyncd
+=head1 runFarmStart
+
+Run a farm completely a farm. Run farm, its farmguardian, ipds rules and ssyncd
 
 Parameters:
-	farm_name - Farm name
-	writeconf - write this change in configuration status "writeconf" for true or omit it for false
+
+    farm_name - Farm name
+    writeconf - write this change in configuration status "writeconf" for true or omit it for false
 
 Returns:
-	Integer - return 0 on success, 2 if the ip:port is busy for another farm or another value on another failure
+
+    Integer - return 0 on success, 2 if the ip:port is busy for another farm or another value on another failure
 
 NOTE:
-	Generic function
+
+    Generic function
 
 =cut
 
-sub runFarmStart    # ($farm_name, $writeconf)
-{
+sub runFarmStart ($farm_name, $writeconf = 0) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $writeconf) = @_;
 
     my $status = &_runFarmStart($farm_name, $writeconf);
 
@@ -157,31 +169,31 @@ sub runFarmStart    # ($farm_name, $writeconf)
     return $status;
 }
 
-=begin nd
-Function: runFarmStop
+=pod
 
-	Stop a farm completely a farm. Stop the farm, its farmguardian, ipds rules and ssyncd
+=head1 runFarmStop
+
+Stop a farm completely a farm. Stop the farm, its farmguardian, ipds rules and ssyncd
 
 Parameters:
-	farm_name - Farm name
-	writeconf - write this change in configuration status "writeconf" for true or omit it for false
+
+    farm_name - Farm name
+    writeconf - write this change in configuration status "writeconf" for true or omit it for false
 
 Returns:
-	Integer - return 0 on success or different of 0 on failure
+
+    Integer - return 0 on success or different of 0 on failure
 
 NOTE:
-	Generic function
+
+    Generic function
 
 =cut
 
-sub runFarmStop    # ($farm_name, $writeconf)
-{
+sub runFarmStop ($farm_name, $writeconf = 0) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $writeconf) = @_;
 
     if ($eload) {
-
-        # stop ipds rules
         &eload(
             module => 'Relianoid::IPDS::Base',
             func   => 'runIPDSStopByFarm',
@@ -203,26 +215,26 @@ sub runFarmStop    # ($farm_name, $writeconf)
     return $status;
 }
 
-=begin nd
-Function: _runFarmStop
+=pod
 
-	Stop a farm
+=head1 _runFarmStop
+
+Stop a farm
 
 Parameters:
-	farm_name - Farm name
-	writeconf - write this change in configuration status "writeconf" for true or omit it for false
+
+    farm_name - Farm name
+    writeconf - write this change in configuration status "writeconf" for true or omit it for false
 
 Returns:
-	Integer - return 0 on success or different of 0 on failure
+
+    Integer - return 0 on success or different of 0 on failure
 
 =cut
 
-sub _runFarmStop    # ($farm_name, $writeconf)
-{
+sub _runFarmStop ($farm_name, $writeconf = 0) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $writeconf) = @_;
 
-    # The parameter expects "undef" to not write it
     $writeconf = 0 if ($writeconf eq 'false');
 
     require Relianoid::Farm::Base;
@@ -262,42 +274,41 @@ sub _runFarmStop    # ($farm_name, $writeconf)
     return $status;
 }
 
-=begin nd
-Function: runFarmDelete
+=pod
 
-	Delete a farm
+=head1 runFarmDelete
+
+Delete a farm
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	String - farm name
+
+    String - farm name
 
 NOTE:
-	Generic function
+
+    Generic function
 
 =cut
 
-sub runFarmDelete    # ($farm_name)
-{
+sub runFarmDelete ($farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm_name = shift;
 
     require Relianoid::Netfilter;
 
-    # global variables
     my $configdir = &getGlobalConfiguration('configdir');
 
     if ($eload) {
 
-        #delete IPDS rules
         &eload(
             module => 'Relianoid::IPDS::Base',
             func   => 'runIPDSDeleteByFarm',
             args   => [$farm_name],
         );
 
-        #delete from RBAC
         &eload(
             module => 'Relianoid::RBAC::Group::Config',
             func   => 'delRBACResource',
@@ -352,7 +363,7 @@ sub runFarmDelete    # ($farm_name)
             # delete cron task to check backends
             require Tie::File;
             tie my @filelines, 'Tie::File', "/etc/cron.d/relianoid";
-            @filelines = grep !/\# \_\_$farm_name\_\_/, @filelines;
+            @filelines = grep { !/\# \_\_$farm_name\_\_/ } @filelines;
             untie @filelines;
         }
         elsif ($farm_type eq "l4xnat") {
@@ -372,24 +383,27 @@ sub runFarmDelete    # ($farm_name)
     return $status;
 }
 
-=begin nd
-Function: runFarmReload
+=pod
 
-	Reload a farm
+=head1 runFarmReload
+
+Reload a farm
 
 Parameters:
-	farm_name - Farm name
+
+    farm_name - Farm name
 
 Returns:
-Integer - return 0 on success, another value on another failure
+
+    Integer - return 0 on success, another value on another failure
 
 =cut
 
-sub runFarmReload    # ($farm_name)
-{
+sub runFarmReload ($farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm_name = shift;
+
     require Relianoid::Farm::Action;
+
     if (&getFarmRestartStatus($farm_name)) {
         &zenlog("'Reload' on $farm_name is not executed. 'Restart' is needed.", "info", "FARMS");
         return 2;
@@ -398,7 +412,6 @@ sub runFarmReload    # ($farm_name)
 
     &zenlog("running 'Reload' for $farm_name", "info", "FARMS");
 
-    # Reload config daemon
     $status = &_runFarmReload($farm_name);
 
     # Reload Farm status from its cfg file
@@ -408,25 +421,26 @@ sub runFarmReload    # ($farm_name)
     return $status;
 }
 
-=begin nd
-Function: _runFarmReload
+=pod
 
-	It reloads a farm to update the configuration.
+=head1 _runFarmReload
+
+It reloads a farm to update the configuration.
 
 Parameters:
-	Farm - It is the farm name
+
+    Farm - It is the farm name
 
 Returns:
-	Integer - It returns 0 on success or another value on failure.
+
+    Integer - It returns 0 on success or another value on failure.
 
 =cut
 
-sub _runFarmReload    # ($farm_name)
-
-{
+sub _runFarmReload ($farm) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm = shift;
-    my $err  = 0;
+
+    my $err = 0;
 
     require Relianoid::Farm::Base;
     return 0 if (&getFarmStatus($farm) ne 'up');
@@ -440,49 +454,54 @@ sub _runFarmReload    # ($farm_name)
     return $err;
 }
 
-=begin nd
-Function: getFarmRestartFile
+=pod
 
-	This function returns a file name that indicates that a farm is waiting to be restarted
+=head1 getFarmRestartFile
+
+This function returns a file name that indicates that a farm is waiting to be restarted
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	sting - path to flag file
+
+    sting - path to flag file
 
 NOTE:
-	Generic function
+
+    Generic function
 
 =cut
 
-sub getFarmRestartFile    # ($farm_name)
-{
+sub getFarmRestartFile ($farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm_name = shift;
 
     return "/tmp/_farm_need_restart_$farm_name";
 }
 
-=begin nd
-Function: getFarmRestartStatus
+=pod
 
-	This function responses if a farm has pending changes waiting for restarting
+=head1 getFarmRestartStatus
+
+This function responses if a farm has pending changes waiting for restarting
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	Integer - 1 if the farm has to be restarted or 0 if it is not
+
+    Integer - 1 if the farm has to be restarted or 0 if it is not
 
 NOTE:
-	Generic function
+
+    Generic function
 
 =cut
 
-sub getFarmRestartStatus {
+sub getFarmRestartStatus ($fname) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $fname = shift;
 
     require Relianoid::Farm::Action;
     my $lfile = &getFarmRestartFile($fname);
@@ -491,26 +510,28 @@ sub getFarmRestartStatus {
     return 0;
 }
 
-=begin nd
-Function: setFarmRestart
+=pod
 
-	This function creates a file to tell that the farm needs to be restarted to apply changes
+=head1 setFarmRestart
+
+This function creates a file to tell that the farm needs to be restarted to apply changes
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	undef
+
+    undef
 
 NOTE:
-	Generic function
+
+    Generic function
 
 =cut
 
-sub setFarmRestart    # ($farm_name)
-{
+sub setFarmRestart ($farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm_name = shift;
 
     # do nothing if the farm is not running
     require Relianoid::Farm::Base;
@@ -520,51 +541,58 @@ sub setFarmRestart    # ($farm_name)
     my $lf = &getFarmRestartFile($farm_name);
     my $fh = &openlock($lf, 'w');
     close $fh;
+
+    return;
 }
 
-=begin nd
-Function: setFarmNoRestart
+=pod
 
-	This function deletes the file marking the farm to be restarted to apply changes
+=head1 setFarmNoRestart
+
+This function deletes the file marking the farm to be restarted to apply changes
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	none - .
+
+    none
 
 NOTE:
-	Generic function
+
+    Generic function
 
 =cut
 
-sub setFarmNoRestart    # ($farm_name)
-{
+sub setFarmNoRestart ($farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm_name = shift;
 
     my $lf = &getFarmRestartFile($farm_name);
     unlink($lf) if -e $lf;
+
+    return;
 }
 
-=begin nd
-Function: setNewFarmName
+=pod
 
-	Function that renames a farm. Before call this function, stop the farm.
+=head1 setNewFarmName
+
+Function that renames a farm. Before call this function, stop the farm.
 
 Parameters:
-	farmname - Farm name
-	newfarmname - New farm name
+
+    farmname    - Farm name
+    newfarmname - New farm name
 
 Returns:
-	Integer - return 0 on success or -1 on failure
+
+    Integer - return 0 on success or -1 on failure
 
 =cut
 
-sub setNewFarmName    # ($farm_name,$new_farm_name)
-{
+sub setNewFarmName ($farm_name, $new_farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $new_farm_name) = @_;
 
     my $rrdap_dir = &getGlobalConfiguration('rrdap_dir');
     my $rrd_dir   = &getGlobalConfiguration('rrd_dir');
@@ -572,16 +600,11 @@ sub setNewFarmName    # ($farm_name,$new_farm_name)
     my $farm_type = &getFarmType($farm_name);
     my $output    = -1;
 
-    my $farm_status;
-
     # farmguardian renaming
     require Relianoid::FarmGuardian;
     require File::Copy;
 
-    # stop farm
     &runFGFarmStop($farm_name);
-
-    # rename farmguardian
     &setFGFarmRename($farm_name, $new_farm_name);
 
     # end of farmguardian renaming
@@ -609,7 +632,7 @@ sub setNewFarmName    # ($farm_name,$new_farm_name)
     }
 
     # farmguardian renaming
-    if ($output == 0 and $farm_status eq 'up') {
+    if ($output == 0) {
         &zenlog("restarting farmguardian", 'info', 'FG') if &debug;
         &runFGFarmStart($farm_name);
     }
@@ -637,29 +660,29 @@ sub setNewFarmName    # ($farm_name,$new_farm_name)
         );
     }
 
-    # FIXME: farmguardian files
     # FIXME: logfiles
     return $output;
 }
 
-=begin nd
-Function: copyFarm
+=pod
 
-	Function that copies the configuration file of a farm to create a new one.
+=head1 copyFarm
+
+Function that copies the configuration file of a farm to create a new one.
 
 Parameters:
-	farmname - Farm name
-	newfarmname - New farm name
+
+    farmname - Farm name
+    newfarmname - New farm name
 
 Returns:
-	Integer - return 0 on success or -1 on failure
+
+    Integer - return 0 on success or -1 on failure
 
 =cut
 
-sub copyFarm    # ($farm_name,$new_farm_name)
-{
+sub copyFarm ($farm_name, $new_farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $new_farm_name) = @_;
 
     my $farm_type = &getFarmType($farm_name);
     my $output    = -1;

@@ -22,28 +22,42 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
 require Relianoid::Core;
+
+my $eload = eval { require Relianoid::ELoad };
 my $configdir = &getGlobalConfiguration('configdir');
 
-=begin nd
-Function: runHTTPFarmCreate
+=pod
 
-	Create a HTTP farm
+=head1 Module
+
+Relianoid::Farm::HTTP::Factory
+
+=cut
+
+=pod
+
+=head1 runHTTPFarmCreate
+
+Create a HTTP farm
 
 Parameters:
-	vip - Virtual IP where the virtual service is listening
-	port - Virtual port where the virtual service is listening
-	farmname - Farm name
-	type - Specify if farm is HTTP or HTTPS
-	status - Set the initial status of the farm. The possible values are: 'down' for creating the farm and do not run it or 'up' (default) for running the farm when it has been created
+
+    vip - Virtual IP where the virtual service is listening
+
+    port - Virtual port where the virtual service is listening
+
+    farmname - Farm name
+
+    type - Specify if farm is HTTP or HTTPS
+
+    status - Set the initial status of the farm. The possible values are: 'down' for creating the farm and do not run it or 'up' (default) for running the farm when it has been created
 
 Returns:
-	Integer - return 0 on success or different of 0 on failure
+
+    Integer - return 0 on success or different of 0 on failure
 
 =cut
 

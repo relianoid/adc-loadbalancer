@@ -30,9 +30,9 @@
 #	--restart		all the farms using the certificate will be restarted
 #	-h			print help
 
-use 5.036;
 use strict;
 use warnings;
+
 use Getopt::Long;
 use Relianoid::Config;
 use Relianoid::Log;
@@ -40,10 +40,7 @@ use Relianoid::LetsencryptZ;
 
 $SIG{ALRM} = sub { die "timeout" };
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
 #local variables
 my $cert_name;

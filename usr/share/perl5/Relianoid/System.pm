@@ -22,20 +22,34 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
-=begin nd
-Function: getTotalConnections
+=pod
 
-	Get the number of current connections on this appliance.
+=head1 Module
+
+Relianoid::System
+
+=cut
+
+=pod
+
+=head1 getTotalConnections
+
+Get the number of current connections on this appliance.
 
 Parameters:
-	none - .
+
+    none
 
 Returns:
-	integer - The number of connections.
+
+    integer - The number of connections.
 
 See Also:
-	zapi/v3/system_stats.cgi
+
+    zapi/v3/system_stats.cgi
+
 =cut
 
 sub getTotalConnections {
@@ -48,20 +62,25 @@ sub getTotalConnections {
     return $conns;
 }
 
-=begin nd
-Function: indexOfElementInArray
+=pod
 
-	Get the index of the first position where an element if found in an array.
+=head1 indexOfElementInArray
+
+Get the index of the first position where an element if found in an array.
 
 Parameters:
-	searched_element - Element to search.
-	array_ref        - Reference to the array to be searched.
+
+    searched_element - Element to search.
+    array_ref        - Reference to the array to be searched.
 
 Returns:
-	integer - Zero or higher if the element was found. -1 if the element was not found. -2 if no array reference was received.
+
+    integer - Zero or higher if the element was found. -1 if the element was not found. -2 if no array reference was received.
 
 See Also:
-	Zapi v3: <new_bond>
+
+    Zapi v3: <new_bond>
+
 =cut
 
 sub indexOfElementInArray {
@@ -94,59 +113,59 @@ sub indexOfElementInArray {
     return $index;
 }
 
-=begin nd
-Function: slurpFile
+=pod
 
-	It returns a file as a byte stream. It interpretes the '\n' character and it is not used to split the lines in different chains.
+=head1 slurpFile
+
+Stores the content of a file in a variable.
 
 Parameters:
-	none - .
+
+    path - string with the file location
 
 Returns:
-	String - The supportsave file name is returned.
+
+    string - content of the file
 
 =cut
 
 sub slurpFile {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $path = shift;
 
-    # Slurp: store an entire file in a variable.
+    my $path = shift;
 
     require Relianoid::Log;
 
     my $file;
 
-    open(my $fh, '<', $path);
-
-    unless ($fh) {
-        my $msg = "Could not open $file: $!";
-
+    if (open(my $fh, '<', $path)) {
+        local $/ = undef;
+        $file = <$fh>;
+        close $fh;
+    }
+    else {
+        my $msg = "Could not open file '$file': $!";
         &zenlog($msg);
         die $msg;
     }
 
-    {
-        local $/ = undef;
-        $file = <$fh>;
-    }
-
-    close $fh;
-
     return $file;
 }
 
-=begin nd
-Function: getSpaceFree
+=pod
 
-	It gets the free space that contains a partition. The partition is calculated
-	from a directory
+=head1 getSpaceFree
+
+It gets the free space that contains a partition. The partition is calculated
+from a directory
 
 Parameters:
-	directroy - directory to know the free space
+
+    directroy - directory to know the free space
 
 Returns:
-	Integer - Number of bytes free in the partition
+
+    Integer - Number of bytes free in the partition
 
 =cut
 
@@ -168,16 +187,19 @@ sub getSpaceFree {
     return $size;
 }
 
-=begin nd
-Function: getSpaceFormatHuman
+=pod
 
-	It converts a number of bytes to human format, converting Bytes to KB, MB or GB
+=head1 getSpaceFormatHuman
+
+It converts a number of bytes to human format, converting Bytes to KB, MB or GB
 
 Parameters:
-	Bytes - Number of bytes
+
+    Bytes - Number of bytes
 
 Returns:
-	String - String with size and its units
+
+    String - String with size and its units
 
 =cut
 
@@ -207,18 +229,21 @@ sub getSpaceFormatHuman {
     return $out;
 }
 
-=begin nd
-Function: getSupportSaveSize
+=pod
 
-	It gets the aproximate size that the supportsave will need.
-	The size is calculated using the config and log directories size and adding
-	a offset of 20MB
+=head1 getSupportSaveSize
+
+It gets the aproximate size that the supportsave will need.
+The size is calculated using the config and log directories size and adding
+a offset of 20MB
 
 Parameters:
-	none - .
+
+    none
 
 Returns:
-	Integer - Number of bytes that supportsave will use
+
+    Integer - Number of bytes that supportsave will use
 
 =cut
 
@@ -235,16 +260,19 @@ sub getSupportSaveSize {
     return $offset + $size;
 }
 
-=begin nd
-Function: checkSupportSaveSpace
+=pod
 
-	Check if the disk has enough space to create a supportsave
+=head1 checkSupportSaveSpace
+
+Check if the disk has enough space to create a supportsave
 
 Parameters:
-	directory - Directory where the supportsave will be created
+
+    directory - Directory where the supportsave will be created
 
 Returns:
-	Integer - It returns 0 on success or the number of bytes needed to create a supportsave
+
+    Integer - It returns 0 on success or the number of bytes needed to create a supportsave
 
 =cut
 
@@ -274,16 +302,19 @@ sub checkSupportSaveSpace {
     return $out;
 }
 
-=begin nd
-Function: getSupportSave
+=pod
 
-	It creates a support save file used for supporting purpose. It is created in the '/tmp/' directory
+=head1 getSupportSave
+
+It creates a support save file used for supporting purpose. It is created in the '/tmp/' directory
 
 Parameters:
-	none - .
+
+    none
 
 Returns:
-	String - The supportsave file name is returned.
+
+    String - The supportsave file name is returned.
 
 =cut
 
@@ -303,21 +334,25 @@ sub getSupportSave {
     return $ss_filename;
 }
 
-=begin nd
-Function: applyFactoryReset
+=pod
 
-	Run a factory reset in the load balancer. It can be executed using several modes. The modes are described in the type parameter.
+=head1 applyFactoryReset
+
+Run a factory reset in the load balancer. It can be executed using several modes. The modes are described in the type parameter.
 
 Parameters:
-	Interface - Management interface that will not me delete while the factory reset process.
-	Reset Type - Type of reset factory. The options are:
-			'remove-backups', expecifies that the backups will be deleted.
-			'hard-reset', reset factory is executed in its hard mode, deleting the relianoid certificate.
-			'hardware', is a hard reset, and set up the management interface with the hardware default IP.
-			If no paratemers are used in the function, the reset factory does not delete the backups and it will executed in its soft mode.
+
+    Interface - Management interface that will not me delete while the factory reset process.
+    Reset Type - Type of reset factory. The options are:
+
+        'remove-backups', expecifies that the backups will be deleted.
+        'hard-reset', reset factory is executed in its hard mode, deleting the relianoid certificate.
+        'hardware', is a hard reset, and set up the management interface with the hardware default IP.
+        If no paratemers are used in the function, the reset factory does not delete the backups and it will executed in its soft mode.
 
 Returns:
-	Integer - The function will return 0 on success, or another value on failure
+
+    Integer - The function will return 0 on success, or another value on failure
 
 =cut
 
@@ -345,16 +380,19 @@ sub applyFactoryReset {
     return $err;
 }
 
-=begin nd
-Function: checkPidRunning
+=pod
 
-	Check if Pid is running on the system.
+=head1 checkPidRunning
+
+Check if Pid is running on the system.
 
 Parameters:
-	pid - pid to check.
+
+    pid - pid to check.
 
 Returns:
-	scalar - 0 if success, otherwise an error.
+
+    scalar - 0 if success, otherwise an error.
 
 =cut
 
@@ -367,16 +405,19 @@ sub checkPidRunning    #( $pid )
     return $ret;
 }
 
-=begin nd
-Function: checkPidFileRunning
+=pod
 
-	Check if PidFile contains a Pid is running on the system.
+=head1 checkPidFileRunning
+
+Check if PidFile contains a Pid is running on the system.
 
 Parameters:
-	pid_file - pid file to check.
+
+    pid_file - pid file to check.
 
 Returns:
-	scalar - 0 if success, otherwise an error.
+
+    scalar - 0 if success, otherwise an error.
 
 =cut
 

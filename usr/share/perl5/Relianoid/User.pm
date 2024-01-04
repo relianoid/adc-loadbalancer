@@ -22,17 +22,29 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
-=begin nd
-Function: getUser
+=pod
 
-	Get the user that is executing the API or WEBGUI
+=head1 Module
+
+Relianoid::User
+
+=cut
+
+=pod
+
+=head1 getUser
+
+Get the user that is executing the API or WEBGUI
 
 Parameters:
-	User - User name
+
+    User - User name
 
 Returns:
-	String - User name
+
+    String - User name
 
 =cut
 
@@ -47,16 +59,19 @@ sub getUser {
     return $ENV{REQ_USER} // '';
 }
 
-=begin nd
-Function: setUser
+=pod
 
-	Save the user that is executing the API or WEBGUI
+=head1 setUser
+
+Save the user that is executing the API or WEBGUI
 
 Parameters:
-	None - .
+
+    None - .
 
 Returns:
-	String - User name
+
+    String - User name
 
 =cut
 
@@ -64,18 +79,23 @@ sub setUser {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $user = shift;
     $ENV{REQ_USER} = $user;
+
+    return;
 }
 
-=begin nd
-Function: getSysGroupList
+=pod
+
+=head1 getSysGroupList
 
 List all Operating System groups
 
 Parameters:
-	None - .
+
+    None
 
 Returns:
-	Array - List of groups
+
+    Array - List of groups
 
 =cut
 
@@ -93,16 +113,19 @@ sub getSysGroupList {
 
 }
 
-=begin nd
-Function: getSysUserList
+=pod
+
+=head1 getSysUserList
 
 List all Operating System users
 
 Parameters:
-	None - .
+
+    None
 
 Returns:
-	Array - List of users
+
+    Array - List of users
 
 =cut
 
@@ -124,13 +147,15 @@ sub getSysUserList {
 
 Function: getSysUserExists
 
-	Check if a user exists in the Operting System
+    Check if a user exists in the Operting System
 
 Parameters:
-	User - User name
+
+    User - User name
 
 Returns:
-	Integer - 1 if the user exists or 0 if it doesn't exist
+
+    Integer - 1 if the user exists or 0 if it doesn't exist
 
 =cut
 
@@ -139,7 +164,7 @@ sub getSysUserExists {
     my $user = shift;
 
     my $out = 0;
-    $out = 1 if (grep (/^$user$/, &getSysUserList()));
+    $out = 1 if (grep { /^$user$/ } &getSysUserList());
 
     return $out;
 }
@@ -148,13 +173,15 @@ sub getSysUserExists {
 
 Function: getSysGroupExists
 
-	Check if a group exists in the Operting System
+    Check if a group exists in the Operting System
 
 Parameters:
-	Group - group name
+
+    Group - group name
 
 Returns:
-	Integer - 1 if the group exists or 0 if it doesn't exist
+
+    Integer - 1 if the group exists or 0 if it doesn't exist
 
 =cut
 
@@ -163,7 +190,7 @@ sub getSysGroupExists {
     my $group = shift;
 
     my $out = 0;
-    $out = 1 if (grep (/^$group$/, &getSysGroupList()));
+    $out = 1 if (grep { /^$group$/ } &getSysGroupList());
 
     return $out;
 }

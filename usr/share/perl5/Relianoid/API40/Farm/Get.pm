@@ -1,3 +1,4 @@
+#!/usr/bin/perl
 ###############################################################################
 #
 #    RELIANOID Software License
@@ -21,14 +22,13 @@
 ###############################################################################
 
 use strict;
+use warnings;
+
 use Relianoid::Config;
 use Relianoid::Farm::Core;
 use Relianoid::Farm::Base;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
 #GET /farms
 sub farms    # ()
@@ -72,6 +72,7 @@ sub farms    # ()
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # GET /farms/LSLBFARM
@@ -117,6 +118,7 @@ sub farms_lslb    # ()
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # GET /farms/DATALINKFARM
@@ -161,6 +163,7 @@ sub farms_dslb    # ()
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 #GET /farms/<name>/summary
@@ -185,6 +188,8 @@ sub farms_name_summary    # ( $farmname )
     else {
         &farms_name($farmname);
     }
+
+    return;
 }
 
 #GET /farms/<name>
@@ -222,6 +227,8 @@ sub farms_name    # ( $farmname )
             args   => [$farmname],
         );
     }
+
+    return;
 }
 
 #GET /farms/<name>/status
@@ -247,6 +254,7 @@ sub farms_name_status    # ( $farmname )
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # function to standarizate the backend output
@@ -327,7 +335,10 @@ sub farms_module_summary {
         description => "Farm Modules summary",
         params      => $out,
     };
-    return &httpResponse({ code => 200, body => $body });
+
+    &httpResponse({ code => 200, body => $body });
+
+    return;
 }
 
 1;

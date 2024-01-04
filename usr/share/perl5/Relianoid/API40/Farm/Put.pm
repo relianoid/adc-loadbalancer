@@ -1,3 +1,4 @@
+#!/usr/bin/perl
 ###############################################################################
 #
 #    RELIANOID Software License
@@ -21,12 +22,11 @@
 ###############################################################################
 
 use strict;
+use warnings;
+
 use Relianoid::Farm::Core;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
 sub modify_farm    # ( $json_obj, $farmname )
 {
@@ -66,6 +66,8 @@ sub modify_farm    # ( $json_obj, $farmname )
             args   => [ $json_obj, $farmname ],
         );
     }
+
+    return;
 }
 
 1;

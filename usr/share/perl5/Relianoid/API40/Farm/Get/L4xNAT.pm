@@ -1,3 +1,4 @@
+#!/usr/bin/perl
 ###############################################################################
 #
 #    RELIANOID Software License
@@ -21,15 +22,14 @@
 ###############################################################################
 
 use strict;
+use warnings;
+
 use Relianoid::FarmGuardian;
 use Relianoid::Farm::Config;
 use Relianoid::Farm::Backend;
 use Relianoid::Farm::L4xNAT::Config;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
 # GET /farms/<farmname> Request info of a l4xnat Farm
 sub farms_name_l4    # ( $farmname )
@@ -63,7 +63,7 @@ sub farms_name_l4    # ( $farmname )
     }
 
     # Backends
-    my $out_b = &getFarmServers($farmname);
+    my $out_b = &getL4FarmServers($farmname);
     &getAPIFarmBackends($out_b, 'l4xnat');
 
     my $body = {
@@ -79,6 +79,7 @@ sub farms_name_l4    # ( $farmname )
     ) if ($eload);
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 1;

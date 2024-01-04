@@ -22,6 +22,9 @@
 ###############################################################################
 
 use strict;
+use warnings;
+use feature qw(signatures);
+no warnings 'experimental::args_array_with_signatures';
 
 use File::stat;
 use Time::localtime;
@@ -30,88 +33,102 @@ use Relianoid::Core;
 
 my $openssl = &getGlobalConfiguration('openssl');
 
-=begin nd
-Function: getCertFiles
+=pod
 
-	Returns a list of all .pem and .csr certificate files in the config directory.
+=head1 Module
 
-Parameters:
-	none - .
+Relianoid::Certificate
 
-Returns:
-	list - certificate files in config/ directory.
-
-Bugs:
-
-See Also:
-	zapi/v3/certificates.cgi, zapi/v2/certificates.cgi
 =cut
 
-sub getCertFiles    # ()
-{
+=pod
+
+=head1 getCertFiles
+
+Returns a list of all .pem and .csr certificate files in the config directory.
+
+Parameters:
+
+    none
+
+Returns:
+
+    list - certificate files in config/ directory.
+
+See Also:
+
+    zapi/v3/certificates.cgi, zapi/v2/certificates.cgi
+
+=cut
+
+sub getCertFiles () {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+
     my $configdir = &getGlobalConfiguration('certdir');
     my $dir;
 
     opendir($dir, $configdir);
-    my @files = grep (/.*\.pem$/, readdir($dir));
-    @files = grep (!/_dh\d+\.pem$/, @files);
+    my @files = grep { /.*\.pem$/ } readdir($dir);
+    @files = grep { !/_dh\d+\.pem$/ } @files;
     closedir($dir);
 
     opendir($dir, $configdir);
-    push(@files, grep (/.*\.csr$/, readdir($dir)));
+    push(@files, grep { /.*\.csr$/ } readdir($dir));
     closedir($dir);
 
     return @files;
 }
 
-=begin nd
-Function: getCertFiles
+=pod
 
-	Returns a list of only .pem certificate files in the config directory.
+=head1 getCertFiles
+
+Returns a list of only .pem certificate files in the config directory.
 
 Parameters:
-	none - .
+
+    none
 
 Returns:
-	list - certificate files in config/ directory.
+
+    list - certificate files in config/ directory.
 
 =cut
 
-sub getPemCertFiles    # ()
-{
+sub getPemCertFiles () {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $configdir = &getGlobalConfiguration('certdir');
 
     opendir(my $dir, $configdir);
-    my @files = grep (/.*\.pem$/, readdir($dir));
-    @files = grep (!/_dh\d+\.pem$/, @files);
+    my @files = grep { /.*\.pem$/ } readdir($dir);
+    @files = grep { !/_dh\d+\.pem$/ } @files;
     closedir($dir);
 
     return @files;
 }
 
-=begin nd
-Function: getCleanBlanc
+=pod
 
-	Delete all blancs from the beginning and from the end of a variable.
+=head1 getCleanBlanc
+
+Delete all blancs from the beginning and from the end of a variable.
 
 Parameters:
-	String - String possibly starting and/or ending with space characters.
+
+    String - String possibly starting and/or ending with space characters.
 
 Returns:
-	String - String without space characters at the beginning or at the end.
 
-Bugs:
+    String - String without space characters at the beginning or at the end.
 
 See Also:
-	<getCertCN>, <getCertIssuer>, zapi/v3/certificates.cgi
+
+    <getCertCN>, <getCertIssuer>, zapi/v3/certificates.cgi
+
 =cut
 
-sub getCleanBlanc    # ($vartoclean)
-{
+sub getCleanBlanc ($vartoclean) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($vartoclean) = @_;
 
     $vartoclean =~ s/^\s+//;
     $vartoclean =~ s/\s+$//;
@@ -119,32 +136,35 @@ sub getCleanBlanc    # ($vartoclean)
     return $vartoclean;
 }
 
-=begin nd
-Function: getCertType
+=pod
 
-	Return the type of a certificate filename.
+=head1 getCertType
 
-	The certificate types are:
-	Certificate - For .pem or .crt certificates
-	CSR - For .csr certificates
-	none - for any other file or certificate
+Return the type of a certificate filename.
+
+The certificate types are:
+
+    Certificate - For .pem or .crt certificates
+    CSR         - For .csr certificates
+    none        - for any other file or certificate
 
 Parameters:
-	String - Certificate filename.
+
+    String - Certificate filename.
 
 Returns:
-	String - Certificate type.
 
-Bugs:
+    String - Certificate type.
 
 See Also:
-	<getCertCN>, <getCertIssuer>, <getCertCreation>, <getCertExpiration>, <getCertData>, zapi/v3/certificates.cgi, zapi/v2/certificates.cgi
+
+    <getCertCN>, <getCertIssuer>, <getCertCreation>, <getCertExpiration>, <getCertData>, zapi/v3/certificates.cgi, zapi/v2/certificates.cgi
+
 =cut
 
-sub getCertType    # ($certfile)
-{
+sub getCertType ($certfile) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($certfile) = @_;
+
     my $certtype = "none";
 
     if ($certfile =~ /\.pem/ || $certfile =~ /\.crt/) {
@@ -157,27 +177,29 @@ sub getCertType    # ($certfile)
     return $certtype;
 }
 
-=begin nd
-Function: getCertCN
+=pod
 
-	Return the Common Name of a certificate file
+=head1 getCertCN
+
+Return the Common Name of a certificate file
 
 Parameters:
-	String - Certificate filename.
+
+    String - Certificate filename.
 
 Returns:
-	String - Certificate's Common Name.
 
-Bugs:
+    String - Certificate's Common Name.
 
 See Also:
-	zapi/v3/certificates.cgi, zapi/v2/certificates.cgi
+
+    zapi/v3/certificates.cgi, zapi/v2/certificates.cgi
+
 =cut
 
-sub getCertCN    # ($certfile)
-{
+sub getCertCN ($certfile) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($certfile) = @_;
+
     my $certcn = "";
 
     my $type = (&getCertType($certfile) eq "Certificate") ? "x509" : "req";
@@ -198,27 +220,31 @@ sub getCertCN    # ($certfile)
     return $certcn;
 }
 
-=begin nd
-Function: getCertIssuer
+=pod
 
-	Return the Issuer Common Name of a certificate file
+=head1 getCertIssuer
+
+Return the Issuer Common Name of a certificate file
 
 Parameters:
-	String - Certificate filename.
+
+    String - Certificate filename.
 
 Returns:
-	String - Certificate issuer.
+
+    String - Certificate issuer.
 
 Bugs:
 
 See Also:
-	zapi/v3/certificates.cgi, zapi/v2/certificates.cgi
+
+    zapi/v3/certificates.cgi, zapi/v2/certificates.cgi
+
 =cut
 
-sub getCertIssuer    # ($certfile)
-{
+sub getCertIssuer ($certfile) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($certfile) = @_;
+
     my $certissu = "";
 
     if (&getCertType($certfile) eq "Certificate") {
@@ -237,27 +263,28 @@ sub getCertIssuer    # ($certfile)
     return $certissu;
 }
 
-=begin nd
-Function: getCertCreation
+=pod
 
-	Return the creation date of a certificate file
+=head1 getCertCreation
+
+Return the creation date of a certificate file
 
 Parameters:
-	String - Certificate filename.
+
+    String - Certificate filename.
 
 Returns:
-	String - Creation date.
 
-Bugs:
+    String - Creation date.
 
 See Also:
-	zapi/v3/certificates.cgi, zapi/v2/certificates.cgi
+
+    zapi/v3/certificates.cgi, zapi/v2/certificates.cgi
+
 =cut
 
-sub getCertCreation    # ($certfile)
-{
+sub getCertCreation ($certfile) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($certfile) = @_;
 
     my $datecreation = "";
 
@@ -276,27 +303,29 @@ sub getCertCreation    # ($certfile)
     return $datecreation;
 }
 
-=begin nd
-Function: getCertExpiration
+=pod
 
-	Return the expiration date of a certificate file
+=head1 getCertExpiration
+
+Return the expiration date of a certificate file
 
 Parameters:
-	String - Certificate filename.
+
+    String - Certificate filename.
 
 Returns:
-	String - Expiration date.
 
-Bugs:
+    String - Expiration date.
 
 See Also:
-	zapi/v3/certificates.cgi, zapi/v2/certificates.cgi
+
+    zapi/v3/certificates.cgi, zapi/v2/certificates.cgi
+
 =cut
 
-sub getCertExpiration    # ($certfile)
-{
+sub getCertExpiration ($certfile) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($certfile) = @_;
+
     my $dateexpiration = "";
 
     if (&getCertType($certfile) eq "Certificate") {
@@ -311,27 +340,28 @@ sub getCertExpiration    # ($certfile)
     return $dateexpiration;
 }
 
-=begin nd
-Function: getFarmCertUsed
+=pod
 
-	Get is a certificate file is being used by an HTTP farm
+=head1 getFarmCertUsed
+
+Get is a certificate file is being used by an HTTP farm
 
 Parameters:
-	String - Certificate filename.
+
+    String - Certificate filename.
 
 Returns:
-	Integer - 0 if the certificate is being used, or -1 if it is not.
 
-Bugs:
+    Integer - 0 if the certificate is being used, or -1 if it is not.
 
 See Also:
-	zapi/v3/certificates.cgi, zapi/v2/certificates.cgi
+
+    zapi/v3/certificates.cgi, zapi/v2/certificates.cgi
+
 =cut
 
-sub getFarmCertUsed    #($cfile)
-{
+sub getFarmCertUsed ($cfile) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($cfile) = @_;
 
     require Relianoid::Farm::Core;
 
@@ -358,23 +388,24 @@ sub getFarmCertUsed    #($cfile)
     return $output;
 }
 
-=begin nd
-Function: getFarmCertUsed
+=pod
 
-	Get HTTPS Farms list using the certificate file. 
+=head1 getFarmCertUsed
+
+Get HTTPS Farms list using the certificate file. 
 
 Parameters:
-	String - Certificate filename.
+
+    String - Certificate filename.
 
 Returns:
-	Array ref - Farm list using the certificate.
+
+    Array ref - Farm list using the certificate.
 
 =cut
 
-sub getCertFarmsUsed    #($cfile)
-{
+sub getCertFarmsUsed ($cfile) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($cfile) = @_;
 
     require Relianoid::Farm::Core;
 
@@ -400,27 +431,29 @@ sub getCertFarmsUsed    #($cfile)
     return $farms_ref;
 }
 
-=begin nd
-Function: checkFQDN
+=pod
 
-	Check if a FQDN is valid
+=head1 checkFQDN
+
+Check if a FQDN is valid
 
 Parameters:
-	certfqdn - FQDN.
+
+    certfqdn - FQDN.
 
 Returns:
-	String - Boolean 'true' or 'false'.
 
-Bugs:
+    String - Boolean 'true' or 'false'.
 
 See Also:
-	zapi/v3/certificates.cgi
+
+    zapi/v3/certificates.cgi
+
 =cut
 
-sub checkFQDN    # ($certfqdn)
-{
+sub checkFQDN ($certfqdn) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($certfqdn) = @_;
+
     my $valid = "true";
 
     if ($certfqdn =~ /^http:/) {
@@ -439,28 +472,32 @@ sub checkFQDN    # ($certfqdn)
     return $valid;
 }
 
-=begin nd
-Function: delCert
+=pod
 
-	Removes a certificate file
+=head1 delCert
+
+Removes a certificate file
 
 Parameters:
-	String - Certificate filename.
+
+    String - Certificate filename.
 
 Returns:
-	Integer - Number of files removed.
+
+    Integer - Number of files removed.
 
 Bugs:
-	Removes the _first_ file found _starting_ with the given certificate name.
+
+    Removes the _first_ file found _starting_ with the given certificate name.
 
 See Also:
-	zapi/v3/certificates.cgi, zapi/v2/certificates.cgi
+
+    zapi/v3/certificates.cgi, zapi/v2/certificates.cgi
+
 =cut
 
-sub delCert    # ($certname)
-{
+sub delCert ($certname) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($certname) = @_;
 
     my $certdir = &getGlobalConfiguration('certdir');
 
@@ -500,55 +537,56 @@ sub delCert    # ($certname)
     return $files_removed;
 }
 
-=begin nd
-Function: createCSR
+=pod
 
-	Create a CSR file.
+=head1 createCSR
 
-	If the function run correctly two files will appear in the config/ directory:
-	certname.key and certname.csr.
+Create a CSR file.
+
+If the function run correctly two files will appear in the config/ directory:
+
+certname.key and certname.csr.
 
 Parameters:
-	certname - Certificate name, part of the certificate filename without the extension.
-	certfqdn - FQDN.
-	certcountry - Country.
-	certstate - State.
-	certlocality - Locality.
-	certorganization - Organization.
-	certdivision - Division.
-	certmail - E-Mail.
-	certkey - Key. ¿?
-	certpassword - Password. Optional.
+
+    certname     - Certificate name, part of the certificate filename without the extension.
+    certfqdn     - FQDN.
+    certcountry  - Country.
+    certstate    - State.
+    certlocality - Locality.
+    certorganization - Organization.
+    certdivision - Division.
+    certmail     - E-Mail.
+    certkey      - Key. ¿?
+    certpassword - Password. Optional.
 
 Returns:
-	Integer - Return code of openssl generating the CSR file..
 
-Bugs:
+    Integer - Return code of openssl generating the CSR file..
 
 See Also:
-	zapi/v3/certificates.cgi
+
+    zapi/v3/certificates.cgi
+
 =cut
 
-sub createCSR # ($certname, $certfqdn, $certcountry, $certstate, $certlocality, $certorganization, $certdivision, $certmail, $certkey, $certpassword)
+sub createCSR ($name, $fqdn, $country, $state, $locality, $organization, $division, $mail, $key,
+    $password)
 {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my (
-        $certname,         $certfqdn,     $certcountry, $certstate, $certlocality,
-        $certorganization, $certdivision, $certmail,    $certkey,   $certpassword
-    ) = @_;
 
     my $configdir = &getGlobalConfiguration('certdir');
     my $output;
 
     my $subdomains = '';
 
-    my @alternatives = split(/,/, $certfqdn);
+    my @alternatives = split(/,/, $fqdn);
     my $cn_found     = 0;
 
     for my $dns (@alternatives) {
         next if $dns =~ /^\s*$/;
         if (not $cn_found) {
-            $certfqdn = $dns;
+            $fqdn     = $dns;
             $cn_found = 1;
         }
         $subdomains .= "DNS:$dns,";
@@ -560,51 +598,52 @@ sub createCSR # ($certname, $certfqdn, $certcountry, $certstate, $certlocality, 
     return 1 if not $cn_found;
 
     ##sustituir los espacios por guiones bajos en el nombre de archivo###
-    if ($certpassword eq "") {
+    if ($password eq "") {
         $output =
           &logAndRun(
-            "$openssl req -nodes -newkey rsa:$certkey -keyout $configdir/$certname.key $subdomains -out $configdir/$certname.csr -batch -subj \"/C=$certcountry\/ST=$certstate/L=$certlocality/O=$certorganization/OU=$certdivision/CN=$certfqdn/emailAddress=$certmail\"  2> /dev/null"
+            "$openssl req -nodes -newkey rsa:$key -keyout $configdir/$name.key $subdomains -out $configdir/$name.csr -batch -subj \"/C=$country\/ST=$state/L=$locality/O=$organization/OU=$division/CN=$fqdn/emailAddress=$mail\"  2> /dev/null"
           );
         &zenlog(
-            "Creating CSR: $openssl req -nodes -newkey rsa:$certkey -keyout $configdir/$certname.key $subdomains -out $configdir/$certname.csr -batch -subj \"/C=$certcountry\/ST=$certstate/L=$certlocality/O=$certorganization/OU=$certdivision/CN=$certfqdn/emailAddress=$certmail\"",
+            "Creating CSR: $openssl req -nodes -newkey rsa:$key -keyout $configdir/$name.key $subdomains -out $configdir/$name.csr -batch -subj \"/C=$country\/ST=$state/L=$locality/O=$organization/OU=$division/CN=$fqdn/emailAddress=$mail\"",
             "info", "LSLB"
         ) if (not $output);
     }
     else {
         $output =
           &logAndRun(
-            "$openssl req -passout pass:$certpassword -newkey rsa:$certkey -keyout $configdir/$certname.key $subdomains -out $configdir/$certname.csr $configdir/openssl.cnf -batch -subj \"/C=$certcountry/ST=$certstate/L=$certlocality/O=$certorganization/OU=$certdivision/CN=$certfqdn/emailAddress=$certmail\""
+            "$openssl req -passout pass:$password -newkey rsa:$key -keyout $configdir/$name.key $subdomains -out $configdir/$name.csr $configdir/openssl.cnf -batch -subj \"/C=$country/ST=$state/L=$locality/O=$organization/OU=$division/CN=$fqdn/emailAddress=$mail\""
           );
         &zenlog(
-            "Creating CSR: $openssl req -passout pass:$certpassword -newkey rsa:$certkey -keyout $configdir/$certname.key $subdomains -out $configdir/$certname.csr $configdir/openssl.cnf -batch -subj \"/C=$certcountry\/ST=$certstate/L=$certlocality/O=$certorganization/OU=$certdivision/CN=$certfqdn/emailAddress=$certmail\"",
+            "Creating CSR: $openssl req -passout pass:$password -newkey rsa:$key -keyout $configdir/$name.key $subdomains -out $configdir/$name.csr $configdir/openssl.cnf -batch -subj \"/C=$country\/ST=$state/L=$locality/O=$organization/OU=$division/CN=$fqdn/emailAddress=$mail\"",
             "info", "LSLB"
         ) if (not $output);
     }
     return $output;
 }
 
-=begin nd
-Function: getCertData
+=pod
 
-	Returns the information stored in a certificate.
+=head1 getCertData
+
+Returns the information stored in a certificate.
 
 Parameters:
-	String - Certificate path.
-	String - "true" for checking the Certificate.
+
+    String - Certificate path.
+    String - "true" for checking the Certificate.
 
 Returns:
-	string - It returns a string with the certificate content. It contains new line characters.
 
-Bugs:
+    string - It returns a string with the certificate content. It contains new line characters.
 
 See Also:
-	zapi/v3/certificates.cgi
+
+    zapi/v3/certificates.cgi
+
 =cut
 
-sub getCertData    # ($certfile)
-{
+sub getCertData ($filepath, $check = undef) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($filepath, $check) = @_;
 
     my $cmd;
     my $filepath_orig = $filepath;
@@ -632,22 +671,24 @@ sub getCertData    # ($certfile)
     return $cert;
 }
 
-=begin nd
-Function: getCertIsValid
-	Check if a certificate is a valid x509 object
+=pod
+
+=head1 getCertIsValid
+
+Check if a certificate is a valid x509 object
 
 Parameters:
-	String - Certificate path.
+
+    String - Certificate path.
 
 Returns:
-	Integer - 0 if the cert is a valid x509 object, 1 if not
+
+    Integer - 0 if the cert is a valid x509 object, 1 if not
 
 =cut
 
-sub getCertIsValid    # ($cert_filepath)
-{
+sub getCertIsValid ($cert_filepath) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($cert_filepath) = shift;
     my $rc = 1;
     eval {
         require Crypt::OpenSSL::X509;
@@ -658,28 +699,31 @@ sub getCertIsValid    # ($cert_filepath)
 
 }
 
-=begin nd
-Function: getCertInfo
+=pod
 
-	It returns an object with the certificate information parsed
+=head1 getCertInfo
+
+It returns an object with the certificate information parsed
 
 Parameters:
-	certificate path - path to the certificate
+
+    certificate path - path to the certificate
 
 Returns:
-	hash ref - The hash contains the following keys:
-		file, name of the certificate with extension and without path. "zert.pem"
-		type, type of file. CSR or Certificate
-		CN, common name
-		issuer, name of the certificate authority
-		creation, date of certificate creation. "019-08-13 09:31:33 UTC"
-		expiration, date of certificate expiration. "2020-07-11 09:31:33 UTC"
-		status, status of the certificate. 'unknown' if the file is not recognized as a certificate, 'expired' if the certificate is expired, 'about to expire' if the expiration date is in less than 15 days, 'valid' the expiration date is greater than 15 days, 'invalid' if the file is a not valid certificate
+
+    hash ref - The hash contains the following keys:
+
+    file:       name of the certificate with extension and without path. "zert.pem"
+    type:       type of file. CSR or Certificate
+    CN:         common name
+    issuer:     name of the certificate authority
+    creation:   date of certificate creation. "019-08-13 09:31:33 UTC"
+    expiration: date of certificate expiration. "2020-07-11 09:31:33 UTC"
+    status:     status of the certificate. 'unknown' if the file is not recognized as a certificate, 'expired' if the certificate is expired, 'about to expire' if the expiration date is in less than 15 days, 'valid' the expiration date is greater than 15 days, 'invalid' if the file is a not valid certificate
 
 =cut
 
-sub getCertInfo {
-    my $filepath = shift;
+sub getCertInfo ($filepath) {
     my %response;
 
     my $certfile = "";
@@ -742,7 +786,7 @@ sub getCertInfo {
         my @cert_data = @{ &logAndGet("$openssl req -in $filepath -text -noout", "array") };
 
         my $cn = "";
-        my ($string) = grep (/\sSubject: /, @cert_data);
+        my ($string) = grep { /\sSubject: / } @cert_data;
         if ($string =~ /CN ?= ?([^,]+)/) {
             $cn = $1;
         }
@@ -761,21 +805,24 @@ sub getCertInfo {
     return \%response;
 }
 
-=begin nd
-Function: getDateEpoc
+=pod
 
-	It converts a human date (2018-05-17 15:04:52 UTC) in a epoc date (1594459893)
+=head1 getDateEpoc
+
+It converts a human date (2018-05-17 15:04:52 UTC) in a epoc date (1594459893)
 
 Parameters:
-	date - string with the date. The string has to be as "2018-05-17 15:04:52"
+
+    date - string with the date. The string has to be as "2018-05-17 15:04:52"
 
 Returns:
-	Integer - Time in epoc time. "1594459893"
+
+    Integer - Time in epoc time. "1594459893"
+
 =cut
 
-sub getDateEpoc {
+sub getDateEpoc ($date_string) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $date_string = shift @_;
 
     # my @months      = qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
 
@@ -786,21 +833,24 @@ sub getDateEpoc {
     return timegm($sec, $min, $hours, $day, $month, $year);
 }
 
-=begin nd
-Function: getCertDaysToExpire
+=pod
 
-	It calculates the number of days to expire the certificate.
+=head1 getCertDaysToExpire
+
+It calculates the number of days to expire the certificate.
 
 Parameters:
-	ending date - String with the ending date with the following format "2018-05-17 15:04:52 UTC"
+
+    ending date - String with the ending date with the following format "2018-05-17 15:04:52 UTC"
 
 Returns:
-	Integer - Number of days to expire the certificate
+
+    Integer - Number of days to expire the certificate
+
 =cut
 
-sub getCertDaysToExpire {
+sub getCertDaysToExpire ($cert_ends) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($cert_ends) = @_;
 
     use Time::Local;
 
@@ -820,25 +870,27 @@ sub getCertDaysToExpire {
     return $days_left;
 }
 
-=begin nd
-Function: checkCertPEMFormat
+=pod
 
-	Checks if a certificate is in PEM Format: Text File and headers --BEGIN-- and --END--
+=head1 checkCertPEMFormat
+
+Checks if a certificate is in PEM Format: Text File and headers --BEGIN-- and --END--
 
 Parameters:
-	cert_path - path to the certificate
+
+    cert_path - path to the certificate
 
 Returns:
 
-	0 if the certificate is in PEM Format, otherwise 1
+    0 if the certificate is in PEM Format, otherwise 1
+
 =cut
 
-sub checkCertPEMFormat    # ( $cert_path )
-{
+sub checkCertPEMFormat ($cert_path) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($cert_path) = @_;
 
     my $rc = 1;
+
     if (-T $cert_path) {
         require Tie::File;
         use Fcntl 'O_RDONLY';
@@ -855,35 +907,41 @@ sub checkCertPEMFormat    # ( $cert_path )
         }
         $rc = 0 if $found;
     }
+
     return $rc;
 }
 
-=begin nd
-Function: getCertPEM
+=pod
 
-	It returns an object with all certificates: key, fullchain
+=head1 getCertPEM
+
+It returns an object with all certificates: key, fullchain
 
 Parameters:
-	cert_path - path to the certificate
+
+    cert_path - path to the certificate
 
 Returns:
 
-	hash ref - List of certificates : key, fullchain
+    hash ref - List of certificates : key, fullchain
+
 =cut
 
-sub getCertPEM    # ( $cert_path )
-{
+sub getCertPEM ($cert_path) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($cert_path) = @_;
+
     my $pem_config;
 
     if (-T $cert_path) {
         require Tie::File;
         use Fcntl 'O_RDONLY';
+
         tie my @cert_file, 'Tie::File', "$cert_path", mode => O_RDONLY;
+
         my $key_boundary         = 0;
         my $certificate_boundary = 0;
         my $cert;
+
         foreach (@cert_file) {
 
             if ($_ =~ /^-+BEGIN.*KEY-+/) {
@@ -910,33 +968,37 @@ sub getCertPEM    # ( $cert_path )
             }
         }
     }
-    return $pem_config;
 
+    return $pem_config;
 }
 
-=begin nd
-Function: checkCertPEMKeyEncrypted
+=pod
 
-	Checks if a certificate private key in PEM format is encrypted.
+=head1 checkCertPEMKeyEncrypted
+
+Checks if a certificate private key in PEM format is encrypted.
 
 Parameters:
-	cert_path - path to the certificate
+
+    cert_path - path to the certificate
 
 Returns:
 
-	Integer - 0 if it is not encrypted, 1 if encrypted, -1 on error.
+    Integer - 0 if it is not encrypted, 1 if encrypted, -1 on error.
+
 =cut
 
-sub checkCertPEMKeyEncrypted    # ( $cert_path )
-{
+sub checkCertPEMKeyEncrypted ($cert_path) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($cert_path) = @_;
-    my $rc          = -1;
-    my $pem_config  = &getCertPEM($cert_path);
+
+    my $rc         = -1;
+    my $pem_config = &getCertPEM($cert_path);
+
     if (($pem_config) and ($pem_config->{key})) {
-        $rc = 0;
         use Net::SSLeay;
         $Net::SSLeay::trace = 1;
+
+        $rc = 0;
         my $bio_key = Net::SSLeay::BIO_new_file($cert_path, 'r');
 
         # Loads PEM formatted private key via given BIO structure using empty password
@@ -957,37 +1019,43 @@ sub checkCertPEMKeyEncrypted    # ( $cert_path )
         }
         Net::SSLeay::BIO_free($bio_key);
     }
+
     return $rc;
 }
 
-=begin nd
-Function: checkCertPEMValid
+=pod
 
-	Checks if a certificate is in PEM format and has a valid structure.
-	The certificates must be in PEM format and must be sorted starting with the subject's certificate (actual client or server certificate), followed by intermediate CA certificates if applicable, and ending at the highest level (root) CA. The Private key has to be unencrypted.
+=head1 checkCertPEMValid
+
+Checks if a certificate is in PEM format and has a valid structure.
+The certificates must be in PEM format and must be sorted starting with the subject's certificate (actual client or server certificate), followed by intermediate CA certificates if applicable, and ending at the highest level (root) CA. The Private key has to be unencrypted.
 
 Parameters:
-	cert_path - path to the certificate
+
+    cert_path - path to the certificate
 
 Returns: 	
 
-	error_ref - error object. code = 0 if the PEM file is valid,
+    error_ref - error object. code = 0 if the PEM file is valid,
 
 Variable: $error_ref.
 
- 	A hashref that maps error code and description         
-		$error_ref->{ code } - Integer.Error code
-		$error_ref->{ desc } - String. Description of the error.
+    A hashref that maps error code and description
+
+    $error_ref->{ code } - Integer.Error code
+    $error_ref->{ desc } - String. Description of the error.
+
 =cut
 
-sub checkCertPEMValid    # ( $cert_path )
-{
+sub checkCertPEMValid ($cert_path) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($cert_path) = @_;
-    my $error_ref->{code} = 0;
+
     use Net::SSLeay;
     $Net::SSLeay::trace = 1;
+
+    my $error_ref->{code} = 0;
     my $ctx = Net::SSLeay::CTX_new_with_method(Net::SSLeay::SSLv23_method());
+
     if (!$ctx) {
         my $error_msg = "Error check PEM certificate";
         $error_ref->{code} = -1;
@@ -1080,36 +1148,38 @@ sub checkCertPEMValid    # ( $cert_path )
     return $error_ref;
 }
 
-=begin nd
-Function: createPEM
+=pod
 
-	Create a valid PEM file.
+=head1 createPEM
+
+Create a valid PEM file.
 
 Parameters:
-	certname - Certificate name, part of the certificate filename without the extension.
-	key - String. Private Key.
-	ca - String. CA Certificate or fullchain certificates.
-	intermediates - CA Intermediates Certificates.
+
+    certname - Certificate name, part of the certificate filename without the extension.
+    key      - String. Private Key.
+    ca       - String. CA Certificate or fullchain certificates.
+    intermediates - CA Intermediates Certificates.
 
 Returns:
-	error_ref - error object. code = 0 if the PEM file is created,
+
+    error_ref - error object. code = 0 if the PEM file is created,
 
 Variable: $error_ref.
 
- 	A hashref that maps error code and description         
-		$error_ref->{ code } - Integer.Error code
-		$error_ref->{ desc } - String. Description of the error.
+    A hashref that maps error code and description
+
+    $error_ref->{ code } - Integer.Error code
+    $error_ref->{ desc } - String. Description of the error.
 
 =cut
 
-sub createPEM    # ( $cert_name, $cert_key, $cert_ca, $cert_intermediates )
-{
+sub createPEM ($cert_name, $cert_key, $cert_ca, $cert_intermediates) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
-    my ($cert_name, $cert_key, $cert_ca, $cert_intermediates) = @_;
     my $error_ref->{code} = 0;
 
-    if (!$cert_name or !$cert_key or !$cert_ca) {
+    if (not $cert_name or not $cert_key or not $cert_ca) {
         my $error_msg = "A required parameter is missing";
         $error_ref->{code} = 1;
         $error_ref->{desc} = $error_msg;
@@ -1189,4 +1259,3 @@ sub createPEM    # ( $cert_name, $cert_key, $cert_ca, $cert_intermediates )
 }
 
 1;
-

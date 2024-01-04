@@ -22,15 +22,15 @@
 ###############################################################################
 
 use strict;
+use warnings;
+use feature qw(signatures);
+no warnings 'experimental::args_array_with_signatures';
 
 my $LOG_TAG = "";
 $LOG_TAG = "ZAPI"   if (exists $ENV{HTTP_ZAPI_KEY});
 $LOG_TAG = "WEBGUI" if (exists $ENV{HTTP_COOKIE});
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
 my %http_status_codes = (
 
@@ -51,9 +51,8 @@ my %http_status_codes = (
     422 => 'Unprocessable Entity',
 );
 
-sub GET {
+sub GET ($path, $code, $mod = undef) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($path, $code, $mod) = @_;
 
     return
       unless $ENV{REQUEST_METHOD} eq 'GET'
@@ -62,49 +61,41 @@ sub GET {
     my @captures = ($ENV{PATH_INFO} =~ $path);
     return unless @captures;
 
-    #~ &zenlog("GET captures( @captures )", "debug", $LOG_TAG) if &debug();
-
     if (ref $code eq 'CODE') {
         $code->(@captures);
     }
     else {
         &eload(module => $mod, func => $code, args => \@captures) if $eload;
     }
+    return;
 }
 
-sub POST {
+sub POST ($path, $code, $mod = undef) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($path, $code, $mod) = @_;
 
     return unless $ENV{REQUEST_METHOD} eq 'POST';
 
     my @captures = ($ENV{PATH_INFO} =~ $path);
     return unless @captures;
 
-    #~ &zenlog("POST captures( @captures )", "debug1", $LOG_TAG);
-
     my $data = &getCgiParam('POSTDATA');
     my $input_ref;
 
-    if (exists $ENV{CONTENT_TYPE} && $ENV{CONTENT_TYPE} eq 'application/json') {
-        if ($data) {
-            require JSON::XS;
-            JSON::XS->import;
+    if (exists $ENV{CONTENT_TYPE} && $ENV{CONTENT_TYPE} eq 'application/json' && $data) {
+        require JSON;
 
-            $input_ref = eval { decode_json($data) };
+        $input_ref = eval { JSON::decode_json($data) };
 
-            if (&debug()) {
-                use Data::Dumper;
-                &zenlog("json: " . Dumper($input_ref), "debug", $LOG_TAG);
-            }
+        if (&debug()) {
+            &zenlog("json: ${data}", "debug", $LOG_TAG);
+        }
 
-            if (!$input_ref) {
-                my $body = {
-                    message => 'The body does not look a valid JSON',
-                    error   => 'true'
-                };
-                &httpResponse({ code => 400, body => $body });
-            }
+        if (!$input_ref) {
+            my $body = {
+                message => 'The body does not look a valid JSON',
+                error   => 'true'
+            };
+            &httpResponse({ code => 400, body => $body });
         }
     }
     elsif (exists $ENV{CONTENT_TYPE} && $ENV{CONTENT_TYPE} eq 'text/plain') {
@@ -135,54 +126,44 @@ sub POST {
     else {
         &eload(module => $mod, func => $code, args => \@args) if $eload;
     }
+    return;
 }
 
-sub PUT {
+sub PUT ($path, $code, $mod = undef) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($path, $code, $mod) = @_;
 
     return unless $ENV{REQUEST_METHOD} eq 'PUT';
 
     my @captures = ($ENV{PATH_INFO} =~ $path);
     return unless @captures;
 
-    #~ &zenlog("PUT captures( @captures )", "debug", $LOG_TAG) if &debug();
-
     my $data = &getCgiParam('PUTDATA');
     my $input_ref;
 
-    if (exists $ENV{CONTENT_TYPE} && $ENV{CONTENT_TYPE} eq 'application/json') {
-        if ($data) {
-            require JSON::XS;
-            JSON::XS->import;
+    if (exists $ENV{CONTENT_TYPE} && $ENV{CONTENT_TYPE} eq 'application/json' && $data) {
+        require JSON;
 
-            $input_ref = eval { decode_json($data) };
+        $input_ref = eval { JSON::decode_json($data) };
 
-            if (&debug()) {
-                use Data::Dumper;
-                &zenlog("json: " . Dumper($input_ref), "debug", $LOG_TAG);
-            }
+        if (&debug()) {
+            &zenlog("json: ${data}", "debug", $LOG_TAG);
+        }
 
-            if (!$input_ref) {
-                my $body = {
-                    message => 'The body does not look a valid JSON',
-                    error   => 'true'
-                };
-                &httpResponse({ code => 400, body => $body });
-            }
+        if (!$input_ref) {
+            my $body = {
+                message => 'The body does not look a valid JSON',
+                error   => 'true'
+            };
+            &httpResponse({ code => 400, body => $body });
         }
     }
     elsif (exists $ENV{CONTENT_TYPE} && $ENV{CONTENT_TYPE} eq 'text/plain') {
         $input_ref = $data;
     }
-    elsif (exists $ENV{CONTENT_TYPE}
-        && $ENV{CONTENT_TYPE} eq 'application/x-pem-file')
-    {
+    elsif (exists $ENV{CONTENT_TYPE} && $ENV{CONTENT_TYPE} eq 'application/x-pem-file') {
         $input_ref = $data;
     }
-    elsif (exists $ENV{CONTENT_TYPE}
-        && $ENV{CONTENT_TYPE} eq 'application/gzip')
-    {
+    elsif (exists $ENV{CONTENT_TYPE} && $ENV{CONTENT_TYPE} eq 'application/gzip') {
         $input_ref = $data;
     }
     else {
@@ -200,18 +181,17 @@ sub PUT {
     else {
         &eload(module => $mod, func => $code, args => \@args) if $eload;
     }
+
+    return;
 }
 
-sub DELETE {
+sub DELETE ($path, $code, $mod = undef) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($path, $code, $mod) = @_;
 
     return unless $ENV{REQUEST_METHOD} eq 'DELETE';
 
     my @captures = ($ENV{PATH_INFO} =~ $path);
     return unless @captures;
-
-    #~ &zenlog("DELETE captures( @captures )", "debug", $LOG_TAG) if &debug();
 
     if (ref $code eq 'CODE') {
         $code->(@captures);
@@ -219,11 +199,12 @@ sub DELETE {
     else {
         &eload(module => $mod, func => $code, args => \@captures) if $eload;
     }
+
+    return;
 }
 
-sub OPTIONS {
+sub OPTIONS ($path, $code) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($path, $code) = @_;
 
     return unless $ENV{REQUEST_METHOD} eq 'OPTIONS';
 
@@ -233,6 +214,8 @@ sub OPTIONS {
     &zenlog("OPTIONS captures( @captures )", "debug", $LOG_TAG) if &debug();
 
     $code->(@captures);
+
+    return;
 }
 
 =begin nd
@@ -253,25 +236,20 @@ sub OPTIONS {
 		This function exits the execution uf the current process.
 =cut
 
-sub httpResponse    # ( \%hash ) hash_keys->( $code, %headers, $body )
-{
+sub httpResponse ($self) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $self = shift;
 
     return $self unless exists $ENV{GATEWAY_INTERFACE};
 
-    #~ &zenlog("DEBUG httpResponse input: " . Dumper $self, "debug", $LOG_TAG ); # DEBUG
-
-    die 'httpResponse: Bad input' if !defined $self or ref $self ne 'HASH';
+    die 'httpResponse: Bad input' if not defined $self or ref $self ne 'HASH';
 
     die
-      if !defined $self->{code}
-      or !exists $http_status_codes{ $self->{code} };
+      if not defined $self->{code}
+      or not exists $http_status_codes{ $self->{code} };
 
     require Relianoid::CGI;
 
-    my $q = &getCGI();
-
+    my $q      = &getCGI();
     my $origin = '*';
 
     if (!exists $ENV{HTTP_ZAPI_KEY}) {
@@ -314,9 +292,7 @@ sub httpResponse    # ( \%hash ) hash_keys->( $code, %headers, $body )
     }
 
     if ($q->path_info =~ '/session') {
-        push @headers,
-          'Access-Control-Expose-Headers' => 'Set-Cookie',
-          ;
+        push @headers, 'Access-Control-Expose-Headers' => 'Set-Cookie';
     }
 
     # add possible extra headers
@@ -338,14 +314,11 @@ sub httpResponse    # ( \%hash ) hash_keys->( $code, %headers, $body )
     );
 
     # body
-
-    #~ my ( $body_ref ) = shift @_; # opcional
     if (exists $self->{body}) {
         if (ref $self->{body} eq 'HASH') {
-            require JSON::XS;
-            JSON::XS->import;
+            require JSON;
 
-            my $json           = JSON::XS->new->utf8->pretty(1);
+            my $json           = JSON->new->utf8->pretty(1);
             my $json_canonical = 1;
             $json->canonical([$json_canonical]);
 
@@ -356,7 +329,6 @@ sub httpResponse    # ( \%hash ) hash_keys->( $code, %headers, $body )
         }
     }
 
-    #~ &zenlog( "Response:$output<", "debug", $LOG_TAG ); # DEBUG
     print $output;
 
     # does not log the annoying logs about connections and cluster
@@ -367,7 +339,6 @@ sub httpResponse    # ( \%hash ) hash_keys->( $code, %headers, $body )
             or $ENV{SCRIPT_URL} =~ '/system/cluster/nodes/localhost$')
       )
     {
-
         # log request if debug is enabled
         my $req_msg = "STATUS: $self->{ code } REQUEST: $ENV{REQUEST_METHOD} $ENV{SCRIPT_URL}";
 
@@ -376,20 +347,20 @@ sub httpResponse    # ( \%hash ) hash_keys->( $code, %headers, $body )
         &zenlog($req_msg, "info", $LOG_TAG);
 
         # log error message on error.
-        if (ref $self->{body} eq 'HASH') {
-            &zenlog("$self->{ body }->{ message }", "info", $LOG_TAG)
-              if (exists $self->{body}->{message});
+        if (ref $self->{body} eq 'HASH' and exists $self->{body}->{message}) {
+            &zenlog("$self->{ body }->{ message }", "info", $LOG_TAG);
         }
     }
 
     exit;
 }
 
-sub httpErrorResponse {
+sub httpErrorResponse (@args) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+
     my $args;
 
-    eval { $args = @_ == 1 ? shift @_ : {@_}; };
+    eval { $args = @args == 1 ? shift @args : {@args}; };
 
     # check errors loading the hash reference
     if ($@) {
@@ -431,12 +402,12 @@ sub httpErrorResponse {
     }
 
     &httpResponse($response);
+    return;
 }
 
 # WARNING: Function unfinished.
-sub httpSuccessResponse {
+sub httpSuccessResponse ($args) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($args) = @_;
 
     unless (ref($args) eq 'HASH') {
         &zdie("httpSuccessResponse: Argument is not a hash reference");
@@ -458,13 +429,15 @@ sub httpSuccessResponse {
 
     &zenlog($args->{log_msg}, "info", $LOG_TAG) if exists $args->{log_msg};
     &httpResponse({ code => $args->{code}, body => $body });
+    return;
 }
 
-sub httpDownloadResponse {
+sub httpDownloadResponse (@args) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+
     my $args;
 
-    eval { $args = @_ == 1 ? shift @_ : {@_}; };
+    eval { $args = @args == 1 ? shift @args : {@args}; };
 
     # check errors loading the hash reference
     if ($@) {
@@ -522,13 +495,11 @@ sub httpDownloadResponse {
     &zenlog("[Download] $args->{ desc }: $path", "info", $LOG_TAG);
 
     &httpResponse({ code => 200, headers => $headers, body => $body });
+    return;
 }
 
-sub buildAPIParams {
+sub buildAPIParams ($out_b, $api_keys, $translate) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $out_b     = shift;
-    my $api_keys  = shift;
-    my $translate = shift;
 
     # Delete not visible params
     if (ref $out_b eq "ARRAY") {
@@ -543,11 +514,8 @@ sub buildAPIParams {
     return $out_b;
 }
 
-sub buildBackendAPIParams {
+sub buildBackendAPIParams ($out_b, $api_keys, $translate) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $out_b     = shift;
-    my $api_keys  = shift;
-    my $translate = shift;
 
     my @bk_keys = keys(%{$out_b});
 
@@ -558,14 +526,17 @@ sub buildBackendAPIParams {
     }
 
     foreach my $param (@bk_keys) {
-        delete $out_b->{$param} if (!grep (/^$param$/, @{$api_keys}));
+        delete $out_b->{$param} if (!grep { /^$param$/ } @{$api_keys});
     }
+
     if (&debug()) {
         foreach my $param (@{$api_keys}) {
             &zenlog("API parameter $param is missing", 'error', 'API')
-              if (!grep (/^$param$/, @bk_keys));
+              if (!grep { /^$param$/ } @bk_keys);
         }
     }
-}
-1;
 
+    return;
+}
+
+1;

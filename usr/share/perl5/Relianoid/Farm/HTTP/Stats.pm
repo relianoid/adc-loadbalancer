@@ -22,22 +22,31 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
-=begin nd
-Function: getHTTPFarmEstConns
+=pod
 
-	Get all ESTABLISHED connections for a farm
+=head1 Module
+
+Relianoid::Farm::HTTP::Stats
+
+=cut
+
+=pod
+
+=head1 getHTTPFarmEstConns
+
+Get all ESTABLISHED connections for a farm
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	array - Return all ESTABLISHED conntrack lines for a farm
+
+    array - Return all ESTABLISHED conntrack lines for a farm
 
 =cut
 
@@ -65,16 +74,19 @@ sub getHTTPFarmEstConns    # ($farm_name)
     return $count + 0;
 }
 
-=begin nd
-Function: getHTTPFarmSYNConns
+=pod
 
-	Get all SYN connections for a farm
+=head1 getHTTPFarmSYNConns
+
+Get all SYN connections for a farm
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	array - Return all SYN conntrack lines for a farm
+
+    array - Return all SYN conntrack lines for a farm
 
 =cut
 
@@ -106,26 +118,32 @@ sub getHTTPFarmSYNConns    # ($farm_name)
     return $count + 0;
 }
 
-=begin nd
-Function: getHTTPBackendEstConns
+=pod
 
-	Get all ESTABLISHED connections for a backend
+=head1 getHTTPBackendEstConns
+
+Get all ESTABLISHED connections for a backend
 
 Parameters:
-	farmname     - Farm name
-	backend_ip   - IP backend
-	backend_port - backend port
+
+    farmname     - Farm name
+    backend_ip   - IP backend
+    backend_port - backend port
 
 Returns:
-	array - Return all ESTABLISHED conntrack lines for the backend
+
+    array - Return all ESTABLISHED conntrack lines for the backend
 
 BUG:
-	If a backend is used on more than one farm, here it appears all them
+
+    If a backend is used on more than one farm, here it appears all them
+
 =cut
 
 sub getHTTPBackendEstConns    # ($farm_name,$backend_ip,$backend_port, $netstat)
 {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+
     my ($farm_name, $backend_ip, $backend_port, $mark) = @_;
 
     my $filter = {
@@ -143,26 +161,29 @@ sub getHTTPBackendEstConns    # ($farm_name,$backend_ip,$backend_port, $netstat)
     my $ct_params = &getConntrackParams($filter);
     my $count     = &getConntrackCount($ct_params);
 
-    # &zenlog( "getHTTPBackendEstConns: $farm_name backends -> $count connections." );
-
     return $count + 0;
 }
 
-=begin nd
-Function: getHTTPBackendSYNConns
+=pod
 
-	Get all SYN connections for a backend
+=head1 getHTTPBackendSYNConns
+
+Get all SYN connections for a backend
 
 Parameters:
-	farmname     - Farm name
-	backend_ip   - IP backend
-	backend_port - backend port
+
+    farmname     - Farm name
+    backend_ip   - IP backend
+    backend_port - backend port
 
 Returns:
-	unsigned integer - connections count
+
+    unsigned integer - connections count
 
 BUG:
-	If a backend is used on more than one farm, here it appears all them.
+
+    If a backend is used on more than one farm, here it appears all them.
+
 =cut
 
 sub getHTTPBackendSYNConns    # ($farm_name, $backend_ip, $backend_port)
@@ -191,27 +212,28 @@ sub getHTTPBackendSYNConns    # ($farm_name, $backend_ip, $backend_port)
     $count += &getConntrackCount($ct_params);
 
     return $count + 0;
-
-    # &zenlog( "getHTTPBackendSYNConns: $farm_name backends -> $count connections." );
 }
 
-=begin nd
-Function: getHTTPFarmBackendsStats
+=pod
 
-	This function take data from pounctl or zproxy and it gives hash format
+=head1 getHTTPFarmBackendsStats
+
+This function take data from pounctl or zproxy and it gives hash format
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	hash ref - hash with backend farm stats
 
-	
+    hash ref - hash with backend farm stats
+
 =cut
 
 sub getHTTPFarmBackendsStats    # ($farm_name,$service_name)
 {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+
     my ($farm_name, $service_name) = @_;
 
     if (&getGlobalConfiguration('proxy_ng') eq 'true') {
@@ -222,43 +244,44 @@ sub getHTTPFarmBackendsStats    # ($farm_name,$service_name)
     }
 }
 
-=begin nd
-Function: getZproxyHTTPFarmBackendsStats
+=pod
 
-	This function take data from zproxy and gives it as hash format
+=head1 getZproxyHTTPFarmBackendsStats
+
+This function take data from zproxy and gives it as hash format
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	hash ref - hash with backend farm stats
 
-		backends =>
-		[
-			{
-				"id"           = $backend_id		# it is the index in the backend array too
-				"ip"           = $backend_ip
-				"port"         = $backend_port
-				"status"       = $backend_status
-				"established"  = $established_connections
-				"pending"      = $pending_connections
-			}
-		]
+    hash ref - hash with backend farm stats
 
-		sessions =>
-		[
-			{
-				"client"       = $client_id 		# it is the index in the session array too
-				"id"           = $backend id		# id associated to a backend, it can change depend of session type
-				"backend_ip"   = $backend ip		# it is the backend ip
-				"backend_port" = $backend port 		# it is the backend port
-				"service"      = $service name          
-				"session"      = $session identifier    # it depends on the persistence mode 
-				"ttl"          = $ttl				# time remaining to delete session
-			}
-		]
+    backends => [
+        {
+            "id"           = $backend_id        # it is the index in the backend array too
+            "ip"           = $backend_ip
+            "port"         = $backend_port
+            "status"       = $backend_status
+            "established"  = $established_connections
+            "pending"      = $pending_connections
+        }
+    ]
 
-	of -1 if error
+    sessions => [
+        {
+            "client"       = $client_id         # it is the index in the session array too
+            "id"           = $backend id        # id associated to a backend, it can change depend of session type
+            "backend_ip"   = $backend ip        # it is the backend ip
+            "backend_port" = $backend port      # it is the backend port
+            "service"      = $service name          
+            "session"      = $session identifier    # it depends on the persistence mode 
+            "ttl"          = $ttl               # time remaining to delete session
+        }
+    ]
+
+    of -1 if error
 =cut
 
 sub getZproxyHTTPFarmBackendsStats    # ($farm_name, $service_name)
@@ -376,42 +399,44 @@ sub getZproxyHTTPFarmBackendsStats    # ($farm_name, $service_name)
     return $stats;
 }
 
-=begin nd
-Function: getPoundHTTPFarmBackendsStats
+=pod
 
-	This function take data from pounctl and it gives hash format
+=head1 getPoundHTTPFarmBackendsStats
+
+This function take data from pounctl and it gives hash format
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	hash ref - hash with backend farm stats
 
-		backends =>
-		[
-			{
-				"id" = $backend_id		# it is the index in the backend array too
-				"ip" = $backend_ip
-				"port" = $backend_port
-				"status" = $backend_status
-				"established" = $established_connections
-			}
-		]
+    hash ref - hash with backend farm stats
 
-		sessions =>
-		[
-			{
-				"client"       = $client_id 		# it is the index in the session array too
-				"id"           = $session_id		# id associated to a backend, it can change depend of session type
-				"backend_ip"   = $backend ip		# it is the backend ip
-				"backend_port" = $backend port 		# it is the backend port
-				"service"      = $service name          
-				"session"      = $session identifier    # it depends on the persistence mode 
-			}
-		]
+    backends => [
+        {
+            "id" = $backend_id      # it is the index in the backend array too
+            "ip" = $backend_ip
+            "port" = $backend_port
+            "status" = $backend_status
+            "established" = $established_connections
+        }
+    ]
+
+    sessions => [
+        {
+            "client"       = $client_id         # it is the index in the session array too
+            "id"           = $session_id        # id associated to a backend, it can change depend of session type
+            "backend_ip"   = $backend ip        # it is the backend ip
+            "backend_port" = $backend port      # it is the backend port
+            "service"      = $service name          
+            "session"      = $session identifier    # it depends on the persistence mode 
+        }
+    ]
 
 FIXME:
-		Put output format same format than "GET /stats/farms/BasekitHTTP"
+
+    Put output format same format than "GET /stats/farms/BasekitHTTP"
 
 =cut
 

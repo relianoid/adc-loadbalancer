@@ -1,3 +1,4 @@
+#!/usr/bin/perl
 ###############################################################################
 #
 #    RELIANOID Software License
@@ -21,12 +22,11 @@
 ###############################################################################
 
 use strict;
+use warnings;
+
 use Relianoid::Farm::HTTP::Config;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
 # GET /farms/<farmname> Request info of a http|https Farm
 sub farms_name_http    # ( $farmname )
@@ -58,6 +58,7 @@ sub farms_name_http    # ( $farmname )
     }
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # GET /farms/<farmname>/summary
@@ -89,6 +90,7 @@ sub farms_name_http_summary {
     }
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 1;

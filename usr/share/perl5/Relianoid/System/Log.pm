@@ -22,31 +22,48 @@
 ###############################################################################
 
 use strict;
+use warnings;
+use feature qw(signatures);
+no warnings 'experimental::args_array_with_signatures';
 
-=begin nd
-Function: getLogs
+=pod
 
-	Get list of log files.
+=head1 Module
+
+Relianoid::System::Log
+
+=cut
+
+=pod
+
+=head1 getLogs
+
+Get list of log files.
 
 Parameters:
-	none - .
+
+    none
 
 Returns:
-	scalar - Array reference.
 
-	Array element example:
+    scalar - Array reference.
 
-	{
-		'file' => $line,
-		'date' => $datetime_string
-	}
+    Array element example:
+
+    {
+        'file' => $line,
+        'date' => $datetime_string
+    }
 
 See Also:
-	zapi/v3/system.cgi
+
+    zapi/v3/system.cgi
+
 =cut
 
 sub getLogs {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+
     my @logs;
     my $logdir = &getGlobalConfiguration('logdir');
 
@@ -70,25 +87,28 @@ sub getLogs {
     return \@logs;
 }
 
-=begin nd
-Function: getLogLines
+=pod
 
-	Show a number of the last lines of a log file
+=head1 getLogLines
+
+Show a number of the last lines of a log file
 
 Parameters:
-	logFile - log file name in /var/log
-	lines - number of lines to show
+
+    logFile - log file name in /var/log
+    lines - number of lines to show
 
 Returns:
-	array - last lines of log file
+
+    array - last lines of log file
 
 See Also:
-	zapi/v31/system.cgi
+
+    zapi/v31/system.cgi
 =cut
 
-sub getLogLines {
+sub getLogLines ($logFile, $lines_number) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($logFile, $lines_number) = @_;
 
     my @lines;
     my $path = &getGlobalConfiguration('logdir');

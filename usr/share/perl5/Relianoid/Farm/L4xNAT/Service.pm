@@ -24,23 +24,31 @@
 use strict;
 use warnings;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
 my $configdir = &getGlobalConfiguration('configdir');
 
-=begin nd
-Function: loadL4FarmModules
+=pod
 
-	Load L4farm system modules and conntrack
+=head1 Module
+
+Relianoid::Farm::L4xNAT::Service
+
+=cut
+
+=pod
+
+=head1 loadL4FarmModules
+
+Load L4farm system modules and conntrack
 
 Parameters:
-	none
+
+    none
 
 Returns:
-	Integer - 0 on success or any other value on failure
+
+    Integer - 0 on success or any other value on failure
 
 =cut
 

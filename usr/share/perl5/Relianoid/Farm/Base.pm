@@ -22,35 +22,50 @@
 ###############################################################################
 
 use strict;
+use warnings;
+use feature qw(signatures);
+no warnings 'experimental::args_array_with_signatures';
+
 use Relianoid::Config;
 use Relianoid::Farm::Core;
 
 my $configdir = &getGlobalConfiguration('configdir');
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
-=begin nd
-Function: getFarmVip
+=pod
 
-	Returns farm vip or farm port
+=head1 Module
 
-Parameters:
-	tag - requested parameter. The options are "vip" for virtual ip or "vipp" for virtual port
-	farmname - Farm name
+Relianoid::Farm::Base
 
-Returns:
-	Scalar - return vip or port of farm or -1 on failure
-
-See Also:
-	setFarmVirtualConf
 =cut
 
-sub getFarmVip    # ($info,$farm_name)
-{
+=pod
+
+=head1 getFarmVip
+
+Returns farm vip or farm port
+
+Parameters:
+
+    tag - requested parameter. The options are 
+          - "vip" for virtual ip
+          - "vipp" for virtual port
+
+    farmname - Farm name
+
+Returns:
+
+    Scalar - return vip or port of farm or -1 on failure
+
+See Also:
+
+    setFarmVirtualConf
+
+=cut
+
+sub getFarmVip ($info, $farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($info, $farm_name) = @_;
 
     my $farm_type = &getFarmType($farm_name);
     my $output    = -1;
@@ -78,29 +93,31 @@ sub getFarmVip    # ($info,$farm_name)
     return $output;
 }
 
-=begin nd
-Function: getFarmStatus
+=pod
 
-	Return farm status checking if pid file exists
+=head1 getFarmStatus
+
+Return farm status checking if pid file exists
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	String - "down", "up" or -1 on failure
+
+    String - "down", "up" or -1 on failure
 
 NOTE:
-	Generic function
+
+    Generic function
 
 =cut
 
-sub getFarmStatus    # ($farm_name)
-{
+sub getFarmStatus ($farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm_name = shift;
 
     my $output = -1;
-    return $output if !defined($farm_name);    # farm name cannot be empty
+    return $output if !defined($farm_name);
 
     my $farm_type = &getFarmType($farm_name);
 
@@ -127,39 +144,58 @@ sub getFarmStatus    # ($farm_name)
     return $output;
 }
 
-=begin nd
-Function: getFarmVipStatus
+=pod
 
-	Return a vip status depend on the backends:
+=head1 getFarmVipStatus
 
-	down = The farm is not running
-	needed restart = The farm is up but it is pending of a restart action
-	critical = The farm is up and all backends are unreachable or maintenance
-	problem = The farm is up and there are some backend unreachable, but
-		almost a backend is in up status
-	maintenance = The farm is up and there are backends in up status, but
-		almost a backend is in maintenance mode.
-	up = The farm is up and all the backends are working success.
+Return a vip status
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	String - "needed restart", "critical", "problem", "maintenance", "up", "down" or -1 on failure
+
+    String - "needed restart", "critical", "problem", "maintenance", "up", "down" or -1 on failure
+
+    up
+
+        The farm is up and all the backends are working success.
+
+    down
+
+        The farm is not running
+
+    needed restart
+
+        The farm is up but it is pending of a restart action
+
+    critical
+
+        The farm is up and all backends are unreachable or maintenance
+
+    problem
+
+        The farm is up and there are some backend unreachable, 
+        but almost a backend is in up status
+
+    maintenance
+
+        The farm is up and there are backends in up status, 
+        but almost a backend is in maintenance mode.
 
 NOTE:
-	Generic function
+
+    Generic function
 
 =cut
 
-sub getFarmVipStatus    # ($farm_name)
-{
+sub getFarmVipStatus ($farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm_name = shift;
 
     my $output     = -1;
     my $farmStatus = &getFarmStatus($farm_name);
-    return $output if !defined($farm_name);    # farm name cannot be empty
+    return $output if !defined($farm_name);
 
     $output = "problem";
 
@@ -179,9 +215,9 @@ sub getFarmVipStatus    # ($farm_name)
     my $type = &getFarmType($farm_name);
 
     my $backends;
-    my $up_flag;             # almost one backend is not reachable
-    my $down_flag;           # almost one backend is not reachable
-    my $maintenance_flag;    # almost one backend is not reachable
+    my $up_flag;
+    my $down_flag;
+    my $maintenance_flag;
 
     require Relianoid::Farm::Backend;
 
@@ -198,7 +234,6 @@ sub getFarmVipStatus    # ($farm_name)
         }
     }
 
-    # GSLB
     elsif ($type eq "gslb" && $eload) {
         my $stats = &eload(
             module => 'Relianoid::Farm::GSLB::Stats',
@@ -233,7 +268,6 @@ sub getFarmVipStatus    # ($farm_name)
         }
     }
 
-    # Decision logic
     if (!$up_flag) {
         $output = "critical";
     }
@@ -250,23 +284,24 @@ sub getFarmVipStatus    # ($farm_name)
     return $output;
 }
 
-=begin nd
-Function: getFarmPid
+=pod
 
-	Returns farm PID
+=head1 getFarmPid
+
+Returns farm PID
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	Integer - return a list of daemon pids. It can contains more than one value
+
+    Integer - return a list of daemon pids. It can contains more than one value
 
 =cut
 
-sub getFarmPid    # ($farm_name)
-{
+sub getFarmPid ($farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm_name = shift;
 
     my $farm_type = &getFarmType($farm_name);
     my @output    = ();
@@ -292,22 +327,24 @@ sub getFarmPid    # ($farm_name)
     return @output;
 }
 
-=begin nd
-Function: getFarmBootStatus
+=pod
 
-	Return the farm status at boot relianoid
+=head1 getFarmBootStatus
+
+Return the farm status at boot relianoid
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	scalar - return "down" if the farm not run at boot or "up" if the farm run at boot
+
+    scalar - return "down" if the farm not run at boot or "up" if the farm run at boot
+
 =cut
 
-sub getFarmBootStatus    # ($farm_name)
-{
+sub getFarmBootStatus ($farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm_name = shift;
 
     my $farm_type = &getFarmType($farm_name);
     my $output    = "down";
@@ -335,28 +372,32 @@ sub getFarmBootStatus    # ($farm_name)
     return $output;
 }
 
-=begin nd
-Function: getFarmProto
+=pod
 
-	Return basic transport protocol used by the farm protocol
+=head1 getFarmProto
+
+Return basic transport protocol used by the farm protocol
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	String - "udp" or "tcp"
+
+    String - "udp" or "tcp"
 
 BUG:
-	Gslb works with tcp protocol too
+
+    Gslb works with tcp protocol too
 
 FIXME:
-	Use getL4ProtocolTransportLayer to get l4xnat protocol
+
+    Use getL4ProtocolTransportLayer to get l4xnat protocol
+
 =cut
 
-sub getFarmProto    # ($farm_name)
-{
+sub getFarmProto ($farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm_name = shift;
 
     my $farm_type = &getFarmType($farm_name);
     my $output    = -1;
@@ -375,23 +416,26 @@ sub getFarmProto    # ($farm_name)
     return $output;
 }
 
-=begin nd
-Function: getNumberOfFarmTypeRunning
+=pod
 
-	Counter how many farms exists in a farm profile.
+=head1 getNumberOfFarmTypeRunning
+
+    Counter how many farms exists in a farm profile.
 
 Parameters:
-	type - Farm profile: "http", "l4xnat", "gslb" or "datalink"
+
+    type - Farm profile: "http", "l4xnat", "gslb" or "datalink"
 
 Returns:
-	integer- Number of farms
+
+    integer- Number of farms
+
 =cut
 
-sub getNumberOfFarmTypeRunning {
+sub getNumberOfFarmTypeRunning ($type) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $type = shift;    # input value
 
-    my $counter = 0;     # return value
+    my $counter = 0;
     foreach my $farm_name (&getFarmNameList()) {
 
         # count if requested farm type and running
@@ -404,37 +448,38 @@ sub getNumberOfFarmTypeRunning {
         }
     }
 
-    #~ &zenlog( "getNumberOfFarmTypeRunning: $type -> $counter" );  ########
-
     return $counter;
 }
 
-=begin nd
-Function: getFarmListByVip
+=pod
 
-	Returns a list of farms that have the same IP address.
+=head1 getFarmListByVip
+
+Returns a list of farms that have the same IP address.
 
 Parameters:
-	ip - ip address
-	port - virtual port. This parameter is optional
+
+    ip   - ip address
+    port - virtual port. This parameter is optional
 
 Returns:
-	Array - List of farm names
+
+    Array - List of farm names
+
 =cut
 
-sub getFarmListByVip {
+sub getFarmListByVip ($ip, $port = undef) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $ip   = shift;
-    my $port = shift;
-    my @out  = ();
 
     require Relianoid::Net::Validate;
+
+    my @out = ();
 
     foreach my $farm (&getFarmNameList()) {
         if (&getFarmVip('vip', $farm) eq $ip) {
             next
               if (defined($port)
-                and !grep (/^$port$/, @{ &getMultiporExpanded(&getFarmVip('vipp', $farm)) }));
+                && !grep { /^$port$/ } @{ &getMultiporExpanded(&getFarmVip('vipp', $farm)) });
             push @out, $farm;
         }
     }
@@ -442,20 +487,25 @@ sub getFarmListByVip {
     return @out;
 }
 
-=begin nd
-Function: getFarmRunning
+=pod
 
-	Returns the farms are currently running in the system.
+=head1 getFarmRunning
+
+Returns the farms are currently running in the system.
 
 Parameters:
-	none - .
+
+    none
 
 Returns:
-	Array - List of farm names
+
+    Array - List of farm names
+
 =cut
 
-sub getFarmRunning {
+sub getFarmRunning() {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+
     my @out = ();
 
     foreach my $farm (&getFarmNameList()) {

@@ -1,3 +1,4 @@
+#!/usr/bin/perl
 ###############################################################################
 #
 #    RELIANOID Software License
@@ -21,16 +22,14 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
 use Relianoid::FarmGuardian;
 use Relianoid::Farm::Core;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
-sub getZapiFG {
+sub getApiFG {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $fg_name = shift;
 
@@ -51,13 +50,13 @@ sub getZapiFG {
     return $out;
 }
 
-sub getZapiFGList {
+sub getApiFGList {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my @out;
     my @list = &getFGList();
 
     foreach my $fg_name (@list) {
-        my $fg = &getZapiFG($fg_name);
+        my $fg = &getApiFG($fg_name);
         push @out, $fg;
     }
 
@@ -77,7 +76,7 @@ sub get_farmguardian {
         return &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
     }
 
-    my $out  = &getZapiFG($fg_name);
+    my $out  = &getApiFG($fg_name);
     my $body = { description => $desc, params => $out };
 
     return &httpResponse({ code => 200, body => $body });
@@ -86,7 +85,7 @@ sub get_farmguardian {
 #  GET /monitoring/fg
 sub list_farmguardian {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $fg   = &getZapiFGList();
+    my $fg   = &getApiFGList();
     my $desc = "List farm guardian checks and templates";
 
     return &httpResponse({ code => 200, body => { description => $desc, params => $fg } });
@@ -109,10 +108,10 @@ sub create_farmguardian {
         return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-    my $params = &getZAPIModel("farmguardian-create.json");
+    my $params = &getAPIModel("farmguardian-create.json");
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -129,7 +128,7 @@ sub create_farmguardian {
     }
     else { &createFGConfig($fg_name, $json_obj->{copy_from}); }
 
-    my $out = &getZapiFG($fg_name);
+    my $out = &getApiFG($fg_name);
     if ($out) {
         my $msg  = "The farm guardian '$fg_name' has been created successfully.";
         my $body = {
@@ -158,10 +157,10 @@ sub modify_farmguardian {
         return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-    my $params = &getZAPIModel("farmguardian-modify.json");
+    my $params = &getAPIModel("farmguardian-modify.json");
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -206,7 +205,7 @@ sub modify_farmguardian {
 
         # no error found, return successful response
         my $msg  = "Success, some parameters have been changed in farm guardian '$fgname'.";
-        my $out  = &getZapiFG($fgname);
+        my $out  = &getApiFG($fgname);
         my $body = { description => $desc, params => $out, message => $msg, };
 
         &httpResponse({ code => 200, body => $body });
@@ -217,6 +216,8 @@ sub modify_farmguardian {
 
         &httpResponse({ code => 400, body => $body });
     }
+
+    return;
 }
 
 #  DELETE /monitoring/fg/<fg_name>
@@ -285,10 +286,10 @@ sub add_farmguardian_farm {
         return &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
     }
 
-    my $params = &getZAPIModel("farmguardian_to_farm-add.json");
+    my $params = &getAPIModel("farmguardian_to_farm-add.json");
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -299,7 +300,7 @@ sub add_farmguardian_farm {
     }
 
     # Check if it exists
-    if ($srv and !grep (/^$srv$/, &getFarmServices($farm))) {
+    if ($srv and not grep { /^$srv$/ } &getFarmServices($farm)) {
         my $msg = "The service '$srv' does not exist";
         return &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
     }
@@ -317,7 +318,7 @@ sub add_farmguardian_farm {
 
     # check if the farm guardian is already applied to the farm
     my $fg_obj = &getFGObject($json_obj->{name});
-    if (grep (/^$farm_tag$/, @{ $fg_obj->{farms} })) {
+    if (grep { /^$farm_tag$/ } @{ $fg_obj->{farms} }) {
         my $msg = "'$json_obj->{ name }' is already applied in the '$srv_message'";
         return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
@@ -392,7 +393,7 @@ sub rem_farmguardian_farm {
     }
 
     # Check if it exists
-    if ($srv and !grep (/^$srv$/, &getFarmServices($farm))) {
+    if ($srv and not grep { /^$srv$/ } &getFarmServices($farm)) {
         my $msg = "The service '$srv' does not exist";
         return &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
     }
@@ -403,7 +404,7 @@ sub rem_farmguardian_farm {
 
     # check if the farm guardian is already applied to the farm
     my $fg_obj = &getFGObject($fgname);
-    if (not grep (/^$farm_tag$/, @{ $fg_obj->{farms} })) {
+    if (not grep { /^$farm_tag$/ } @{ $fg_obj->{farms} }) {
         my $msg = "The farm guardian '$fgname' is not applied to the '$srv_message'";
         return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
@@ -412,7 +413,7 @@ sub rem_farmguardian_farm {
 
     # check output
     $fg_obj = &getFGObject($fgname);
-    if (grep (/^$farm_tag$/, @{ $fg_obj->{farms} }) or &getFGPidFarm($farm)) {
+    if (grep { /^$farm_tag$/ } @{ $fg_obj->{farms} } or &getFGPidFarm($farm)) {
         my $msg = "Error removing '$fgname' from the '$srv_message'";
         return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }

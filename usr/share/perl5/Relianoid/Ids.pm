@@ -22,6 +22,7 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
 use Relianoid::Log;
 use Relianoid::Config;
@@ -37,6 +38,20 @@ $eload = 1 if (eval { require Relianoid::ELoad; });
 
 # string to use when a branch of the id tree finishes
 my $FIN = undef;
+
+=pod
+
+=head1 Module
+
+Relianoid::Ids
+
+=cut
+
+=pod
+
+=head1 getIdsTree
+
+=cut
 
 sub getIdsTree {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
@@ -261,11 +276,23 @@ sub getIdsTree {
     return $tree;
 }
 
+=pod
+
+=head1 addIdsKeys
+
+=cut
+
 sub addIdsKeys {
     my $hash_ref = shift;
     my @arr_keys = keys %{$hash_ref};
     return &addIdsArrays(\@arr_keys);
 }
+
+=pod
+
+=head1 addIdsArrays
+
+=cut
 
 sub addIdsArrays {
     my $arr = shift;

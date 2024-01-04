@@ -22,34 +22,43 @@
 ###############################################################################
 
 use strict;
-
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+use warnings;
+use feature qw(signatures);
+no warnings 'experimental::args_array_with_signatures';
 
 require Relianoid::Lock;
 
 my $configdir = &getGlobalConfiguration('configdir');
 
-=begin nd
-Function: setFarmClientTimeout
+my $eload = eval { require Relianoid::ELoad };
 
-	Configure the client time parameter for a HTTP farm.
+=pod
 
-Parameters:
-	client - It is the time in seconds for the client time parameter
-	farmname - Farm name
+=head1 Module
 
-Returns:
-	Integer - Error code: 0 on success, or -1 on failure.
+Relianoid::Farm::HTTP::Config
 
 =cut
 
-sub setFarmClientTimeout    # ($client,$farm_name)
-{
+=pod
+
+=head1 setFarmClientTimeout
+
+Configure the client time parameter for a HTTP farm.
+
+Parameters:
+
+    client   - It is the time in seconds for the client time parameter
+    farmname - Farm name
+
+Returns:
+
+    Integer - Error code: 0 on success, or -1 on failure.
+
+=cut
+
+sub setFarmClientTimeout ($client, $farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($client, $farm_name) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
     my $output        = -1;
@@ -81,23 +90,24 @@ sub setFarmClientTimeout    # ($client,$farm_name)
     return $output;
 }
 
-=begin nd
-Function: getFarmClientTimeout
+=pod
 
-	Return the client time parameter for a HTTP farm.
+=head1 getFarmClientTimeout
+
+Return the client time parameter for a HTTP farm.
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	Integer - Return the seconds for client request timeout or -1 on failure.
+
+    Integer - Return the seconds for client request timeout or -1 on failure.
 
 =cut
 
-sub getFarmClientTimeout    # ($farm_name)
-{
+sub getFarmClientTimeout ($farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
     my $output        = -1;
@@ -116,24 +126,25 @@ sub getFarmClientTimeout    # ($farm_name)
     return $output;
 }
 
-=begin nd
-Function: setHTTPFarmSessionType
+=pod
 
-	Configure type of persistence
+=head1 setHTTPFarmSessionType
+
+Configure type of persistence
 
 Parameters:
-	session - type of session: nothing, HEADER, URL, COOKIE, PARAM, BASIC or IP
-	farmname - Farm name
+
+    session  - type of session: nothing, HEADER, URL, COOKIE, PARAM, BASIC or IP
+    farmname - Farm name
 
 Returns:
-	Integer - Error code: 0 on success, or -1 on failure.
+
+    Integer - Error code: 0 on success, or -1 on failure.
 
 =cut
 
-sub setHTTPFarmSessionType    # ($session,$farm_name)
-{
+sub setHTTPFarmSessionType ($session, $farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($session, $farm_name) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
     my $output        = -1;
@@ -201,24 +212,25 @@ sub setHTTPFarmSessionType    # ($session,$farm_name)
     return $output;
 }
 
-=begin nd
-Function: setHTTPFarmBlacklistTime
+=pod
 
-	Configure check time for resurected back-end. It is a HTTP farm paramter.
+=head1 setHTTPFarmBlacklistTime
+
+Configure check time for resurected back-end. It is a HTTP farm paramter.
 
 Parameters:
-	checktime - time for resurrected checks
-	farmname - Farm name
+
+    checktime - time for resurrected checks
+    farmname  - Farm name
 
 Returns:
-	Integer - Error code: 0 on success, or -1 on failure.
+
+    Integer - Error code: 0 on success, or -1 on failure.
 
 =cut
 
-sub setHTTPFarmBlacklistTime    # ($blacklist_time,$farm_name)
-{
+sub setHTTPFarmBlacklistTime ($blacklist_time, $farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($blacklist_time, $farm_name) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
     my $output        = -1;
@@ -249,23 +261,24 @@ sub setHTTPFarmBlacklistTime    # ($blacklist_time,$farm_name)
     return $output;
 }
 
-=begin nd
-Function: getHTTPFarmBlacklistTime
+=pod
 
-	Return  time for resurrected checks for a HTTP farm.
+=head1 getHTTPFarmBlacklistTime
+
+Return time for resurrected checks for a HTTP farm.
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	integer - seconds for check or -1 on failure.
+
+    integer - seconds for check or -1 on failure.
 
 =cut
 
-sub getHTTPFarmBlacklistTime    # ($farm_name)
-{
+sub getHTTPFarmBlacklistTime ($farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name) = @_;
 
     my $blacklist_time = -1;
     my $conf_file      = &getFarmFile($farm_name);
@@ -284,31 +297,34 @@ sub getHTTPFarmBlacklistTime    # ($farm_name)
     return $blacklist_time;
 }
 
-=begin nd
-Function: setFarmHttpVerb
+=pod
 
-	Configure the accepted HTTP verb for a HTTP farm.
-	The accepted verb sets are:
-		0. standardHTTP, for the verbs GET, POST, HEAD.
-		1. extendedHTTP, add the verbs PUT, DELETE.
-		2. standardWebDAV, add the verbs LOCK, UNLOCK, PROPFIND, PROPPATCH, SEARCH, MKCOL, MOVE, COPY, OPTIONS, TRACE, MKACTIVITY, CHECKOUT, MERGE, REPORT.
-		3. MSextWebDAV, add the verbs SUBSCRIBE, UNSUBSCRIBE, NOTIFY, BPROPFIND, BPROPPATCH, POLL, BMOVE, BCOPY, BDELETE, CONNECT.
-		4. MSRPCext, add the verbs RPC_IN_DATA, RPC_OUT_DATA.
-		5. OptionsHTTP, add the verb OPTIONS to the set extendedHTTP.
+=head1 setFarmHttpVerb
+
+Configure the accepted HTTP verb for a HTTP farm.
+
+The accepted verb sets are:
+
+    0. standardHTTP, for the verbs GET, POST, HEAD.
+    1. extendedHTTP, add the verbs PUT, DELETE.
+    2. standardWebDAV, add the verbs LOCK, UNLOCK, PROPFIND, PROPPATCH, SEARCH, MKCOL, MOVE, COPY, OPTIONS, TRACE, MKACTIVITY, CHECKOUT, MERGE, REPORT.
+    3. MSextWebDAV, add the verbs SUBSCRIBE, UNSUBSCRIBE, NOTIFY, BPROPFIND, BPROPPATCH, POLL, BMOVE, BCOPY, BDELETE, CONNECT.
+    4. MSRPCext, add the verbs RPC_IN_DATA, RPC_OUT_DATA.
+    5. OptionsHTTP, add the verb OPTIONS to the set extendedHTTP.
 
 Parameters:
-	verb - accepted verbs: 0, 1, 2, 3 or 4
-	farmname - Farm name
+
+    verb     - accepted verbs: 0, 1, 2, 3 or 4
+    farmname - Farm name
 
 Returns:
-	Integer - Error code: 0 on success, or -1 on failure.
+
+    Integer - Error code: 0 on success, or -1 on failure.
 
 =cut
 
-sub setFarmHttpVerb    # ($verb,$farm_name)
-{
+sub setFarmHttpVerb ($verb, $farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($verb, $farm_name) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
     my $output        = -1;
@@ -339,30 +355,33 @@ sub setFarmHttpVerb    # ($verb,$farm_name)
     return $output;
 }
 
-=begin nd
-Function: getFarmHttpVerb
+=pod
 
-	Return the available verb set for a HTTP farm.
-	The possible verb sets are:
-		0. standardHTTP, for the verbs GET, POST, HEAD.
-		1. extendedHTTP, add the verbs PUT, DELETE.
-		2. standardWebDAV, add the verbs LOCK, UNLOCK, PROPFIND, PROPPATCH, SEARCH, MKCOL, MOVE, COPY, OPTIONS, TRACE, MKACTIVITY, CHECKOUT, MERGE, REPORT.
-		3. MSextWebDAV, add the verbs SUBSCRIBE, UNSUBSCRIBE, NOTIFY, BPROPFIND, BPROPPATCH, POLL, BMOVE, BCOPY, BDELETE, CONNECT.
-		4. MSRPCext, add the verbs RPC_IN_DATA, RPC_OUT_DATA.
-		5. OptionsHTTP, add the verb OPTIONS to the set extendedHTTP.
+=head1 getFarmHttpVerb
+
+Return the available verb set for a HTTP farm.
+
+The possible verb sets are:
+
+    0. standardHTTP, for the verbs GET, POST, HEAD.
+    1. extendedHTTP, add the verbs PUT, DELETE.
+    2. standardWebDAV, add the verbs LOCK, UNLOCK, PROPFIND, PROPPATCH, SEARCH, MKCOL, MOVE, COPY, OPTIONS, TRACE, MKACTIVITY, CHECKOUT, MERGE, REPORT.
+    3. MSextWebDAV, add the verbs SUBSCRIBE, UNSUBSCRIBE, NOTIFY, BPROPFIND, BPROPPATCH, POLL, BMOVE, BCOPY, BDELETE, CONNECT.
+    4. MSRPCext, add the verbs RPC_IN_DATA, RPC_OUT_DATA.
+    5. OptionsHTTP, add the verb OPTIONS to the set extendedHTTP.
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	integer - return the verb set identier or -1 on failure.
+
+    integer - return the verb set identier or -1 on failure.
 
 =cut
 
-sub getFarmHttpVerb    # ($farm_name)
-{
+sub getFarmHttpVerb ($farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
     my $output        = -1;
@@ -381,27 +400,29 @@ sub getFarmHttpVerb    # ($farm_name)
     return $output;
 }
 
-=begin nd
-Function: setFarmListen
+=pod
 
-	Change a HTTP farm between HTTP and HTTPS listener
+=head1 setFarmListen
+
+Change a HTTP farm between HTTP and HTTPS listener
 
 Parameters:
-	farmname - Farm name
-	listener - type of listener: http or https
+
+    farmname - Farm name
+    listener - type of listener: http or https
 
 Returns:
-	none - .
+
+    none
 
 FIXME
-	not return nothing, use $found variable to return success or error
+
+    not return nothing, use $found variable to return success or error
 
 =cut
 
-sub setFarmListen    # ( $farm_name, $farmlisten )
-{
+sub setFarmListen ($farm_name, $flisten) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $flisten) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
     my $i_f           = -1;
@@ -515,26 +536,30 @@ sub setFarmListen    # ( $farm_name, $farmlisten )
 
     untie @filefarmhttp;
     close $lock_fh;
+
+    return;
 }
 
-=begin nd
-Function: setFarmRewriteL
+=pod
 
-	Asign a RewriteLocation vaue to a farm HTTP or HTTPS
+=head1 setFarmRewriteL
+
+Asign a RewriteLocation vaue to a farm HTTP or HTTPS
 
 Parameters:
-	farmname - Farm name
-	rewritelocation - The options are: disabled, enabled or enabled-backends
+
+    farmname - Farm name
+
+    rewritelocation - The options are: disabled, enabled or enabled-backends
 
 Returns:
-	none - .
+
+    none
 
 =cut
 
-sub setFarmRewriteL    # ($farm_name,$rewritelocation,$path)
-{
+sub setFarmRewriteL ($farm_name, $rewritelocation, $path = undef) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $rewritelocation, $path) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
     my $output        = -1;
@@ -563,26 +588,34 @@ sub setFarmRewriteL    # ($farm_name,$rewritelocation,$path)
 
     untie @filefarmhttp;
     close $lock_fh;
+
+    return;
 }
 
-=begin nd
-Function: getFarmRewriteL
+=pod
 
-	Return RewriteLocation Header configuration HTTP and HTTPS farms
+=head1 getFarmRewriteL
+
+Return RewriteLocation Header configuration HTTP and HTTPS farms
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	string - The possible values are: disabled, enabled, enabled-backends, enabled-path, enabled-backends-path.
-	diabled by default.
+
+    string - The possible values are: 
+
+    - disabled (default)
+    - enabled
+    - enabled-backends
+    - enabled-path
+    - enabled-backends-path
 
 =cut
 
-sub getFarmRewriteL    # ($farm_name)
-{
+sub getFarmRewriteL ($farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
     my $output        = "disabled";
@@ -597,31 +630,33 @@ sub getFarmRewriteL    # ($farm_name)
             elsif ($1 eq 1) { $output = "enabled"; }
             elsif ($1 eq 2) { $output = "enabled-backends"; }
 
-            if ($2 eq 'path') { $output .= "-path"; }
+            if (defined $2 and $2 eq 'path') { $output .= "-path"; }
             last;
         }
     }
     return $output;
 }
 
-=begin nd
-Function: setFarmConnTO
+=pod
 
-	Configure connection time out value to a farm HTTP or HTTPS
+=head1 setFarmConnTO
+
+Configure connection time out value to a farm HTTP or HTTPS
 
 Parameters:
-	connectionTO - Conection time out in seconds
-	farmname - Farm name
+
+    connectionTO - Conection time out in seconds
+
+    farmname - Farm name
 
 Returns:
-	Integer - Error code: 0 on success, or -1 on failure.
+
+    Integer - Error code: 0 on success, or -1 on failure.
 
 =cut
 
-sub setFarmConnTO    # ($tout,$farm_name)
-{
+sub setFarmConnTO ($tout, $farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($tout, $farm_name) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
     my $output        = -1;
@@ -652,23 +687,24 @@ sub setFarmConnTO    # ($tout,$farm_name)
     return $output;
 }
 
-=begin nd
-Function: getFarmConnTO
+=pod
 
-	Return farm connecton time out value for http and https farms
+=head1 getFarmConnTO
+
+Return farm connecton time out value for http and https farms
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	integer - return the connection time out or -1 on failure
+
+    integer - return the connection time out or -1 on failure
 
 =cut
 
-sub getFarmConnTO    # ($farm_name)
-{
+sub getFarmConnTO ($farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
     my $output        = -1;
@@ -687,24 +723,26 @@ sub getFarmConnTO    # ($farm_name)
     return $output;
 }
 
-=begin nd
-Function: setHTTPFarmTimeout
+=pod
 
-	Asign a timeout value to a farm
+=head1 setHTTPFarmTimeout
+
+Asign a timeout value to a farm
 
 Parameters:
-	timeout - Time out in seconds
-	farmname - Farm name
+
+    timeout - Time out in seconds
+
+    farmname - Farm name
 
 Returns:
-	Integer - Error code: 0 on success, or -1 on failure.
+
+    Integer - Error code: 0 on success, or -1 on failure.
 
 =cut
 
-sub setHTTPFarmTimeout    # ($timeout,$farm_name)
-{
+sub setHTTPFarmTimeout ($timeout, $farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($timeout, $farm_name) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
     my $output        = -1;
@@ -733,23 +771,24 @@ sub setHTTPFarmTimeout    # ($timeout,$farm_name)
     return $output;
 }
 
-=begin nd
-Function: getHTTPFarmTimeout
+=pod
 
-	Return the farm time out
+=head1 getHTTPFarmTimeout
+
+Return the farm time out
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	Integer - Return time out, or -1 on failure.
+
+    Integer - Return time out, or -1 on failure.
 
 =cut
 
-sub getHTTPFarmTimeout    # ($farm_filename)
-{
+sub getHTTPFarmTimeout ($farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
     my $output        = -1;
@@ -768,24 +807,26 @@ sub getHTTPFarmTimeout    # ($farm_filename)
     return $output;
 }
 
-=begin nd
-Function: setHTTPFarmMaxClientTime
+=pod
 
-	Set the maximum time for a client
+=head1 setHTTPFarmMaxClientTime
+
+Set the maximum time for a client
 
 Parameters:
-	maximumTO - Maximum client time
-	farmname - Farm name
+
+    maximumTO - Maximum client time
+
+    farmname - Farm name
 
 Returns:
-	Integer - Error code: 0 on success, or -1 on failure.
+
+    Integer - Error code: 0 on success, or -1 on failure.
 
 =cut
 
-sub setHTTPFarmMaxClientTime    # ($track,$farm_name)
-{
+sub setHTTPFarmMaxClientTime ($track, $farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($track, $farm_name) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
     my $output        = -1;
@@ -813,23 +854,24 @@ sub setHTTPFarmMaxClientTime    # ($track,$farm_name)
     return $output;
 }
 
-=begin nd
-Function: getHTTPFarmMaxClientTime
+=pod
 
-	Return the maximum time for a client
+=head1 getHTTPFarmMaxClientTime
+
+Return the maximum time for a client
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	Integer - Return maximum time, or -1 on failure.
+
+    Integer - Return maximum time, or -1 on failure.
 
 =cut
 
-sub getHTTPFarmMaxClientTime    # ($farm_name)
-{
+sub getHTTPFarmMaxClientTime ($farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
     my @max_client_time;
@@ -837,63 +879,68 @@ sub getHTTPFarmMaxClientTime    # ($farm_name)
     push(@max_client_time, "");
     push(@max_client_time, "");
 
-    open my $fd, '<', "$configdir\/$farm_filename";
-    my @configfile = <$fd>;
+    if (open my $fd, '<', "$configdir\/$farm_filename") {
+        my @configfile = <$fd>;
+        close $fd;
 
-    foreach my $line (@configfile) {
-        if ($line =~ /TTL/) {
-            my @line_aux = split("\ ", $line);
-            @max_client_time[0] = "";
-            @max_client_time[1] = $line_aux[1];
+        foreach my $line (@configfile) {
+            if ($line =~ /TTL/) {
+                my @line_aux = split("\ ", $line);
+                @max_client_time[0] = "";
+                @max_client_time[1] = $line_aux[1];
+            }
         }
     }
-    close $fd;
 
     return @max_client_time;
 }
 
-=begin nd
-Function: getHTTPFarmGlobalStatus
+=pod
 
-	Get the status of a farm, sessions and its backends through l7 proxy command.
+=head1 getHTTPFarmGlobalStatus
+
+Get the status of a farm, sessions and its backends through l7 proxy command.
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	array - Return proxyctl output
+
+    array - Return proxyctl output
 
 =cut
 
-sub getHTTPFarmGlobalStatus    # ($farm_name)
-{
+sub getHTTPFarmGlobalStatus ($farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name) = @_;
 
     my $proxyctl = &getGlobalConfiguration('proxyctl');
 
     return @{ &logAndGet("$proxyctl -c \"/tmp/$farm_name\_proxy.socket\"", "array") };
 }
 
-=begin nd
-Function: setFarmErr
+=pod
 
-	Configure a error message for http error: WAF, 414, 500, 501 or 503
+=head1 setFarmErr
+
+Configure a error message for http error: WAF, 414, 500, 501 or 503
 
 Parameters:
-	farmname - Farm name
-	message - Message body for the error
-	error_number - Number of error to set, the options are WAF, 414, 500, 501 or 503
+
+    farmname - Farm name
+
+    message - Message body for the error
+
+    error_number - Number of error to set, the options are WAF, 414, 500, 501 or 503
 
 Returns:
-	Integer - Error code: 0 on success, or -1 on failure.
+
+    Integer - Error code: 0 on success, or -1 on failure.
 
 =cut
 
-sub setFarmErr    # ($farm_name,$content,$nerr)
-{
+sub setFarmErr ($farm_name, $content, $nerr) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $content, $nerr) = @_;
 
     my $output = -1;
 
@@ -916,25 +963,27 @@ sub setFarmErr    # ($farm_name,$content,$nerr)
     return $output;
 }
 
-=begin nd
-Function: getFarmErr
+=pod
 
-	Return the error message for a http error: WAF, 414, 500, 501 or 503
+=head1 getFarmErr
+
+Return the error message for a http error: WAF, 414, 500, 501 or 503
 
 Parameters:
-	farmname - Farm name
-	error_number - Number of error to set, the options are WAF, 414, 500, 501 or 503
+
+    farmname - Farm name
+
+    error_number - Number of error to set, the options are WAF, 414, 500, 501 or 503
 
 Returns:
-	Array - Message body for the error
+
+    string - Message body for the error
 
 =cut
 
 # Only http function
-sub getFarmErr    # ($farm_name,$nerr)
-{
+sub getFarmErr ($farm_name, $nerr) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $nerr) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
     my $output;
@@ -963,33 +1012,41 @@ sub getFarmErr    # ($farm_name,$nerr)
     return $output;
 }
 
-=begin nd
-Function: setHTTPFarmConfErrFile
+=pod
 
-	Comment or uncomment an error config file line from the proxy config file.
+=head1 setHTTPFarmConfErrFile
+
+Comment or uncomment an error config file line from the proxy config file.
 
 Parameters:
-	enabled - true to uncomment the line ( or to add if it doesn't exist)
-		or false to comment the line.
-	farmname - Farm name
-	err - error file: WAF, 414, 500 ...
+
+    enabled
+
+        - true to uncomment the line ( or to add if it doesn't exist)
+        - false to comment the line.
+
+    farmname - Farm name
+
+    err - error file: WAF, 414, 500 ...
 
 Returns:
-	None
+
+    None
 
 =cut
 
-sub setHTTPFarmConfErrFile    # ($enabled, $farm_name, $err)
-{
+sub setHTTPFarmConfErrFile ($enabled, $farm_name, $err) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($enabled, $farm_name, $err) = @_;
+
     require Relianoid::Farm::Core;
+    require Tie::File;
+
     my $farm_filename = &getFarmFile($farm_name);
     my $i             = -1;
-    my $found         = 0;                          # Error line was found
+    my $found         = 0;
 
-    require Tie::File;
     tie my @filefarmhttp, 'Tie::File', "$configdir/$farm_filename";
+
     foreach my $line (@filefarmhttp) {
         $i++;
         if ($enabled eq "true") {
@@ -1035,25 +1092,28 @@ sub setHTTPFarmConfErrFile    # ($enabled, $farm_name, $err)
             }
         }
     }
+
+    return;
 }
 
-=begin nd
-Function: getHTTPFarmBootStatus
+=pod
 
-	Return the farm status at boot relianoid
+=head1 getHTTPFarmBootStatus
+
+Return the farm status at boot relianoid
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	scalar - return "down" if the farm not run at boot or "up" if the farm run at boot
+
+    scalar - return "down" if the farm not run at boot or "up" if the farm run at boot
 
 =cut
 
-sub getHTTPFarmBootStatus    # ($farm_name)
-{
+sub getHTTPFarmBootStatus ($farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
     my $output        = "down";
@@ -1073,17 +1133,21 @@ sub getHTTPFarmBootStatus    # ($farm_name)
     return $output;
 }
 
-=begin nd
-Function: setHTTPFarmBootStatus
+=pod
 
-	Set the farm status in the configuration file to boot relianoid process
+=head1 setHTTPFarmBootStatus
+
+Set the farm status in the configuration file to boot relianoid process
 
 Parameters:
-	farmname - Farm name
-	value - Write the boot status "up" or "down"
+
+    farmname - Farm name
+
+    value - Write the boot status "up" or "down"
 
 Returns:
-	scalar - return "down" if the farm not run at boot or "up" if the farm run at boot
+
+    scalar - return "down" if the farm not run at boot or "up" if the farm run at boot
 
 =cut
 
@@ -1099,7 +1163,7 @@ sub setHTTPFarmBootStatus    # ($farm_name, $value)
 
     require Tie::File;
     tie my @configfile, 'Tie::File', "$configdir\/$farm_filename";
-    @configfile = grep !/^\#down/, @configfile;
+    @configfile = grep { !/^\#down/ } @configfile;
 
     push @configfile, '#down' if ($value eq "down");
 
@@ -1109,23 +1173,24 @@ sub setHTTPFarmBootStatus    # ($farm_name, $value)
     return;
 }
 
-=begin nd
-Function: getHTTPFarmStatus
+=pod
 
-	Return current farm process status
+=head1 getHTTPFarmStatus
+
+Return current farm process status
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	string - return "up" if the process is running or "down" if it isn't
+
+    string - return "up" if the process is running or "down" if it isn't
 
 =cut
 
-sub getHTTPFarmStatus    # ($farm_name)
-{
+sub getHTTPFarmStatus ($farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name) = @_;
 
     my @pid    = &getHTTPFarmPid($farm_name);
     my $output = -1;
@@ -1136,53 +1201,54 @@ sub getHTTPFarmStatus    # ($farm_name)
         $output = "up";
     }
     else {
-
-        #~ unlink &getHTTPFarmPidFile( $farm_name ) if ( !@pid && !$running_pid );
         $output = "down";
     }
 
     return $output;
 }
 
-=begin nd
-Function: getHTTPFarmSocket
+=pod
 
-	Returns socket for HTTP farm.
+=head1 getHTTPFarmSocket
 
-	This funcion is only used in farmguardian functions.
+Returns socket for HTTP farm.
+
+This funcion is only used in farmguardian functions.
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	String - return socket file
+
+    String - return socket file
+
 =cut
 
-sub getHTTPFarmSocket    # ($farm_name)
-{
+sub getHTTPFarmSocket ($farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name) = @_;
 
     return "/tmp/" . $farm_name . "_proxy.socket";
 }
 
-=begin nd
-Function: getHTTPFarmPid
+=pod
 
-	Returns farm PID
+=head1 getHTTPFarmPid
+
+Returns farm PID
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	Integer - return a list with the PIDs of the farm
+
+    Integer - return a list with the PIDs of the farm
 
 =cut
 
-sub getHTTPFarmPid    # ($farm_name)
-{
+sub getHTTPFarmPid ($farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name) = @_;
 
     my $piddir  = &getGlobalConfiguration('piddir');
     my $pidfile = "$piddir\/$farm_name\_proxy.pid";
@@ -1197,22 +1263,23 @@ sub getHTTPFarmPid    # ($farm_name)
     return @pid;
 }
 
-=begin nd
-Function: getHTTPFarmPidPound
+=pod
 
-	This function returns all the pids of a process looking for in the ps table.
+=head1 getHTTPFarmPidPound
+
+This function returns all the pids of a process looking for in the ps table.
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	array - list of pids
+
+    array - list of pids
 
 =cut
 
-sub getHTTPFarmPidPound {
-    my $farm_name = shift;
-
+sub getHTTPFarmPidPound ($farm_name) {
     my $ps        = &getGlobalConfiguration('ps');
     my $grep      = &getGlobalConfiguration('grep_bin');
     my @pid       = ();
@@ -1229,23 +1296,24 @@ sub getHTTPFarmPidPound {
     return @pid;
 }
 
-=begin nd
-Function: getHTTPFarmPidFile
+=pod
 
-	Returns farm PID File
+=head1 getHTTPFarmPidFile
+
+Returns farm PID File
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	String - Pid file path
+
+    String - Pid file path
 
 =cut
 
-sub getHTTPFarmPidFile    # ($farm_name)
-{
+sub getHTTPFarmPidFile ($farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name) = @_;
 
     my $piddir  = &getGlobalConfiguration('piddir');
     my $pidfile = "$piddir\/$farm_name\_proxy.pid";
@@ -1253,24 +1321,28 @@ sub getHTTPFarmPidFile    # ($farm_name)
     return $pidfile;
 }
 
-=begin nd
-Function: getHTTPFarmVip
+=pod
 
-	Returns farm vip or farm port
+=head1 getHTTPFarmVip
+
+Returns farm vip or farm port
 
 Parameters:
-	tag - requested parameter. The options are vip, for virtual ip or vipp, for virtual port
-	farmname - Farm name
+
+    tag - requested parameter. The options are 
+          - vip, for virtual ip
+          - vipp, for virtual port
+
+    farmname - Farm name
 
 Returns:
-	Scalar - return vip or port of farm or -1 on failure
+
+    Scalar - return vip or port of farm or -1 on failure
 
 =cut
 
-sub getHTTPFarmVip    # ($info,$farm_name)
-{
+sub getHTTPFarmVip ($info, $farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($info, $farm_name) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
     my $output        = -1;
@@ -1292,7 +1364,7 @@ sub getHTTPFarmVip    # ($info,$farm_name)
 
             if ($info eq "vipp" && $line =~ /^\s+Port\s+(.*)/) { $output = $1 }
 
-            last if ($output != -1);
+            last if ($output ne '-1');
         }
         $i++;
     }
@@ -1300,18 +1372,23 @@ sub getHTTPFarmVip    # ($info,$farm_name)
     return $output;
 }
 
-=begin nd
-Function: setHTTPFarmVirtualConf
+=pod
 
-	Set farm virtual IP and virtual PORT
+=head1 setHTTPFarmVirtualConf
+
+Set farm virtual IP and virtual PORT
 
 Parameters:
-	vip - virtual ip
-	port - virtual port. If the port is not sent, the port will not be changed
-	farmname - Farm name
+
+    vip - virtual ip
+
+    port - virtual port. If the port is not sent, the port will not be changed
+
+    farmname - Farm name
 
 Returns:
-	Integer - return 0 on success or different on failure
+
+    Integer - return 0 on success or different on failure
 
 =cut
 
@@ -1355,8 +1432,10 @@ sub setHTTPFarmVirtualConf    # ($vip,$vip_port,$farm_name)
 
     # Finally, reload rules and source address
     if (&getGlobalConfiguration('proxy_ng') eq "true") {
-        &doL7FarmRules("reload", $farm_name, $prev_config)
-          if ($prev_config->{status} eq "up");
+        if (&getGlobalConfiguration("mark_routing_L7") eq 'true' and $prev_config->{status} eq "up")
+        {
+            &doL7FarmRules("reload", $farm_name, $prev_config);
+        }
 
         # reload source address maquerade
         require Relianoid::Farm::Config;
@@ -1366,23 +1445,24 @@ sub setHTTPFarmVirtualConf    # ($vip,$vip_port,$farm_name)
     return $stat;
 }
 
-=begin nd
-Function: getHTTPFarmConfigIsOK
+=pod
 
-	Function that check if the config file is OK.
+=head1 getHTTPFarmConfigIsOK
+
+Function that check if the config file is OK.
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	scalar - return 0 on success or different on failure
+
+    scalar - return 0 on success or different on failure
 
 =cut
 
-sub getHTTPFarmConfigIsOK    # ($farm_name)
-{
+sub getHTTPFarmConfigIsOK ($farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm_name = shift;
 
     my $proxy         = &getGlobalConfiguration('proxy');
     my $farm_filename = &getFarmFile($farm_name);
@@ -1402,25 +1482,26 @@ sub getHTTPFarmConfigIsOK    # ($farm_name)
     return $rc;
 }
 
-=begin nd
-Function: getHTTPFarmConfigErrorMessage
+=pod
 
-	This function return a message to know what parameter is not correct in a HTTP farm
+=head1 getHTTPFarmConfigErrorMessage
+
+This function return a message to know what parameter is not correct in a HTTP farm
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	Scalar - If there is an error, it returns a message, else it returns a blank string
+
+    Scalar - If there is an error, it returns a message, else it returns a blank string
 
 =cut
 
-sub getHTTPFarmConfigErrorMessage    # ($farm_name)
-{
+sub getHTTPFarmConfigErrorMessage ($farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm_name = shift;
-    my $service;
 
+    my $service;
     my $proxy         = &getGlobalConfiguration('proxy');
     my $farm_filename = &getFarmFile($farm_name);
     my $proxy_command = "$proxy -f $configdir\/$farm_filename -c";
@@ -1449,18 +1530,19 @@ sub getHTTPFarmConfigErrorMessage    # ($farm_name)
     my $file_line;
     my $srv;
 
-    open my $fileconf, '<', "$configdir/$farm_filename";
+    if (open my $fileconf, '<', "$configdir/$farm_filename") {
+        my @lines = <$fileconf>;
+        close $fileconf;
 
-    foreach my $line (<$fileconf>) {
-        if ($line =~ /^\tService \"(.+)\"/) { $srv = $1; }
-        if ($file_id == $line_num - 1) {
-            $file_line = $line;
-            last;
+        while (my $line = @lines) {
+            if ($line =~ /^\tService \"(.+)\"/) { $srv = $1; }
+            if ($file_id == $line_num - 1) {
+                $file_line = $line;
+                last;
+            }
+            $file_id++;
         }
-        $file_id++;
     }
-
-    close $fileconf;
 
     # examples of error msg
     #	AAAhttps, /usr/local/relianoid/config/AAAhttps_proxy.cfg line 36: unknown directive
@@ -1496,8 +1578,15 @@ sub getHTTPFarmConfigErrorMessage    # ($farm_name)
     return $msg;
 }
 
+=pod
+
+=head1 getHTTPFarmStruct
+
+=cut
+
 sub getHTTPFarmStruct {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+
     my $farmname = shift;
     my $type     = shift // &getFarmType($farmname);
 
@@ -1624,9 +1713,14 @@ sub getHTTPFarmStruct {
     return $farm;
 }
 
-sub getHTTPVerbCode {
+=pod
+
+=head1 getHTTPVerbCode
+
+=cut
+
+sub getHTTPVerbCode ($verbs_set) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $verbs_set = shift;
 
     # Default output value in case of missing verb set
     my $verb_code;
@@ -1650,6 +1744,12 @@ sub getHTTPVerbCode {
 ######### l7 proxy Config
 
 # Reading
+
+=pod
+
+=head1 parseL7ProxyConfig
+
+=cut
 
 sub parseL7ProxyConfig {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
@@ -1832,8 +1932,15 @@ sub parseL7ProxyConfig {
     return \%conf;
 }
 
+=pod
+
+=head1 getL7ProxyConf
+
+=cut
+
 sub getL7ProxyConf {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+
     my ($farm) = @_;
 
     require Relianoid::Config;
@@ -1850,6 +1957,12 @@ sub getL7ProxyConf {
 
 # Writing
 
+=pod
+
+=head1 $svc_defaults
+
+=cut
+
 my $svc_defaults = {
     DynScale                => 1,
     BackendCookie           => '"ZENSESSIONID" "domainname.com" "/" 0',
@@ -1858,6 +1971,12 @@ my $svc_defaults = {
     Redirect                => '""',
     StrictTransportSecurity => 21600000,
 };
+
+=pod
+
+=head1 print_backends
+
+=cut
 
 sub print_backends {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
@@ -1884,6 +2003,12 @@ sub print_backends {
     return "\t\t#BackEnd\n" . "\n" . $be_list_str . "\t\t#End\n";
 }
 
+=pod
+
+=head1 print_session
+
+=cut
+
 sub print_session {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($session_ref) = @_;
@@ -1908,6 +2033,12 @@ sub print_session {
 
     return $session_str;
 }
+
+=pod
+
+=head1 writeL7ProxyConfigToString
+
+=cut
 
 sub writeL7ProxyConfigToString {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
@@ -2024,15 +2155,15 @@ Listen${listener_type}
 
     $listener_str .= qq(\tErrWAF "$listener->{ ErrWAF }") if (&eload);
     $listener_str .= qq(
-	ErrWAF "$listener->{ ErrWAF }"
-	Err414 "$listener->{ Err414 }"
-	Err500 "$listener->{ Err500 }"
-	Err501 "$listener->{ Err501 }"
-	Err503 "$listener->{ Err503 }"
-	Address $listener->{ Address }
-	Port $listener->{ Port }
-	xHTTP $listener->{ xHTTP }
-	RewriteLocation $listener->{ RewriteLocation }
+    ErrWAF "$listener->{ ErrWAF }"
+    Err414 "$listener->{ Err414 }"
+    Err500 "$listener->{ Err500 }"
+    Err501 "$listener->{ Err501 }"
+    Err503 "$listener->{ Err503 }"
+    Address $listener->{ Address }
+    Port $listener->{ Port }
+    xHTTP $listener->{ xHTTP }
+    RewriteLocation $listener->{ RewriteLocation }
 );
 
     # Include AddHeader params
@@ -2063,10 +2194,10 @@ Listen${listener_type}
     }
     else {
         $listener_str .= qq(
-	#Cert "/usr/local/relianoid/config/zencert.pem"
-	#Ciphers "ALL"
-	#Disable SSLv3
-	#SSLHonorCipherOrder 1
+    #Cert "/usr/local/relianoid/config/zencert.pem"
+    #Ciphers "ALL"
+    #Disable SSLv3
+    #SSLHonorCipherOrder 1
 );
     }
 
@@ -2074,26 +2205,26 @@ Listen${listener_type}
     $listener_str .= qq(\t#ZWACL-INI
 
 $services_print
-	#ZWACL-END
+    #ZWACL-END
 
 
-	#Service "$conf->{ Name }"
-		##False##HTTPS-backend##
-		#DynScale 1
-		#BackendCookie "ZENSESSIONID" "domainname.com" "/" 0
-		#HeadRequire "Host: "
-		#Url ""
-		#Redirect ""
-		#StrictTransportSecurity 21600000
-		#Session
-			#Type nothing
-			#TTL 120
-			#ID "sessionname"
-		#End
-		#BackEnd
+    #Service "$conf->{ Name }"
+        ##False##HTTPS-backend##
+        #DynScale 1
+        #BackendCookie "ZENSESSIONID" "domainname.com" "/" 0
+        #HeadRequire "Host: "
+        #Url ""
+        #Redirect ""
+        #StrictTransportSecurity 21600000
+        #Session
+            #Type nothing
+            #TTL 120
+            #ID "sessionname"
+        #End
+        #BackEnd
 
-		#End
-	#End
+        #End
+    #End
 
 
 End
@@ -2106,6 +2237,12 @@ End
     #~ return $out_str;
     return "$global_str\n$listener_str";
 }
+
+=pod
+
+=head1 cleanHashValues
+
+=cut
 
 sub cleanHashValues {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
@@ -2120,19 +2257,23 @@ sub cleanHashValues {
         $hash_ref->{$key} =~ s/^"|"$//g unless $key eq 'BackendCookie';
     }
 
-    return $hash_ref if defined wantarray;
+    return $hash_ref if defined wantarray;    # non-void context
+    return;
 }
 
-=begin nd
-Function: setFarmProxyNGConf
+=pod
 
-	It changes the meaning of params Priority and weight in config file.
+=head1 setFarmProxyNGConf
+
+It changes the meaning of params Priority and weight in config file.
 
 Parameters:
-	ProxyNGEnabled - 'true' if ProxyNG is used, 'false' if not.
+
+    ProxyNGEnabled - 'true' if ProxyNG is used, 'false' if not.
 
 Returns:
-	Integer - return 0 on success or different on failure
+
+    Integer - return 0 on success or different on failure
 
 =cut
 
@@ -2316,18 +2457,21 @@ sub setFarmProxyNGConf    # ($proxy_mode,$farm_name)
     return $stat;
 }
 
-=begin nd
-Function: doL7FarmRules
+=pod
 
-	Created to operate with setBackendRule in order to start, stop or reload ip rules
+=head1 doL7FarmRules
+
+Created to operate with setBackendRule in order to start, stop or reload ip rules
 
 Parameters:
-	action - stop (delete all ip rules), start (create ip rules) or reload (delete old one stored in prev_farm_ref and create new)
-	farm_name - the farm name.
-	prev_farm_ref - farm ref of the old configuration
+
+    action        - stop (delete all ip rules), start (create ip rules) or reload (delete old one stored in prev_farm_ref and create new)
+    farm_name     - the farm name.
+    prev_farm_ref - farm ref of the old configuration
 
 Returns:
-	none - .
+
+    none
 
 =cut
 
@@ -2338,14 +2482,15 @@ sub doL7FarmRules {
     my $prev_farm_ref = shift;
 
     return if &getGlobalConfiguration('mark_routing_L7') ne 'true';
+
+    require Relianoid::Farm::Backend;
     require Relianoid::Farm::HTTP::Config;
+    require Relianoid::Farm::HTTP::Backend;
+    require Relianoid::Farm::HTTP::Service;
+
     my $farm_ref;
     $farm_ref->{name} = $farm_name;
     $farm_ref->{vip}  = &getHTTPFarmVip("vip", $farm_name);
-
-    require Relianoid::Farm::Backend;
-    require Relianoid::Farm::HTTP::Backend;
-    require Relianoid::Farm::HTTP::Service;
 
     my @backends;
     foreach my $service (&getHTTPFarmServices($farm_name)) {
@@ -2354,28 +2499,32 @@ sub doL7FarmRules {
     }
 
     foreach my $backend (@backends) {
-        my $mark = sprintf("0x%x", $backend->{tag});
-        &setBackendRule("del", $farm_ref, $mark)
-          if ($action eq "stop");
-        &setBackendRule("del", $prev_farm_ref, $mark)
-          if ($action eq "reload");
-        &setBackendRule("add", $farm_ref, $mark)
-          if ($action eq "start" || $action eq "reload");
+        if ($backend->{tag}) {
+            my $mark = sprintf("0x%x", $backend->{tag});
+            &setBackendRule("del", $farm_ref,      $mark) if ($action eq "stop");
+            &setBackendRule("del", $prev_farm_ref, $mark) if ($action eq "reload");
+            &setBackendRule("add", $farm_ref, $mark) if ($action eq "start" || $action eq "reload");
+        }
     }
+
+    return;
 }
 
 # Add request headers
 
-=begin nd
-Function: getHTTPAddReqHeader
+=pod
 
-	Get a list with all the http headers are added by the farm
+=head1 getHTTPAddReqHeader
+
+Get a list with all the http headers are added by the farm
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	Array ref - headers list
+
+    Array ref - headers list
 
 =cut
 
@@ -2386,34 +2535,40 @@ sub getHTTPAddReqHeader    # ($farm_name,$service)
     return &get_http_farm_headers_struct($farm_name)->{addheader};
 }
 
-=begin nd
-Function: addHTTPHeadremove
+=pod
 
-	The HTTP farm will add the header to the http communication
+=head1 addHTTPAddheader
+
+The HTTP farm will add the header to the http communication
 
 Parameters:
-	farmname - Farm name
-	header - Header to add
+
+    farmname - Farm name
+    header - Header to add
 
 Returns:
-	Integer - Error code: 0 on success or 1 on failure
+
+    Integer - Error code: 0 on success or 1 on failure
 
 =cut
 
 sub addHTTPAddheader    # ($farm_name, $header, $header_ind)
 {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+
     my ($farm_name, $header) = @_;
 
     require Relianoid::Farm::Core;
+    require Relianoid::Lock;
+
     my $ffile = &getFarmFile($farm_name);
     my $errno = 1;
 
-    require Relianoid::Lock;
     &ztielock(\my @fileconf, "$configdir/$ffile");
 
     my $index        = 0;
     my $rewrite_flag = 0;    # it is used to add HeadRemove before than AddHeader
+
     foreach my $line (@fileconf) {
         if ($line =~ /^[#\s]*Service \"/) { last; }
         if ($line =~ /[#\s]*RewriteLocation/) {
@@ -2442,18 +2597,21 @@ sub addHTTPAddheader    # ($farm_name, $header, $header_ind)
     return $errno;
 }
 
-=begin nd
-Function: modifyHTTPAddheader
+=pod
 
-	Modify an AddHeader directive from the given farm
+=head1 modifyHTTPAddheader
+
+Modify an AddHeader directive from the given farm
 
 Parameters:
-	farmname - Farm name
-	header - Header to add
-	header_ind - directive index
+
+    farmname    - Farm name
+    header      - Header to add
+    header_ind  - directive index
 
 Returns:
-	Integer - Error code: 0 on success or 1 on failure
+
+    Integer - Error code: 0 on success or 1 on failure
 
 =cut
 
@@ -2494,17 +2652,20 @@ sub modifyHTTPAddheader    # ($farm_name, $header, $header_ind)
     return $errno;
 }
 
-=begin nd
-Function: delHTTPAddheader
+=pod
 
-	Delete a directive "AddHeader".
+=head1 delHTTPAddheader
+
+Delete a directive "AddHeader".
 
 Parameters:
-	farmname - Farm name
-	index - Header index
+
+    farmname - Farm name
+    index    - Header index
 
 Returns:
-	Integer - Error code: 0 on success or 1 on failure
+
+    Integer - Error code: 0 on success or 1 on failure
 
 =cut
 
@@ -2545,16 +2706,19 @@ sub delHTTPAddheader    # ($farm_name, $header_ind)
 
 # remove request header
 
-=begin nd
-Function: getHTTPRemReqHeader
+=pod
 
-	Get a list with all the http headers are added by the farm
+=head1 getHTTPRemReqHeader
+
+Get a list with all the http headers are added by the farm
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	Array ref - headers list
+
+    Array ref - headers list
 
 =cut
 
@@ -2565,17 +2729,20 @@ sub getHTTPRemReqHeader    # ($farm_name,$service)
     return &get_http_farm_headers_struct($farm_name)->{headremove};
 }
 
-=begin nd
-Function: addHTTPHeadremove
+=pod
 
-	Add a directive "HeadRemove". The HTTP farm will remove the header that match with the sentence
+=head1 addHTTPHeadremove
+
+Add a directive "HeadRemove". The HTTP farm will remove the header that match with the sentence
 
 Parameters:
-	farmname - Farm name
-	header - Header to add
+
+    farmname - Farm name
+    header   - Header to add
 
 Returns:
-	Integer - Error code: 0 on success or 1 on failure
+
+    Integer - Error code: 0 on success or 1 on failure
 
 =cut
 
@@ -2620,18 +2787,21 @@ sub addHTTPHeadremove    # ($farm_name, $header)
     return $errno;
 }
 
-=begin nd
-Function: modifyHTTPHeadremove
+=pod
 
-	Modify an Headremove directive from the given farm
+=head1 modifyHTTPHeadremove
+
+Modify an Headremove directive from the given farm
 
 Parameters:
-	farmname    - Farm name
-	header      - Header to add
-	header_ind - directive index
+
+    farmname    - Farm name
+    header      - Header to add
+    header_ind  - directive index
 
 Returns:
-	Integer - Error code: 0 on success or 1 on failure
+
+    Integer - Error code: 0 on success or 1 on failure
 
 =cut
 
@@ -2672,17 +2842,20 @@ sub modifyHTTPHeadremove    # ($farm_name, $header, $header_ind)
     return $errno;
 }
 
-=begin nd
-Function: delHTTPHeadremove
+=pod
 
-	Delete a directive "HeadRemove".
+=head1 delHTTPHeadremove
+
+Delete a directive "HeadRemove".
 
 Parameters:
-	farmname - Farm name
-	index - Header index
+
+    farmname - Farm name
+    index    - Header index
 
 Returns:
-	Integer - Error code: 0 on success or 1 on failure
+
+    Integer - Error code: 0 on success or 1 on failure
 
 =cut
 
@@ -2723,16 +2896,19 @@ sub delHTTPHeadremove    # ($farm_name,$service,$code)
 
 # Add response headers
 
-=begin nd
-Function: getHTTPAddRespHeader
+=pod
 
-	Get a list with all the http headers that load balancer will add to the backend repsonse
+=head1 getHTTPAddRespHeader
+
+Get a list with all the http headers that load balancer will add to the backend repsonse
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	Array ref - headers list
+
+    Array ref - headers list
 
 =cut
 
@@ -2743,17 +2919,20 @@ sub getHTTPAddRespHeader    # ($farm_name,$service)
     return &get_http_farm_headers_struct($farm_name)->{addresponseheader};
 }
 
-=begin nd
-Function: addHTTPAddRespheader
+=pod
 
-	The HTTP farm will add the header to the http response from the backend to the client
+=head1 addHTTPAddRespheader
+
+The HTTP farm will add the header to the http response from the backend to the client
 
 Parameters:
-	farmname - Farm name
-	header - Header to add
+
+    farmname - Farm name
+    header   - Header to add
 
 Returns:
-	Integer - Error code: 0 on success or 1 on failure
+
+    Integer - Error code: 0 on success or 1 on failure
 
 =cut
 
@@ -2798,18 +2977,21 @@ sub addHTTPAddRespheader    # ($farm_name,$service,$code)
     return $errno;
 }
 
-=begin nd
-Function: modifyHTTPAddRespheader
+=pod
 
-	Modify an AddResponseHeader directive from the given farm
+=head1 modifyHTTPAddRespheader
+
+Modify an AddResponseHeader directive from the given farm
 
 Parameters:
-	farmname    - Farm name
-	header      - Header to add
-	header_ind - directive index
+
+    farmname    - Farm name
+    header      - Header to add
+    header_ind  - directive index
 
 Returns:
-	Integer - Error code: 0 on success or 1 on failure
+
+    Integer - Error code: 0 on success or 1 on failure
 
 =cut
 
@@ -2850,17 +3032,20 @@ sub modifyHTTPAddRespheader    # ($farm_name, $header, $header_ind)
     return $errno;
 }
 
-=begin nd
-Function: delHTTPAddRespheader
+=pod
 
-	Delete a directive "AddResponseHeader from the farm config file".
+=head1 delHTTPAddRespheader
+
+Delete a directive "AddResponseHeader from the farm config file".
 
 Parameters:
-	farmname - Farm name
-	index - Header index
+
+    farmname - Farm name
+    index    - Header index
 
 Returns:
-	Integer - Error code: 0 on success or 1 on failure
+
+    Integer - Error code: 0 on success or 1 on failure
 
 =cut
 
@@ -2901,17 +3086,19 @@ sub delHTTPAddRespheader    # ($farm_name,$service,$code)
 
 # remove response header
 
-=begin nd
-Function: getHTTPRemRespHeader
+=pod
 
-	Get a list with all the http headers that the load balancer will add to the
-	response to the client
+=head1 getHTTPRemRespHeader
+
+Get a list with all the http headers that the load balancer will add to the response to the client
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	Array ref - headers list
+
+    Array ref - headers list
 
 =cut
 
@@ -2922,18 +3109,21 @@ sub getHTTPRemRespHeader    # ($farm_name,$service)
     return &get_http_farm_headers_struct($farm_name)->{removeresponseheader};
 }
 
-=begin nd
-Function: addHTTPRemRespHeader
+=pod
 
-	Add a directive "HeadResponseRemove". The HTTP farm will remove a reponse
-	header from the backend that matches with this expression
+=head1 addHTTPRemRespHeader
+
+Add a directive "HeadResponseRemove". The HTTP farm will remove a reponse
+header from the backend that matches with this expression
 
 Parameters:
-	farmname - Farm name
-	header - Header to add
+
+    farmname - Farm name
+    header   - Header to add
 
 Returns:
-	Integer - Error code: 0 on success or 1 on failure
+
+    Integer - Error code: 0 on success or 1 on failure
 
 =cut
 
@@ -2977,18 +3167,21 @@ sub addHTTPRemRespHeader {
     return $errno;
 }
 
-=begin nd
-Function: modifyHTTPRemRespHeader
+=pod
 
-	Modify an RemoveResponseHead directive from the given farm
+=head1 modifyHTTPRemRespHeader
+
+Modify an RemoveResponseHead directive from the given farm
 
 Parameters:
-	farm_name     - Farm name
-	header        - Header to add
-	header_ind    - directive index
+
+    farm_name     - Farm name
+    header        - Header to add
+    header_ind    - directive index
 
 Returns:
-	Integer - Error code: 0 on success or 1 on failure
+
+    Integer - Error code: 0 on success or 1 on failure
 
 =cut
 
@@ -3029,17 +3222,20 @@ sub modifyHTTPRemRespHeader    # ($farm_name, $header, $header_ind)
     return $errno;
 }
 
-=begin nd
-Function: delHTTPRemRespHeader
+=pod
 
-	Delete a directive "HeadResponseRemove".
+=head1 delHTTPRemRespHeader
+
+Delete a directive "HeadResponseRemove".
 
 Parameters:
-	farmname - Farm name
-	index - Header index
+
+    farmname - Farm name
+    index    - Header index
 
 Returns:
-	Integer - Error code: 0 on success or 1 on failure
+
+    Integer - Error code: 0 on success or 1 on failure
 
 =cut
 
@@ -3078,20 +3274,23 @@ sub delHTTPRemRespHeader    # ($farm_name,$service,$code)
     return $errno;
 }
 
-=begin nd
-Function: addHTTPReplaceHeaders
+=pod
 
-	Add a directive ReplaceHeader to a zproxy farm.
+=head1 addHTTPReplaceHeaders
+
+Add a directive ReplaceHeader to a zproxy farm.
 
 Parameters:
-	farmname - Farm name
-	type     - Request | Response
-	header
-	match
-	replace
+
+    farmname - Farm name
+    type     - Request | Response
+    header
+    match
+    replace
 
 Returns:
-	Integer - Error code: 0 on success or 1 on failure
+
+    Integer - Error code: 0 on success or 1 on failure
 
 =cut
 
@@ -3149,18 +3348,21 @@ sub addHTTPReplaceHeaders    # ( $farm_name, $type, $header, $match, $replace )
     return $errno;
 }
 
-=begin nd
-Function: modifyHTTPReplaceHeaders
+=pod
 
-	Modify an ReplaceHeader directive from the given farm
+=head1 modifyHTTPReplaceHeaders
+
+Modify an ReplaceHeader directive from the given farm
 
 Parameters:
-	farm_name   - Farm name
-	header      - Header to add
-	$header_ind - directive index
+
+    farm_name   - Farm name
+    header      - Header to add
+    $header_ind - directive index
 
 Returns:
-	Integer - Error code: 0 on success or 1 on failure
+
+    Integer - Error code: 0 on success or 1 on failure
 
 =cut
 
@@ -3202,16 +3404,17 @@ sub modifyHTTPReplaceHeaders    # ( $farm_name, $type, $header, $match, $replace
     return $errno;
 }
 
-=begin nd
-Function: getHTTPReplaceHeaders
+=pod
 
-	Return 
+=head1 getHTTPReplaceHeaders
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	list
+
+    list
 
 =cut
 
@@ -3219,23 +3422,32 @@ sub getHTTPReplaceHeaders    # ( $farm_name, $type)
 {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $type) = @_;
-    return &get_http_farm_headers_struct($farm_name)->{replacerequestheader}
-      if ($type eq "Request");
-    return &get_http_farm_headers_struct($farm_name)->{replaceresponseheader}
-      if ($type eq "Response");
+
+    if ($type eq "Request") {
+        return &get_http_farm_headers_struct($farm_name)->{replacerequestheader};
+    }
+
+    if ($type eq "Response") {
+        return &get_http_farm_headers_struct($farm_name)->{replaceresponseheader};
+    }
+
+    return;
 }
 
-=begin nd
-Function: delHTTPReplaceHeaders
+=pod
 
-	Delete a directive "ReplaceHeader".
+=head1 delHTTPReplaceHeaders
+
+Delete a directive "ReplaceHeader".
 
 Parameters:
-	farmname - Farm name
-	index - Header index
+
+    farmname - Farm name
+    index    - Header index
 
 Returns:
-	Integer - Error code: 0 on success or 1 on failure
+
+    Integer - Error code: 0 on success or 1 on failure
 
 =cut
 
@@ -3277,19 +3489,23 @@ sub delHTTPReplaceHeaders    # ($farm_name, $header_ind, $type)
     return $errno;
 }
 
-=begin nd
-Function: get_http_farm_headers_struct
+=pod
 
-	It extends farm struct with the parameters exclusives of the EE.
-	It no farm struct was passed to the function. The function will returns a new
-	farm struct with the enterprise fields
+=head1 get_http_farm_headers_struct
+
+It extends farm struct with the parameters exclusives of the EE.
+It no farm struct was passed to the function. The function will returns a new
+farm struct with the enterprise fields
 
 Parameters:
-	farmname - Farm name
-	farm struct - Struct with the farm configuration parameters
+
+    farmname    - Farm name
+    farm struct - Struct with the farm configuration parameters
 
 Returns:
-	Hash ref - Farm struct updated with EE parameters
+
+    Hash ref - Farm struct updated with EE parameters
+
 =cut
 
 sub get_http_farm_headers_struct {
@@ -3306,7 +3522,12 @@ sub get_http_farm_headers_struct {
     $farm_st->{replaceresponseheader} = [];
 
     my $farm_filename = &getFarmFile($farmname);
-    open my $fileconf, '<', "$configdir/$farm_filename";
+    my @lines         = ();
+
+    if (open my $fileconf, '<', "$configdir/$farm_filename") {
+        @lines = <$fileconf>;
+        close $fileconf;
+    }
 
     my $add_req_head_index  = 0;
     my $rem_req_head_index  = 0;
@@ -3314,7 +3535,8 @@ sub get_http_farm_headers_struct {
     my $rem_resp_head_index = 0;
     my $rep_req_head_index  = 0;
     my $rep_res_head_index  = 0;
-    foreach my $line (<$fileconf>) {
+
+    foreach my $line (@lines) {
         if    ($line =~ /^[#\s]*Service \"/) { last; }
         elsif ($line =~ /^[#\s]*AddHeader\s+"(.+)"/) {
             push @{ $farm_st->{addheader} },
@@ -3378,9 +3600,7 @@ sub get_http_farm_headers_struct {
                 $farm_st->{logs} = 'true' if ($lvl >= 5);
             }
         }
-
     }
-    close $fileconf;
 
     if ($proxy_ng ne 'true') {
         delete $farm_st->{replacerequestheader};
@@ -3390,19 +3610,22 @@ sub get_http_farm_headers_struct {
     return $farm_st;
 }
 
-=begin nd
-Function: moveHeader
+=pod
 
-	Changes the position of a farm header directive.
+=head1 moveHeader
+
+Changes the position of a farm header directive.
 
 Parameters:
-	farmname - Farm name
-	regex    - Regex to match the directive
-	pos      - It is the required position for the rule.
-	index    - It is index of the rule in the set
+
+    farmname - Farm name
+    regex    - Regex to match the directive
+    pos      - It is the required position for the rule.
+    index    - It is index of the rule in the set
 
 Returns:
-	
+
+    none
 
 =cut
 
@@ -3416,9 +3639,8 @@ sub moveHeader {
 
     require Relianoid::Arrays;
 
-    my $err = 0;
-
     my $farm_filename = &getFarmFile($farm_name);
+
     require Tie::File;
     tie my @file, 'Tie::File', "$configdir/$farm_filename";
 
@@ -3442,20 +3664,23 @@ sub moveHeader {
 
     untie @file;
 
-    return $err;
+    return;
 }
 
-=begin nd
-Function: getHTTPFarmLogs
+=pod
 
-	Return the log connection tracking status
+=head1 getHTTPFarmLogs
+
+Return the log connection tracking status
 
 Parameters:
-	farmname - Farm name
-	ng_proxy - It is used to set the log parameter depending on the zproxy or pound. It is termporary, it should disappear when pound will be removed from Relianoid
+
+    farmname - Farm name
+    ng_proxy - It is used to set the log parameter depending on the zproxy or pound. It is termporary, it should disappear when pound will be removed from Relianoid
 
 Returns:
-	scalar - The possible values are: 0 on disabled, possitive value on enabled or -1 on failure
+
+    scalar - The possible values are: 0 on disabled, possitive value on enabled or -1 on failure
 
 =cut
 
@@ -3469,9 +3694,14 @@ sub getHTTPFarmLogs    # ($farm_name)
     my $output = 'false';
 
     my $farm_filename = &getFarmFile($farm_name);
-    open my $fileconf, '<', "$configdir/$farm_filename";
+    my @lines         = ();
 
-    foreach my $line (<$fileconf>) {
+    if (open my $fileconf, '<', "$configdir/$farm_filename") {
+        @lines = <$fileconf>;
+        close $fileconf;
+    }
+
+    foreach my $line (@lines) {
         if    ($line =~ /^[#\s]*Service \"/) { last; }
         elsif ($line =~ /LogLevel\s+(\d).*/) {
             my $lvl = $1 + 0;
@@ -3488,17 +3718,20 @@ sub getHTTPFarmLogs    # ($farm_name)
     return $output;
 }
 
-=begin nd
-Function: migrateHTTPFarmLogs
+=pod
 
-	This function is temporary. It is used while zproxy and pound are available in relianoid.
-	This should disappear when pound will be removed
+=head1 migrateHTTPFarmLogs
+
+This function is temporary. It is used while zproxy and pound are available in relianoid.
+This should disappear when pound will be removed
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	scalar - The possible values are: 0 on disabled, possitive value on enabled or -1 on failure
+
+    scalar - The possible values are: 0 on disabled, possitive value on enabled or -1 on failure
 
 =cut
 
@@ -3509,20 +3742,26 @@ sub migrateHTTPFarmLogs {
     my $read_log = ($proxy_mode eq 'true') ? 'false' : 'true';
     my $log      = &getHTTPFarmLogs($farm_name, $read_log);
     &setHTTPFarmLogs($farm_name, $log, $proxy_mode);
+
+    return;
 }
 
-=begin nd
-Function: setHTTPFarmLogs
+=pod
 
-	Enable or disable the log connection tracking for a http farm
+=head1 setHTTPFarmLogs
+
+Enable or disable the log connection tracking for a http farm
 
 Parameters:
-	farmname - Farm name
-	action - The available actions are: "true" to enable or "false" to disable
-	ng_proxy - It is used to set the log parameter depending on the zproxy or pound. It is termporary, it should disappear when pound will be removed from Relianoid
+
+    farmname  - Farm name
+    action    - The available actions are: "true" to enable or "false" to disable
+    ng_proxy  - It is used to set the log parameter depending on the zproxy or pound. 
+                It is termporary, it should disappear when pound will be removed from Relianoid
 
 Returns:
-	scalar - The possible values are: 0 on success or -1 on failure
+
+    scalar - The possible values are: 0 on success or -1 on failure
 
 =cut
 
@@ -3544,45 +3783,57 @@ sub setHTTPFarmLogs    # ($farm_name, $action)
         $loglvl = ($action eq "true") ? 5 : 0;
     }
 
-    require Tie::File;
-    tie my @file, 'Tie::File', "$configdir/$farm_filename";
+    require Relianoid::File;
+    my @lines = readFileAsArray("$configdir/$farm_filename");
 
-    # check if 100 continue directive exists
-    if (!grep (s/^LogLevel\s+(\d).*$/LogLevel\t$loglvl/, @file)) {
-        &zenlog("Error modifying http logs", "error", "LSLB");
+    my $match_found = 0;
+    for my $line (@lines) {
+        if($line =~ s/^LogLevel\s+(\d).*$/LogLevel\t$loglvl/) {
+            $match_found = 1;
+            $output = 0;
+        }
+    }
+
+    if ($match_found) {
+        writeFileFromArray("$configdir/$farm_filename", \@lines);
     }
     else {
-        $output = 0;
+        &zenlog("Error modifying http logs", "error", "LSLB");
     }
-    untie @file;
 
     return $output;
 }
 
-=begin nd
-Function: getHTTPFarm100Continue
+=pod
 
-	Return 100 continue Header configuration HTTP and HTTPS farms
+=head1 getHTTPFarm100Continue
+
+Return 100 continue Header configuration HTTP and HTTPS farms
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	scalar - The possible values are: 0 on disabled, 1 on enabled
+
+    scalar - The possible values are: 0 on disabled, 1 on enabled
 
 =cut
 
-sub getHTTPFarm100Continue    # ($farm_name)
-{
+sub getHTTPFarm100Continue ($farm_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm_name = shift;
 
     my $output = 'true';
 
     my $farm_filename = &getFarmFile($farm_name);
-    open my $fileconf, '<', "$configdir/$farm_filename";
+    my @lines;
 
-    foreach my $line (<$fileconf>) {
+    if (open my $fileconf, '<', "$configdir/$farm_filename") {
+        @lines = <$fileconf>;
+        close $fileconf;
+    }
+
+    foreach my $line (@lines) {
         if    ($line =~ /^[#\s]*Service \"/) { last; }
         elsif ($line =~ /Ignore100Continue (\d).*/) {
             $output = ($1 eq '0') ? 'false' : 'true';
@@ -3593,17 +3844,20 @@ sub getHTTPFarm100Continue    # ($farm_name)
     return $output;
 }
 
-=begin nd
-Function: setHTTPFarm100Continue
+=pod
 
-	Enable or disable the HTTP 100 continue header
+=head1 setHTTPFarm100Continue
+
+Enable or disable the HTTP 100 continue header
 
 Parameters:
-	farmname - Farm name
-	action - The available actions are: 1 to enable or 0 to disable
+
+    farmname - Farm name
+    action   - The available actions are: 1 to enable or 0 to disable
 
 Returns:
-	scalar - The possible values are: 0 on success or -1 on failure
+
+    scalar - The possible values are: 0 on success or -1 on failure
 
 =cut
 
@@ -3613,26 +3867,30 @@ sub setHTTPFarm100Continue    # ($farm_name, $action)
     my ($farm_name, $action) = @_;
 
     my $farm_filename = &getFarmFile($farm_name);
-    my $output        = -1;
 
-    require Tie::File;
-    tie my @file, 'Tie::File', "$configdir/$farm_filename";
+    require Relianoid::File;
+    my @lines = readFileAsArray("$configdir/$farm_filename");
 
     # check if 100 continue directive exists
-    if (!grep (s/^Ignore100Continue\ .*/Ignore100Continue $action/, @file)) {
-        foreach my $line (@file) {
+    my $match_found = 0;
+    for my $line (@lines) {
+        if($line =~ s/^Ignore100Continue\ .*/Ignore100Continue $action/) {
+            $match_found = 1;
+        }
+    }
 
-            # put ignore below than rewritelocation
+    if(not $match_found) {
+        for my $line (@lines) {
             if ($line =~ /^Control\s/) {
                 $line = "$line\nIgnore100Continue $action";
                 last;
             }
         }
     }
-    $output = 0;
-    untie @file;
 
-    return $output;
+    writeFileFromArray("$configdir/$farm_filename", \@lines);
+
+    return 0;
 }
 
 1;

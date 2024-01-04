@@ -22,6 +22,7 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
 # GET /system/ntp
 sub get_ntp {
@@ -35,6 +36,7 @@ sub get_ntp {
             body => { description => $desc, params => { "server" => $ntp } }
         }
     );
+    return;
 }
 
 #  POST /system/ntp
@@ -44,10 +46,10 @@ sub set_ntp {
 
     my $desc = "Post ntp";
 
-    my $params = &getZAPIModel("system_ntp-modify.json");
+    my $params = &getAPIModel("system_ntp-modify.json");
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -69,6 +71,7 @@ sub set_ntp {
             }
         }
     );
+    return;
 }
 
 1;

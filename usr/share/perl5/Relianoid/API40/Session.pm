@@ -61,7 +61,7 @@ sub session_login {
 
     # check if the user has got permissions
     my (undef, undef, undef, $webgui_group) = getgrnam('webgui');
-    if (!grep (/(^| )$username( |$)/, $webgui_group)) {
+    if (!grep { /(^| )$username( |$)/ } $webgui_group) {
         my $msg = "The user $username has not web permissions";
         &httpErrorResponse(code => 401, desc => $desc, msg => $msg);
     }
@@ -89,6 +89,7 @@ sub session_login {
             },
         }
     );
+    return;
 }
 
 sub session_logout {
@@ -101,7 +102,7 @@ sub session_logout {
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-    my $session = new CGI::Session($cgi);
+    my $session = CGI::Session->new($cgi);
 
     unless ($session && $session->param('is_logged_in')) {
         my $msg = "Session expired or not found";
@@ -117,7 +118,7 @@ sub session_logout {
     $session->flush();
 
     &httpResponse({ code => 200 });
+    return;
 }
 
 1;
-

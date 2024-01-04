@@ -22,29 +22,38 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
 my $configdir = &getGlobalConfiguration('configdir');
 
-=begin nd
-Function: _runHTTPFarmStart
+=pod
 
-	Run a HTTP farm
+=head1 Module
 
-Parameters:
-	farmname - Farm name
-	writeconf - write this change in configuration status "writeconf" for true or omit it for false
-
-Returns:
-	Integer - return 0 on success or different of 0 on failure
+Relianoid::Farm::HTTP::Action
 
 =cut
 
-sub _runHTTPFarmStart    # ($farm_name, $writeconf)
+=pod
+
+=head1 _runHTTPFarmStart
+
+Run a HTTP farm
+
+Parameters:
+
+    farmname  - Farm name
+    writeconf - write this change in configuration status "writeconf" for true or omit it for false
+
+Returns:
+
+    Integer - return 0 on success or different of 0 on failure
+
+=cut
+
+sub _runHTTPFarmStart    # ($farm_name, $writeconf = 0)
 {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $writeconf) = @_;
@@ -85,11 +94,11 @@ sub _runHTTPFarmStart    # ($farm_name, $writeconf)
     &setHTTPFarmBackendStatusFromFile($farm_name);
     &setHTTPFarmBootStatus($farm_name, "up") if ($writeconf);
 
-    # load backend routing rules
-    &doL7FarmRules("start", $farm_name);
-
     if (&getGlobalConfiguration("proxy_ng") eq 'true') {
         if (&getGlobalConfiguration("mark_routing_L7") eq 'true') {
+
+            # load backend routing rules
+            &doL7FarmRules("start", $farm_name);
 
             # create L4 farm type local
             my $farm_vip   = &getFarmVip("vip",  $farm_name);
@@ -137,20 +146,24 @@ sub _runHTTPFarmStart    # ($farm_name, $writeconf)
     return $status;
 }
 
-=begin nd
-Function: _runHTTPFarmStop
+=pod
 
-	Stop a HTTP farm
+=head1 _runHTTPFarmStop
+
+Stop a HTTP farm
 
 Parameters:
-	farmname - Farm name
-	writeconf - write this change in configuration status "writeconf" for true or omit it for false
+
+    farmname  - Farm name
+    writeconf - write this change in configuration status "writeconf" for true or omit it for false
 
 Returns:
-	Integer - return 0 on success or different of 0 on failure
+
+    Integer - return 0 on success or different of 0 on failure
+
 =cut
 
-sub _runHTTPFarmStop    # ($farm_name, $writeconf)
+sub _runHTTPFarmStop    # ($farm_name, $writeconf = 0)
 {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($farm_name, $writeconf) = @_;
@@ -181,8 +194,6 @@ sub _runHTTPFarmStop    # ($farm_name, $writeconf)
 
         if (&getGlobalConfiguration("proxy_ng") eq 'true') {
             if (&getGlobalConfiguration("mark_routing_L7") eq 'true') {
-
-                # Delete L4 farm type local
                 require Relianoid::Nft;
                 &httpNlbRequest(
                     {
@@ -191,10 +202,9 @@ sub _runHTTPFarmStop    # ($farm_name, $writeconf)
                         uri    => "/farms/" . $farm_name,
                     }
                 );
+                &doL7FarmRules("stop", $farm_name);
             }
         }
-
-        &doL7FarmRules("stop", $farm_name);
 
         unlink("$piddir\/$farm_name\_proxy.pid")
           if -e "$piddir\/$farm_name\_proxy.pid";
@@ -215,19 +225,23 @@ sub _runHTTPFarmStop    # ($farm_name, $writeconf)
     return 0;
 }
 
-=begin nd
-Function: copyHTTPFarm
+=pod
 
-	Function that does a copy of a farm configuration.
-	If the flag has the value 'del', the old farm will be deleted.
+=head1 copyHTTPFarm
+
+Function that does a copy of a farm configuration.
+If the flag has the value 'del', the old farm will be deleted.
 
 Parameters:
-	farmname - Farm name
-	newfarmname - New farm name
-	flag - It expets a 'del' string to delete the old farm. It is used to copy or rename the farm.
+
+    farmname    - Farm name
+    newfarmname - New farm name
+    flag        - It expets a 'del' string to delete the old farm. 
+                  It is used to copy or rename the farm.
 
 Returns:
-	Integer - Error code: return 0 on success or -1 on failure
+
+    Integer - Error code: return 0 on success or -1 on failure
 
 =cut
 
@@ -237,6 +251,7 @@ sub copyHTTPFarm    # ($farm_name,$new_farm_name)
     my ($farm_name, $new_farm_name, $del) = @_;
 
     use File::Copy qw(copy);
+    require Relianoid::File;
 
     my $output           = 0;
     my @farm_configfiles = (
@@ -252,68 +267,65 @@ sub copyHTTPFarm    # ($farm_name,$new_farm_name)
         "$configdir\/$new_farm_name\_Err503.html", "$configdir\/$new_farm_name\_sessions.cfg",
     );
 
-    foreach my $farm_filename (@farm_configfiles) {
+    my $cfg = $configdir;
+    my $oFN = $farm_name;        # old farm name
+    my $nFN = $new_farm_name;    # new farm name
+
+    foreach my $farm_file (@farm_configfiles) {
         my $new_farm_filename = shift @new_farm_configfiles;
-        if (-e "$farm_filename") {
-            copy("$farm_filename", "$new_farm_filename") or $output = -1;
 
-            if ($farm_filename eq "$configdir\/$farm_name\_proxy.cfg") {
-                require Tie::File;
-                tie my @configfile, 'Tie::File', "$new_farm_filename";
+        next unless (-e $farm_file);
 
-                # Lines to change:
-                #Name		BasekitHTTP
-                #Control 	"/tmp/BasekitHTTP_proxy.socket"
-                #\tErr414 "/usr/local/relianoid/config/BasekitHTTP_Err414.html"
-                #\tErr500 "/usr/local/relianoid/config/BasekitHTTP_Err500.html"
-                #\tErr501 "/usr/local/relianoid/config/BasekitHTTP_Err501.html"
-                #\tErr503 "/usr/local/relianoid/config/BasekitHTTP_Err503.html"
-                #\t#Service "BasekitHTTP"
-                #NfMarks (for each backend)
-                grep { s/^(\s*Name\s+"?)$farm_name/$1$new_farm_name/ } @configfile;
-                grep {
-                    s/\tErrWAF "\/usr\/local\/relianoid\/config\/${farm_name}_ErrWAF.html"/\tErrWAF "\/usr\/local\/relianoid\/config\/${new_farm_name}_ErrWAF.html"/
-                } @configfile;
-                grep {
-                    s/\tErr414 "\/usr\/local\/relianoid\/config\/${farm_name}_Err414.html"/\tErr414 "\/usr\/local\/relianoid\/config\/${new_farm_name}_Err414.html"/
-                } @configfile;
-                grep {
-                    s/\tErr500 "\/usr\/local\/relianoid\/config\/${farm_name}_Err500.html"/\tErr500 "\/usr\/local\/relianoid\/config\/${new_farm_name}_Err500.html"/
-                } @configfile;
-                grep {
-                    s/\tErr501 "\/usr\/local\/relianoid\/config\/${farm_name}_Err501.html"/\tErr501 "\/usr\/local\/relianoid\/config\/${new_farm_name}_Err501.html"/
-                } @configfile;
-                grep {
-                    s/\tErr503 "\/usr\/local\/relianoid\/config\/${farm_name}_Err503.html"/\tErr503 "\/usr\/local\/relianoid\/config\/${new_farm_name}_Err503.html"/
-                } @configfile;
-                grep { s/\t#Service "$farm_name"/\t#Service "$new_farm_name"/ } @configfile;
+        copy($farm_file, $new_farm_filename) or $output = -1;
+        unlink($farm_file) if ($del eq 'del');
 
-                if (&getGlobalConfiguration("proxy_ng") eq 'true') {
+        next unless ($farm_file eq "$configdir\/$farm_name\_proxy.cfg");
 
-                    # Remove old Marks
-                    @configfile =
-                      grep { not(/\t\t\tNfMark\s*(.*)/) } @configfile;
-                }
-                else {
-                    grep {
-                        s/Control \t"\/tmp\/${farm_name}_proxy.socket"/Control \t"\/tmp\/${new_farm_name}_proxy.socket"/
-                    } @configfile;
-                }
+        my @lines = readFileAsArray($new_farm_filename);
 
-                untie @configfile;
+        # Lines to change:
+        #Name		BasekitHTTP
+        #Control 	"/tmp/BasekitHTTP_proxy.socket"
+        #\tErr414 "/usr/local/relianoid/config/BasekitHTTP_Err414.html"
+        #\tErr500 "/usr/local/relianoid/config/BasekitHTTP_Err500.html"
+        #\tErr501 "/usr/local/relianoid/config/BasekitHTTP_Err501.html"
+        #\tErr503 "/usr/local/relianoid/config/BasekitHTTP_Err503.html"
+        #\t#Service "BasekitHTTP"
+        #NfMarks (for each backend)
 
-                if (&getGlobalConfiguration("proxy_ng") eq 'true') {
-
-                    # Add new Marks
-                    require Relianoid::Farm::HTTP::Backend;
-                    &setHTTPFarmBackendsMarks($new_farm_name);
-                }
-
-                &zenlog("Configuration saved in $new_farm_filename file", "info", "LSLB");
-            }
-
-            unlink("$farm_filename") if ($del eq 'del');
+        for my $l (@lines) {
+            $l =~ s/^(\s*Name\s+"?)${oFN}/$1${nFN}/;
+            $l =~ s/\tErrWAF "$cfg\/${oFN}_ErrWAF.html"/\tErrWAF "$cfg\/${nFN}_ErrWAF.html"/;
+            $l =~ s/\tErr414 "$cfg\/${oFN}_Err414.html"/\tErr414 "$cfg\/${nFN}_Err414.html"/;
+            $l =~ s/\tErr500 "$cfg\/${oFN}_Err500.html"/\tErr500 "$cfg\/${nFN}_Err500.html"/;
+            $l =~ s/\tErr501 "$cfg\/${oFN}_Err501.html"/\tErr501 "$cfg\/${nFN}_Err501.html"/;
+            $l =~ s/\tErr503 "$cfg\/${oFN}_Err503.html"/\tErr503 "$cfg\/${nFN}_Err503.html"/;
+            $l =~ s/\t#Service "${oFN}"/\t#Service "${nFN}"/;
         }
+
+        if (&getGlobalConfiguration("proxy_ng") eq 'true') {
+
+            # Remove old Marks
+            @lines = grep { not(/\t\t\tNfMark\s*(.*)/) } @lines;
+        }
+        else {
+            my $match   = qq(Control \t"\/tmp\/${oFN}_proxy.socket");
+            my $replace = qq(Control \t"\/tmp\/${nFN}_proxy.socket");
+            for my $l (@lines) {
+                $l =~ s/${match}/${replace}/;
+            }
+        }
+
+        writeFileFromArray($new_farm_filename, \@lines);
+
+        if (&getGlobalConfiguration("proxy_ng") eq 'true') {
+
+            # Add new Marks
+            require Relianoid::Farm::HTTP::Backend;
+            &setHTTPFarmBackendsMarks($new_farm_name);
+        }
+
+        &zenlog("Configuration saved in $new_farm_filename file", "info", "LSLB");
     }
 
     if (-e "\/tmp\/$farm_name\_pound.socket" and $del eq 'del') {
@@ -327,22 +339,26 @@ sub copyHTTPFarm    # ($farm_name,$new_farm_name)
     return $output;
 }
 
-=begin nd
-Function: sendL7ZproxyCmd
+=pod
 
-	Send request to Zproxy
+=head1 sendL7ZproxyCmd
+
+Send request to Zproxy
 
 Parameters:
-	self - hash that includes hash_keys:
-		farmname, it is the farm that is going to be modified
-		method, HTTP verb for zproxy request
-		uri,
-		body, body to use in POST and PUT requests
+
+    self - hash that includes hash_keys:
+
+    farmname: it is the farm that is going to be modified
+    method:   HTTP verb for zproxy request
+    uri
+    body:     body to use in POST and PUT requests
 
 Returns:
-	HASH Object - return result of the request command
-	 or
-	Integer 1 on error
+
+    HASH Object - return result of the request command
+     or
+    Integer 1 on error
 
 =cut
 
@@ -376,28 +392,34 @@ sub sendL7ZproxyCmd {
     my $cmd      = "$curl_bin " . $method . $body . "--unix-socket $socket $url";
 
     my $resp = &logAndGet($cmd, 'string');
+
     return 1 unless (defined $resp && $resp ne '');
+
     $resp = eval { &JSON::decode_json($resp) };
+
     if ($@) {
         &zenlog("Decoding json: $@", "error", "LSLB");
         return 1;
     }
-    return $resp;
 
+    return $resp;
 }
 
-=begin nd
-Function: checkFarmHTTPSystemStatus
+=pod
 
-	Checks the process and PID file on the system and fixes the inconsistency.
+=head1 checkFarmHTTPSystemStatus
+
+Checks the process and PID file on the system and fixes the inconsistency.
 
 Parameters:
-	farm_name - farm that is going to be modified
-	status - Status to check. Only "down" status.
-	fix - True, do the necessary changes to get the inconsistency fixed. 
+
+    farm_name - farm that is going to be modified
+    status    - Status to check. Only "down" status.
+    fix       - True, do the necessary changes to get the inconsistency fixed. 
 
 Returns:
-	None
+
+    None
 
 =cut
 

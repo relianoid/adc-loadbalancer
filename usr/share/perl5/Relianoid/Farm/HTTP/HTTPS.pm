@@ -22,27 +22,36 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
-
+my $eload = eval { require Relianoid::ELoad };
 my $configdir = &getGlobalConfiguration('configdir');
 
-=begin nd
-Function: getFarmCertificate
+=pod
 
-	Return the certificate applied to the farm
+=head1 Module
+
+Relianoid::Farm::HTTP::HTTPS
+
+=cut
+
+=pod
+
+=head1 getFarmCertificate
+
+Return the certificate applied to the farm
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	scalar - Return the certificate file, or -1 on failure.
+
+    scalar - Return the certificate file, or -1 on failure.
 
 FIXME:
-	If are there more than one certificate, only return the last one
+
+    If are there more than one certificate, only return the last one
 
 =cut
 
@@ -70,20 +79,25 @@ sub getFarmCertificate    # ($farm_name)
     return $output;
 }
 
-=begin nd
-Function: setFarmCertificate
+=pod
 
-	Configure a certificate for a HTTP farm
+=head1 setFarmCertificate
+
+Configure a certificate for a HTTP farm
 
 Parameters:
-	certificate - certificate file name
-	farmname - Farm name
+
+    certificate - certificate file name
+
+    farmname - Farm name
 
 Returns:
-	Integer - Error code: 0 on success, or -1 on failure.
+
+    Integer - Error code: 0 on success, or -1 on failure.
 
 FIXME:
-	There is other function for this action: setFarmCertificateSNI
+
+    There is other function for this action: setFarmCertificateSNI
 
 =cut
 
@@ -124,18 +138,24 @@ sub setFarmCertificate    # ($cfile,$farm_name)
     return $output;
 }
 
-=begin nd
-Function: setFarmCipherList
+=pod
 
-	Set Farm Ciphers value
+=head1 setFarmCipherList
+
+Set Farm Ciphers value
 
 Parameters:
-	farmname - Farm name
-	ciphers - The options are: cipherglobal, cipherpci, cipherssloffloading or ciphercustom
-	cipherc - Cipher custom, this field is used when ciphers is ciphercustom
+
+    farmname - Farm name
+
+    ciphers - The options are: cipherglobal, cipherpci, cipherssloffloading or ciphercustom
+
+    cipherc - Cipher custom, this field is used when ciphers is ciphercustom
 
 Returns:
-	Integer - return 0 on success or -1 on failure
+
+    Integer - return 0 on success or -1 on failure
+
 =cut
 
 sub setFarmCipherList    # ($farm_name,$ciphers,$cipherc)
@@ -202,16 +222,19 @@ sub setFarmCipherList    # ($farm_name,$ciphers,$cipherc)
     return $output;
 }
 
-=begin nd
-Function: getFarmCipherList
+=pod
 
-	Get Cipher value defined in l7 proxy configuration file
+=head1 getFarmCipherList
+
+Get Cipher value defined in l7 proxy configuration file
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	scalar - return a string with cipher value or -1 on failure
+
+    scalar - return a string with cipher value or -1 on failure
 =cut
 
 sub getFarmCipherList    # ($farm_name)
@@ -237,17 +260,26 @@ sub getFarmCipherList    # ($farm_name)
     return $output;
 }
 
-=begin nd
-Function: getFarmCipherSet
+=pod
 
-	Get Ciphers value defined in l7 proxy configuration file. Possible values are:
-		cipherglobal, cipherpci, cipherssloffloading or ciphercustom.
+=head1 getFarmCipherSet
+
+Get Ciphers value defined in l7 proxy configuration file.
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	scalar - return a string with cipher set (ciphers) or -1 on failure
+
+    scalar - return a string with cipher set (ciphers) or -1 on failure
+
+    Possible values are:
+
+        cipherglobal
+        cipherpci
+        cipherssloffloading
+        ciphercustom
 
 =cut
 
@@ -278,17 +310,21 @@ sub getFarmCipherSet    # ($farm_name)
     return $output;
 }
 
-=begin nd
-Function: getHTTPFarmDisableSSL
+=pod
 
-	Get if a security protocol version is enabled or disabled in a HTTPS farm
+=head1 getHTTPFarmDisableSSL
+
+Get if a security protocol version is enabled or disabled in a HTTPS farm
 
 Parameters:
-	farmname - Farm name
-	protocol - SSL or TLS protocol get status (disabled or enabled)
+
+    farmname - Farm name
+    protocol - SSL or TLS protocol get status (disabled or enabled)
 
 Returns:
-	Integer - 1 on disabled, 0 on enabled or -1 on failure
+
+    Integer - 1 on disabled, 0 on enabled or -1 on failure
+
 =cut
 
 sub getHTTPFarmDisableSSL    # ($farm_name, $protocol)
@@ -314,18 +350,22 @@ sub getHTTPFarmDisableSSL    # ($farm_name, $protocol)
     return $output;
 }
 
-=begin nd
-Function: setHTTPFarmDisableSSL
+=pod
 
-	Enable or disable a security protocol for a HTTPS farm
+=head1 setHTTPFarmDisableSSL
+
+Enable or disable a security protocol for a HTTPS farm
 
 Parameters:
-	farmname - Farm name
-	protocol - SSL or TLS protocol to disable/enable: SSLv2|SSLv3|TLSv1|TLSv1_1|TLSv1_2
-	action - The available actions are: 1 to disable or 0 to enable
+
+    farmname - Farm name
+    protocol - SSL or TLS protocol to disable/enable: SSLv2|SSLv3|TLSv1|TLSv1_1|TLSv1_2
+    action   - The available actions are: 1 to disable or 0 to enable
 
 Returns:
-	Integer - Error code: 0 on success or -1 on failure
+
+    Integer - Error code: 0 on success or -1 on failure
+
 =cut
 
 sub setHTTPFarmDisableSSL    # ($farm_name, $protocol, $action )

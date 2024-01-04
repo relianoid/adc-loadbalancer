@@ -23,11 +23,19 @@
 
 use strict;
 use warnings;
-use feature 'state';
+use feature qw(signatures state);
 
 use Relianoid::Log;
 use Relianoid::Config;
 use Relianoid::Debug;
+
+=pod
+
+=head1 Module
+
+Relianoid::Core
+
+=cut
 
 1;
 

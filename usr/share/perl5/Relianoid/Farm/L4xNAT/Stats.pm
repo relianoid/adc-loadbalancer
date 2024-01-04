@@ -24,21 +24,35 @@
 use strict;
 use warnings;
 
-=begin nd
-Function: getL4BackendEstConns
+=pod
 
-	Get all ESTABLISHED connections for a backend
+=head1 Module
+
+Relianoid::Farm::L4xNAT::Stats
+
+=cut
+
+=pod
+
+=head1 getL4BackendEstConns
+
+Get all ESTABLISHED connections for a backend
 
 Parameters:
-	farmname - Farm name
-	ip_backend - IP backend
-	netstat - reference to array with Conntrack -L output
+
+    farmname - Farm name
+
+    ip_backend - IP backend
+
+    netstat - reference to array with Conntrack -L output
 
 Returns:
-	array - Return all ESTABLISHED conntrack lines for the backend
+
+    array - Return all ESTABLISHED conntrack lines for the backend
 
 FIXME:
-	dnat and nat regexp is duplicated
+
+    dnat and nat regexp is duplicated
 
 =cut
 
@@ -133,20 +147,25 @@ sub getL4BackendEstConns {
     return $connections;
 }
 
-=begin nd
-Function: getL4FarmEstConns
+=pod
 
-	Get all ESTABLISHED connections for a farm
+=head1 getL4FarmEstConns
+
+Get all ESTABLISHED connections for a farm
 
 Parameters:
-	farmname - Farm name
-	netstat - reference to array with Conntrack -L output
+
+    farmname - Farm name
+
+    netstat - reference to array with Conntrack -L output
 
 Returns:
-	array - Return all ESTABLISHED conntrack lines for a farm
+
+    array - Return all ESTABLISHED conntrack lines for a farm
 
 FIXME:
-	dnat and nat regexp is duplicated
+
+    dnat and nat regexp is duplicated
 
 =cut
 
@@ -243,21 +262,29 @@ sub getL4FarmEstConns {
     return $connections;
 }
 
-=begin nd
-Function: getL4BackendSYNConns
+=pod
 
-	Get all SYN connections for a backend. This connection are called "pending". UDP protocol doesn't have pending concept
+=head1 getL4BackendSYNConns
+
+Get all SYN connections for a backend. This connection are called "pending".
+
+UDP protocol doesn't have pending concept
 
 Parameters:
-	farmname - Farm name
-	ip_backend - IP backend
-	netstat - reference to array with Conntrack -L output
+
+    farmname - Farm name
+
+    ip_backend - IP backend
+
+    netstat - reference to array with Conntrack -L output
 
 Returns:
-	array - Return all SYN conntrack lines for a backend of a farm
+
+    array - Return all SYN conntrack lines for a backend of a farm
 
 FIXME:
-	dnat and nat regexp is duplicated
+
+    dnat and nat regexp is duplicated
 
 =cut
 
@@ -324,20 +351,27 @@ sub getL4BackendSYNConns {
     return $connections;
 }
 
-=begin nd
-Function: getL4FarmSYNConns
+=pod
 
-	Get all SYN connections for a farm. This connection are called "pending". UDP protocol doesn't have pending concept
+=head1 getL4FarmSYNConns
+
+Get all SYN connections for a farm. This connection are called "pending". 
+
+UDP protocol doesn't have pending concept
 
 Parameters:
-	farmname - Farm name
-	netstat - reference to array with Conntrack -L output
+
+    farmname - Farm name
+
+    netstat - reference to array with Conntrack -L output
 
 Returns:
-	array - Return all SYN conntrack lines for a farm
+
+    array - Return all SYN conntrack lines for a farm
 
 FIXME:
-	dnat and nat regexp is duplicated
+
+    dnat and nat regexp is duplicated
 
 =cut
 
@@ -406,16 +440,18 @@ sub getL4FarmSYNConns    # ($farm_name,$netstat)
     return $connections;
 }
 
-=begin nd
-Function: getL4FarmBackendsStats
+=pod
 
-
+=head1 getL4FarmBackendsStats
 
 Parameters:
-	farmname - Farm name
+
+    farmname - Farm name
 
 Returns:
-	array ref -
+
+    array ref
+
 =cut
 
 sub getL4FarmBackendsStats {

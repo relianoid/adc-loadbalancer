@@ -22,37 +22,48 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
-=begin nd
-Function: getMemStats
+=pod
 
-	Get stats of memory usage of the system.
+=head1 Module
+
+Relianoid::Stats
+
+=cut
+
+=pod
+
+=head1 getMemStats
+
+Get stats of memory usage of the system.
 
 Parameters:
-	format - "b" for bytes, "kb" for KBytes and "mb" for MBytes (default: mb).
+
+    format - "b" for bytes, "kb" for KBytes and "mb" for MBytes (default: mb).
 
 Returns:
-	list - Two dimensional array.
 
-	@data = (
-			  [$mname,     $mvalue],
-			  [$mfname,    $mfvalue],
-			  ['MemUsed',  $mused],
-			  [$mbname,    $mbvalue],
-			  [$mcname,    $mcvalue],
-			  [$swtname,   $swtvalue],
-			  [$swfname,   $swfvalue],
-			  ['SwapUsed', $swused],
-			  [$swcname,   $swcvalue],
-	);
+    list - Two dimensional array.
+
+    @data = (
+        [$mname,     $mvalue],
+        [$mfname,    $mfvalue],
+        ['MemUsed',  $mused],
+        [$mbname,    $mbvalue],
+        [$mcname,    $mcvalue],
+        [$swtname,   $swtvalue],
+        [$swfname,   $swfvalue],
+        ['SwapUsed', $swused],
+        [$swcname,   $swcvalue],
+    );
 
 See Also:
-	memory-rrd.pl, zapi/v3/system_stats.cgi, zapi/v2/system_stats.cgi
+
+    memory-rrd.pl, zapi/v3/system_stats.cgi, zapi/v2/system_stats.cgi
+
 =cut
 
 sub getMemStats {
@@ -69,10 +80,14 @@ sub getMemStats {
     }
 
     $format = "mb" unless $format;
+    my @lines = ();
 
-    open my $file, '<', $meminfo_filename;
+    if (open my $file, '<', $meminfo_filename) {
+        @lines = <$file>;
+        close $file;
+    }
 
-    while (my $line = <$file>) {
+    foreach my $line (@lines) {
         if ($line =~ /memtotal/i) {
             my @memtotal = split /[:\ ]+/, $line;
             $mvalue = $memtotal[1];
@@ -134,8 +149,6 @@ sub getMemStats {
         }
     }
 
-    close $file;
-
     $mvalue   = sprintf('%.2f', $mvalue);
     $mfvalue  = sprintf('%.2f', $mfvalue);
     $mused    = sprintf('%.2f', $mused);
@@ -161,25 +174,30 @@ sub getMemStats {
     return @data;
 }
 
-=begin nd
-Function: getLoadStats
+=pod
 
-	Get the system load values.
+=head1 getLoadStats
+
+Get the system load values.
 
 Parameters:
-	none - .
+
+    none
 
 Returns:
-	list - Two dimensional array.
 
-	@data = (
-		['Last', $last],
-		['Last 5', $last5],
-		['Last 15', $last15]
-	);
+    list - Two dimensional array.
+
+    @data = (
+        ['Last', $last],
+        ['Last 5', $last5],
+        ['Last 15', $last15]
+    );
 
 See Also:
-	load-rrd.pl, zapi/v3/system_stats.cgi, zapi/v2/system_stats.cgi
+
+    load-rrd.pl, zapi/v3/system_stats.cgi, zapi/v2/system_stats.cgi
+
 =cut
 
 sub getLoadStats {
@@ -208,56 +226,61 @@ sub getLoadStats {
     return @data;
 }
 
-=begin nd
-Function: getNetworkStats
+=pod
 
-	Get stats for the network interfaces.
+=head1 getNetworkStats
+
+Get stats for the network interfaces.
 
 Parameters:
-	format - 'raw', 'hash' or nothing.
+
+    format - 'raw', 'hash' or nothing.
 
 Returns:
-	When 'format' is not defined:
 
-		@data = (
-			  [
-				'eth0 in',
-				'46.11'
-			  ],
-			  [
-				'eth0 out',
-				'63.02'
-			  ],
-			  ...
-		);
+    When 'format' is not defined:
 
-	When 'format' is 'raw':
+    @data = (
+        [
+            'eth0 in',
+            '46.11'
+        ],
+        [
+            'eth0 out',
+            '63.02'
+        ],
+        ...
+    );
 
-		@data = (
-			  [
-				'eth0 in',
-				'48296309'
-			  ],
-			  [
-				'eth0 out',
-				'66038087'
-			  ],
-			  ...
-		);
+    When 'format' is 'raw':
 
-	When 'format' is 'hash':
+    @data = (
+        [
+            'eth0 in',
+            '48296309'
+        ],
+        [
+            'eth0 out',
+            '66038087'
+        ],
+        ...
+    );
 
-		@data = (
-			  {
-				'in' => '46.12',
-				'interface' => 'eth0',
-				'out' => '63.04'
-			  },
-			  ...
-		);
+    When 'format' is 'hash':
+
+    @data = (
+        {
+            'in' => '46.12',
+            'interface' => 'eth0',
+            'out' => '63.04'
+        },
+        ...
+    );
 
 See Also:
-	iface-rrd.pl, zapi/v3/system_stats.cgi, zapi/v2/system_stats.cgi
+
+    iface-rrd.pl, zapi/v3/system_stats.cgi, zapi/v2/system_stats.cgi
+
 =cut
 
 sub getNetworkStats {
@@ -274,8 +297,18 @@ sub getNetworkStats {
     }
 
     my @outHash;
+    my @lines;
 
-    open my $file, '<', $netinfo_filename or die $!;
+    if (open(my $file, '<', $netinfo_filename)) {
+        chomp(@lines = <$file>);
+        close $file;
+    }
+    else {
+        my $msg = "Could not open the file '$netinfo_filename': $!";
+        zenlog($msg, 'error');
+        die $msg;
+    }
+
     my ($in, $out);
     my @data;
     my @interface;
@@ -290,63 +323,57 @@ sub getNetworkStats {
     ) if $eload;
 
     my $i = -1;
-    while (<$file>) {
-        chomp $_;
-        if ($_ =~ /\:/ && $_ !~ /^\s*lo\:/) {
-            $i++;
-            my @iface = split(":", $_);
-            my $if    = $iface[0];
-            $if =~ s/\ //g;
 
-            # not show cluster maintenance interface
-            $i = $i - 1 if $if eq 'cl_maintenance';
-            next        if $if eq 'cl_maintenance';
-
-            # ignore fallback device from ip_gre module
-            ($i-- && next) if $if =~ /^gre0$|^gretap0$|^erspan0$/;
-
-            # ignore fallback device from ip6_gre module
-            ($i-- && next) if $if =~ /^ip6gre0$|^ip6tnl0$/;
-
-            # ignore fallback device from sit module
-            ($i-- && next) if $if =~ /^sit0$/;
-
-            if ($_ =~ /:\ /) {
-                ($in, $out) = (split)[ 1, 9 ];
-            }
-            else {
-                ($in, $out) = (split)[ 0, 8 ];
-                $in = (split /:/, $in)[1];
-            }
-
-            if ($format ne "raw") {
-                $in  = (($in / 1024) / 1024);
-                $out = (($out / 1024) / 1024);
-                $in  = sprintf('%.2f', $in);
-                $out = sprintf('%.2f', $out);
-            }
-
-            push @interface,    $if;
-            push @interfacein,  $in;
-            push @interfaceout, $out;
-
-            push @outHash,
-              {
-                'interface' => $if,
-                'in'        => $in,
-                'out'       => $out
-              };
-            $outHash[-1]->{alias} = $alias->{$if} if $eload;
-
+    for my $line (@lines) {
+        unless ($line =~ /\:/ && $line !~ /^\s*lo\:/) {
+            next;
         }
+
+        $i++;
+        my @iface = split(":", $line);
+        my $if    = $iface[0];
+        $if =~ s/\ //g;
+
+        # not show cluster maintenance interface
+        $i = $i - 1 if $if eq 'cl_maintenance';
+        next        if $if eq 'cl_maintenance';
+
+        # ignore fallback device from ip_gre module
+        ($i-- && next) if $if =~ /^gre0$|^gretap0$|^erspan0$/;
+
+        # ignore fallback device from ip6_gre module
+        ($i-- && next) if $if =~ /^ip6gre0$|^ip6tnl0$/;
+
+        # ignore fallback device from sit module
+        ($i-- && next) if $if =~ /^sit0$/;
+
+        if ($line =~ /:\ /) {
+            ($in, $out) = (split)[ 1, 9 ];
+        }
+        else {
+            ($in, $out) = (split)[ 0, 8 ];
+            $in = (split /:/, $in)[1];
+        }
+
+        if ($format ne "raw") {
+            $in  = (($in / 1024) / 1024);
+            $out = (($out / 1024) / 1024);
+            $in  = sprintf('%.2f', $in);
+            $out = sprintf('%.2f', $out);
+        }
+
+        push @interface,    $if;
+        push @interfacein,  $in;
+        push @interfaceout, $out;
+        push @outHash, { 'interface' => $if, 'in' => $in, 'out' => $out };
+
+        $outHash[-1]->{alias} = $alias->{$if} if $eload;
     }
 
     for (my $j = 0 ; $j <= $i ; $j++) {
         push @data, [ $interface[$j] . ' in', $interfacein[$j] ],
           [ $interface[$j] . ' out', $interfaceout[$j] ];
     }
-
-    close $file;
 
     if ($format eq 'hash') {
         @data = sort { $a->{interface} cmp $b->{interface} } @outHash;
@@ -355,32 +382,37 @@ sub getNetworkStats {
     return @data;
 }
 
-=begin nd
-Function: getCPU
+=pod
 
-	Get system CPU usage stats.
+=head1 getCPU
+
+Get system CPU usage stats.
 
 Parameters:
-	none - .
+
+    none
 
 Returns:
-	list - Two dimensional array.
 
-	Example:
+    list - Two dimensional array.
 
-	@data = (
-			  ['CPUuser',    $cpu_user],
-			  ['CPUnice',    $cpu_nice],
-			  ['CPUsys',     $cpu_sys],
-			  ['CPUiowait',  $cpu_iowait],
-			  ['CPUirq',     $cpu_irq],
-			  ['CPUsoftirq', $cpu_softirq],
-			  ['CPUidle',    $cpu_idle],
-			  ['CPUusage',   $cpu_usage],
-	);
+    Example:
+
+    @data = (
+              ['CPUuser',    $cpu_user],
+              ['CPUnice',    $cpu_nice],
+              ['CPUsys',     $cpu_sys],
+              ['CPUiowait',  $cpu_iowait],
+              ['CPUirq',     $cpu_irq],
+              ['CPUsoftirq', $cpu_softirq],
+              ['CPUidle',    $cpu_idle],
+              ['CPUusage',   $cpu_usage],
+    );
 
 See Also:
-	zapi/v3/system_stats.cgi, zapi/v2/system_stats.cgi, cpu-rrd.pl
+
+    zapi/v3/system_stats.cgi, zapi/v2/system_stats.cgi, cpu-rrd.pl
+
 =cut
 
 sub getCPU {
@@ -414,54 +446,59 @@ sub getCPU {
 
     my @line_s;
 
-    open my $file, '<', $cpuinfo_filename;
+    if (open my $file, '<', $cpuinfo_filename) {
+        my @lines = <$file>;
+        close $file;
 
-    foreach my $line (<$file>) {
-        if ($line =~ /^cpu\ /) {
-            @line_s       = split("\ ", $line);
-            $cpu_user1    = $line_s[1];
-            $cpu_nice1    = $line_s[2];
-            $cpu_sys1     = $line_s[3];
-            $cpu_idle1    = $line_s[4];
-            $cpu_iowait1  = $line_s[5];
-            $cpu_irq1     = $line_s[6];
-            $cpu_softirq1 = $line_s[7];
-            $cpu_total1 =
-              $cpu_user1 +
-              $cpu_nice1 +
-              $cpu_sys1 +
-              $cpu_idle1 +
-              $cpu_iowait1 +
-              $cpu_irq1 +
-              $cpu_softirq1;
+        foreach my $line (@lines) {
+            if ($line =~ /^cpu\ /) {
+                @line_s       = split("\ ", $line);
+                $cpu_user1    = $line_s[1];
+                $cpu_nice1    = $line_s[2];
+                $cpu_sys1     = $line_s[3];
+                $cpu_idle1    = $line_s[4];
+                $cpu_iowait1  = $line_s[5];
+                $cpu_irq1     = $line_s[6];
+                $cpu_softirq1 = $line_s[7];
+                $cpu_total1 =
+                  $cpu_user1 +
+                  $cpu_nice1 +
+                  $cpu_sys1 +
+                  $cpu_idle1 +
+                  $cpu_iowait1 +
+                  $cpu_irq1 +
+                  $cpu_softirq1;
+            }
         }
     }
-    close $file;
 
     sleep $interval;
 
-    open $file, '<', $cpuinfo_filename;
-    foreach my $line (<$file>) {
-        if ($line =~ /^cpu\ /) {
-            @line_s       = split("\ ", $line);
-            $cpu_user2    = $line_s[1];
-            $cpu_nice2    = $line_s[2];
-            $cpu_sys2     = $line_s[3];
-            $cpu_idle2    = $line_s[4];
-            $cpu_iowait2  = $line_s[5];
-            $cpu_irq2     = $line_s[6];
-            $cpu_softirq2 = $line_s[7];
-            $cpu_total2 =
-              $cpu_user2 +
-              $cpu_nice2 +
-              $cpu_sys2 +
-              $cpu_idle2 +
-              $cpu_iowait2 +
-              $cpu_irq2 +
-              $cpu_softirq2;
+    if (open my $file, '<', $cpuinfo_filename) {
+        my @lines = <$file>;
+        close $file;
+
+        foreach my $line (@lines) {
+            if ($line =~ /^cpu\ /) {
+                @line_s       = split("\ ", $line);
+                $cpu_user2    = $line_s[1];
+                $cpu_nice2    = $line_s[2];
+                $cpu_sys2     = $line_s[3];
+                $cpu_idle2    = $line_s[4];
+                $cpu_iowait2  = $line_s[5];
+                $cpu_irq2     = $line_s[6];
+                $cpu_softirq2 = $line_s[7];
+                $cpu_total2 =
+                  $cpu_user2 +
+                  $cpu_nice2 +
+                  $cpu_sys2 +
+                  $cpu_idle2 +
+                  $cpu_iowait2 +
+                  $cpu_irq2 +
+                  $cpu_softirq2;
+            }
         }
     }
-    close $file;
 
     my $diff_cpu_user    = $cpu_user2 - $cpu_user1;
     my $diff_cpu_nice    = $cpu_nice2 - $cpu_nice1;
@@ -515,7 +552,7 @@ sub getCPU {
 
 sub getCPUUsageStats {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $out;    # Output
+    my $out;
 
     my @data_cpu = &getCPU();
 
@@ -531,40 +568,45 @@ sub getCPUUsageStats {
     return $out;
 }
 
-=begin nd
-Function: getDiskSpace
+=pod
 
-	Return total, used and free space for every partition in the system.
+=head1 getDiskSpace
+
+Return total, used and free space for every partition in the system.
 
 Parameters:
-	none - .
+
+    none
 
 Returns:
-	list - Two dimensional array.
 
-	@data = (
-          [
+    list - Two dimensional array.
+
+    @data = (
+        [
             'dev-dm-0 Total',
             1981104128
-          ],
-          [
+        ],
+        [
             'dev-dm-0 Used',
             1707397120
-          ],
-          [
+        ],
+        [
             'dev-dm-0 Free',
             154591232
-          ],
-          ...
-	);
+        ],
+        ...
+    );
 
 See Also:
-	disk-rrd.pl
+
+    disk-rrd.pl
+
 =cut
 
 sub getDiskSpace {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my @data;    # output
+    my @data;
 
     my $df_bin = &getGlobalConfiguration('df_bin');
     my @system = @{ &logAndGet("$df_bin -k", "array") };
@@ -597,45 +639,50 @@ sub getDiskSpace {
     return @data;
 }
 
-=begin nd
-Function: getDiskPartitionsInfo
+=pod
 
-	Get a reference to a hash with the partitions devices, mount points and name of rrd database.
+=head1 getDiskPartitionsInfo
+
+Get a reference to a hash with the partitions devices, mount points and name of rrd database.
 
 Parameters:
-	none - .
+
+    none
 
 Returns:
-	scalar - Hash reference.
 
-	Example:
+    scalar - Hash reference.
 
-	$partitions = {
-		'/dev/dm-0' => {
-							'mount_point' => '/',
-							'rrd_id' => 'dev-dm-0hd'
-						},
-		'/dev/mapper/zva64-config' => {
-										'mount_point' => '/usr/local/relianoid/config',
-										'rrd_id' => 'dev-mapper-zva64-confighd'
-										},
-		'/dev/mapper/zva64-log' => {
-									'mount_point' => '/var/log',
-									'rrd_id' => 'dev-mapper-zva64-loghd'
-									},
-		'/dev/xvda1' => {
-							'mount_point' => '/boot',
-							'rrd_id' => 'dev-xvda1hd'
-						}
-	};
+    Example:
+
+    $partitions = {
+        '/dev/dm-0' => {
+            'mount_point' => '/',
+            'rrd_id' => 'dev-dm-0hd'
+        },
+        '/dev/mapper/zva64-config' => {
+            'mount_point' => '/usr/local/relianoid/config',
+            'rrd_id' => 'dev-mapper-zva64-confighd'
+        },
+        '/dev/mapper/zva64-log' => {
+            'mount_point' => '/var/log',
+            'rrd_id' => 'dev-mapper-zva64-loghd'
+        },
+        '/dev/xvda1' => {
+            'mount_point' => '/boot',
+            'rrd_id' => 'dev-xvda1hd'
+        }
+    };
 
 See Also:
-	zapi/v3/system_stats.cgi
+
+    zapi/v3/system_stats.cgi
+
 =cut
 
 sub getDiskPartitionsInfo {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $partitions;    # output
+    my $partitions;
 
     my $df_bin = &getGlobalConfiguration('df_bin');
 
@@ -661,20 +708,25 @@ sub getDiskPartitionsInfo {
     return $partitions;
 }
 
-=begin nd
-Function: getDiskMountPoint
+=pod
 
-	Get the mount point of a partition device
+=head1 getDiskMountPoint
+
+Get the mount point of a partition device
 
 Parameters:
-	dev - Partition device.
+
+    dev - Partition device.
 
 Returns:
-	string - Mount point for such partition device.
-	undef  - The partition device is not mounted
+
+    string - Mount point for such partition device.
+    undef  - The partition device is not mounted
 
 See Also:
-	<genDiskGraph>
+
+    <genDiskGraph>
+
 =cut
 
 sub getDiskMountPoint {
@@ -697,19 +749,24 @@ sub getDiskMountPoint {
     return $mount;
 }
 
-=begin nd
-Function: getCPUTemp
+=pod
 
-	Get the CPU temperature in celsius degrees.
+=head1 getCPUTemp
+
+Get the CPU temperature in celsius degrees.
 
 Parameters:
-	none - .
+
+    none
 
 Returns:
-	string - Temperature in celsius degrees.
+
+    string - Temperature in celsius degrees.
 
 See Also:
-	temperature-rrd.pl
+
+    temperature-rrd.pl
+
 =cut
 
 sub getCPUTemp {

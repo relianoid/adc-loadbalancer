@@ -22,7 +22,11 @@
 ###############################################################################
 
 use strict;
+use warnings;
+use feature qw(signatures);
+no warnings 'experimental::args_array_with_signatures';
 
+use Carp;
 use Relianoid::Log;
 use Relianoid::Config;
 
@@ -30,57 +34,68 @@ my $configdir   = &getGlobalConfiguration("configdir");
 my $fg_conf     = "$configdir/farmguardian.conf";
 my $fg_template = &getGlobalConfiguration("templatedir") . "/farmguardian.template";
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
-=begin nd
-Function: getFGStatusFile
+=pod
 
-	The function returns the path of the file that is used to save the backend status for a farm.
+=head1 Module
 
-Parameters:
-	fname - Farm name
-
-Returns:
-	String - file path
+Relianoid::FarmGuardian
 
 =cut
 
-sub getFGStatusFile {
+=pod
+
+=head1 getFGStatusFile
+
+The function returns the path of the file that is used to save the backend status for a farm.
+
+Parameters:
+
+    fname - Farm name
+
+Returns:
+
+    String - file path
+
+=cut
+
+sub getFGStatusFile ($farm) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm = shift;
 
     return "$configdir\/$farm\_status.cfg";
 }
 
-=begin nd
-Function: getFGStruct
+=pod
 
-	It returns a default struct with all farmguardian parameters
+=head1 getFGStruct
+
+It returns a default struct with all farmguardian parameters
 
 Parameters:
-	none - .
+
+    none
 
 Returns:
-	Hash ref - hash with the available parameters of fg
 
-	example:
-	hash => {
-		'description' => "",       # Tiny description about the check
-		'command'     => "",       # Command to check. The check must return 0 on sucess
-		'farms'       => [],       # farm list where the farm guardian is applied
-		'log'         => "false",  # logg farm guardian
-		'interval'    => "10",     # Time between checks
-		'cut_conns' => "false",    # cut the connections with the backend is marked as down
-		'template'  => "false",    # it is a template. The fg cannot be deleted, only reset its configuration
-		'backend_alias'     => "false",    # Use the backend alias to do the farmguardian check. The load balancer must resolve the alias
-	};
+    Hash ref - hash with the available parameters of fg
+
+    example:
+
+    hash => {
+        'description' => "",       # Tiny description about the check
+        'command'     => "",       # Command to check. The check must return 0 on sucess
+        'farms'       => [],       # farm list where the farm guardian is applied
+        'log'         => "false",  # logg farm guardian
+        'interval'    => "10",     # Time between checks
+        'cut_conns' => "false",    # cut the connections with the backend is marked as down
+        'template'  => "false",    # it is a template. The fg cannot be deleted, only reset its configuration
+        'backend_alias'     => "false",    # Use the backend alias to do the farmguardian check. The load balancer must resolve the alias
+    };
 
 =cut
 
-sub getFGStruct {
+sub getFGStruct() {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     return {
         'description'   => "",         # Tiny description about the check
@@ -94,166 +109,195 @@ sub getFGStruct {
     };
 }
 
-=begin nd
-Function: getFGExistsConfig
+=pod
 
-	It checks out if the fg already exists in the configuration file.
+=head1 getFGExistsConfig
+
+It checks out if the fg already exists in the configuration file.
 
 Parameters:
-	Farmguardian - Farmguardian name
+
+    Farmguardian - Farmguardian name
 
 Returns:
-	Integer - 1 if the fg already exists or 0 if it is not
+
+    Integer - 1 if the fg already exists or 0 if it is not
 
 =cut
 
-sub getFGExistsConfig {
+sub getFGExistsConfig ($fg_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $fg_name = shift;
-    my $fh      = &getTiny($fg_conf);
+
+    my $fh = &getTiny($fg_conf);
     return (exists $fh->{$fg_name}) ? 1 : 0;
 }
 
-=begin nd
-Function: getFGExistsTemplate
+=pod
 
-	It checks out if a template farmguardian exists with this name.
+=head1 getFGExistsTemplate
+
+It checks out if a template farmguardian exists with this name.
 
 Parameters:
-	Farmguardian - Farmguardian name
+
+    Farmguardian - Farmguardian name
 
 Returns:
-	Integer - 1 if the fg exists or 0 if it is not
+
+    Integer - 1 if the fg exists or 0 if it is not
 
 =cut
 
-sub getFGExistsTemplate {
+sub getFGExistsTemplate ($fg_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $fg_name = shift;
-    my $fh      = &getTiny($fg_template);
+
+    my $fh = &getTiny($fg_template);
     return (exists $fh->{$fg_name}) ? 1 : 0;
 }
 
-=begin nd
-Function: getFGExists
+=pod
 
-	It checks out if the fg exists, in the template file or in the configuraton file
+=head1 getFGExists
+
+It checks out if the fg exists, in the template file or in the configuraton file
 
 Parameters:
-	Farmguardian - Farmguardian name
+
+    Farmguardian - Farmguardian name
 
 Returns:
-	Integer - 1 if the fg already exists or 0 if it is not
+
+    Integer - 1 if the fg already exists or 0 if it is not
 
 =cut
 
-sub getFGExists {
+sub getFGExists ($fg_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $fg_name = shift;
+
     return (&getFGExistsTemplate($fg_name) or &getFGExistsConfig($fg_name));
 }
 
-=begin nd
-Function: getFGConfigList
+=pod
 
-	It returns a list of farmguardian names of the configuration file
+=head1 getFGConfigList
+
+It returns a list of farmguardian names of the configuration file
 
 Parameters:
-	None - .
+
+    None
 
 Returns:
-	Array - List of fg names
+
+    Array - List of fg names
 
 =cut
 
-sub getFGConfigList {
+sub getFGConfigList() {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $fg_file = &getTiny($fg_conf);
     return keys %{$fg_file};
 }
 
-=begin nd
-Function: getFGTemplateList
+=pod
 
-	It returns a list of farmguardian names of the template file
+=head1 getFGTemplateList
+
+It returns a list of farmguardian names of the template file
 
 Parameters:
-	None - .
+
+    None
 
 Returns:
-	Array - List of fg names
+
+    Array - List of fg names
 
 =cut
 
-sub getFGTemplateList {
+sub getFGTemplateList() {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $fg_file = &getTiny($fg_template);
     return keys %{$fg_file};
 }
 
-=begin nd
-Function: getFGList
+=pod
 
-	It is a list with all fg, templates and created by the user
+=head1 getFGList
+
+It is a list with all fg, templates and created by the user
 
 Parameters:
-	None - .
+
+    None
 
 Returns:
-	Array - List of fg names
+
+    Array - List of fg names
 
 =cut
 
-sub getFGList {
+sub getFGList() {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my @list = &getFGConfigList();
 
     # get from template file
     foreach my $fg (&getFGTemplateList()) {
-        next if (grep (/^$fg$/, @list));
+        next if grep { /^$fg$/ } @list;
         push @list, $fg;
     }
 
     return @list;
 }
 
-=begin nd
-Function: getFGObject
+=pod
 
-	Get the configuration of a farmguardian
+=head1 getFGObject
+
+Get the configuration of a farmguardian
 
 Parameters:
-	Farmguardian - Farmguardian name
-	template - If this parameter has the value "template", the function returns the object from the template file
+
+    Farmguardian - Farmguardian name
+    template - If this parameter has the value "template", the function returns the object from the template file
 
 Returns:
-	Hash ref - It returns a hash with the configuration of the farmguardian
 
-	example:
-	hash => {
-		'description' => "",       # Tiny description about the check
-		'command'     => "",       # Command to check. The check must return 0 on sucess
-		'farms'       => [],       # farm list where the farm guardian is applied
-		'log'         => "false",  # log farm guardian
-		'interval'    => "10",     # Time between checks
-		'cut_conns' => "false",    # cut the connections with the backend is marked as down
-		'template'  => "false",    # it is a template. The fg cannot be deleted, only reset its configuration
-		'backend_alias'     => "false",    # Use the backend alias to do the farmguardian check. The load balancer must resolve the alias
-	};
+    Hash ref - It returns a hash with the configuration of the farmguardian
+
+    example:
+
+    hash => {
+        'description' => "",       # Tiny description about the check
+        'command'     => "",       # Command to check. The check must return 0 on sucess
+        'farms'       => [],       # farm list where the farm guardian is applied
+        'log'         => "false",  # log farm guardian
+        'interval'    => "10",     # Time between checks
+        'cut_conns' => "false",    # cut the connections with the backend is marked as down
+        'template'  => "false",    # it is a template. The fg cannot be deleted, only reset its configuration
+        'backend_alias'     => "false",    # Use the backend alias to do the farmguardian check. The load balancer must resolve the alias
+    };
 
 =cut
 
-sub getFGObject {
+sub getFGObject ($fg_name, $use_template = '') {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $fg_name      = shift;
-    my $use_template = shift;
-    my $file         = "";
+
+    unless ($fg_name) {
+        croak("Farmguardian name required");
+    }
+
+    my $file = "";
 
     # using template file if this parameter is sent
-    if ($use_template eq 'template') { $file = $fg_template; }
+    if ($use_template eq 'template') {
+        $file = $fg_template;
+    }
 
     # using farmguardian config file by default
-    elsif (grep (/^$fg_name$/, &getFGConfigList())) { $file = $fg_conf; }
+    elsif (grep { /^$fg_name$/ } &getFGConfigList()) {
+        $file = $fg_conf;
+    }
 
     # using template file if farmguardian is not defined in config file
     else { $file = $fg_template; }
@@ -265,31 +309,32 @@ sub getFGObject {
     return $obj;
 }
 
-=begin nd
-Function: getFGFarm
+=pod
 
-	Get the fg name that a farm is using
+=head1 getFGFarm
+
+Get the fg name that a farm is using
 
 Parameters:
-	Farm - Farm name
-	service - Service of the farm. This parameter is mandatory for HTTP and GSLB farms
+
+    Farm - Farm name
+    service - Service of the farm. This parameter is mandatory for HTTP and GSLB farms
 
 Returns:
-	String - Farmguardian name
+
+    string|undef - Farmguardian name
 
 =cut
 
-sub getFGFarm {
+sub getFGFarm ($farm, $srv = undef) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm = shift;
-    my $srv  = shift;
 
     my $fg;
     my $farm_tag = ($srv) ? "${farm}_$srv" : "$farm";
     my $fg_list  = &getTiny($fg_conf);
 
     foreach my $fg_name (keys %{$fg_list}) {
-        if (grep (/(^| )$farm_tag( |$)/, $fg_list->{$fg_name}->{farms})) {
+        if (grep { /(^| )$farm_tag( |$)/ } $fg_list->{$fg_name}->{farms}) {
             $fg = $fg_name;
             last;
         }
@@ -298,93 +343,105 @@ sub getFGFarm {
     return $fg;
 }
 
-=begin nd
-Function: createFGBlank
+=pod
 
-	Create a fg without configuration
+=head1 createFGBlank
+
+Create a fg without configuration
 
 Parameters:
-	Name - Farmguardian name
+
+    Name - Farmguardian name
 
 Returns:
-	none - .
+
+    none
 
 =cut
 
-sub createFGBlank {
+sub createFGBlank ($name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $name = shift;
 
     my $values = &getFGStruct();
     &setFGObject($name, $values);
+
+    return;
 }
 
-=begin nd
-Function: createFGTemplate
+=pod
 
-	Create a fg from a template
+=head1 createFGTemplate
+
+Create a fg from a template
 
 Parameters:
-	Farmguardian - Farmguardian name
-	template - If this parameter has the value "template", the function returns the object from the template file
+
+    Farmguardian - Farmguardian name
+    template - If this parameter has the value "template", the function returns the object from the template file
 
 Returns:
-	None - .
+
+    None
 
 =cut
 
-sub createFGTemplate {
+sub createFGTemplate ($name, $template) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $name     = shift;
-    my $template = shift;
 
     my $values = &getFGObject($template, 'template');
     $values->{'template'} = "false";
 
     &setFGObject($name, $values);
+
+    return;
 }
 
-=begin nd
-Function: createFGConfig
+=pod
 
-	 create a farm guardian from another farm guardian
+=head1 createFGConfig
+
+Create a farm guardian from another farm guardian
 
 Parameters:
-	Farmguardian - Farmguardian name
-	template - Farmguardian name of the fg used as template
+
+    Farmguardian - Farmguardian name
+    template - Farmguardian name of the fg used as template
 
 Returns:
-	None - .
+
+    None
 
 =cut
 
-sub createFGConfig {
+sub createFGConfig ($name, $fg_config) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $name      = shift;
-    my $fg_config = shift;
 
     my $values = &getFGObject($fg_config);
     $values->{farms} = [];
     &setFGObject($name, $values);
+
+    return;
 }
 
-=begin nd
-Function: delFGObject
+=pod
 
-	Remove a farmguardianfrom the configuration file. First, it stops it.
-	This function will restart the fg process.
+=head1 delFGObject
+
+Remove a farmguardianfrom the configuration file. First, it stops it.
+This function will restart the fg process.
 
 Parameters:
-	Farmguardian - Farmguardian name
+
+    Farmguardian - Farmguardian name
 
 Returns:
-	Integer - 0 on success or another value on failure
+
+    Integer - 0 on success or another value on failure
 
 =cut
 
-sub delFGObject {
+sub delFGObject ($fg_name) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $fg_name = shift;
 
     my $out = &runFGStop($fg_name);
     $out = &delTinyObj($fg_conf, $fg_name);
@@ -392,34 +449,35 @@ sub delFGObject {
     return $out;
 }
 
-=begin nd
-Function: setFGObject
+=pod
 
-	Set a configuration for fg.
-	This function has 2 behaviour:
-		* passing to the function a hash with several parameters
-		* passing to the function 2 parameters, key and value. So, only is updated one parater.
+=head1 setFGObject
 
-	If the farmguardian name is not found in the configuration file, the configuraton will be got
-	from the template file and save it in the configuration file.
+Set a configuration for fg.
+This function has 2 behaviour:
 
-	This function will restart the fg process
+    * passing to the function a hash with several parameters
+    * passing to the function 2 parameters, key and value. So, only is updated one parater.
+
+If the farmguardian name is not found in the configuration file, the configuraton will be got
+from the template file and save it in the configuration file.
+
+This function will restart the fg process
 
 Parameters:
-	Farmguardian - Farmguardian name
-	object / key - object: hash reference with a set of parameters, or key: parameter name to set
-	value - value for the "key"
+
+    Farmguardian - Farmguardian name
+    object / key - object: hash reference with a set of parameters, or key: parameter name to set
+    value        - value for the "key"
 
 Returns:
-	Integer - 0 on success or another value on failure
+
+    Integer - 0 on success or another value on failure
 
 =cut
 
-sub setFGObject {
+sub setFGObject ($fg_name, $key = undef, $value = undef) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $fg_name = shift;
-    my $key     = shift;
-    my $value   = shift;
 
     my $restart = 0;
     my $out     = 0;
@@ -427,7 +485,7 @@ sub setFGObject {
     # not restart if only is changed the parameter description
     if (&getFGExistsConfig($fg_name)) {
         if (@{ &getFGRunningFarms($fg_name) }) {
-            if (ref $key and grep (!/^description$/, keys %{$key})) {
+            if (ref $key and grep { !/^description$/ } keys %{$key}) {
                 $restart = 1;
             }
             elsif ($key ne 'description') { $restart = 1; }
@@ -455,24 +513,25 @@ sub setFGObject {
     return $out;
 }
 
-=begin nd
-Function: setFGFarmRename
+=pod
 
-	Re-asign farmguardian to a farm that has been renamed
+=head1 setFGFarmRename
+
+Re-asign farmguardian to a farm that has been renamed
 
 Parameters:
-	old name - Old farm name
-	new name - New farm name
+
+    old name - Old farm name
+    new name - New farm name
 
 Returns:
-	Integer - 0 on success or another value on failure
+
+    Integer - 0 on success or another value on failure
 
 =cut
 
-sub setFGFarmRename {
+sub setFGFarmRename ($farm, $new_farm) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm     = shift;
-    my $new_farm = shift;
 
     my $fh = &getTiny($fg_conf);
     my $srv;
@@ -500,27 +559,35 @@ sub setFGFarmRename {
     return $out;
 }
 
-=begin nd
-Function: linkFGFarm
+=pod
 
-	Assign a farmguardian to a farm (or service of a farm).
-	Farmguardian will run if the farm is up.
+=head1 linkFGFarm
+
+Assign a farmguardian to a farm (or service of a farm).
+Farmguardian will run if the farm is up.
 
 Parameters:
-	Farmguardian - Farmguardian name
-	Farm - Farm name
-	Service - Service name. It is used for GSLB and HTTP farms
+
+    Farmguardian - Farmguardian name
+    Farm         - Farm name
+    Service      - Service name. It is used for GSLB and HTTP farms
 
 Returns:
-	Integer - 0 on success or another value on failure
+
+    Integer - 0 on success or another value on failure
 
 =cut
 
-sub linkFGFarm {
+sub linkFGFarm ($fg_name, $farm, $srv = undef) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $fg_name = shift;
-    my $farm    = shift;
-    my $srv     = shift;
+
+    unless ($fg_name) {
+        croak("Farmguardian name required");
+    }
+    unless ($farm) {
+        croak("Farm name required");
+    }
+
     my $out;
 
     require Relianoid::Farm::Base;
@@ -550,27 +617,27 @@ sub linkFGFarm {
     return $out;
 }
 
-=begin nd
-Function: unlinkFGFarm
+=pod
 
-	Remove a farmguardian from a farm (or service of a farm).
-	Farmguardian will be stopped if it is running.
+=head1 unlinkFGFarm
+
+Remove a farmguardian from a farm (or service of a farm).
+Farmguardian will be stopped if it is running.
 
 Parameters:
-	Farmguardian - Farmguardian name
-	Farm - Farm name
-	Service - Service name. It is used for GSLB and HTTP farms
+
+    Farmguardian - Farmguardian name
+    Farm         - Farm name
+    Service      - Service name. It is used for GSLB and HTTP farms
 
 Returns:
-	Integer - 0 on success or another value on failure
+
+    Integer - 0 on success or another value on failure
 
 =cut
 
-sub unlinkFGFarm {
+sub unlinkFGFarm ($fg_name, $farm, $srv = undef) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $fg_name = shift;
-    my $farm    = shift;
-    my $srv     = shift;
 
     my $type = &getFarmType($farm);
 
@@ -596,24 +663,25 @@ sub unlinkFGFarm {
     return $out;
 }
 
-=begin nd
-Function: delFGFarm
+=pod
 
-	Function used if a farm is deleted. All farmguardian assigned to it will be unliked.
+=head1 delFGFarm
+
+Function used if a farm is deleted. All farmguardian assigned to it will be unliked.
 
 Parameters:
-	Farm - Farm name
-	Service - Service name. It is used for GSLB and HTTP farms
+
+    Farm    - Farm name
+    Service - Service name. It is used for GSLB and HTTP farms
 
 Returns:
-	None - .
+
+    None
 
 =cut
 
-sub delFGFarm {
+sub delFGFarm ($farm, $service = undef) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm    = shift;
-    my $service = shift;
 
     require Relianoid::Farm::Service;
 
@@ -639,32 +707,36 @@ sub delFGFarm {
         $fg = &getFGFarm($farm);
         $err |= &setTinyObj($fg_conf, $fg, 'farms', $farm, 'del') if $fg;
     }
+
+    return;
 }
 
 ############# run process
 
-=begin nd
-Function: getFGPidFile
+=pod
 
-	Get the path of the file where the pid of the farmguardian is saved.
+=head1 getFGPidFile
+
+Get the path of the file where the pid of the farmguardian is saved.
 
 Parameters:
-	Farm - Farm name
-	Service - Service name. It is used for GSLB and HTTP farms. It expects 'undef' for l4 farms
+
+    Farm - Farm name
+    Service - Service name. It is used for GSLB and HTTP farms. It expects 'undef' for l4 farms
 
 Returns:
-	String - Pid file path.
+
+    String - Pid file path.
 
 =cut
 
-sub getFGPidFile {
+sub getFGPidFile ($fname, $svice = undef) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $fname  = shift;
-    my $svice  = shift;
+
     my $piddir = &getGlobalConfiguration('piddir');
     my $file;
 
-    if ($svice ne '' and defined $svice) {
+    if (defined $svice and length $svice) {
 
         # return a regexp for a farm the request service
         $file = "$piddir/${fname}_${svice}_guardian.pid";
@@ -678,27 +750,27 @@ sub getFGPidFile {
     return $file;
 }
 
-=begin nd
-Function: getFGPidFarm
+=pod
 
-	It returns the farmguardian PID assigned to a farm (and service)
+=head1 getFGPidFarm
+
+It returns the farmguardian PID assigned to a farm (and service)
 
 Parameters:
-	Farm - Farm name
-	Service - Service name. It is used for GSLB and HTTP farms
+
+    Farm - Farm name
+    Service - Service name. It is used for GSLB and HTTP farms
 
 Returns:
-	Integer - 0 on failure, or a natural number for PID
+
+    Integer - 0 on failure, or a natural number for PID
 
 =cut
 
-sub getFGPidFarm {
+sub getFGPidFarm ($farm, $service = undef) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm    = shift;
-    my $service = shift;
-    my $pid     = 0;
 
-    # get pid
+    my $pid     = 0;
     my $pidFile = &getFGPidFile($farm, $service);
 
     if (!-f "$pidFile") {
@@ -726,27 +798,29 @@ sub getFGPidFarm {
     return $pid;
 }
 
-=begin nd
-Function: runFGStop
+=pod
 
-	It stops all farmguardian process are using the passed fg name
+=head1 runFGStop
+
+It stops all farmguardian process are using the passed fg name
 
 Parameters:
-	Farmguardian - Farmguardian name
+
+    Farmguardian - Farmguardian name
 
 Returns:
-	Integer - 0 on failure, or another value on success
+
+    Integer - 0 on failure, or another value on success
 
 =cut
 
-sub runFGStop {
+sub runFGStop ($fgname) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $fgname = shift;
-    my $out;
-
     &zenlog("Stopping farmguardian $fgname", "debug", "FG");
 
+    my $out;
     my $obj = &getFGObject($fgname);
+
     foreach my $farm (@{ $obj->{farms} }) {
         my $srv;
         if ($farm =~ /([^_]+)_(.+)/) {
@@ -760,27 +834,29 @@ sub runFGStop {
     return $out;
 }
 
-=begin nd
-Function: runFGStart
+=pod
 
-	It runs fg for each farm is using it and it is running
+=head1 runFGStart
+
+It runs fg for each farm is using it and it is running
 
 Parameters:
-	Farmguardian - Farmguardian name
+
+    Farmguardian - Farmguardian name
 
 Returns:
-	Integer - 0 on failure, or another value on success
+
+    Integer - 0 on failure, or another value on success
 
 =cut
 
-sub runFGStart {
+sub runFGStart ($fgname) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $fgname = shift;
-    my $out;
-
     &zenlog("Starting farmguardian $fgname", "debug", "FG");
 
+    my $out;
     my $obj = &getFGObject($fgname);
+
     foreach my $farm (@{ $obj->{farms} }) {
         my $srv;
         if ($farm =~ /([^_]+)_(.+)/) {
@@ -794,160 +870,171 @@ sub runFGStart {
     return $out;
 }
 
-=begin nd
-Function: runFGRestart
+=pod
 
-	It restarts all farmguardian process for each farm is using the passed fg
+=head1 runFGRestart
+
+It restarts all farmguardian process for each farm is using the passed fg
 
 Parameters:
-	Farmguardian - Farmguardian name
+
+    Farmguardian - Farmguardian name
 
 Returns:
-	Integer - 0 on failure, or another value on success
+
+    Integer - 0 on failure, or another value on success
 
 =cut
 
-sub runFGRestart {
+sub runFGRestart ($fgname) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $fgname = shift;
-    my $out;
 
-    $out = &runFGStop($fgname);
+    my $out = &runFGStop($fgname);
     $out |= &runFGStart($fgname);
 
     return $out;
 }
 
-=begin nd
-Function: runFGFarmStop
+=pod
 
-	It stops farmguardian process used by the farm. If the farm is GSLB or HTTP
-	and is not passed the service name, all farmguardians will be stoped.
+=head1 runFGFarmStop
+
+It stops farmguardian process used by the farm. If the farm is GSLB or HTTP
+and is not passed the service name, all farmguardians will be stoped.
 
 Parameters:
-	Farm - Farm name
-	Service - Service name. This parameter is for HTTP and GSLB farms. If the farm has not services, this parameter expect 'undef'
+
+    Farm - Farm name
+    Service - Service name. This parameter is for HTTP and GSLB farms. If the farm has not services, this parameter expect 'undef'
 
 Returns:
-	Integer - 0 on failure, or another value on success
+
+    Integer - 0 on failure, or another value on success
 
 =cut
 
-sub runFGFarmStop {
+sub runFGFarmStop ($farm, $service = undef) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm = shift;
 
     # optional, if the farm is http and the service is not sent to
     # the function, all services will be restarted
-    my $service = shift;
-
-    $service = undef
-      if (defined $service and $service eq '');    # overwrite the parameter is it a empty string
+    $service = undef if (defined $service and not length $service);
 
     my $out = 0;
-    my $srvtag;
-    my $status_file = &getFGStatusFile($farm, $service);
 
     require Relianoid::Farm::Core;
     my $type = &getFarmType($farm);
-    if ($type =~ /http/ and !defined $service) {
+
+    # Stop Farmguardian for every service
+    if ($type =~ /http/ and not defined $service) {
         require Relianoid::Farm::Service;
         foreach my $srv (&getFarmServices($farm)) {
             $out |= &runFGFarmStop($farm, $srv);
         }
+        return $out;
     }
-    else {
-        my $fgpid = &getFGPidFarm($farm, $service);
 
-        if ($fgpid && $fgpid > 0) {
-            &zenlog("running 'kill 9, $fgpid' stopping FarmGuardian $farm $service", "debug", "FG");
+    my $fgpid = &getFGPidFarm($farm, $service);
 
-            # kill returns the number of process affected
-            $out = kill 9, $fgpid;
-            $out = (not $out);
-            if ($out) {
-                &zenlog("running 'kill 9, $fgpid' stopping FarmGuardian $farm $service",
-                    "error", "FG");
-            }
+    if ($fgpid && $fgpid > 0) {
+        my $service_str = $service // '';
+        &zenlog("running 'kill 9, $fgpid' stopping FarmGuardian $farm $service_str", "debug", "FG");
 
-            # delete pid files
-            unlink &getFGPidFile($farm, $service);
+        # kill returns the number of process affected
+        $out = kill 9, $fgpid;
+        $out = (not $out);
+        if ($out) {
+            &zenlog("running 'kill 9, $fgpid' stopping FarmGuardian $farm $service_str",
+                "error", "FG");
+        }
 
-            # put backend up
-            if ($type eq "http" || $type eq "https") {
-                if (-e $status_file) {
-                    require Relianoid::Farm::HTTP::Service;
-                    require Tie::File;
+        # delete pid files
+        unlink &getFGPidFile($farm, $service);
 
-                    my $idsv = &getFarmVSI($farm, $service);
+        # put backend up
+        if ($type eq "http" || $type eq "https") {
+            my $status_file = &getFGStatusFile($farm);
 
-                    tie my @filelines, 'Tie::File', $status_file;
+            if (-e $status_file && -s $status_file) {
+                require Relianoid::Farm::HTTP::Service;
+                require Tie::File;
 
-                    my @fileAux = @filelines;
-                    my $lines   = scalar @fileAux;
+                my $idsv = &getFarmVSI($farm, $service);
 
-                    while ($lines >= 0) {
-                        $lines--;
-                        if ($fileAux[$lines] =~ /0 $idsv (\d+) fgDOWN/) {
-                            my $index = $1;
-                            splice(@fileAux, $lines, 1,);
+                tie my @filelines, 'Tie::File', $status_file;
 
-                            require Relianoid::Farm::HTTP::Backend;
-                            my $error_ref =
-                              &setHTTPFarmBackendStatus($farm, $service, $index, 'up', 'cut');
-                            $error_ref->{code} = 0
-                              if (  $error_ref->{code} != 1
-                                and $error_ref->{code} != -1);
-                            $out |= $error_ref->{code};
-                        }
+                my @fileAux = @filelines;
+                my $lines   = scalar @fileAux;
+
+                while ($lines > 0) {
+                    $lines--;
+
+                    my $matched = $fileAux[$lines] =~ /0 $idsv (\d+) fgDOWN/;
+                    my $index   = $1;
+
+                    next if not $matched;
+
+                    splice(@fileAux, $lines, 1,);
+
+                    require Relianoid::Farm::HTTP::Backend;
+                    my $error_ref = &setHTTPFarmBackendStatus($farm, $service, $index, 'up', 'cut');
+
+                    if ($error_ref->{code} != 1 and $error_ref->{code} != -1) {
+                        $error_ref->{code} = 0;
                     }
-                    @filelines = @fileAux;
-                    untie @filelines;
+
+                    $out |= $error_ref->{code};
                 }
-            }
-
-            if ($type eq "l4xnat") {
-                require Relianoid::Farm::Backend;
-
-                my $be = &getFarmServers($farm);
-
-                foreach my $l_serv (@{$be}) {
-                    if ($l_serv->{status} eq "fgDOWN") {
-                        my $error_ref = &setL4FarmBackendStatus($farm, $l_serv->{id}, "up");
-                        $error_ref->{code} = 0
-                          if (  $error_ref->{code} != 1
-                            and $error_ref->{code} != -1);
-                        $out |= $error_ref->{code};
-                    }
-                }
+                @filelines = @fileAux;
+                untie @filelines;
             }
         }
-        $srvtag = "${service}_" if (defined $service);
-        unlink "$configdir/${farm}_${srvtag}status.cfg";
+
+        if ($type eq "l4xnat") {
+            require Relianoid::Farm::Backend;
+
+            my $be = &getFarmServers($farm);
+
+            foreach my $l_serv (@{$be}) {
+                unless ($l_serv->{status} eq "fgDOWN") {
+                    next;
+                }
+
+                my $error_ref = &setL4FarmBackendStatus($farm, $l_serv->{id}, "up");
+                if ($error_ref->{code} != 1 and $error_ref->{code} != -1) {
+                    $error_ref->{code} = 0;
+                }
+                $out |= $error_ref->{code};
+            }
+        }
     }
+    my $srvtag = defined $service ? "${service}_" : '';
+    unlink "$configdir/${farm}_${srvtag}status.cfg";
 
     return $out;
 }
 
-=begin nd
-Function: runFGFarmStart
+=pod
 
-	It starts the farmguardian process used by the farm. If the farm is GSLB or HTTP
-	and is not passed the service name, all farmguardians will be run.
-	The pid file is created by the farmguardian process.
+=head1 runFGFarmStart
+
+It starts the farmguardian process used by the farm. If the farm is GSLB or HTTP
+and is not passed the service name, all farmguardians will be run.
+The pid file is created by the farmguardian process.
 
 Parameters:
-	Farm - Farm name
-	Service - Service name. This parameter is for HTTP and GSLB farms.
+
+    Farm - Farm name
+    Service - Service name. This parameter is for HTTP and GSLB farms.
 
 Returns:
-	Integer - 0 on failure, or another value on success
+
+    Integer - 0 on failure, or another value on success
 
 =cut
 
-sub runFGFarmStart {
+sub runFGFarmStart ($farm, $svice = undef) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm, $svice) = @_;
 
     my $status = 0;
     my $log    = "";
@@ -964,8 +1051,6 @@ sub runFGFarmStart {
     # if the farmguardian is running...
     if (&getFGPidFarm($farm, $svice)) {
         return 0;
-
-        #~ &runFGFarmStop( $farm, $svice );
     }
 
     # check if the node is master
@@ -976,9 +1061,10 @@ sub runFGFarmStart {
             func   => 'getZClusterNodeStatus',
             args   => [],
         );
-        return 0 unless (!$node or $node eq 'master');
+        return 0 unless (not $node or $node eq 'master');
     }
 
+    $svice = '' if not defined $svice;
     &zenlog("Start fg for farm $farm, $svice", "debug2", "FG");
 
     if ($ftype =~ /http/ && $svice eq "") {
@@ -1046,55 +1132,56 @@ sub runFGFarmStart {
     return $status;
 }
 
-=begin nd
-Function: runFGFarmRestart
+=pod
 
-	It restarts the farmguardian process used by the farm. If the farm is GSLB or HTTP
-	and is not passed the service name, all farmguardians will be restarted.
+=head1 runFGFarmRestart
+
+It restarts the farmguardian process used by the farm. If the farm is GSLB or HTTP
+and is not passed the service name, all farmguardians will be restarted.
 
 Parameters:
-	Farm - Farm name
-	Service - Service name. This parameter is for HTTP and GSLB farms.
+
+    Farm    - Farm name
+    Service - Service name. This parameter is for HTTP and GSLB farms.
 
 Returns:
-	Integer - 0 on failure, or another value on success
+
+    Integer - 0 on failure, or another value on success
 
 =cut
 
-sub runFGFarmRestart {
+sub runFGFarmRestart ($farm, $service = undef) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm    = shift;
-    my $service = shift;
-    my $out;
 
-    $out = &runFGFarmStop($farm, $service);
+    my $out = &runFGFarmStop($farm, $service);
     $out |= &runFGFarmStart($farm, $service);
 
     return $out;
 }
 
-=begin nd
-Function: getFGRunningFarms
+=pod
 
-	Get a list with all running farms where the farmguardian is applied.
+=head1 getFGRunningFarms
+
+Get a list with all running farms where the farmguardian is applied.
 
 Parameters:
-	Farmguardian - Farmguardian name
+
+    Farmguardian - Farmguardian name
 
 Returns:
-	Array ref - list of farm names
+
+    Array ref - list of farm names
 
 =cut
 
-sub getFGRunningFarms {
+sub getFGRunningFarms ($fg) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $fg = shift;
-    my @runfarm;
 
     require Relianoid::Farm::Core;
     require Relianoid::Farm::Base;
 
-    # check all pid
+    my @runfarm;
     foreach my $farm (@{ &getFGObject($fg)->{'farms'} }) {
         my $srv;
         if ($farm =~ /([^_]+)_(.+)/) {
@@ -1109,44 +1196,47 @@ sub getFGRunningFarms {
     return \@runfarm;
 }
 
-=begin nd
-Function: getFGMigrateFile
+=pod
 
-	This function returns a standard name used to migrate the old farmguardians.
+=head1 getFGMigrateFile
+
+This function returns a standard name used to migrate the old farmguardians.
 
 Parameters:
-	Farm - Farm name
-	Service - Service name. This parameter is for HTTP and GSLB farms.
+
+    Farm - Farm name
+    Service - Service name. This parameter is for HTTP and GSLB farms.
 
 Returns:
-	String - Farmguardian name
+
+    String - Farmguardian name
 
 =cut
 
-sub getFGMigrateFile {
+sub getFGMigrateFile ($farm, $srv = undef) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm = shift;
-    my $srv  = shift;
 
     return ($srv) ? "_default_${farm}_$srv" : "_default_$farm";
 }
 
-=begin nd
-Function: setOldFarmguardian
+=pod
 
-	Create a struct of the new fg using the parameters of the old fg
+=head1 setOldFarmguardian
+
+Create a struct of the new fg using the parameters of the old fg
 
 Parameters:
-	Configuration - Hash with the configuration of the old FG
+
+    Configuration - Hash with the configuration of the old FG
 
 Returns:
-	None - .
+
+    None
 
 =cut
 
-sub setOldFarmguardian {
+sub setOldFarmguardian ($obj) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $obj = shift;
 
     my $srv  = $obj->{service} // "";
     my $farm = $obj->{farm};
@@ -1185,8 +1275,12 @@ sub setOldFarmguardian {
 
     &setFGObject($name, $set);
     my $farm_tag = ($srv) ? "${farm}_$srv" : $farm;
-    &setTinyObj($fg_conf, $name, 'farms', $farm_tag, 'add')
-      if ($obj->{enable} eq 'true');
+
+    if ($obj->{enable} eq 'true') {
+        &setTinyObj($fg_conf, $name, 'farms', $farm_tag, 'add');
+    }
+
+    return;
 }
 
 ####################################################################
@@ -1194,24 +1288,29 @@ sub setOldFarmguardian {
 # Those functions are for compatibility with the APIs 3.0 and 3.1
 ####################################################################
 
-=begin nd
-Function: getFarmGuardianLog
+=pod
 
-	Returns if FarmGuardian has logs activated for this farm
+=head1 getFarmGuardianLog
+
+    Returns if FarmGuardian has logs activated for this farm
 
 Parameters:
-	fname - Farm name.
-	svice - Service name. Only apply if the farm profile has services. Leave undefined for farms without services.
+
+    fname - Farm name.
+    svice - Service name. Only apply if the farm profile has services. Leave undefined for farms without services.
 
 Returns:
-	-1 - If farmguardian file was not found.
-	 0 - If farmguardian log is disabled.
-	 1 - If farmguardian log is enabled.
+
+    -1 - If farmguardian file was not found.
+     0 - If farmguardian log is disabled.
+     1 - If farmguardian log is enabled.
 
 Bugs:
 
 See Also:
-	<runFarmGuardianStart>
+
+    <runFarmGuardianStart>
+
 =cut
 
 sub getFarmGuardianLog    # ($fname,$svice)
@@ -1224,24 +1323,30 @@ sub getFarmGuardianLog    # ($fname,$svice)
     return &getFGObject($fg)->{logs} // undef;
 }
 
-=begin nd
-Function: runFarmGuardianStart
+=pod
 
-	Start FarmGuardian rutine
+=head1 runFarmGuardianStart
+
+Start FarmGuardian rutine
 
 Parameters:
-	fname - Farm name.
-	svice - Service name. Only apply if the farm profile has services. Leave undefined for farms without services.
+
+    fname - Farm name.
+    svice - Service name. Only apply if the farm profile has services. Leave undefined for farms without services.
 
 Returns:
-	-1       - If farmguardian file was not found or if farmguardian is not running.
-	 0       - If farm profile is not supported by farmguardian, or farmguardian was executed.
+
+    -1 - If farmguardian file was not found or if farmguardian is not running.
+    0  - If farm profile is not supported by farmguardian, or farmguardian was executed.
 
 Bugs:
-	Returning $? after running a command in the background & gives the illusion of capturing the ERRNO of the ran program. That is not possible since the program may not have finished.
+
+    Returning $? after running a command in the background & gives the illusion of capturing the ERRNO of the ran program. That is not possible since the program may not have finished.
 
 See Also:
-	zcluster-manager, relianoid, <runFarmStart>, <setNewFarmName>, zapi/v3/farm_guardian.cgi, zapi/v2/farm_guardian.cgi
+
+    zcluster-manager, relianoid, <runFarmStart>, <setNewFarmName>, zapi/v3/farm_guardian.cgi, zapi/v2/farm_guardian.cgi
+
 =cut
 
 sub runFarmGuardianStart    # ($fname,$svice)
@@ -1252,20 +1357,25 @@ sub runFarmGuardianStart    # ($fname,$svice)
     return &runFGFarmStart($fname, $svice);
 }
 
-=begin nd
-Function: runFarmGuardianStop
+=pod
 
-	Stop FarmGuardian rutine
+=head1 runFarmGuardianStop
+
+Stop FarmGuardian rutine
 
 Parameters:
-	fname - Farm name.
-	svice - Service name. Only apply if the farm profile has services. Leave undefined for farms without services.
+
+    fname - Farm name.
+    svice - Service name. Only apply if the farm profile has services. Leave undefined for farms without services.
 
 Returns:
-	Integer - 0 on success, or greater than 0 on failure.
+
+    Integer - 0 on success, or greater than 0 on failure.
 
 See Also:
-	relianoid, <runFarmStop>, <setNewFarmName>, zapi/v3/farm_guardian.cgi, <runFarmGuardianRemove>
+
+    relianoid, <runFarmStop>, <setNewFarmName>, zapi/v3/farm_guardian.cgi, <runFarmGuardianRemove>
+
 =cut
 
 sub runFarmGuardianStop    # ($fname,$svice)
@@ -1276,30 +1386,36 @@ sub runFarmGuardianStop    # ($fname,$svice)
     return &runFGFarmStop($fname, $svice);
 }
 
-=begin nd
-Function: runFarmGuardianCreate
+=pod
 
-	Create or update farmguardian config file
+=head1 runFarmGuardianCreate
 
-	ttcheck and script must be defined and non-empty to enable farmguardian.
+Create or update farmguardian config file
+
+ttcheck and script must be defined and non-empty to enable farmguardian.
 
 Parameters:
-	fname - Farm name.
-	ttcheck - Time between command executions for all the backends.
-	script - Command to run.
-	usefg - 'true' to enable farmguardian, or 'false' to disable it.
-	fglog - 'true' to enable farmguardian verbosity in logs, or 'false' to disable it.
-	svice - Service name.
+
+    fname - Farm name.
+    ttcheck - Time between command executions for all the backends.
+    script - Command to run.
+    usefg - 'true' to enable farmguardian, or 'false' to disable it.
+    fglog - 'true' to enable farmguardian verbosity in logs, or 'false' to disable it.
+    svice - Service name.
 
 Returns:
-	-1 - If ttcheck or script is not defined or empty and farmguardian is enabled.
-	 0 - If farmguardian configuration was created.
+
+    -1 - If ttcheck or script is not defined or empty and farmguardian is enabled.
+     0 - If farmguardian configuration was created.
 
 Bugs:
-	The function 'print' does not write the variable $?.
+
+    The function 'print' does not write the variable $?.
 
 See Also:
-	zapi/v3/farm_guardian.cgi, zapi/v2/farm_guardian.cgi
+
+    zapi/v3/farm_guardian.cgi, zapi/v2/farm_guardian.cgi
+
 =cut
 
 sub runFarmGuardianCreate    # ($fname,$ttcheck,$script,$usefg,$fglog,$svice)
@@ -1332,24 +1448,27 @@ sub runFarmGuardianCreate    # ($fname,$ttcheck,$script,$usefg,$fglog,$svice)
     return $output;
 }
 
-=begin nd
-Function: runFarmGuardianRemove
+=pod
 
-	Remove farmguardian down status on backends.
+=head1 runFarmGuardianRemove
 
-	When farmguardian is stopped or disabled any backend marked as down by farmgardian must reset it's status.
+Remove farmguardian down status on backends.
+
+When farmguardian is stopped or disabled any backend marked as down by farmgardian must reset it's status.
 
 Parameters:
-	fname - Farm name.
-	svice - Service name. Only apply if the farm profile has services. Leave undefined for farms without services.
+
+    fname - Farm name.
+    svice - Service name. Only apply if the farm profile has services. Leave undefined for farms without services.
 
 Returns:
-	none - Nothing is returned explicitly.
 
-Bugs:
+    none - Nothing is returned explicitly.
 
 See Also:
-	zapi/v3/farm_guardian.cgi, zapi/v2/farm_guardian.cgi
+
+    zapi/v3/farm_guardian.cgi, zapi/v2/farm_guardian.cgi
+
 =cut
 
 sub runFarmGuardianRemove    # ($fname,$svice)
@@ -1364,36 +1483,40 @@ sub runFarmGuardianRemove    # ($fname,$svice)
     # "unlink" stops the fg
     my $out = &unlinkFGFarm($fg, $fname, $svice);
 
-    if ($fg eq &getFGMigrateFile($fname, $svice)
-        and !@{ &getFGObject($fg)->{farms} })
-    {
+    if ($fg eq &getFGMigrateFile($fname, $svice) and not @{ &getFGObject($fg)->{farms} }) {
         $out |= &delFGObject($fg);
     }
 
     return;
 }
 
-=begin nd
-Function: getFarmGuardianConf
+=pod
 
-	Get farmguardian configuration for a farm-service.
+=head1 getFarmGuardianConf
+
+Get farmguardian configuration for a farm-service.
 
 Parameters:
-	fname - Farm name.
-	svice - Service name. Only apply if the farm profile has services. Leave undefined for farms without services.
+
+    fname - Farm name.
+    svice - Service name. Only apply if the farm profile has services. Leave undefined for farms without services.
 
 Returns:
-	list - List with (fname, ttcheck, script, usefg, fglog).
+
+    list - List with (fname, ttcheck, script, usefg, fglog).
 
 Bugs:
-	There is no control if the file could not be opened, for example, if it does not exist.
+
+    There is no control if the file could not be opened, for example, if it does not exist.
 
 See Also:
-	zapi/v3/get_l4.cgi, zapi/v3/farm_guardian.cgi,
 
-	zapi/v2/get_l4.cgi, zapi/v2/farm_guardian.cgi, zapi/v2/get_http.cgi, zapi/v2/get_tcp.cgi
+    zapi/v3/get_l4.cgi, zapi/v3/farm_guardian.cgi,
 
-	<getHttpFarmService>, <getHTTPServiceStruct>
+    zapi/v2/get_l4.cgi, zapi/v2/farm_guardian.cgi, zapi/v2/get_http.cgi, zapi/v2/get_tcp.cgi
+
+    <getHttpFarmService>, <getHTTPServiceStruct>
+
 =cut
 
 sub getFarmGuardianConf    # ($fname,$svice)
@@ -1422,25 +1545,30 @@ sub getFarmGuardianConf    # ($fname,$svice)
     return;
 }
 
-=begin nd
-Function: getFarmGuardianPid
+=pod
 
-	Read farmgardian pid from pid file. Check if the pid is running and return it,
-	else it removes the pid file.
+=head1 getFarmGuardianPid
+
+Read farmgardian pid from pid file. Check if the pid is running and return it,
+else it removes the pid file.
 
 Parameters:
-	fname - Farm name.
-	svice - Service name. Only apply if the farm profile has services. Leave undefined for farms without services.
+
+    fname - Farm name.
+    svice - Service name. Only apply if the farm profile has services. Leave undefined for farms without services.
 
 Returns:
-	-1      - If farmguardian PID file was not found (farmguardian not running).
-	integer - PID number (unsigned integer) if farmguardian is running.
+
+    -1      - If farmguardian PID file was not found (farmguardian not running).
+    integer - PID number (unsigned integer) if farmguardian is running.
 
 Bugs:
-	Regex with .* should be fixed.
+
+    Regex with .* should be fixed.
 
 See Also:
-	relianoid
+
+    relianoid
 
 =cut
 

@@ -22,23 +22,32 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
-=begin nd
-Function: getFarmEstConns
+=pod
 
-	Get all ESTABLISHED connections for a farm
+=head1 Module
+
+Relianoid::Farm::Stats
+
+=cut
+
+=pod
+
+=head1 getFarmEstConns
+
+Get all ESTABLISHED connections for a farm
 
 Parameters:
-	farmname - Farm name
-	netstat  - reference to array with Conntrack -L output
+
+    farmname - Farm name
+    netstat  - reference to array with Conntrack -L output
 
 Returns:
-	unsigned integer - Return number of ESTABLISHED conntrack lines for a farm
+
+    unsigned integer - Return number of ESTABLISHED conntrack lines for a farm
 
 =cut
 
@@ -73,19 +82,22 @@ sub getFarmEstConns    # ($farm_name,$netstat)
     return $connections;
 }
 
-=begin nd
-Function: getBackendSYNConns
+=pod
 
-	Get all SYN connections for a backend
+=head1 getBackendSYNConns
+
+Get all SYN connections for a backend
 
 Parameters:
-	farmname     - Farm name
-	ip_backend   - IP backend
-	port_backend - backend port
-	netstat      - reference to array with Conntrack -L output
+
+    farmname     - Farm name
+    ip_backend   - IP backend
+    port_backend - backend port
+    netstat      - reference to array with Conntrack -L output
 
 Returns:
-	integer - Return number of SYN conntrack lines for a backend of a farm or -1 if error
+
+    integer - Return number of SYN conntrack lines for a backend of a farm or -1 if error
 
 =cut
 
@@ -109,17 +121,20 @@ sub getBackendSYNConns    # ($farm_name,$ip_backend,$port_backend,$netstat)
     return $connections;
 }
 
-=begin nd
-Function: getFarmSYNConns
+=pod
 
-	Get all SYN connections for a farm
+=head1 getFarmSYNConns
+
+Get all SYN connections for a farm
 
 Parameters:
-	farmname - Farm name
-	netstat  - reference to array with Conntrack -L output
+
+    farmname - Farm name
+    netstat  - reference to array with Conntrack -L output
 
 Returns:
-	unsigned integer - Return number of SYN conntrack lines for a farm
+
+    unsigned integer - Return number of SYN conntrack lines for a farm
 
 =cut
 

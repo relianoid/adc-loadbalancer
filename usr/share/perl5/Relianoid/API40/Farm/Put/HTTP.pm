@@ -1,3 +1,4 @@
+#!/usr/bin/perl
 ###############################################################################
 #
 #    RELIANOID Software License
@@ -21,14 +22,13 @@
 ###############################################################################
 
 use strict;
+use warnings;
+
 use Relianoid::Farm::Base;
 use Relianoid::Farm::Config;
 use Relianoid::Farm::Action;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
 # PUT /farms/<farmname> Modify a http|https Farm
 sub modify_http_farm    # ( $json_obj, $farmname )
@@ -42,7 +42,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
     require Relianoid::Net::Interface;
     my $ip_list = &getIpAddressList();
 
-    my $params = &getZAPIModel("farm_http-modify.json");
+    my $params = &getAPIModel("farm_http-modify.json");
     $params->{vip}->{values}               = $ip_list;
     $params->{ciphers}->{listener}         = "https";
     $params->{cipherc}->{listener}         = "https";
@@ -59,7 +59,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
     }
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -72,7 +72,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
     if (exists($json_obj->{vip}) or exists($json_obj->{vport})) {
         require Relianoid::Net::Validate;
         if ($farm_st->{status} ne 'down'
-            and !&validatePort($vip, $vport, 'http', $farmname))
+            and not &validatePort($vip, $vport, 'http', $farmname))
         {
             my $msg =
               "The '$vip' ip and '$vport' port are being used for another farm. This farm should be stopped before modifying it";
@@ -506,6 +506,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
     }
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 1;

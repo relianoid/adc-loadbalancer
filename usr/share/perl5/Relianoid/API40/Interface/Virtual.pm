@@ -22,11 +22,9 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
 # POST /interfaces/virtual Create a new virtual network interface
 sub new_vini    # ( $json_obj )
@@ -40,10 +38,10 @@ sub new_vini    # ( $json_obj )
     my $vlan_re        = &getValidFormat('vlan_interface');
     my $virtual_tag_re = &getValidFormat('virtual_tag');
 
-    my $params = &getZAPIModel("virtual-create.json");
+    my $params = &getAPIModel("virtual-create.json");
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -79,7 +77,7 @@ sub new_vini    # ( $json_obj )
         my $msg = "The parent interface $json_obj->{ parent } doesn't exist.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
-    if ($if_parent->{type} eq 'nic' and !$if_parent->{addr}) {
+    if ($if_parent->{type} eq 'nic' and not $if_parent->{addr}) {
         my $msg = "The parent interface $json_obj->{ parent } must be configured.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
@@ -108,6 +106,8 @@ sub new_vini    # ( $json_obj )
     # setup parameters of virtual interface
     $if_ref = &getInterfaceConfig($json_obj->{parent}, $json_obj->{ip_v});
 
+    # $json_obj->{addr} must exist in getInterfaceSystemStatus()
+    $json_obj->{addr}    = $json_obj->{ip};
     $if_ref->{status}  = &getInterfaceSystemStatus($json_obj);
     $if_ref->{name}    = $json_obj->{name};
     $if_ref->{vini}    = $json_obj->{vini};
@@ -169,6 +169,7 @@ sub new_vini    # ( $json_obj )
     };
 
     &httpResponse({ code => 201, body => $body });
+    return;
 }
 
 sub delete_interface_virtual    # ( $virtual )
@@ -256,6 +257,7 @@ sub delete_interface_virtual    # ( $virtual )
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 sub get_virtual_list    # ()
@@ -280,6 +282,7 @@ sub get_virtual_list    # ()
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 sub get_virtual    # ()
@@ -303,6 +306,7 @@ sub get_virtual    # ()
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 sub actions_interface_virtual    # ( $json_obj, $virtual )
@@ -316,10 +320,10 @@ sub actions_interface_virtual    # ( $json_obj, $virtual )
     my $desc = "Action on virtual interface";
     my $ip_v = 4;
 
-    my $params = &getZAPIModel("virtual-action.json");
+    my $params = &getAPIModel("virtual-action.json");
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -399,6 +403,7 @@ sub actions_interface_virtual    # ( $json_obj, $virtual )
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 sub modify_interface_virtual    # ( $json_obj, $virtual )
@@ -415,10 +420,10 @@ sub modify_interface_virtual    # ( $json_obj, $virtual )
     my $old_ip = $if_ref->{addr};
     my @farms;
 
-    my $params = &getZAPIModel("virtual-modify.json");
+    my $params = &getAPIModel("virtual-modify.json");
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -541,6 +546,7 @@ sub modify_interface_virtual    # ( $json_obj, $virtual )
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 1;

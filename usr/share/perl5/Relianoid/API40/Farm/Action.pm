@@ -1,3 +1,4 @@
+#!/usr/bin/perl
 ###############################################################################
 #
 #    RELIANOID Software License
@@ -21,12 +22,11 @@
 ###############################################################################
 
 use strict;
+use warnings;
+
 use Relianoid::Farm::Core;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
 # PUT /farms/<farmname>/actions Set an action in a Farm
 sub farm_actions    # ( $json_obj, $farmname )
@@ -55,10 +55,10 @@ sub farm_actions    # ( $json_obj, $farmname )
         }
     }
 
-    my $params = &getZAPIModel("farm-action.json");
+    my $params = &getAPIModel("farm-action.json");
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -180,6 +180,7 @@ sub farm_actions    # ( $json_obj, $farmname )
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # Set an action in a backend of http|https farm
@@ -236,13 +237,13 @@ sub service_backend_maintenance    # ( $json_obj, $farmname, $service, $backend_
         &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
     }
 
-    my $params = &getZAPIModel("farm_http_service_backend-maintenance.json");
+    my $params = &getAPIModel("farm_http_service_backend-maintenance.json");
     if ($json_obj->{action} ne 'maintenance') {
         delete $params->{"mode"};
     }
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -295,6 +296,7 @@ sub service_backend_maintenance    # ( $json_obj, $farmname, $service, $backend_
     ) if ($eload && &getFarmStatus($farmname) eq 'up');
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # PUT backend in maintenance
@@ -335,14 +337,14 @@ sub backend_maintenance    # ( $json_obj, $farmname, $backend_id )
         &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
     }
 
-    my $params = &getZAPIModel("farm_l4xnat_service_backend-maintenance.json");
+    my $params = &getAPIModel("farm_l4xnat_service_backend-maintenance.json");
 
     if ($json_obj->{action} ne 'maintenance') {
         delete $params->{"mode"};
     }
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -388,6 +390,7 @@ sub backend_maintenance    # ( $json_obj, $farmname, $backend_id )
     ) if ($eload && &getFarmStatus($farmname) eq 'up');
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 1;

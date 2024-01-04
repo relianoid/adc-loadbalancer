@@ -22,30 +22,41 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
-=begin nd
-Function: runFarmCreate
+=pod
 
-	Create a farm
+=head1 Module
+
+Relianoid::Farm::Factory
+
+=cut
+
+=pod
+
+=head1 runFarmCreate
+
+Create a farm
 
 Parameters:
-	type - Farm type. The available options are: "http", "https", "datalink", "l4xnat" or "gslb"
-	vip - Virtual IP where the virtual service is listening
-	port - Virtual port where the virtual service is listening
-	farmname - Farm name
-	type - Specify if farm is HTTP or HTTPS
-	iface - Inteface wich uses the VIP. This parameter is only used in datalink farms
+
+    type     - Farm type. The available options are: "http", "https", "datalink", "l4xnat" or "gslb"
+    vip      - Virtual IP where the virtual service is listening
+    port     - Virtual port where the virtual service is listening
+    farmname - Farm name
+    type     - Specify if farm is HTTP or HTTPS
+    iface    - Inteface wich uses the VIP. This parameter is only used in datalink farms
 
 Returns:
-	Integer - return 0 on success or different of 0 on failure
+
+    Integer - return 0 on success or different of 0 on failure
 
 FIXME:
-	Use hash to pass the parameters
+
+    Use hash to pass the parameters
+
 =cut
 
 sub runFarmCreate    # ($farm_type,$vip,$vip_port,$farm_name,$fdev)
@@ -101,23 +112,27 @@ sub runFarmCreate    # ($farm_type,$vip,$vip_port,$farm_name,$fdev)
     return $output;
 }
 
-=begin nd
-Function: runFarmCreateFrom
+=pod
 
-	Function that does a copy of a farm and set the new virtual ip and virtual port.
-	Apply the same farguardians to the services and the same ipds rules.
+=head1 runFarmCreateFrom
+
+Function that does a copy of a farm and set the new virtual ip and virtual port.
+Apply the same farguardians to the services and the same ipds rules.
 
 Parameters:
-	params - hash reference. The hash has to contain the following keys:
-		profile: is the type of profile is going to be copied
-		farmname: the name of the new farm
-		copy_from: it is the name of the farm from is copying
-		vip: the new virtual ip for the new farm
-		vport: the new virtual port for the new farm. This parameters is skipped in datalink farms
-		interface: it is the interface for the new farm. This parameter is for datalink farms
+
+    params - hash reference. The hash has to contain the following keys:
+
+    profile:   is the type of profile is going to be copied
+    farmname:  the name of the new farm
+    copy_from: it is the name of the farm from is copying
+    vip:       the new virtual ip for the new farm
+    vport:     the new virtual port for the new farm. This parameters is skipped in datalink farms
+    interface: it is the interface for the new farm. This parameter is for datalink farms
 
 Returns:
-	Integer - Error code: return 0 on success or another value on failure
+
+    Integer - Error code: return 0 on success or another value on failure
 
 =cut
 
@@ -151,15 +166,17 @@ sub runFarmCreateFrom {
     # add fg
     require Relianoid::FarmGuardian;
     if ($params->{profile} eq 'l4xnat') {
-        my $fg = &getFGFarm($params->{copy_from});
-        &linkFGFarm($fg, $params->{farmname});
+        if (my $fg = &getFGFarm($params->{copy_from})) {
+            &linkFGFarm($fg, $params->{farmname});
+        }
     }
     elsif ($params->{profile} ne 'datalink') {
         my $fg;
         require Relianoid::Farm::Service;
         foreach my $s (&getFarmServices($params->{farmname})) {
-            $fg = &getFGFarm($params->{copy_from}, $s);
-            &linkFGFarm($fg, $params->{farmname}, $s);
+            if (my $fg = &getFGFarm($params->{copy_from}, $s)) {
+                &linkFGFarm($fg, $params->{farmname}, $s);
+            }
         }
     }
 
@@ -177,7 +194,7 @@ sub runFarmCreateFrom {
           &setDatalinkFarmVirtualConf($params->{vip}, $params->{interface}, $params->{farmname});
     }
 
-    if ($eload and !$err) {
+    if ($eload and not $err) {
         $err = &eload(
             module => 'Relianoid::IPDS::Core',
             func   => 'addIPDSFarms',

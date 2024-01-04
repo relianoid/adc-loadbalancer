@@ -1,3 +1,4 @@
+#!/usr/bin/perl
 ###############################################################################
 #
 #    RELIANOID Software License
@@ -21,14 +22,13 @@
 ###############################################################################
 
 use strict;
+use warnings;
+
 use Relianoid::Farm::Core;
 use Relianoid::Farm::Base;
 use Relianoid::Farm::Action;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
 # DELETE /farms/FARMNAME
 sub delete_farm    # ( $farmname )
@@ -79,6 +79,7 @@ sub delete_farm    # ( $farmname )
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 1;

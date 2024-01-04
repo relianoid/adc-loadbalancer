@@ -22,19 +22,17 @@
 ###############################################################################
 
 use strict;
+use warnings;
+use feature qw(signatures);
+no warnings 'experimental::args_array_with_signatures';
+
 use Relianoid::Farm::Core;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
 # POST
-sub new_farm_service    # ( $json_obj, $farmname )
-{
+sub new_farm_service ($json_obj, $farmname) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $json_obj = shift;
-    my $farmname = shift;
 
     require Relianoid::Farm::Service;
 
@@ -47,7 +45,7 @@ sub new_farm_service    # ( $json_obj, $farmname )
     }
 
     # check if the service exists
-    if (grep (/^$json_obj->{id}$/, &getFarmServices($farmname))) {
+    if (grep { /^$json_obj->{id}$/ } &getFarmServices($farmname)) {
         my $msg = "Error, the service $json_obj->{id} already exist.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
@@ -67,10 +65,10 @@ sub new_farm_service    # ( $json_obj, $farmname )
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-    my $params = &getZAPIModel("farm_http_service-create.json");
+    my $params = &getAPIModel("farm_http_service-create.json");
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -133,14 +131,14 @@ sub new_farm_service    # ( $json_obj, $farmname )
     }
 
     &httpResponse({ code => 201, body => $body });
+    return;
 }
 
 # GET
 
 #GET /farms/<name>/services/<service>
-sub farm_services {
+sub farm_services ($farmname, $servicename) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farmname, $servicename) = @_;
 
     require Relianoid::API40::Farm::Get::HTTP;
     require Relianoid::Farm::Config;
@@ -197,14 +195,13 @@ sub farm_services {
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # PUT
 
-sub modify_services    # ( $json_obj, $farmname, $service )
-{
+sub modify_services ($json_obj, $farmname, $service) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($json_obj, $farmname, $service) = @_;
 
     require Relianoid::Farm::Base;
     require Relianoid::Farm::Config;
@@ -246,10 +243,10 @@ sub modify_services    # ( $json_obj, $farmname, $service )
         );
     }
 
-    my $params = &getZAPIModel("farm_http_service-modify.json");
+    my $params = &getAPIModel("farm_http_service-modify.json");
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -354,7 +351,7 @@ sub modify_services    # ( $json_obj, $farmname, $service )
     }
 
     # Cookie insertion
-    if (scalar grep (/^cookie/, keys %{$json_obj})) {
+    if (scalar grep { /^cookie/ } keys %{$json_obj}) {
         if ($eload) {
             my $msg = &eload(
                 module   => 'Relianoid::API40::Farm::Service::Ext',
@@ -554,15 +551,14 @@ sub modify_services    # ( $json_obj, $farmname, $service )
     }
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # DELETE
 
 # DELETE /farms/<farmname>/services/<servicename> Delete a service of a Farm
-sub delete_service    # ( $farmname, $service )
-{
+sub delete_service ($farmname, $service) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farmname, $service) = @_;
 
     my $desc = "Delete service";
 
@@ -655,6 +651,7 @@ sub delete_service    # ( $farmname, $service )
     }
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 1;

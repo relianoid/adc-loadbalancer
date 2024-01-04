@@ -22,6 +22,9 @@
 ###############################################################################
 
 use strict;
+use warnings;
+use feature qw(signatures);
+no warnings 'experimental::args_array_with_signatures';
 
 use Relianoid::API40::HTTP;
 use Relianoid::Farm::Core;
@@ -29,18 +32,12 @@ use Relianoid::Farm::Base;
 use Relianoid::Net::Validate;
 use Relianoid::API40::Farm::Get;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
 # POST
 
-sub new_farm_backend    # ( $json_obj, $farmname )
-{
+sub new_farm_backend ($json_obj, $farmname) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $json_obj = shift;
-    my $farmname = shift;
 
     require Relianoid::Farm::Backend;
 
@@ -61,11 +58,11 @@ sub new_farm_backend    # ( $json_obj, $farmname )
 
     my $params =
       ($type eq 'l4xnat')
-      ? &getZAPIModel("farm_l4xnat_service_backend-add.json")
-      : &getZAPIModel("farm_datalink_service_backend-add.json");
+      ? &getAPIModel("farm_l4xnat_service_backend-add.json")
+      : &getAPIModel("farm_datalink_service_backend-add.json");
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -146,14 +143,11 @@ sub new_farm_backend    # ( $json_obj, $farmname )
     ) if ($eload);
 
     &httpResponse({ code => 201, body => $body });
+    return;
 }
 
-sub new_service_backend    # ( $json_obj, $farmname, $service )
-{
+sub new_service_backend ($json_obj, $farmname, $service) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $json_obj = shift;
-    my $farmname = shift;
-    my $service  = shift;
 
     # Initial parameters
     my $desc = "New service backend";
@@ -191,7 +185,7 @@ sub new_service_backend    # ( $json_obj, $farmname, $service )
     my @services = &getHTTPFarmServices($farmname);
 
     # Check if the provided service is configured in the farm
-    unless (grep (/^$service$/, @services)) {
+    unless (grep { /^$service$/ } @services) {
         my $msg = "Invalid service name, please insert a valid value.";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
@@ -203,14 +197,14 @@ sub new_service_backend    # ( $json_obj, $farmname, $service )
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-    my $params = &getZAPIModel("farm_http_service_backend-add.json");
+    my $params = &getAPIModel("farm_http_service_backend-add.json");
     if (&getGlobalConfiguration('proxy_ng') ne 'true') {
         undef $params->{"connection_limit"};
         undef $params->{"priority"};
     }
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -287,14 +281,14 @@ sub new_service_backend    # ( $json_obj, $farmname, $service )
     }
 
     &httpResponse({ code => 201, body => $body });
+    return;
 }
 
 # GET
 
 #GET /farms/<name>/backends
-sub backends {
+sub backends ($farmname) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farmname = shift;
 
     my $desc = "List backends";
     require Relianoid::Farm::Backend;
@@ -320,12 +314,12 @@ sub backends {
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 #GET /farms/<name>/services/<service>/backends
-sub service_backends {
+sub service_backends ($farmname, $service) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farmname, $service) = @_;
 
     my $desc = "List service backends";
 
@@ -367,14 +361,13 @@ sub service_backends {
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # PUT
 
-sub modify_backends    #( $json_obj, $farmname, $id_server )
-{
+sub modify_backends ($json_obj, $farmname, $id_server) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($json_obj, $farmname, $id_server) = @_;
 
     my $desc = "Modify backend";
 
@@ -405,12 +398,12 @@ sub modify_backends    #( $json_obj, $farmname, $id_server )
 
     my $params =
       ($type eq 'l4xnat')
-      ? &getZAPIModel("farm_l4xnat_service_backend-modify.json")
-      : &getZAPIModel("farm_datalink_service_backend-modify.json");
+      ? &getAPIModel("farm_l4xnat_service_backend-modify.json")
+      : &getAPIModel("farm_datalink_service_backend-modify.json");
 
     # Check allowed parameters
     my %json_params = %{$json_obj};
-    my $error_msg   = &checkZAPIParams(\%json_params, $params, $desc);
+    my $error_msg   = &checkApiParams(\%json_params, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -426,16 +419,12 @@ sub modify_backends    #( $json_obj, $farmname, $id_server )
             }
         }
     }
-    $backend->{ip}   = $json_obj->{ip} if exists $json_obj->{ip};
-    $backend->{port} = $json_obj->{port}
-      if exists $json_obj->{port};    # l4xnat
-    $backend->{weight}   = $json_obj->{weight} if exists $json_obj->{weight};
-    $backend->{priority} = $json_obj->{priority}
-      if exists $json_obj->{priority};
-    $backend->{max_conns} = $json_obj->{max_conns}
-      if exists $json_obj->{max_conns};    # l4xnat
-    $backend->{interface} = $json_obj->{interface}
-      if exists $json_obj->{interface};    # datalink
+    $backend->{ip}        = $json_obj->{ip}        if exists $json_obj->{ip};
+    $backend->{port}      = $json_obj->{port}      if exists $json_obj->{port};         # l4xnat
+    $backend->{weight}    = $json_obj->{weight}    if exists $json_obj->{weight};
+    $backend->{priority}  = $json_obj->{priority}  if exists $json_obj->{priority};
+    $backend->{max_conns} = $json_obj->{max_conns} if exists $json_obj->{max_conns};    # l4xnat
+    $backend->{interface} = $json_obj->{interface} if exists $json_obj->{interface};    # datalink
 
     if ($type eq 'datalink') {
         my $msg = &validateDatalinkBackendIface($backend);
@@ -460,11 +449,8 @@ sub modify_backends    #( $json_obj, $farmname, $id_server )
         require Relianoid::Farm::Validate;
         if (my $prio = &priorityAlgorithmIsOK(&getL4FarmPriorities($farmname))) {
             $info_msg = "Backends with high priority value ($prio) will not be used.";
-            &zenlog(
-                "Warning, backend with high priority value ($prio) in farm $farmname.",
-                "warning", "FARMS"
-
-            );
+            &zenlog("Warning, backend with high priority value ($prio) in farm $farmname.",
+                "warning", "FARMS");
         }
     }
 
@@ -488,12 +474,11 @@ sub modify_backends    #( $json_obj, $farmname, $id_server )
     ) if ($eload && &getFarmStatus($farmname) eq 'up');
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
-sub modify_service_backends    #( $json_obj, $farmname, $service, $id_server )
-{
+sub modify_service_backends ($json_obj, $farmname, $service, $id_server) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($json_obj, $farmname, $service, $id_server) = @_;
 
     my $desc = "Modify service backend";
 
@@ -546,14 +531,14 @@ sub modify_service_backends    #( $json_obj, $farmname, $service, $id_server )
         &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
     }
 
-    my $params = &getZAPIModel("farm_http_service_backend-modify.json");
+    my $params = &getAPIModel("farm_http_service_backend-modify.json");
     if (&getGlobalConfiguration('proxy_ng') ne 'true') {
         undef $params->{"connection_limit"};
         undef $params->{"priority"};
     }
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -627,15 +612,14 @@ sub modify_service_backends    #( $json_obj, $farmname, $service, $id_server )
     }
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # DELETE
 
 # DELETE /farms/<farmname>/backends/<backendid> Delete a backend of a Farm
-sub delete_backend    # ( $farmname, $id_server )
-{
+sub delete_backend ($farmname, $id_server) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farmname, $id_server) = @_;
 
     require Relianoid::Farm::Backend;
 
@@ -704,13 +688,12 @@ sub delete_backend    # ( $farmname, $id_server )
     $body->{warning} = $info_msg if defined $info_msg;
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 #  DELETE /farms/<farmname>/services/<servicename>/backends/<backendid> Delete a backend of a Service
-sub delete_service_backend    # ( $farmname, $service, $id_server )
-{
+sub delete_service_backend ($farmname, $service, $id_server) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farmname, $service, $id_server) = @_;
 
     my $desc = "Delete service backend";
 
@@ -823,14 +806,15 @@ sub delete_service_backend    # ( $farmname, $service, $id_server )
     }
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
-sub validateDatalinkBackendIface {
+sub validateDatalinkBackendIface ($backend) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $backend = shift;
-    my $msg;
 
     require Relianoid::Net::Interface;
+
+    my $msg;
     my $iface_ref = &getInterfaceConfig($backend->{interface});
 
     if (not defined $iface_ref) {

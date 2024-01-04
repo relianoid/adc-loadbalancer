@@ -22,17 +22,4 @@
 #
 ###############################################################################
 
-#Replace default snmpd Log Level -Lsd to -LS6d
-
-snmpd_conf="/lib/systemd/system/snmpd.service"
-
-if [[ `grep " -Lsd " $snmpd_conf` ]]; then
-	echo -n "Replacing Snmpd Log Level "
-	sed -i -e 's/ -Lsd / -LS6d /' $snmpd_conf
-	if [ $? == 0 ]; then
-		echo " OK";
-	else
-		echo " ERROR";
-	fi
-fi
-
+perl -MRelianoid::SNMP -E "&setSnmpdDefaultConfig();"

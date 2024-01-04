@@ -22,22 +22,35 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
-=begin nd
-Function: setFarmBackendMaintenance
+=pod
 
-	Function that enable the maintenance mode for backend
+=head1 Module
+
+Relianoid::Farm::Backend::Maintenance
+
+=cut
+
+=pod
+
+=head1 setFarmBackendMaintenance
+
+Function that enable the maintenance mode for backend
 
 Parameters:
-	farmname - Farm name
-	backend - Backend id
-	mode - Maintenance mode, the options are: drain, the backend continues working with
-	  the established connections; or cut, the backend cuts all the established
-	  connections
-	service - Service name
+
+    farmname -  Farm name
+    backend  -  Backend id
+    mode     -  Maintenance mode, the options are: 
+                - drain: the backend continues working with the established connections
+                - cut:   the backend cuts all the established connections
+    service  -  Service name
 
 Returns:
-	Integer - return 0 on success or -1 on failure
+
+    Integer - return 0 on success or -1 on failure
+
 =cut
 
 sub setFarmBackendMaintenance    # ($farm_name,$backend,$mode,$service)
@@ -60,18 +73,22 @@ sub setFarmBackendMaintenance    # ($farm_name,$backend,$mode,$service)
     return $output;
 }
 
-=begin nd
-Function: setFarmBackendNoMaintenance
+=pod
 
-	Function that disable the maintenance mode for backend
+=head1 setFarmBackendNoMaintenance
+
+Function that disable the maintenance mode for backend
 
 Parameters:
-	farmname - Farm name
-	backend - Backend id
-	service - Service name
+
+    farmname - Farm name
+    backend  - Backend id
+    service  - Service name
 
 Returns:
-	Integer - return 0 on success or -1 on failure
+
+    Integer - return 0 on success or -1 on failure
+
 =cut
 
 sub setFarmBackendNoMaintenance    # ($farm_name,$backend,$service)

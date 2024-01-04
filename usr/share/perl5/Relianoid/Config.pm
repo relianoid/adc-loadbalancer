@@ -21,26 +21,41 @@
 #
 ###############################################################################
 
-use 5.036;
 use strict;
+use warnings;
+use feature qw(signatures state);
+no warnings 'experimental::args_array_with_signatures';
 
 use Relianoid::Log;
 
-=begin nd
-Function: getGlobalConfiguration
+=pod
 
-	Get the value of a configuration variable. The global.conf is parsed only the first time
+=head1 Module
+
+Relianoid::Config
+
+=cut
+
+=pod
+
+=head1 getGlobalConfiguration
+
+Get the value of a configuration variable. The global.conf is parsed only the first time
 
 Parameters:
-	parameter - Name of the global configuration variable. Optional.
-	Force_relad - This parameter is a flag that force a reload of the global.conf structure, useful to reload the struct when it has been modified. Optional
+
+    parameter - Name of the global configuration variable. Optional.
+    Force_relad - This parameter is a flag that force a reload of the global.conf structure, useful to reload the struct when it has been modified. Optional
 
 Returns:
-	scalar - Value of the configuration variable when a variable name is passed as an argument.
-	scalar - Hash reference to all global configuration variables when no argument is passed.
+
+    scalar - Value of the configuration variable when a variable name is passed as an argument.
+    scalar - Hash reference to all global configuration variables when no argument is passed.
 
 See Also:
-	Widely used.
+
+    Widely used.
+
 =cut
 
 sub getGlobalConfiguration {
@@ -70,19 +85,24 @@ sub getGlobalConfiguration {
     return $global_conf;
 }
 
-=begin nd
-Function: parseGlobalConfiguration
+=pod
 
-	Parse the global.conf file. It expands the variables too.
+=head1 parseGlobalConfiguration
+
+Parse the global.conf file. It expands the variables too.
 
 Parameters:
-	none - .
+
+    none
 
 Returns:
-	scalar - Hash reference to all global configuration variables when no argument is passed.
+
+    scalar - Hash reference to all global configuration variables when no argument is passed.
 
 See Also:
-	Widely used.
+
+    Widely used.
+
 =cut
 
 sub parseGlobalConfiguration {
@@ -91,31 +111,29 @@ sub parseGlobalConfiguration {
     my $global_conf_filepath = "/usr/local/relianoid/config/global.conf";
     my $global_conf;
 
-    open(my $global_conf_file, '<', $global_conf_filepath) or do {
+    if (open(my $global_conf_file, '<', $global_conf_filepath)) {
+        my @lines = <$global_conf_file>;
+        close $global_conf_file;
+
+        # build globalconf struct
+        for my $conf_line (@lines) {
+            # extract variable name and value
+            if ($conf_line =~ /^\s*\$(\w+)\s*=\s*(?:"(.*)"|\'(.*)\');(?:\s*#update)?\s*$/) {
+                $global_conf->{$1} = $2;
+            }
+        }
+    }
+    else {
         my $msg = "Could not open $global_conf_filepath: $!";
         &zenlog($msg, "error", "SYSTEM");
         die $msg;
     };
 
-    # build globalconf struct
-    while (my $conf_line = <$global_conf_file>) {
-
-        # extract variable name and value
-        if ($conf_line =~ /^\s*\$(\w+)\s*=\s*(?:"(.*)"|\'(.*)\');(?:\s*#update)?\s*$/) {
-            $global_conf->{$1} = $2;
-        }
-    }
-    close $global_conf_file;
-
-    # expand the variables
-    my $var;
-    my $value;
+    # expand the variables, by replacing every variable used in the $var_value by its content
     foreach my $param (keys %{$global_conf}) {
-
-        # replace every variable used in the $var_value by its content
         while ($global_conf->{$param} =~ /\$(\w+)/) {
-            $var   = $1;
-            $value = $global_conf->{$var} // '';
+            my $var   = $1;
+            my $value = $global_conf->{$var} // '';
             $global_conf->{$param} =~ s/\$$var/$value/;
         }
     }
@@ -123,23 +141,29 @@ sub parseGlobalConfiguration {
     return $global_conf;
 }
 
-=begin nd
-Function: setGlobalConfiguration
+=pod
 
-	Set a value to a configuration variable
+=head1 setGlobalConfiguration
+
+Set a value to a configuration variable
 
 Parameters:
-	param - Configuration variable name.
-	value - New value to be set on the configuration variable.
+
+    param - Configuration variable name.
+    value - New value to be set on the configuration variable.
 
 Returns:
-	scalar - 0 on success, or -1 if the variable was not found.
+
+    scalar - 0 on success, or -1 if the variable was not found.
 
 Bugs:
-	Control file handling errors.
+
+    Control file handling errors.
 
 See Also:
-	Zapi v3: <set_ntp>
+
+    Zapi v3: <set_ntp>
+
 =cut
 
 sub setGlobalConfiguration    # ( parameter, value )
@@ -167,17 +191,20 @@ sub setGlobalConfiguration    # ( parameter, value )
     return $output;
 }
 
-=begin nd
-Function: setConfigStr2Arr
+=pod
 
-	Put a list of string parameters as array references
+=head1 setConfigStr2Arr
+
+Put a list of string parameters as array references
 
 Parameters:
-	object - reference to a hash
-	parameters - list of parameters to change from string to array
+
+    object - reference to a hash
+    parameters - list of parameters to change from string to array
 
 Returns:
-	hash ref - Object updated
+
+    hash ref - Object updated
 
 =cut
 
@@ -198,16 +225,19 @@ sub setConfigStr2Arr {
     return $obj;
 }
 
-=begin nd
-Function: getTiny
+=pod
 
-	Get a Config::Tiny object from a file name.
+=head1 getTiny
+
+Get a Config::Tiny object from a file name.
 
 Parameters:
-	file_path - Path to file.
+
+    file_path - Path to file.
 
 Returns:
-	scalar - reference to Config::Tiny object, or undef on failure.
+
+    scalar - reference to Config::Tiny object, or undef on failure.
 
 See Also:
 
@@ -235,92 +265,97 @@ sub getTiny {
     return Config::Tiny->read($file_path);
 }
 
-=begin nd
-Function: getTinyObj
+=pod
 
-	Get a Config::Tiny object from a file name.
-	This function has 3 behaviors:
-	it can returns all parameters from all groups
-	or it can returns all parameters from a group
-	or it can returns only selected parameters.
-	selected parameters can be ignored,undef or error if they do not exists
+=head1 getTinyObj
+
+Get a Config::Tiny object from a file name.
+This function has 3 behaviors:
+
+it can returns all parameters from all groups
+or it can returns all parameters from a group
+or it can returns only selected parameters.
+selected parameters can be ignored,undef or error if they do not exists
 
 Parameters:
-	file_path - Path to file.
-	object - Group to get. Empty means all groups.
-	key_ref - Array of parameters to get. Empty means all parameters
-	key_action - string define the action. Possible values are "ignored|undef|error".Empty means error.
+
+    file_path - Path to file.
+    section - Group to get. Empty means all groups.
+    key_ref - Array of parameters to get. Empty means all parameters
+    key_action - string define the action. Possible values are "ignored|undef|error".Empty means error.
 
 Returns:
-	hash ref - a reference to Config::Tiny object when success, undef on failure.
 
-See Also:
+    hash ref - a reference to Config::Tiny object when success, undef on failure.
 
 =cut
 
-sub getTinyObj    #( $filepath, $object, $key_ref )
-{
+sub getTinyObj ($filepath, $section = undef, $key_ref = undef, $key_action = "error") {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
-    my ($filepath, $object, $key_ref, $key_action) = @_;
-    my $tiny_ref_tmp = &getTiny($filepath);
-    return if (!defined $tiny_ref_tmp);
-
-    my $tiny_ref;
-
-    if (!defined $object) {
-        $tiny_ref = $tiny_ref_tmp;
+    my $conf = &getTiny($filepath);
+    if (not defined $conf) {
+        return;
     }
-    else {
-        if (!exists $tiny_ref_tmp->{$object}) {
-            return;
+
+    if (not defined $section) {
+        return $conf;
+    }
+
+    if (not exists $conf->{$section}) {
+        return;
+    }
+
+    if (not defined $key_ref) {
+        return $conf->{$section};
+    }
+
+    if (ref $key_ref ne 'ARRAY') {
+        return;
+    }
+
+    my $filtered_conf = {};
+    $conf = $conf->{$section};
+    foreach my $param (@{$key_ref}) {
+        if (defined $conf->{$param}) {
+            $filtered_conf->{$param} = $conf->{$param};
         }
         else {
-            if (!defined $key_ref) {
-                $tiny_ref = $tiny_ref_tmp->{$object};
+            if ($key_action eq "error") {
+                return;
             }
-            else {
-                if (ref $key_ref eq 'ARRAY') {
-                    foreach my $param (@{$key_ref}) {
-                        if (defined $tiny_ref_tmp->{$object}->{$param}) {
-                            $tiny_ref->{$param} =
-                              $tiny_ref_tmp->{$object}->{$param};
-                        }
-                        else {
-                            return
-                              if (!defined $key_action
-                                or $key_action eq "error");
-                            $tiny_ref->{$param} = undef
-                              if ($key_action eq "undef");
-                        }
-                    }
-                }
+
+            if ($key_action eq "undef") {
+                $filtered_conf->{$param} = undef;
             }
         }
     }
 
-    return $tiny_ref;
-
+    return $filtered_conf;
 }
 
-=begin nd
-Function: setTinyObj
+=pod
 
-	Save a change in a config file. The file is locker before than applying the changes
-	This function has 2 behaviors:
-	it can receives a hash ref to save a struct
-	or it can receive a key and parameter to replace a value
+=head1 setTinyObj
+
+Save a change in a config file. The file is locker before than applying the changes
+This function has 2 behaviors:
+
+it can receives a hash ref to save a struct
+or it can receive a key and parameter to replace a value
 
 Parameters:
-	path - Tiny conguration file where to apply the change
-	object - Group to apply the change
-	key - parameter to change or struct ref to overwrite.
-	value - new value for the parameter or action for struct ref. The possible action values are: "update" to update only existing params , "new" to delete old params and set news ones or empty to add all new params. 
-	action - This is a optional parameter. The possible values are: "add" to add
-	a item to a list, or "del" to delete a item from a list, or "remove" to delete the key
+
+    path   - Tiny conguration file where to apply the change
+    object - Group to apply the change
+    key    - parameter to change or struct ref to overwrite.
+    value  - new value for the parameter or action for struct ref. The possible action values are: "update" to update only existing params , "new" to delete old params and set news ones or empty to add all new params. 
+    action - This is a optional parameter. The possible values are: "add" to add
+             a item to a list, or "del" to delete a item from a list, or "remove" to delete the key
 
 Returns:
-	Integer -  Error code: 0 on success or other value on failure
+
+    Integer - Error code: 0 on success or other value on failure
 
 =cut
 
@@ -367,13 +402,13 @@ sub setTinyObj {
 
     # save a parameter
     else {
-        if ('add' eq $action) {
+        if ($action and 'add' eq $action) {
             $fileHandle->{$object}->{$key} .= " $value";
         }
-        elsif ('del' eq $action) {
+        elsif ($action and 'del' eq $action) {
             $fileHandle->{$object}->{$key} =~ s/(^| )$value( |$)/ /;
         }
-        elsif ('remove' eq $action) {
+        elsif ($action and 'remove' eq $action) {
             delete $fileHandle->{$object}->{$key};
         }
         else {
@@ -388,17 +423,20 @@ sub setTinyObj {
     return ($success) ? 0 : 1;
 }
 
-=begin nd
-Function: delTinyObj
+=pod
 
-	It deletes a object of a tiny file. The tiny file is locked before than set the configuration
+=head1 delTinyObj
+
+It deletes a object of a tiny file. The tiny file is locked before than set the configuration
 
 Parameters:
-	object - Group name
-	path - Tiny file where the object will be deleted
+
+    object - Group name
+    path   - Tiny file where the object will be deleted
 
 Returns:
-	Integer -  Error code: 0 on success or other value on failure
+
+    Integer -  Error code: 0 on success or other value on failure
 
 =cut
 
@@ -424,16 +462,19 @@ sub delTinyObj {
     return $error;
 }
 
-=begin nd
-Function: migrateConfigFiles
+=pod
 
-	Apply all migrating scripts to relianoid
+=head1 migrateConfigFiles
+
+Apply all migrating scripts to relianoid
 
 Parameters:
-	none - .
+
+    none
 
 Returns:
-	none - .
+
+    none
 
 =cut
 
@@ -441,12 +482,13 @@ sub migrateConfigFiles {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     my $MIG_DIR = &getGlobalConfiguration('mig_dir');
-
     my @listing = `ls $MIG_DIR`;
+
     foreach my $file (@listing) {
         my @run = `${MIG_DIR}/${file}`;
     }
 
+    return;
 }
 
 1;

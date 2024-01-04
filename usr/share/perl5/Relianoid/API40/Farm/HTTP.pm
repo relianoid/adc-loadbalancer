@@ -1,3 +1,4 @@
+#!/usr/bin/perl
 ###############################################################################
 #
 #    RELIANOID Software License
@@ -21,15 +22,13 @@
 ###############################################################################
 
 use strict;
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+use warnings;
+
+my $eload = eval { require Relianoid::ELoad };
 
 use Relianoid::API40::HTTP;
-
-require Relianoid::Farm::Base;
-require Relianoid::Farm::HTTP::Config;
+use Relianoid::Farm::Base;
+use Relianoid::Farm::HTTP::Config;
 
 # POST	/farms/<>/addheader
 sub add_addheader    # ( $json_obj, $farmname )
@@ -51,10 +50,10 @@ sub add_addheader    # ( $json_obj, $farmname )
         return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-    my $params = &getZAPIModel("farm_http_header_request_add-create.json");
+    my $params = &getAPIModel("farm_http_header_request_add-create.json");
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -128,10 +127,10 @@ sub modify_addheader    # ( $json_obj, $farmname, $index )
         return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-    my $params = &getZAPIModel("farm_http_header_request_add-modify.json");
+    my $params = &getAPIModel("farm_http_header_request_add-modify.json");
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -278,10 +277,10 @@ sub add_headremove    # ( $json_obj, $farmname )
         return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-    my $params = &getZAPIModel("farm_http_header_request_remove-create.json");
+    my $params = &getAPIModel("farm_http_header_request_remove-create.json");
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -355,10 +354,10 @@ sub modify_headremove    # ( $json_obj, $farmname, $index )
         return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-    my $params = &getZAPIModel("farm_http_header_request_remove-modify.json");
+    my $params = &getAPIModel("farm_http_header_request_remove-modify.json");
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -505,10 +504,10 @@ sub add_addResponseheader    # ( $json_obj, $farmname )
         return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-    my $params = &getZAPIModel("farm_http_header_response_add-create.json");
+    my $params = &getAPIModel("farm_http_header_response_add-create.json");
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -582,10 +581,10 @@ sub modify_addResponseheader    # ( $json_obj, $farmname, $index )
         return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-    my $params = &getZAPIModel("farm_http_header_response_add-modify.json");
+    my $params = &getAPIModel("farm_http_header_response_add-modify.json");
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -756,10 +755,10 @@ sub add_replaceheader            # ( $json_obj, $farmname, $type )
         return &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
     }
 
-    my $params = &getZAPIModel("farm_http_header_" . lc($type) . "_replace-create.json");
+    my $params = &getAPIModel("farm_http_header_" . lc($type) . "_replace-create.json");
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -868,10 +867,10 @@ sub modify_replaceHeader    # ( $json_obj, $farmname, $type, $index )
         return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-    my $params = &getZAPIModel("farm_http_header_" . lc($type) . "_replace-modify.json");
+    my $params = &getAPIModel("farm_http_header_" . lc($type) . "_replace-modify.json");
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -1083,11 +1082,11 @@ sub move_replaceheader    # ( $json_obj, $type, $regex, $farmname, $index )
 
     my @headers = @{ &getHTTPReplaceHeaders($farmname, $type) };
 
-    my $params = &getZAPIModel("farm_http_header_" . lc($type) . "_replace-move.json");
+    my $params = &getAPIModel("farm_http_header_" . lc($type) . "_replace-move.json");
     $params->{position}->{"interval"} = "0," . scalar @headers - 1;
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -1154,10 +1153,10 @@ sub add_removeResponseheader    # ( $json_obj, $farmname )
         return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-    my $params = &getZAPIModel("farm_http_header_response_remove-create.json");
+    my $params = &getAPIModel("farm_http_header_response_remove-create.json");
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -1231,10 +1230,10 @@ sub modify_removeResponseheader    # ( $json_obj, $farmname )
         return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-    my $params = &getZAPIModel("farm_http_header_response_remove-modify.json");
+    my $params = &getAPIModel("farm_http_header_response_remove-modify.json");
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -1360,3 +1359,5 @@ sub del_removeResponseHeader {
     my $msg = "Error deleting the pattern $index";
     return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
 }
+
+1;

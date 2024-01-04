@@ -22,10 +22,12 @@
 ###############################################################################
 
 use strict;
+use warnings;
+use feature qw(signatures);
+no warnings 'experimental::args_array_with_signatures';
 
-sub get_gateway {
+sub get_gateway ($ip_ver) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($ip_ver) = @_;
 
     require Relianoid::Net::Route;
 
@@ -47,13 +49,11 @@ sub get_gateway {
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
-sub modify_gateway    # ( $json_obj )
-{
+sub modify_gateway ($json_obj, $ip_ver) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $json_obj = shift;
-    my $ip_ver   = shift;
 
     require Relianoid::Net::Route;
 
@@ -62,7 +62,7 @@ sub modify_gateway    # ( $json_obj )
     my $default_gw = ($ip_v == 6)   ? &getIPv6DefaultGW() : &getDefaultGW();
     my $ip_format  = ($ip_v == 6)   ? 'IPv6_addr'         : 'IPv4_addr';
 
-    my $params = &getZAPIModel("gateway-modify.json");
+    my $params = &getAPIModel("gateway-modify.json");
 
     # if default gateway is not configured requires address and interface
     if (!$default_gw) {
@@ -72,7 +72,7 @@ sub modify_gateway    # ( $json_obj )
     $params->{address}->{valid_format} = $ip_format;
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -124,11 +124,11 @@ sub modify_gateway    # ( $json_obj )
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
-sub delete_gateway {
+sub delete_gateway ($ip_ver) {
     &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($ip_ver) = @_;
 
     require Relianoid::Net::Route;
     require Relianoid::Net::Interface;
@@ -137,19 +137,18 @@ sub delete_gateway {
     my $ip_v = ($ip_ver == 6) ? 6 : 4;
 
     my $defaultgwif = ($ip_v == 6) ? &getIPv6IfDefaultGW() : &getIfDefaultGW();
-    my $if_ref      = &getInterfaceConfig($defaultgwif);
-    my $error       = &delRoutes("global", $if_ref);
+    my $if_ref      = &getInterfaceConfig($defaultgwif, $ip_v);
+    $$if_ref{ip_v} //= $ip_v;
+
+    my $error = &delRoutes("global", $if_ref);
 
     if ($error) {
         my $msg = "The default gateway hasn't been deleted";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-    my $addr =
-      ($ip_v == 6) ? &getIPv6DefaultGW() : &getDefaultGW();
-
-    my $if_name =
-      ($ip_v == 6) ? &getIPv6IfDefaultGW() : &getIfDefaultGW();
+    my $addr    = ($ip_v == 6) ? &getIPv6DefaultGW()   : &getDefaultGW();
+    my $if_name = ($ip_v == 6) ? &getIPv6IfDefaultGW() : &getIfDefaultGW();
 
     my $msg  = "The default gateway has been deleted successfully";
     my $body = {
@@ -162,6 +161,7 @@ sub delete_gateway {
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 1;

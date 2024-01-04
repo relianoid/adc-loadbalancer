@@ -1,3 +1,4 @@
+#!/usr/bin/perl
 ###############################################################################
 #
 #    RELIANOID Software License
@@ -21,11 +22,9 @@
 ###############################################################################
 
 use strict;
+use warnings;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad };
 
 my $CSR_KEY_SIZE = 2048;
 
@@ -50,6 +49,7 @@ sub certificates    # ()
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # GET /certificates/CERTIFICATE/info
@@ -78,6 +78,7 @@ sub get_certificate_info    # ()
         my $msg = "Could not get such certificate information";
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
+    return;
 }
 
 # GET /certificates/CERTIFICATE
@@ -100,6 +101,7 @@ sub download_certificate    # ()
         dir  => $cert_dir,
         file => $cert_filename
     );
+    return;
 }
 
 # DELETE /certificates/CERTIFICATE
@@ -188,6 +190,7 @@ sub delete_certificate    # ( $cert_filename )
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # POST /certificates (Create CSR)
@@ -205,11 +208,11 @@ sub create_csr {
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-    my $params = &getZAPIModel("certificate_csr-create.json");
+    my $params = &getAPIModel("certificate_csr-create.json");
     $params->{fqdn}->{function} = \&checkFQDN;
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -233,6 +236,7 @@ sub create_csr {
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # POST /certificates/CERTIFICATE (Upload PEM)
@@ -271,6 +275,7 @@ sub upload_certificate    # ()
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # GET /ciphers
@@ -301,6 +306,7 @@ sub ciphers_available    # ( $json_obj, $farmname )
     };
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # POST /farms/FARM/certificates (Add certificate to farm)
@@ -328,10 +334,10 @@ sub add_farm_certificate    # ( $json_obj, $farmname )
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-    my $params = &getZAPIModel("farm_certificate-add.json");
+    my $params = &getAPIModel("farm_certificate-add.json");
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
       if ($error_msg);
 
@@ -345,12 +351,11 @@ sub add_farm_certificate    # ( $json_obj, $farmname )
 
     my $cert_in_use;
     if ($eload) {
-        $cert_in_use = grep (/^$json_obj->{ file }$/,
-            &eload(
-                module => 'Relianoid::Farm::HTTP::HTTPS::Ext',
-                func   => 'getFarmCertificatesSNI',
-                args   => [$farmname]
-            ));
+        $cert_in_use = grep { /^$json_obj->{ file }$/ } &eload(
+            module => 'Relianoid::Farm::HTTP::HTTPS::Ext',
+            func   => 'getFarmCertificatesSNI',
+            args   => [$farmname]
+        );
     }
     else {
         $cert_in_use = &getFarmCertificate($farmname) eq $json_obj->{file};
@@ -417,6 +422,7 @@ sub add_farm_certificate    # ( $json_obj, $farmname )
     }
 
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # DELETE /farms/FARM/certificates/CERTIFICATE
@@ -531,6 +537,7 @@ sub delete_farm_certificate    # ( $farmname, $certfilename )
 
     &zenlog("Success trying to delete a certificate to the SNI list.", "info", "LSLB");
     &httpResponse({ code => 200, body => $body });
+    return;
 }
 
 # POST /certificates/pem (Create PEM)
@@ -547,10 +554,10 @@ sub create_certificate    # ()
         &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
     }
 
-    my $params = &getZAPIModel("certificate_pem-create.json");
+    my $params = &getAPIModel("certificate_pem-create.json");
 
     # Check allowed parameters
-    my $error_msg = &checkZAPIParams($json_obj, $params, $desc);
+    my $error_msg = &checkApiParams($json_obj, $params, $desc);
     if ($error_msg) {
         &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg);
     }
@@ -572,7 +579,7 @@ sub create_certificate    # ()
     };
 
     &httpResponse({ code => 200, body => $body });
-
+    return;
 }
 
 1;
