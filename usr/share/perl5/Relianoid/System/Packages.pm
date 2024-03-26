@@ -23,6 +23,7 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 require Relianoid::Log;
 use Relianoid::SystemInfo;
 use autodie;
@@ -53,9 +54,7 @@ Returns:
 
 =cut
 
-sub setSystemPackagesRepo {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
+sub setSystemPackagesRepo () {
     if ($eload) {
         return &eload(
             module => 'Relianoid::Apt',
@@ -78,8 +77,7 @@ sub setSystemPackagesRepo {
     close $FH;
 
     # update repositories
-    $error =
-      &logAndRun("$aptget_bin update -o Dir::Etc::sourceparts=\"-\" -o Dir::Etc::sourcelist=$file");
+    $error = &logAndRun("$aptget_bin update -o Dir::Etc::sourceparts=\"-\" -o Dir::Etc::sourcelist=$file");
 
     return $error;
 }
@@ -107,9 +105,7 @@ Returns:
 
 =cut
 
-sub getSystemPackagesUpdatesList {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
+sub getSystemPackagesUpdatesList () {
     require Relianoid::Lock;
     my $package_list = &getGlobalConfiguration('apt_outdated_list');
     my $message_file = &getGlobalConfiguration('apt_msg');

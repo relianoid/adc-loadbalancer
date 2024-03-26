@@ -23,14 +23,22 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 use Relianoid::System;
+
+=pod
+
+=head1 Module
+
+Relianoid::API40::Stats
+
+=cut
 
 my $eload = eval { require Relianoid::ELoad };
 
 # Get all farm stats
-sub getAllFarmStats {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub getAllFarmStats () {
     require Relianoid::Farm::Core;
     require Relianoid::Farm::Base;
 
@@ -92,11 +100,7 @@ sub getAllFarmStats {
 }
 
 #Get Farm Stats
-sub farm_stats    # ( $farmname, $servicename )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farmname    = shift;
-    my $servicename = shift;
+sub farm_stats ($farmname, $servicename = undef) {
     if ($farmname eq 'modules') { return; }
     if ($farmname eq 'total')   { return; }
 
@@ -106,7 +110,7 @@ sub farm_stats    # ( $farmname, $servicename )
 
     if (!&getFarmExists($farmname)) {
         my $msg = "The farmname $farmname does not exist.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $type = &getFarmType($farmname);
@@ -115,7 +119,7 @@ sub farm_stats    # ( $farmname, $servicename )
         && ($type ne 'http' && $type ne 'https' && $type ne 'gslb'))
     {
         my $msg = "The $type farm profile does not support services.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     if ($type eq "http" || $type eq "https") {
@@ -130,7 +134,7 @@ sub farm_stats    # ( $farmname, $servicename )
 
             if (not $found_service) {
                 my $msg = "The service $servicename does not exist for $farmname.";
-                &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+                &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
             }
         }
 
@@ -201,11 +205,7 @@ sub farm_stats    # ( $farmname, $servicename )
                 # check if the SERVICE exists
                 unless (grep { $servicename eq $_ } @services) {
                     my $msg = "Could not find the requested service.";
-                    return &httpErrorResponse(
-                        code => 404,
-                        desc => $desc,
-                        msg  => $msg
-                    );
+                    return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
                 }
             }
             $gslb_stats = &eload(
@@ -230,9 +230,7 @@ sub farm_stats    # ( $farmname, $servicename )
 }
 
 #Get Farm Stats
-sub all_farms_stats    # ()
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub all_farms_stats () {
     my $farms = &getAllFarmStats();
 
     my $body = {
@@ -245,9 +243,7 @@ sub all_farms_stats    # ()
 }
 
 #GET /stats
-sub stats    # ()
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub stats () {
     require Relianoid::Stats;
     require Relianoid::SystemInfo;
 
@@ -308,9 +304,7 @@ sub stats    # ()
 }
 
 #GET /stats/network
-sub stats_network    # ()
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub stats_network () {
     require Relianoid::Stats;
     require Relianoid::SystemInfo;
 

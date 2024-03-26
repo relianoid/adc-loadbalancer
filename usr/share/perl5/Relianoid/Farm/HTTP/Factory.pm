@@ -23,10 +23,11 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 require Relianoid::Core;
 
-my $eload = eval { require Relianoid::ELoad };
+my $eload     = eval { require Relianoid::ELoad };
 my $configdir = &getGlobalConfiguration('configdir');
 
 =pod
@@ -46,13 +47,9 @@ Create a HTTP farm
 Parameters:
 
     vip - Virtual IP where the virtual service is listening
-
-    port - Virtual port where the virtual service is listening
-
-    farmname - Farm name
-
-    type - Specify if farm is HTTP or HTTPS
-
+    vip_port - Virtual port where the virtual service is listening
+    farm_name - Farm name
+    farm_type - Specify if farm is HTTP or HTTPS
     status - Set the initial status of the farm. The possible values are: 'down' for creating the farm and do not run it or 'up' (default) for running the farm when it has been created
 
 Returns:
@@ -61,13 +58,8 @@ Returns:
 
 =cut
 
-sub runHTTPFarmCreate    # ( $vip, $vip_port, $farm_name, $farm_type )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
+sub runHTTPFarmCreate ($vip, $vip_port, $farm_name, $farm_type, $status = 'up') {
     require Relianoid::Farm::HTTP::Config;
-    my ($vip, $vip_port, $farm_name, $farm_type, $status) = @_;
-    $status = 'up' if not defined $status;
 
     my $proxy_ng = &getGlobalConfiguration('proxy_ng');
 
@@ -147,14 +139,9 @@ sub runHTTPFarmCreate    # ( $vip, $vip_port, $farm_name, $farm_type )
     my $piddir = &getGlobalConfiguration('piddir');
 
     if ($status eq 'up') {
-        &zenlog(
-            "Running $proxy -f $configdir\/$farm_name\_proxy.cfg -p $piddir\/$farm_name\_proxy.pid",
-            "info", "LSLB"
-        );
+        &zenlog("Running $proxy -f $configdir\/$farm_name\_proxy.cfg -p $piddir\/$farm_name\_proxy.pid", "info", "LSLB");
 
-        $output = &zsystem(
-            "$proxy -f $configdir\/$farm_name\_proxy.cfg -p $piddir\/$farm_name\_proxy.pid 2>/dev/null"
-        );
+        $output = &zsystem("$proxy -f $configdir\/$farm_name\_proxy.cfg -p $piddir\/$farm_name\_proxy.pid 2>/dev/null");
 
         if ($proxy_ng eq 'true') {
             if (&getGlobalConfiguration("mark_routing_L7") eq 'true') {
@@ -171,17 +158,14 @@ sub runHTTPFarmCreate    # ( $vip, $vip_port, $farm_name, $farm_type )
                 my $body =
                   qq({"farms" : [ { "name" : "$farm_name", "virtual-addr" : "$vip", "virtual-ports" : "$vip_port", "mode" : "local", "state": "up", "family" : "$vip_family" }]});
                 require Relianoid::Nft;
-                my $error = &httpNlbRequest(
-                    {
-                        farm   => $farm_name,
-                        method => "PUT",
-                        uri    => "/farms",
-                        body   => $body
-                    }
-                );
+                my $error = &httpNlbRequest({
+                    farm   => $farm_name,
+                    method => "PUT",
+                    uri    => "/farms",
+                    body   => $body
+                });
                 if ($error) {
-                    &zenlog("L4xnat Farm Type local for '$farm_name' can not be created.",
-                        "warning", "LSLB");
+                    &zenlog("L4xnat Farm Type local for '$farm_name' can not be created.", "warning", "LSLB");
                 }
             }
 

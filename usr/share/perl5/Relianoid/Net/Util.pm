@@ -24,7 +24,6 @@
 use strict;
 use warnings;
 use feature qw(signatures);
-no warnings 'experimental::args_array_with_signatures';
 
 =pod
 
@@ -57,8 +56,6 @@ See Also:
 
 # Get List of Vinis or Vlans from an interface
 sub getIfacesFromIf ($if_name, $type) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my @ifaces;
     my @configured_interfaces = @{ &getConfigInterfaceList() };
 
@@ -103,14 +100,12 @@ Bugs:
 
 See Also:
 
-    zapi/v3/interfaces.cgi
+    api/v4/interfaces.cgi
 
 =cut
 
 # Check if there are some Virtual Interfaces or Vlan with IPv6 and previous UP status to get it up.
 sub setIfacesUp ($if_name, $type) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     if (not($type eq 'vlan' or $type eq 'vini')) {
         die("setIfacesUp: type variable must be 'vlan' or 'vini'");
     }
@@ -160,8 +155,6 @@ See Also:
 
 # send gratuitous ICMP packets for L3 aware
 sub sendGPing ($pif) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $if_conf = &getInterfaceConfig($pif);
     my $gw      = $if_conf->{gateway};
 
@@ -174,56 +167,6 @@ sub sendGPing ($pif) {
         &logAndRunBG("$ping_cmd");
     }
     return;
-}
-
-=pod
-
-=head1 getRandomPort
-
-Get a random available port number from 35060 to 35160.
-
-Parameters:
-
-    protocol - it is the protocol that will use the port
-
-Returns:
-
-    Integer - Port number
-
-See Also:
-
-    <runGSLBFarmCreate>, <setGSLBControlPort>
-
-=cut
-
-#get a random available port
-sub getRandomPort ($protocol) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    require Relianoid::Net::Validate;
-
-    my $min         = "35060";
-    my $max         = "35460";
-    my $limit_tries = 40;
-
-    my $random_port;
-    for (my $tries = 0 ; $tries < $limit_tries ; $tries++) {
-        $tries++;
-        $random_port = int(rand($max - $min)) + $min;
-        if (&validatePort('127.0.0.1', $random_port, $protocol)) {
-            last;
-        }
-        else {
-            $random_port = -1;
-        }
-    }
-
-    if ($random_port == -1) {
-        &zenlog("The limit of tries was reached looking for a port not used",
-            "error", "networking");
-    }
-
-    return $random_port;
 }
 
 =pod
@@ -252,8 +195,6 @@ See Also:
 
 # send gratuitous ARP frames
 sub sendGArp ($if, $ip) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     require Relianoid::Net::Validate;
 
     my @iface = split(':', $if);
@@ -378,8 +319,6 @@ See Also:
 
 #know if and return ip
 sub iponif ($if) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     require IO::Socket;
     require Relianoid::Net::Interface;
 
@@ -417,8 +356,6 @@ See Also:
 
 # return the mask of an if
 sub maskonif ($if) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     require IO::Socket;
 
     my $s        = IO::Socket::INET->new(Proto => 'udp');
@@ -448,14 +385,12 @@ Bugs:
 
 See Also:
 
-    zapi/v3/interface.cgi <new_vini>, <new_vlan>,
-    zapi/v3/post.cgi <new_farm>,
+    api/v4/interface.cgi <new_vini>, <new_vlan>,
+    api/v4/post.cgi <new_farm>,
 
 =cut
 
 sub listallips () {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     require Relianoid::Net::Interface;
 
     my @listinterfaces = ();
@@ -490,8 +425,6 @@ See Also:
 
 # Enable(true) / Disable(false) IP Forwarding
 sub setIpForward ($arg) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $status = 0;
     my $switch = $arg eq 'true';
 
@@ -526,8 +459,6 @@ See Also:
 =cut
 
 sub getInterfaceOfIp ($ip) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     require Relianoid::Net::Interface;
     require NetAddr::IP;
 

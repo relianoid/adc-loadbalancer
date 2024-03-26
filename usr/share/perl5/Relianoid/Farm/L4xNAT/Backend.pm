@@ -23,17 +23,13 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 use Relianoid::Config;
 use Relianoid::Nft;
 
 my $configdir = &getGlobalConfiguration('configdir');
-
-my $eload;
-
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload     = eval { require Relianoid::ELoad; };
 
 =pod
 
@@ -51,13 +47,13 @@ Edit a backend or add a new one if the id is not found
 
 Parameters:
 
-    farmname - Farm name
-    id - Backend id
-    rip - Backend IP
+    farm_name - Farm name
+    ids - Backend id
+    ip - Backend IP
     port - Backend port
     weight - Backend weight. The backend with more weight will manage more connections
     priority - The priority of this backend (between 1 and 9). Higher priority backends will be used more often than lower priority ones
-    maxconn - Maximum connections for the given backend
+    max_conns - Maximum connections for the given backend
 
 Returns:
 
@@ -70,10 +66,7 @@ Returns:
 
 =cut
 
-sub setL4FarmServer {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $ids, $ip, $port, $weight, $priority, $max_conns) = @_;
-
+sub setL4FarmServer ($farm_name, $ids, $ip, $port = undef, $weight = undef, $priority = undef, $max_conns = undef) {
     require Relianoid::Farm::L4xNAT::Config;
     require Relianoid::Farm::L4xNAT::Action;
     require Relianoid::Farm::Backend;
@@ -178,17 +171,14 @@ sub setL4FarmServer {
         $msg  .= "state:up ";
     }
 
-    &zenlog("$msg") if &debug;
+    &zenlog("$msg") if &debug();
 
-    $output = &sendL4NlbCmd(
-        {
-            farm   => $farm_name,
-            file   => "$configdir/$farm_filename",
-            method => "PUT",
-            body   =>
-              qq({"farms" : [ { "name" : "$farm_name", "backends" : [ { "name" : "bck$ids"$json } ] } ] })
-        }
-    );
+    $output = &sendL4NlbCmd({
+        farm   => $farm_name,
+        file   => "$configdir/$farm_filename",
+        method => "PUT",
+        body   => qq({"farms" : [ { "name" : "$farm_name", "backends" : [ { "name" : "bck$ids"$json } ] } ] })
+    });
 
     # take care of floating interfaces without masquerading
     if ($json =~ /ip-addr/ && $eload) {
@@ -211,8 +201,8 @@ Delete a backend from a l4 farm
 
 Parameters:
 
-    backend - Backend id
-    farmname - Farm name
+    ids - Backend id
+    farm_name - Farm name
 
 Returns:
 
@@ -220,10 +210,7 @@ Returns:
 
 =cut
 
-sub runL4FarmServerDelete {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($ids, $farm_name) = @_;
-
+sub runL4FarmServerDelete ($ids, $farm_name) {
     require Relianoid::Farm::L4xNAT::Config;
     require Relianoid::Farm::L4xNAT::Action;
     require Relianoid::Netfilter;
@@ -235,14 +222,12 @@ sub runL4FarmServerDelete {
     # load the configuration file first if the farm is down
     my $f_ref = &getL4FarmStruct($farm_name);
 
-    $output = &sendL4NlbCmd(
-        {
-            farm    => $farm_name,
-            backend => "bck" . $ids,
-            file    => "$configdir/$farm_filename",
-            method  => "DELETE",
-        }
-    );
+    $output = &sendL4NlbCmd({
+        farm    => $farm_name,
+        backend => "bck" . $ids,
+        file    => "$configdir/$farm_filename",
+        method  => "DELETE",
+    });
 
     my $backend;
     foreach my $server (@{ $f_ref->{servers} }) {
@@ -280,14 +265,10 @@ Returns:
 
 =cut
 
-sub setL4FarmBackendsSessionsRemove {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $backend_ref, $farm_mode) = @_;
-
+sub setL4FarmBackendsSessionsRemove ($farm_name, $backend_ref = undef, $farm_mode = undef) {
     my $output = -1;
     if (not defined $backend_ref) {
-        &zenlog("Warning removing sessions for backend id farm '$farm_name': Backend id not found",
-            "warning", "lslb");
+        &zenlog("Warning removing sessions for backend id farm '$farm_name': Backend id not found", "warning", "lslb");
         return $output;
     }
 
@@ -335,20 +316,15 @@ sub setL4FarmBackendsSessionsRemove {
 
     if (defined $sessions) {
         chop $sessions;
-        my $error =
-          &logAndRun("/usr/local/sbin/nft delete element $table nftlb $map_name { $sessions }");
+        my $error = &logAndRun("$nft_bin delete element $table nftlb $map_name { $sessions }");
         if ($error) {
-            &zenlog(
-                "Error removing '$n_sessions_deleted' sessions for backend id '$backend_ref->{ id }' in farm '$farm_name'",
-                "error", "lslb"
-            );
+            &zenlog("Error removing '$n_sessions_deleted' sessions for backend id '$backend_ref->{ id }' in farm '$farm_name'",
+                "error", "lslb");
             $output = 1;
         }
         else {
-            &zenlog(
-                "Removing '$n_sessions_deleted' sessions for backend id '$backend_ref->{ id }' in farm '$farm_name'",
-                "info", "lslb"
-            );
+            &zenlog("Removing '$n_sessions_deleted' sessions for backend id '$backend_ref->{ id }' in farm '$farm_name'",
+                "info", "lslb");
             $output = 0;
         }
     }
@@ -369,7 +345,7 @@ Set backend status for an l4 farm and stops traffic to that backend when needed.
 
 Parameters:
 
-    farmname - Farm name
+    farm_name - Farm name
     backend - Backend id
     status - Backend status. The possible values are: "up", "down", "maintenance" or "fgDOWN".
     cutmode - "cut" to force the traffic stop for such backend
@@ -390,10 +366,7 @@ Returns:
 
 =cut
 
-sub setL4FarmBackendStatus {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $backend, $status, $cutmode) = @_;
-
+sub setL4FarmBackendStatus ($farm_name, $backend, $status, $cutmode = undef) {
     require Relianoid::Farm::L4xNAT::Config;
     require Relianoid::Farm::L4xNAT::Action;
 
@@ -434,15 +407,13 @@ sub setL4FarmBackendStatus {
           @{ &getPriorityAlgorithmStatus(\@backends)->{status} };
     }
 
-    $output = &sendL4NlbCmd(
-        {
-            farm   => $farm_name,
-            file   => "$configdir/$farm_filename",
-            method => "PUT",
-            body   =>
-              qq({"farms" : [ { "name" : "$farm_name", "backends" : [ { "name" : "bck$backend", "state" : "$status" } ] } ] })
-        }
-    );
+    $output = &sendL4NlbCmd({
+        farm   => $farm_name,
+        file   => "$configdir/$farm_filename",
+        method => "PUT",
+        body   =>
+          qq({"farms" : [ { "name" : "$farm_name", "backends" : [ { "name" : "bck$backend", "state" : "$status" } ] } ] })
+    });
 
     if ($output) {
         $msg = "Status of backend $backend in farm '$farm_name' was not changed to $status";
@@ -467,9 +438,7 @@ sub setL4FarmBackendStatus {
                 if ($farm->{persist} ne '') {
 
                     # delete backend session
-                    $output =
-                      &setL4FarmBackendsSessionsRemove($farm_name, @{ $farm->{servers} }[$i],
-                        $farm->{mode});
+                    $output = &setL4FarmBackendsSessionsRemove($farm_name, @{ $farm->{servers} }[$i], $farm->{mode});
                     if ($output) {
                         $error_ref->{code} = 2;
                     }
@@ -479,7 +448,7 @@ sub setL4FarmBackendStatus {
                 $output =
                   &resetL4FarmBackendConntrackMark(@{ $farm->{servers} }[$i]);
                 if ($output) {
-                    $msg = "Connections for unused backends in farm '$farm_name' were not deleted";
+                    $msg               = "Connections for unused backends in farm '$farm_name' were not deleted";
                     $error_ref->{code} = 3;
                     $error_ref->{desc} = $msg;
                 }
@@ -487,19 +456,15 @@ sub setL4FarmBackendStatus {
                 if ($farm->{persist} ne '') {
 
                     # delete backend session again in case new connections are created
-                    $output =
-                      &setL4FarmBackendsSessionsRemove($farm_name, @{ $farm->{servers} }[$i],
-                        $farm->{mode});
+                    $output = &setL4FarmBackendsSessionsRemove($farm_name, @{ $farm->{servers} }[$i], $farm->{mode});
                     if ($output) {
                         if ($error_ref->{code} == 3) {
-                            $msg =
-                              "Connections and sessions of unused backends in farm '$farm_name' were not deleted";
+                            $msg               = "Connections and sessions of unused backends in farm '$farm_name' were not deleted";
                             $error_ref->{code} = 4;
                             $error_ref->{desc} = $msg;
                         }
                         else {
-                            $msg =
-                              "Sessions for unused backends in farm '$farm_name' were not deleted";
+                            $msg               = "Sessions for unused backends in farm '$farm_name' were not deleted";
                             $error_ref->{code} = 2;
                             $error_ref->{desc} = $msg;
                         }
@@ -536,8 +501,7 @@ sub setL4FarmBackendStatus {
         # remove conntrack
         $output = &resetL4FarmBackendConntrackMark($server);
         if ($output) {
-            $msg =
-              "Connections for backend $server->{ ip }:$server->{ port } in farm '$farm_name' were not deleted";
+            $msg               = "Connections for backend $server->{ ip }:$server->{ port } in farm '$farm_name' were not deleted";
             $error_ref->{code} = 3;
             $error_ref->{desc} = $msg;
         }
@@ -548,14 +512,12 @@ sub setL4FarmBackendStatus {
             $output = &setL4FarmBackendsSessionsRemove($farm_name, $server, $farm->{mode});
             if ($output) {
                 if ($error_ref->{code} == 3) {
-                    $msg =
-                      "Error deleting connections and sessions on backend $server->{ ip }:$server->{ port } in farm '$farm_name'";
+                    $msg = "Error deleting connections and sessions on backend $server->{ ip }:$server->{ port } in farm '$farm_name'";
                     $error_ref->{code} = 4;
                     $error_ref->{desc} = $msg;
                 }
                 else {
-                    $msg =
-                      "Sessions for backend $server->{ ip }:$server->{ port } in farm '$farm_name' were not deleted";
+                    $msg               = "Sessions for backend $server->{ ip }:$server->{ port } in farm '$farm_name' were not deleted";
                     $error_ref->{code} = 2;
                     $error_ref->{desc} = $msg;
                 }
@@ -599,10 +561,7 @@ Returns:
 
 =cut
 
-sub getL4FarmServers {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm_name = shift;
-
+sub getL4FarmServers ($farm_name) {
     my $farm_filename = &getFarmFile($farm_name);
 
     open my $fd, '<', "$configdir/$farm_filename";
@@ -645,10 +604,8 @@ Returns:
 
 =cut
 
-sub _getL4FarmParseServers {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $config = shift;
-    my $stage  = 0;
+sub _getL4FarmParseServers ($config) {
+    my $stage = 0;
     my $server;
     my @servers;
 
@@ -716,7 +673,7 @@ sub _getL4FarmParseServers {
 
             # Convert to number after being used as string.
             if (defined $server->{port} and length $server->{port}) {
-                $server->{port} += 0; 
+                $server->{port} += 0;
             }
         }
 
@@ -756,41 +713,6 @@ sub _getL4FarmParseServers {
 
 =pod
 
-=head1 getL4ServerWithLowestPriority
-
-Look for backend with the lowest priority
-
-Parameters:
-
-    farm - Farm hash ref. It is a hash with all information about the farm
-
-Returns:
-
-    hash ref - reference to the selected server for prio algorithm
-
-=cut
-
-sub getL4ServerWithLowestPriority {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm = shift;
-
-    my $prio_server;
-
-    foreach my $server (@{ $$farm{servers} }) {
-        if ($$server{status} eq 'up') {
-
-            # find the lowest priority server
-            $prio_server = $server if not defined $prio_server;
-            $prio_server = $server
-              if $$prio_server{priority} > $$server{priority};
-        }
-    }
-
-    return $prio_server;
-}
-
-=pod
-
 =head1 getL4BackendsWeightProbability
 
 Get probability for every backend
@@ -805,10 +727,7 @@ Returns:
 
 =cut
 
-sub getL4BackendsWeightProbability {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm = shift;
-
+sub getL4BackendsWeightProbability ($farm) {
     my $weight_sum = 0;
 
     &doL4FarmProbability($farm);
@@ -844,10 +763,7 @@ Returns:
 
 =cut
 
-sub resetL4FarmBackendConntrackMark {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $server = shift;
-
+sub resetL4FarmBackendConntrackMark ($server) {
     my $conntrack = &getGlobalConfiguration('conntrack');
     my $cmd       = "$conntrack -D -m $server->{ tag }/0x7fffffff";
 
@@ -900,10 +816,7 @@ Returns:
 
 =cut
 
-sub getL4FarmBackendAvailableID {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farmname = shift;
-
+sub getL4FarmBackendAvailableID ($farmname) {
     require Relianoid::Farm::Backend;
 
     my $backends  = &getL4FarmServers($farmname);
@@ -915,40 +828,6 @@ sub getL4FarmBackendAvailableID {
     }
 
     return $nbackends;
-}
-
-=pod
-
-=head1 getL4ServerByMark
-
-Obtain the backend id from the mark
-
-Parameters:
-
-    servers_ref - reference to the servers array
-
-    mark - backend mark to discover the id
-
-Returns:
-
-    integer - > 0 if successful, -1 if error.
-
-=cut
-
-sub getL4ServerByMark {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $servers_ref = shift;
-    my $mark        = shift;
-
-    (my $tag = $mark) =~ s/0x.0*/0x/g;
-
-    foreach my $server (@{$servers_ref}) {
-        if ($server->{tag} eq $tag) {
-            return $server->{id};
-        }
-    }
-
-    return -1;
 }
 
 =pod
@@ -967,10 +846,7 @@ Returns:
 
 =cut
 
-sub getL4FarmPriorities    # ( $farmname )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farmname) = shift;
+sub getL4FarmPriorities ($farmname) {
     my @priorities;
     my $backends = &getL4FarmServers($farmname);
     foreach my $backend (@{$backends}) {

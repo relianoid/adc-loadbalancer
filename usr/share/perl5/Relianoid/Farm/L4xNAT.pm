@@ -23,6 +23,7 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 use Relianoid::Farm::L4xNAT::Config;
 use Relianoid::Farm::L4xNAT::Action;

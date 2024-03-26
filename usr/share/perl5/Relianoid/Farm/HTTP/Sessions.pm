@@ -24,7 +24,6 @@
 use strict;
 use warnings;
 use feature qw(signatures);
-no warnings 'experimental::args_array_with_signatures';
 
 use POSIX 'strftime';
 require Tie::File;
@@ -74,8 +73,6 @@ Returns:
 =cut
 
 sub listL7FarmSessions ($farmname, $service) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     require Relianoid::Farm::HTTP::Action;
     require Relianoid::Farm::HTTP::Service;
     require Relianoid::Farm::Core;
@@ -104,13 +101,11 @@ sub listL7FarmSessions ($farmname, $service) {
         $output->{sessions} = \@array;
     }
     else {
-        $output = &sendL7ZproxyCmd(
-            {
-                farm   => $farmname,
-                uri    => "listener/0/services/$service_id/sessions",
-                method => "GET",
-            }
-        );
+        $output = &sendL7ZproxyCmd({
+            farm   => $farmname,
+            uri    => "listener/0/services/$service_id/sessions",
+            method => "GET",
+        });
     }
 
     return $output if ($output eq 1);
@@ -158,8 +153,6 @@ Returns:
 =cut
 
 sub getSessionsFileName ($farm) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $configdir = &getGlobalConfiguration("configdir");
 
     return "$configdir\/$farm\_sessions.cfg";
@@ -198,8 +191,6 @@ Returns:
 =cut
 
 sub listConfL7FarmSessions ($farmname, $servicename, $backendId = undef) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $filepath = &getSessionsFileName($farmname);
 
     unless ($filepath && -e $filepath) {
@@ -226,95 +217,6 @@ sub listConfL7FarmSessions ($farmname, $servicename, $backendId = undef) {
 
 =pod
 
-=head1 addConfL7FarmSessions
-
-Add new static session to from <farm>_sessions.cfg file.
-
-Parameters:
-
-    farmname - Farm name
-    service  - service name
-    backend  - backend id
-    client   - client ip
-
-Returns:
-
-    - 0 on success
-    - 1 on failure
-
-=cut
-
-sub addConfL7FarmSession ($farmname, $service, $backend, $client) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my $filepath = &getSessionsFileName($farmname);
-
-    unless ($filepath && -e $filepath) {
-        open my $fh, ">", $filepath;
-        close $fh;
-    }
-
-    tie my @file, 'Tie::File', $filepath;
-    foreach my $line (@file) {
-        if ($line =~ /$service\s+$backend\s+$client/) {
-            &zenlog(
-                "A configuration line for the session $service $backend $client already exists in $filepath.",
-                "error", "HTTP"
-            );
-            untie @file;
-            return 1;
-        }
-    }
-
-    push(@file, "$service $backend $client");
-    untie @file;
-
-    return 0;
-}
-
-=pod
-
-=head1 deleteConfL7FarmSessions
-
-Delete a static session from <farm>_sessions.cfg file.
-
-Parameters:
-
-    farmname - Farm name
-    service  - service name
-    client   - client ip
-
-Returns:
-
-    - 0 on success
-    - 1 on failure
-
-=cut
-
-sub deleteConfL7FarmSession ($farmname, $service, $client) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my $filepath = &getSessionsFileName($farmname);
-
-    unless ($filepath && -e $filepath) {
-        &zenlog("$farmname" . "_sessions.cfg configuration file not found", "error", "HTTP");
-        return 1;
-    }
-
-    tie my @file, 'Tie::File', $filepath;
-
-    my $index = 0;
-    foreach my $line (@file) {
-        splice(@file, $index, 1) if ($line =~ /$service(.*)$client/);
-        $index++;
-    }
-    untie @file;
-
-    return 0;
-}
-
-=pod
-
 =head1 deleteConfL7FarmAllSessions
 
 Delete new static session to from <farm>_sessions.cfg file.
@@ -332,8 +234,6 @@ Returns:
 =cut
 
 sub deleteConfL7FarmAllSession ($farmname, $service = undef, $id = undef) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $filepath = &getSessionsFileName($farmname);
 
     unless ($filepath && -e $filepath) {

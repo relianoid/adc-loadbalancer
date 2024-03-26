@@ -35,6 +35,7 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 #use Data::Dumper;
 use Proc::Daemon;
@@ -138,23 +139,21 @@ else {
 
 # create farmguardian pidfile
 my $filepid = "/var/run/$pidfile";
-{
-    open(my $fo, '>', "$filepid");
-    if (not $fo) {
-        my $msg = "Cannot open file $filepid: $!";
-
-        if ($logging eq 'enabled') {
-            &zenlog($msg);
-        }
-        else {
-            print "$msg\n";
-        }
-
-        exit 1;
-    }
-
+if (open(my $fo, '>', "$filepid")) {
     print $fo "$$";
     close $fo;
+}
+else {
+    my $msg = "Cannot open file $filepid: $!";
+
+    if ($logging eq 'enabled') {
+        &zenlog($msg);
+    }
+    else {
+        print "$msg\n";
+    }
+
+    exit 1;
 }
 
 # get farm port to use it if a backend has not defined the port field
@@ -182,7 +181,6 @@ elsif ($type eq 'http') {
 
     my $proxy_ng = &getGlobalConfiguration('proxy_ng');
     $usemark = $proxy_ng eq "true" ? 1 : 0;
-
 }
 
 # This is a cluster bugfix, to ensure the backend status is correct in the config file.
@@ -224,18 +222,18 @@ while (1) {
 
         foreach my $line (split("\n", $backendsvs)) {
             my @subbe = split(' ', $line);
-            $backendmark[$i] = $subbe[15] if $usemark;
-            $backendid[$i]   = $subbe[1];
-            $backendserv[$i] =
-              ($useAlias eq 'true') ? &getFGAlias($subbe[3]) : $subbe[3];
+            $backendmark[$i]   = $subbe[15] if $usemark;
+            $backendid[$i]     = $subbe[1];
+            $backendserv[$i]   = ($useAlias eq 'true') ? &getFGAlias($subbe[3]) : $subbe[3];
             $backendip[$i]     = $subbe[3];
             $backendport[$i]   = $subbe[5];
             $backendstatus[$i] = &getHTTPBackendStatusFromFile($farmname, $i, $service);
+
             if ($proxy_ng eq 'true') {
                 $bk_prio_proxyng[$i] = ($subbe[9] eq '-') ? 1 : $subbe[9];
             }
-            if (defined $http_prio) {
 
+            if (defined $http_prio) {
                 if ($proxy_ng ne "true") {
                     if (defined @{$http_prio}[$i]) {
                         $backendprio[$i] = @{$http_prio}[$i];
@@ -262,25 +260,20 @@ while (1) {
                 push @backendorder, @{ $order->{$prio} };
             }
         }
-
-        # get the farm's timeout
-        #~ $timeout = &getFarmTimeout( $farmname );
     }
     elsif ($type eq 'l4xnat')    # Collect L4xNAT farm variables values
     {
         my $be = &getL4FarmServers($farmname);
         foreach my $l_serv (@{$be}) {
-            $backendid[$i] = $l_serv->{id};
-            $backendserv[$i] =
-              ($useAlias eq 'true')
-              ? &getFGAlias($l_serv->{ip})
-              : $l_serv->{ip};
+            $backendid[$i]   = $l_serv->{id};
+            $backendserv[$i] = ($useAlias eq 'true') ? &getFGAlias($l_serv->{ip}) : $l_serv->{ip};
             $backendmark[$i] = hex($l_serv->{tag}) if $usemark;
-            $backendport[$i] = $l_serv->{port}
-              // $farm_st->{vport};    # use farm port if backend port is not defined
-            $backendport[$i]   = $farm_st->{vport} if ($backendport[$i] eq "");
             $backendprio[$i]   = $l_serv->{priority};
             $backendstatus[$i] = $l_serv->{status};
+
+            # use farm port if backend port is not defined
+            $backendport[$i]   = $l_serv->{port} // $farm_st->{vport};
+            $backendport[$i]   = $farm_st->{vport} if ($backendport[$i] eq "");
             $i++;
         }
     }
@@ -391,6 +384,7 @@ while (1) {
 
         my $http_prio_enable  = 1;
         my $http_prio_disable = 0;
+
         if (@backendorder) {
             if ($backendprio[$j] > $svc_prio) {
                 $http_prio_enable  = 0;
@@ -401,6 +395,7 @@ while (1) {
                 }
             }
         }
+
         if ((defined $backendprio[$j]) and ($backendprio[$j] <= $svc_prio)) {
             if (    ($timedout == 1 or $errorcode != 0)
                 and ($backendstatus[$j] eq 'fgDOWN'))
@@ -543,7 +538,7 @@ while (1) {
     sleep($timetocheck);
 }
 
-sub printHelp {
+sub printHelp () {
     print
       "FarmGuardian v4.1. Check Backends Servers in a Farm and enable or disable the load balancing\n";
     print "\thelp: farmguardian <farmname> [-s <service>] [-l]";
@@ -554,10 +549,10 @@ sub printHelp {
     print
       "\t\t-a\t\t: Use the backend alias to do the farmguardian check, the alias has to be resolved\n"
       if ($eload);
+    return;
 }
 
-sub getFGAlias {
-    my $bk = shift;
+sub getFGAlias ($bk) {
     require Relianoid::Config;
     my $alias_file = &getGlobalConfiguration("configdir") . "/alias.conf";
 

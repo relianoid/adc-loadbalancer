@@ -24,12 +24,18 @@
 use strict;
 use warnings;
 use feature qw(signatures);
-no warnings 'experimental::args_array_with_signatures';
+
+=pod
+
+=head1 Module
+
+Relianoid::API40::Auth
+
+=cut
 
 my $eload = eval { require Relianoid::ELoad };
 
 sub validCGISession() {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     require Relianoid::CGI;
     require CGI::Session;
 
@@ -59,7 +65,6 @@ sub validCGISession() {
 }
 
 sub getAuthorizationCredentials() {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $base64_digest;
     my $username;
     my $password;
@@ -97,8 +102,6 @@ sub getAuthorizationCredentials() {
 }
 
 sub authenticateCredentials ($user, $pass) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     return if not defined $user or not defined $pass;
 
     my $valid_credentials = 0;    # output

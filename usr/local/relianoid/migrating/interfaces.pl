@@ -46,7 +46,6 @@ foreach my $file (@iface_files) {
 
 sub _getInterfaceConfig    # \%iface ($if_name, $ip_version)
 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my ($if_name) = @_;
 
     unless (defined $if_name) {

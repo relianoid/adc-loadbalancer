@@ -23,7 +23,7 @@
 
 use strict;
 use warnings;
-use feature 'state';
+use feature qw(signatures state);
 use CGI::Simple;
 
 $CGI::Simple::DISABLE_UPLOADS = 0;                # enable uploads
@@ -53,12 +53,11 @@ Returns:
 
 See Also:
 
-    zapi/v3/zapi.cgi, zapi/v3/certificates.cgi, zapi/v3/system.cgi, <downloadBackup>
+    api/v4/zapi.cgi, api/v4/certificates.cgi, api/v4/system.cgi, <downloadBackup>
 
 =cut
 
-sub getCGI {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub getCGI () {
     state $cgi = CGI::Simple->new();
 
     return $cgi;
@@ -92,14 +91,11 @@ Returns:
 
 See Also:
 
-    zapi/v3/zapi.cgi
+    api/v4/zapi.cgi
 
 =cut
 
-sub getCgiParam {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $variable = shift;
-
+sub getCgiParam ($variable) {
     my $cgi = getCGI();
 
     return eval { $cgi->param($variable) } if $variable;

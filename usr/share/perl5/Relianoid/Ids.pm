@@ -23,13 +23,13 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 use Relianoid::Log;
 use Relianoid::Config;
 use Config::Tiny;
 
-my $eload;
-$eload = 1 if (eval { require Relianoid::ELoad; });
+my $eload = eval { require Relianoid::ELoad; };
 
 # TODO
 # ipds-rbl-domains
@@ -53,9 +53,7 @@ Relianoid::Ids
 
 =cut
 
-sub getIdsTree {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
+sub getIdsTree () {
     require Relianoid::Farm::Core;
     require Relianoid::FarmGuardian;
     require Relianoid::Net::Interface;
@@ -282,8 +280,7 @@ sub getIdsTree {
 
 =cut
 
-sub addIdsKeys {
-    my $hash_ref = shift;
+sub addIdsKeys ($hash_ref) {
     my @arr_keys = keys %{$hash_ref};
     return &addIdsArrays(\@arr_keys);
 }
@@ -294,8 +291,7 @@ sub addIdsKeys {
 
 =cut
 
-sub addIdsArrays {
-    my $arr = shift;
+sub addIdsArrays ($arr) {
     my $out = {};
 
     foreach my $it (@{$arr}) {

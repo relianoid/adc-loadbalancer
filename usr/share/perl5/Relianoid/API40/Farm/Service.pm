@@ -24,16 +24,21 @@
 use strict;
 use warnings;
 use feature qw(signatures);
-no warnings 'experimental::args_array_with_signatures';
 
 use Relianoid::Farm::Core;
+
+=pod
+
+=head1 Module
+
+Relianoid::API40::Farm::Service
+
+=cut
 
 my $eload = eval { require Relianoid::ELoad };
 
 # POST
 sub new_farm_service ($json_obj, $farmname) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     require Relianoid::Farm::Service;
 
     my $desc = "New service";
@@ -41,13 +46,13 @@ sub new_farm_service ($json_obj, $farmname) {
     # Check if the farm exists
     if (!&getFarmExists($farmname)) {
         my $msg = "The farmname $farmname does not exist.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     # check if the service exists
     if (grep { /^$json_obj->{id}$/ } &getFarmServices($farmname)) {
         my $msg = "Error, the service $json_obj->{id} already exist.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $type = &getFarmType($farmname);
@@ -62,14 +67,14 @@ sub new_farm_service ($json_obj, $farmname) {
     }
     elsif ($type !~ /^https?$/) {
         my $msg = "The farm profile $type does not support services actions.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $params = &getAPIModel("farm_http_service-create.json");
 
     # Check allowed parameters
     my $error_msg = &checkApiParams($json_obj, $params, $desc);
-    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+    return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg })
       if ($error_msg);
 
     # HTTP profile
@@ -82,24 +87,23 @@ sub new_farm_service ($json_obj, $farmname) {
     # check if a service with such name already exists
     if ($result == 1) {
         my $msg = "Service name " . $json_obj->{id} . " already exists.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     # check if the service name has invalid characters
     if ($result == 3) {
         my $msg = "Service name is not valid, only allowed numbers, letters and hyphens.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     # Return 0 on success
     if ($result) {
         my $msg = "Error creating the service $json_obj->{ id }.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     # no error found, return successful response
-    &zenlog("Success, a new service has been created in farm $farmname with id $json_obj->{id}.",
-        "info", "FARMS");
+    &zenlog("Success, a new service has been created in farm $farmname with id $json_obj->{id}.", "info", "FARMS");
 
     my $body = {
         description => $desc,
@@ -138,8 +142,6 @@ sub new_farm_service ($json_obj, $farmname) {
 
 #GET /farms/<name>/services/<service>
 sub farm_services ($farmname, $servicename) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     require Relianoid::API40::Farm::Get::HTTP;
     require Relianoid::Farm::Config;
     require Relianoid::Farm::HTTP::Service;
@@ -149,7 +151,7 @@ sub farm_services ($farmname, $servicename) {
     # Check if the farm exists
     if (!&getFarmExists($farmname)) {
         my $msg = "The farmname $farmname does not exist.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     my $type = &getFarmType($farmname);
@@ -157,7 +159,7 @@ sub farm_services ($farmname, $servicename) {
     # check the farm type is supported
     if ($type !~ /http/i) {
         my $msg = "This functionality only is available for HTTP farms.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my @services = &getHTTPFarmServices($farmname);
@@ -165,7 +167,7 @@ sub farm_services ($farmname, $servicename) {
     # check if the service is available
     if (!grep { $servicename eq $_ } @services) {
         my $msg = "The required service does not exist.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     # no error found, return successful response
@@ -201,8 +203,6 @@ sub farm_services ($farmname, $servicename) {
 # PUT
 
 sub modify_services ($json_obj, $farmname, $service) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     require Relianoid::Farm::Base;
     require Relianoid::Farm::Config;
     require Relianoid::Farm::Service;
@@ -214,7 +214,7 @@ sub modify_services ($json_obj, $farmname, $service) {
     # validate FARM NAME
     if (!&getFarmExists($farmname)) {
         my $msg = "The farmname $farmname does not exist.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     # validate FARM TYPE
@@ -222,7 +222,7 @@ sub modify_services ($json_obj, $farmname, $service) {
 
     unless ($type eq 'gslb' || $type eq 'http' || $type eq 'https') {
         my $msg = "The $type farm profile does not support services settings.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     # validate SERVICE
@@ -231,7 +231,7 @@ sub modify_services ($json_obj, $farmname, $service) {
 
     if (not $found_service) {
         my $msg = "Could not find the requested service.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     # check if the farm profile gslb is supported
@@ -247,7 +247,7 @@ sub modify_services ($json_obj, $farmname, $service) {
 
     # Check allowed parameters
     my $error_msg = &checkApiParams($json_obj, $params, $desc);
-    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+    return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg })
       if ($error_msg);
 
     # translate params
@@ -310,7 +310,7 @@ sub modify_services ($json_obj, $farmname, $service) {
         my $error = &setFarmVS($farmname, $service, "session", $session);
         if ($error) {
             my $msg = "It's not possible to change the persistence parameter.";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
         if ($eload) {
             my $new_persistence = &getPersistence($farmname);
@@ -345,7 +345,7 @@ sub modify_services ($json_obj, $farmname, $service) {
             my $error = &setFarmVS($farmname, $service, "ttl", "$json_obj->{ttl}");
             if ($error) {
                 my $msg = "Could not change the ttl parameter.";
-                &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+                &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
             }
         }
     }
@@ -361,16 +361,12 @@ sub modify_services ($json_obj, $farmname, $service) {
             );
 
             if (defined $msg && length $msg) {
-                return &httpErrorResponse(
-                    code => 400,
-                    desc => $desc,
-                    msg  => $msg
-                );
+                return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
             }
         }
         else {
             my $msg = "Cookie insertion feature not available.";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }
 
@@ -397,48 +393,41 @@ sub modify_services ($json_obj, $farmname, $service) {
 
             if ($err) {
                 my $msg = "Error modifying redirect code.";
-                return &httpErrorResponse(
-                    code => 400,
-                    desc => $desc,
-                    msg  => $msg
-                );
+                return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
             }
         }
         else {
             my $msg = "Redirect code feature not available.";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }
 
     if (exists $json_obj->{pinnedconnection}) {
         if (&getGlobalConfiguration('proxy_ng') eq 'true') {
-            my $error =
-              &setFarmVS($farmname, $service, "pinnedConnection", "$json_obj->{pinnedconnection}");
+            my $error = &setFarmVS($farmname, $service, "pinnedConnection", "$json_obj->{pinnedconnection}");
             if ($error) {
                 my $msg = "Could not change the pinned connection parameter.";
-                &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+                &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
             }
         }
     }
 
     if (exists $json_obj->{routingpolicy}) {
         if (&getGlobalConfiguration('proxy_ng') eq 'true') {
-            my $error =
-              &setFarmVS($farmname, $service, "routingPolicy", "$json_obj->{routingpolicy}");
+            my $error = &setFarmVS($farmname, $service, "routingPolicy", "$json_obj->{routingpolicy}");
             if ($error) {
                 my $msg = "Could not change the routing policy parameter.";
-                &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+                &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
             }
         }
     }
 
     if (exists $json_obj->{rewritelocation}) {
         if (&getGlobalConfiguration('proxy_ng') eq 'true') {
-            my $error =
-              &setFarmVS($farmname, $service, "rewriteLocation", "$json_obj->{rewritelocation}");
+            my $error = &setFarmVS($farmname, $service, "rewriteLocation", "$json_obj->{rewritelocation}");
             if ($error) {
                 my $msg = "Could not change the rewrite location parameter.";
-                &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+                &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
             }
         }
     }
@@ -451,11 +440,7 @@ sub modify_services ($json_obj, $farmname, $service) {
             # status
             if ($type ne 'https') {
                 my $msg = "The farms have to be HTTPS to modify STS";
-                return &httpErrorResponse(
-                    code => 400,
-                    desc => $desc,
-                    msg  => $msg
-                );
+                return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
 
             }
             my $err = &eload(
@@ -466,11 +451,7 @@ sub modify_services ($json_obj, $farmname, $service) {
 
             if ($err) {
                 my $msg = "Error modifying STS status.";
-                return &httpErrorResponse(
-                    code => 400,
-                    desc => $desc,
-                    msg  => $msg
-                );
+                return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
             }
 
         }
@@ -478,11 +459,7 @@ sub modify_services ($json_obj, $farmname, $service) {
         if (exists $json_obj->{sts_timeout}) {
             if ($type ne 'https') {
                 my $msg = "The farms have to be HTTPS to modify STS";
-                return &httpErrorResponse(
-                    code => 400,
-                    desc => $desc,
-                    msg  => $msg
-                );
+                return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
             }
 
             my $err = &eload(
@@ -493,11 +470,7 @@ sub modify_services ($json_obj, $farmname, $service) {
 
             if ($err) {
                 my $msg = "Error modifying STS status.";
-                return &httpErrorResponse(
-                    code => 400,
-                    desc => $desc,
-                    msg  => $msg
-                );
+                return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
             }
         }
     }
@@ -517,8 +490,7 @@ sub modify_services ($json_obj, $farmname, $service) {
         delete($output_params->{removeResponseHeader});
     }
 
-    &zenlog("Success, some parameters have been changed in service $service in farm $farmname.",
-        "info", "FARMS");
+    &zenlog("Success, some parameters have been changed in service $service in farm $farmname.", "info", "FARMS");
 
     my $body = {
         description => "Modify service $service in farm $farmname",
@@ -558,14 +530,12 @@ sub modify_services ($json_obj, $farmname, $service) {
 
 # DELETE /farms/<farmname>/services/<servicename> Delete a service of a Farm
 sub delete_service ($farmname, $service) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $desc = "Delete service";
 
     # Check if the farm exists
     if (!&getFarmExists($farmname)) {
         my $msg = "The farmname $farmname does not exist.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     # check the farm type is supported
@@ -580,7 +550,7 @@ sub delete_service ($farmname, $service) {
     }
     elsif ($type !~ /^https?$/) {
         my $msg = "The farm profile $type does not support services actions.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     require Relianoid::Farm::Base;
@@ -599,7 +569,7 @@ sub delete_service ($farmname, $service) {
 
     unless ($found) {
         my $msg = "Invalid service name, please insert a valid value.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $error = &delHTTPFarmService($farmname, $service);
@@ -607,13 +577,13 @@ sub delete_service ($farmname, $service) {
     # check if the service is in use
     if ($error == -2) {
         my $msg = "The service is used by a zone.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     # check if the service could not be deleted
     if ($error) {
         my $msg = "Service $service in farm $farmname hasn't been deleted.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     # no errors found, returning successful response

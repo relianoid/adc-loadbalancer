@@ -23,6 +23,7 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 use Relianoid::Farm::L4xNAT::Config;
 
@@ -84,8 +85,7 @@ Returns:
 
 =cut
 
-sub parseL4FarmSessions {
-    my $s = shift;
+sub parseL4FarmSessions ($s) {
 
     # translate session
     my $session = $s->{client};
@@ -146,10 +146,7 @@ Returns:
 
 =cut
 
-sub listL4FarmSessions {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farmname = shift;
-
+sub listL4FarmSessions ($farmname) {
     require Relianoid::Lock;
     require Relianoid::JSON;
     require Relianoid::Nft;
@@ -163,14 +160,12 @@ sub listL4FarmSessions {
     my $session_tmp = "/tmp/session_$farmname.data";
     my $lock_f      = &getLockFile($session_tmp);
     my $lock_fd     = &openlock($lock_f, '>');
-    my $err         = &sendL4NlbCmd(
-        {
-            method => "GET",
-            uri    => "/farms/" . $farmname . '/sessions',
-            farm   => $farmname,
-            file   => $session_tmp,
-        }
-    );
+    my $err         = &sendL4NlbCmd({
+        method => "GET",
+        uri    => "/farms/" . $farmname . '/sessions',
+        farm   => $farmname,
+        file   => $session_tmp,
+    });
 
     my $nftlb_resp;
     if (!$err) {
@@ -199,57 +194,6 @@ sub listL4FarmSessions {
     }
 
     return \@sessions;
-}
-
-=pod
-
-=head1 getL4FarmSession
-
-It selects an session item of the sessions list. The session key is used to select the item
-
-Parameters:
-
-    farmname - Farm name
-
-    session - Session value. It is the session tocken used to forward the connection
-
-Returns:
-
-    Hash ref - Returns session struct with information about the session.
-
-    "client"
-
-        is the client position entry in the session table
-
-    "id"
-
-        is the backend id assigned to session
-
-    "session"
-
-        is the key that identifies the session
-
-    {
-        "client" : 0,
-        "id" : 3,
-        "session" : "192.168.1.186",
-        "type" : "dynamic",
-        "ttl" : "54m5s",
-    }
-
-=cut
-
-sub getL4FarmSession {
-    my $farm    = shift;
-    my $session = shift;
-
-    my $list = &listL4FarmSessions($farm);
-
-    foreach my $s (@{$list}) {
-        return $s if ($s->{session} eq $session);
-    }
-
-    return;
 }
 
 1;

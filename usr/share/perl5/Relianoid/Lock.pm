@@ -23,6 +23,7 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 use Fcntl ':flock';    #use of lock functions
 
@@ -47,10 +48,7 @@ Write a lock file based on a input path
 
 =cut
 
-sub getLockFile {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $lock = shift;
-
+sub getLockFile ($lock) {
     $lock =~ s/\//_/g;
     $lock = "/tmp/$lock.lock";
 
@@ -100,12 +98,7 @@ Returns:
 
 =cut
 
-sub openlock    # ( $path, $mode )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $path = shift;
-    my $mode = shift // '';
-
+sub openlock ($path, $mode = '') {
     $mode =~ s/a/>>/;    # append
     $mode =~ s/w/>/;     # write
     $mode =~ s/r/</;     # read
@@ -118,7 +111,7 @@ sub openlock    # ( $path, $mode )
     $encoding = ":raw :bytes"      if $binmode;
 
     my $fh;
-    if (open($fh, "$mode $encoding", $path)) {
+    if (open($fh, "$mode $encoding", $path)) {    ## no critic (RequireBriefOpen)
         if ($binmode) {
             binmode $fh;
         }
@@ -171,12 +164,7 @@ Bugs:
 
 =cut
 
-sub ztielock    # ($file_name)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $array_ref = shift;
-    my $file_name = shift;
-
+sub ztielock ($array_ref, $file_name) {
     require Tie::File;
 
     my $o = tie @{$array_ref}, "Tie::File", $file_name;
@@ -189,11 +177,7 @@ sub ztielock    # ($file_name)
 
 =cut
 
-sub copyLock {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $ori = shift;
-    my $dst = shift;
-
+sub copyLock ($ori, $dst) {
     my $fhOri = &openlock($ori, 'r') or return 1;
     my $fhDst = &openlock($dst, 'w') or do { close $fhOri; return 1; };
 
@@ -224,11 +208,9 @@ Bugs:
 
 =cut
 
-sub lockResource {
-    my $resource = shift;
-    my $oper     = shift;    # l (lock), r (release), rd (release, delete)
+sub lockResource ($resource, $oper) {
 
-    # TOODO: Define here the available resources
+    # TODO: Define here the available resources
     # bonding
     # crl
     # ...

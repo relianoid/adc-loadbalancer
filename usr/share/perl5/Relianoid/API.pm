@@ -23,9 +23,9 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
-my $eload;
-$eload = 1 if (eval { require Relianoid::ELoad; });
+my $eload = eval { require Relianoid::ELoad; };
 
 =pod
 
@@ -53,15 +53,11 @@ Returns:
 
 See Also:
 
-    zapi/v3/system.cgi
+    api/v4/system.cgi
 
 =cut
 
-sub getAPI    #($name)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($name) = @_;
-
+sub getAPI ($name) {
     use File::Grep 'fgrep';
 
     my $result = "false";
@@ -107,15 +103,11 @@ Bugs:
 
 See Also:
 
-    zapi/v3/system.cgi
+    api/v4/system.cgi
 
 =cut
 
-sub setAPI    #($name,$value)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($name, $value) = @_;
-
+sub setAPI ($name, $value = undef) {
     my $globalcfg = &getGlobalConfiguration('globalcfg');
 
     #Enable ZAPI
@@ -148,7 +140,8 @@ sub setAPI    #($name,$value)
     #Set Random key for zapi
     if ($name eq "randomkey") {
         require Tie::File;
-        my $random = &setAPIKey(64);
+        my $random = &getAPIRandomKey(64);
+
         tie my @contents, 'Tie::File', "$globalcfg";
         foreach my $line (@contents) {
             if ($line =~ /zapi/) {
@@ -187,13 +180,13 @@ sub setAPI    #($name,$value)
 
 =pod
 
-=head1 setAPIKey
+=head1 getAPIRandomKey
 
 Generate random key for ZAPI user.
 
 Parameters:
 
-    passwordsize - Number of characters in the new key.
+    length - Number of characters in the new key.
 
 Returns:
 
@@ -205,20 +198,16 @@ See Also:
 
 =cut
 
-sub setAPIKey    #()
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $passwordsize = shift;
-
+sub getAPIRandomKey ($length) {
     my @alphanumeric = ('a' .. 'z', 'A' .. 'Z', 0 .. 9);
-    my $randpassword = join '', map { $alphanumeric[ rand @alphanumeric ] } 0 .. $passwordsize;
+    my $randpassword = join '', map { $alphanumeric[ rand @alphanumeric ] } 0 .. $length;
 
     return $randpassword;
 }
 
 =pod
 
-=head1 validApiKey
+=head1 isApiKeyValid
 
 Parameters:
 
@@ -233,10 +222,7 @@ Returns:
 
 =cut
 
-sub validApiKey    # ()
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
+sub isApiKeyValid () {
     my $validKey = 0;                 # output
     my $key      = "HTTP_ZAPI_KEY";
 
@@ -268,7 +254,7 @@ sub validApiKey    # ()
 
 =pod
 
-=head1 listApiVersions
+=head1 getApiVersionsList
 
 Parameters:
 
@@ -280,32 +266,11 @@ Returns:
 
 =cut
 
-sub listApiVersions {
+sub getApiVersionsList () {
     my $version_st     = &getGlobalConfiguration("zapi_versions");
     my @versions       = split(' ', $version_st);
     my @versions_array = sort @versions;
     return @versions_array;
-}
-
-=pod
-
-=head1 setApiVersion
-
-Parameters:
-
-    string - API version
-
-Returns:
-
-    none
-
-=cut
-
-sub setApiVersion {
-    my $version = shift;
-    $ENV{ZAPI_VERSION} = $version;
-
-    return;
 }
 
 =pod
@@ -322,7 +287,7 @@ Returns:
 
 =cut
 
-sub getApiVersion {
+sub getApiVersion () {
     return $ENV{ZAPI_VERSION} // "";
 }
 

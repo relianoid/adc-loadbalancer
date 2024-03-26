@@ -23,6 +23,7 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 =pod
 
@@ -40,7 +41,7 @@ Get the user that is executing the API or WEBGUI
 
 Parameters:
 
-    User - User name
+    None
 
 Returns:
 
@@ -48,8 +49,7 @@ Returns:
 
 =cut
 
-sub getUser {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub getUser () {
 
     #~ if ( !exists $ENV{ REQ_USER } || !defined $ENV{ REQ_USER } )
     #~ {
@@ -75,9 +75,7 @@ Returns:
 
 =cut
 
-sub setUser {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $user = shift;
+sub setUser ($user) {
     $ENV{REQ_USER} = $user;
 
     return;
@@ -99,9 +97,7 @@ Returns:
 
 =cut
 
-sub getSysGroupList {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
+sub getSysGroupList () {
     my @groupSet   = ();
     my $group_file = &openlock("/etc/group", "r");
     while (my $group = <$group_file>) {
@@ -129,9 +125,7 @@ Returns:
 
 =cut
 
-sub getSysUserList {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
+sub getSysUserList () {
     my @userSet   = ();
     my $user_file = &openlock("/etc/passwd", "r");
     while (my $user = <$user_file>) {
@@ -143,9 +137,9 @@ sub getSysUserList {
 
 }
 
-=begin nd
+=pod
 
-Function: getSysUserExists
+=head1 getSysUserExists
 
     Check if a user exists in the Operting System
 
@@ -159,19 +153,16 @@ Returns:
 
 =cut
 
-sub getSysUserExists {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $user = shift;
-
+sub getSysUserExists ($user) {
     my $out = 0;
     $out = 1 if (grep { /^$user$/ } &getSysUserList());
 
     return $out;
 }
 
-=begin nd
+=pod
 
-Function: getSysGroupExists
+=head1 getSysGroupExists
 
     Check if a group exists in the Operting System
 
@@ -185,10 +176,7 @@ Returns:
 
 =cut
 
-sub getSysGroupExists {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $group = shift;
-
+sub getSysGroupExists ($group) {
     my $out = 0;
     $out = 1 if (grep { /^$group$/ } &getSysGroupList());
 

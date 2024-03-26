@@ -24,7 +24,6 @@
 use strict;
 use warnings;
 use feature qw(signatures state);
-no warnings 'experimental::args_array_with_signatures';
 
 =pod
 
@@ -54,12 +53,11 @@ Returns:
 
 See Also:
 
-    zapi/v3/system.cgi, zapi/v3/system_stats.cgi, zapi/v2/system_stats.cgi
+    api/v4/system.cgi, api/v4/system_stats.cgi
 
 =cut
 
 sub getDate() {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     return scalar CORE::localtime();
 }
 
@@ -85,15 +83,13 @@ See Also:
 
     setNotifCreateConfFile, setNotifData, getNotifData
 
-    zapi/v3/cluster.cgi, zapi/v3/system_stats.cgi, zapi/v3/zapi.cgi, zapi/v2/system_stats.cgi
+    api/v4/cluster.cgi, api/v4/system_stats.cgi, api/v4/zapi.cgi
 
     relianoid
 
 =cut
 
 sub getHostname() {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     require Sys::Hostname;
     state $hostname = Sys::Hostname::hostname();
     return Sys::Hostname::hostname();
@@ -117,13 +113,11 @@ Returns:
 
 See Also:
 
-    zapi/v3/system.cgi, zenbui.pl, relianoid
+    api/system.cgi, noid-bui, relianoid
 
 =cut
 
 sub getApplianceVersion() {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $version;
     my $hyperv;
     my $applianceFile = &getGlobalConfiguration('applianceVersionFile');
@@ -216,13 +210,11 @@ Returns:
 
 See Also:
 
-    zapi/v3/system_stats.cgi
+    api/v4/system_stats.cgi
 
 =cut
 
 sub getCpuCores() {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $cpuinfo_filename = '/proc/stat';
     my $cores            = 1;
 
@@ -237,109 +229,6 @@ sub getCpuCores() {
 
     return $cores;
 }
-
-=pod
-
-=head1 getCPUSecondToJiffy
-
-Is returns the number of jiffies for X seconds.
-If any value is sent. The function calculate the how many jiffies are 1 second
-
-Parameters:
-
-    seconds - Number of seconds to pass to jiffies
-
-Returns:
-
-    integer - Number of jiffies
-
-=cut
-
-sub getCPUSecondToJiffy ($sec) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    $sec //= 1;
-    my $ticks = &getCPUTicks();
-
-    return -1 unless ($ticks > 0);
-    return $sec * $ticks;
-}
-
-=pod
-
-=head1 getCPUJiffiesNow
-
-Get the number of jiffies since the last boot
-
-Parameters:
-
-    none
-
-Returns:
-
-    integer - number of jiffies
-
-=cut
-
-sub getCPUJiffiesNow() {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my $jiffies = -1;
-    my $file    = '/proc/timer_list';
-    open my $fh, '<', $file or return -1;
-
-    while (my $line = <$fh>) {
-        if ($line =~ /^jiffies: ([\d]+)/) {
-            $jiffies = $1;
-            last;
-        }
-    }
-
-    close $fh;
-
-    return $jiffies;
-}
-
-=pod
-
-=head1 getCPUTicks
-
-Get how many ticks are for a Hertz
-
-Parameters:
-
-    none
-
-Returns:
-
-    integer - Number of ticks
-
-=cut
-
-sub getCPUTicks() {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my $ticks  = -1;
-    my $kernel = &getKernelVersion();
-    my $file   = "/boot/config-${kernel}";
-
-    if (open my $fh, '<', $file) {
-        while (my $line = <$fh>) {
-            if ($line =~ /^CONFIG_HZ[=: ](\d+)/) {
-                $ticks = $1;
-                last;
-            }
-        }
-        close $fh;
-    }
-    else {
-        &zenlog("Could not open file $file: $!", "error");
-    }
-
-    return $ticks;
-}
-
-=pod
 
 =head1 setEnv
 
@@ -356,8 +245,6 @@ Returns:
 =cut
 
 sub setEnv() {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     use Relianoid::Config;
     local $ENV{http_proxy}  = &getGlobalConfiguration('http_proxy')  // "";
     local $ENV{https_proxy} = &getGlobalConfiguration('https_proxy') // "";
@@ -385,9 +272,8 @@ Returns:
     string - kernel version
 
 =cut
-sub getKernelVersion() {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
+sub getKernelVersion() {
     require Relianoid::Config;
     my $uname   = &getGlobalConfiguration('uname');
     my $version = &logAndGet("$uname -r");

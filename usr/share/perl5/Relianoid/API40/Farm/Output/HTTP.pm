@@ -23,14 +23,21 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 use Relianoid::Farm::HTTP::Config;
 
+=pod
+
+=head1 Module
+
+Relianoid::API40::Farm::Output::HTTP
+
+=cut
+
 # farm parameters
-sub getHTTPOutFarm {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub getHTTPOutFarm ($farmname) {
     require Relianoid::Farm::Config;
-    my $farmname = shift;
     my $farm_ref = &getFarmStruct($farmname);
 
     # Remove useless fields
@@ -38,11 +45,8 @@ sub getHTTPOutFarm {
     return $farm_ref;
 }
 
-sub getHTTPOutService {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
+sub getHTTPOutService ($farmname) {
     require Relianoid::Farm::HTTP::Service;
-    my $farmname      = shift;
     my @services_list = ();
 
     foreach my $service (&getHTTPFarmServices($farmname)) {
@@ -51,11 +55,6 @@ sub getHTTPOutService {
     }
 
     return \@services_list;
-}
-
-sub getHTTPOutBackend {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    return;
 }
 
 1;

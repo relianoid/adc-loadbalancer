@@ -23,18 +23,22 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 use Relianoid::Farm::Core;
+
+=pod
+
+=head1 Module
+
+Relianoid::API40::Farm::Action
+
+=cut
 
 my $eload = eval { require Relianoid::ELoad };
 
 # PUT /farms/<farmname>/actions Set an action in a Farm
-sub farm_actions    # ( $json_obj, $farmname )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $json_obj = shift;
-    my $farmname = shift;
-
+sub farm_actions ($json_obj, $farmname) {
     require Relianoid::Farm::Action;
     require Relianoid::Farm::Base;
 
@@ -43,7 +47,7 @@ sub farm_actions    # ( $json_obj, $farmname )
     # validate FARM NAME
     if (!&getFarmExists($farmname)) {
         my $msg = "The farmname $farmname does not exist.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     if (&getFarmType($farmname) =~ /http/) {
@@ -51,7 +55,7 @@ sub farm_actions    # ( $json_obj, $farmname )
         my $err_msg = &getHTTPFarmConfigErrorMessage($farmname);
 
         if ($err_msg) {
-            &httpErrorResponse(code => 400, desc => $desc, msg => $err_msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $err_msg });
         }
     }
 
@@ -59,7 +63,7 @@ sub farm_actions    # ( $json_obj, $farmname )
 
     # Check allowed parameters
     my $error_msg = &checkApiParams($json_obj, $params, $desc);
-    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+    return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg })
       if ($error_msg);
 
     if ($json_obj->{action} eq "stop") {
@@ -67,7 +71,7 @@ sub farm_actions    # ( $json_obj, $farmname )
 
         if ($status != 0) {
             my $msg = "Error trying to set the action stop in farm $farmname.";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }
     elsif ($json_obj->{action} eq "start") {
@@ -78,14 +82,14 @@ sub farm_actions    # ( $json_obj, $farmname )
 
         if (!&getIpAddressExists($ip)) {
             my $msg = "The virtual ip $ip is not defined in any interface.";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
 
         require Relianoid::Farm::Base;
         require Relianoid::Farm::Action;
         if (&getFarmRestartStatus($farmname)) {
             my $msg = "The farm has changes pending of applying, it has to be restarted.";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
 
         require Relianoid::Farm::Core;
@@ -95,7 +99,7 @@ sub farm_actions    # ( $json_obj, $farmname )
             my $if_ref  = &getInterfaceConfig($if_name);
             if (&getInterfaceSystemStatus($if_ref) ne "up") {
                 my $msg = "The virtual IP '$ip' is not UP";
-                &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+                &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
             }
             if ($farm_type eq "http" or $farm_type eq "https") {
                 require Relianoid::Farm::HTTP::Action;
@@ -105,7 +109,7 @@ sub farm_actions    # ( $json_obj, $farmname )
             my $port = &getFarmVip("vipp", $farmname);
             if (!&validatePort($ip, $port, undef, $farmname)) {
                 my $msg = "There is another farm using the ip '$ip' and the port '$port'";
-                &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+                &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
             }
         }
 
@@ -113,7 +117,7 @@ sub farm_actions    # ( $json_obj, $farmname )
 
         if ($status) {
             my $msg = "Error trying to set the action start in farm $farmname.";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }
     elsif ($json_obj->{action} eq "restart") {
@@ -121,7 +125,7 @@ sub farm_actions    # ( $json_obj, $farmname )
 
         if ($status) {
             my $msg = "Error trying to stop the farm in the action restart in farm $farmname.";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
 
         require Relianoid::Net::Interface;
@@ -131,7 +135,7 @@ sub farm_actions    # ( $json_obj, $farmname )
 
         if (!&getIpAddressExists($ip)) {
             my $msg = "The virtual ip $ip is not defined in any interface.";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
 
         require Relianoid::Farm::Core;
@@ -141,22 +145,21 @@ sub farm_actions    # ( $json_obj, $farmname )
             my $if_ref  = &getInterfaceConfig($if_name);
             if (&getInterfaceSystemStatus($if_ref) ne "up") {
                 my $msg = "The virtual IP '$ip' is not UP";
-                &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+                &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
             }
 
             my $port = &getFarmVip("vipp", $farmname);
             if (!&validatePort($ip, $port, undef, $farmname)) {
                 my $msg = "There is another farm using the ip '$ip' and the port '$port'";
-                &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+                &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
             }
         }
 
         $status = &runFarmStart($farmname, "true");
 
         if ($status) {
-            my $msg =
-              "ZAPI error, trying to start the farm in the action restart in farm $farmname.";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            my $msg = "ZAPI error, trying to start the farm in the action restart in farm $farmname.";
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }
 
@@ -185,14 +188,7 @@ sub farm_actions    # ( $json_obj, $farmname )
 
 # Set an action in a backend of http|https farm
 # PUT /farms/<farmname>/services/<service>/backends/<backend>/maintenance
-sub service_backend_maintenance    # ( $json_obj, $farmname, $service, $backend_id )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $json_obj   = shift;
-    my $farmname   = shift;
-    my $service    = shift;
-    my $backend_id = shift;
-
+sub service_backend_maintenance ($json_obj, $farmname, $service, $backend_id) {
     require Relianoid::Farm::Base;
     require Relianoid::Farm::HTTP::Config;
     require Relianoid::Farm::HTTP::Service;
@@ -203,13 +199,13 @@ sub service_backend_maintenance    # ( $json_obj, $farmname, $service, $backend_
     # validate FARM NAME
     if (!&getFarmExists($farmname)) {
         my $msg = "The farmname $farmname does not exist.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     # validate FARM TYPE
     if (&getFarmType($farmname) !~ /^https?$/) {
         my $msg = "Only HTTP farm profile supports this feature.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     # validate SERVICE
@@ -225,7 +221,7 @@ sub service_backend_maintenance    # ( $json_obj, $farmname, $service, $backend_
 
     if (!$found_service) {
         my $msg = "Could not find the requested service.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     # validate BACKEND
@@ -234,7 +230,7 @@ sub service_backend_maintenance    # ( $json_obj, $farmname, $service, $backend_
 
     if (!$be) {
         my $msg = "Could not find a service backend with such id.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     my $params = &getAPIModel("farm_http_service_backend-maintenance.json");
@@ -244,14 +240,14 @@ sub service_backend_maintenance    # ( $json_obj, $farmname, $service, $backend_
 
     # Check allowed parameters
     my $error_msg = &checkApiParams($json_obj, $params, $desc);
-    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+    return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg })
       if ($error_msg);
 
     # Do not allow to modify the maintenance status if the farm needs to be restarted
     require Relianoid::Farm::Action;
     if (&getFarmRestartStatus($farmname)) {
         my $msg = "The farm needs to be restarted before to apply this action.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     # validate STATUS
@@ -259,8 +255,7 @@ sub service_backend_maintenance    # ( $json_obj, $farmname, $service, $backend_
     if ($json_obj->{action} eq "maintenance") {
         my $maintenance_mode = $json_obj->{mode} // "drain";    # default
 
-        $status =
-          &setHTTPFarmBackendMaintenance($farmname, $backend_id, $maintenance_mode, $service);
+        $status = &setHTTPFarmBackendMaintenance($farmname, $backend_id, $maintenance_mode, $service);
     }
     elsif ($json_obj->{action} eq "up") {
         $status = &setHTTPFarmBackendNoMaintenance($farmname, $backend_id, $service);
@@ -268,7 +263,7 @@ sub service_backend_maintenance    # ( $json_obj, $farmname, $service, $backend_
 
     if ($status->{code} == 1 or $status->{code} == -1) {
         my $msg = "Errors found trying to change status backend to $json_obj->{ action }";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $msg = "The action $json_obj->{ action } has been performed in farm '$farmname'.";
@@ -301,13 +296,7 @@ sub service_backend_maintenance    # ( $json_obj, $farmname, $service, $backend_
 
 # PUT backend in maintenance
 # PUT /farms/<farmname>/backends/<backend>/maintenance
-sub backend_maintenance    # ( $json_obj, $farmname, $backend_id )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $json_obj   = shift;
-    my $farmname   = shift;
-    my $backend_id = shift;
-
+sub backend_maintenance ($json_obj, $farmname, $backend_id) {
     require Relianoid::Farm::Backend::Maintenance;
     require Relianoid::Farm::Backend;
     require Relianoid::Farm::Base;
@@ -317,13 +306,13 @@ sub backend_maintenance    # ( $json_obj, $farmname, $backend_id )
     # validate FARM NAME
     if (!&getFarmExists($farmname)) {
         my $msg = "The farmname $farmname does not exist.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     # validate FARM TYPE
     unless (&getFarmType($farmname) eq 'l4xnat') {
         my $msg = "Only L4xNAT farm profile supports this feature.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     # validate BACKEND
@@ -334,7 +323,7 @@ sub backend_maintenance    # ( $json_obj, $farmname, $backend_id )
 
     if (!$exists) {
         my $msg = "Could not find a backend with such id.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     my $params = &getAPIModel("farm_l4xnat_service_backend-maintenance.json");
@@ -345,7 +334,7 @@ sub backend_maintenance    # ( $json_obj, $farmname, $backend_id )
 
     # Check allowed parameters
     my $error_msg = &checkApiParams($json_obj, $params, $desc);
-    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+    return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg })
       if ($error_msg);
 
     # validate STATUS
@@ -361,7 +350,7 @@ sub backend_maintenance    # ( $json_obj, $farmname, $backend_id )
 
     if ($status->{code} == 1 or $status->{code} == -1) {
         my $msg = "Errors found trying to change status backend to $json_obj->{ action }";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $msg = "The action $json_obj->{ action } has been performed in farm '$farmname'.";

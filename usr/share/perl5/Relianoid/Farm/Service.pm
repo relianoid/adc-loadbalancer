@@ -23,6 +23,7 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 my $eload = eval { require Relianoid::ELoad };
 
@@ -44,7 +45,7 @@ Get a list of services name for a farm
     
 Parameters:
 
-    farmname - Farm name
+    farm_name - Farm name
 
 Returns:
 
@@ -52,11 +53,7 @@ Returns:
     
 =cut
 
-sub getFarmServices    # ($farm_name)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name) = @_;
-
+sub getFarmServices ($farm_name) {
     my $farm_type = &getFarmType($farm_name);
     my @output    = ();
 

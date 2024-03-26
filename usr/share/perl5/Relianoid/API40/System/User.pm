@@ -23,12 +23,20 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
+
+=pod
+
+=head1 Module
+
+Relianoid::API40::System::User
+
+=cut
 
 my $eload = eval { require Relianoid::ELoad };
 
 # 	GET /system/users
-sub get_system_user {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub get_system_user () {
     require Relianoid::User;
     my $user = &getUser();
 
@@ -45,12 +53,10 @@ sub get_system_user {
               # 'zapikey'	=> &getAPI( "zapikey" ),
         };
 
-        &httpResponse(
-            {
-                code => 200,
-                body => { description => $desc, params => $params }
-            }
-        );
+        &httpResponse({
+            code => 200,
+            body => { description => $desc, params => $params }
+        });
     }
 
     elsif ($eload) {
@@ -60,27 +66,22 @@ sub get_system_user {
         );
 
         if ($params) {
-            &httpResponse(
-                {
-                    code => 200,
-                    body => { description => $desc, params => $params }
-                }
-            );
+            &httpResponse({
+                code => 200,
+                body => { description => $desc, params => $params }
+            });
         }
     }
 
     else {
         my $msg = "The user is not found";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
     return;
 }
 
 #  POST /system/users
-sub set_system_user {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $json_obj = shift;
-
+sub set_system_user ($json_obj) {
     require Relianoid::User;
     require Relianoid::Login;
 
@@ -92,19 +93,19 @@ sub set_system_user {
 
     # Check allowed parameters
     my $error_msg = &checkApiParams($json_obj, $params, $desc);
-    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+    return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg })
       if ($error_msg);
 
     # check to change password
     if ($json_obj->{'newpassword'}) {
         if (not exists $json_obj->{'password'}) {
             my $msg = "The parameter password is required.";
-            return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
 
         elsif ($json_obj->{'newpassword'} eq $json_obj->{'password'}) {
             my $msg = "The new password must be different to the current password.";
-            return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
         if ($eload) {
             my $local_user = &eload(
@@ -114,24 +115,20 @@ sub set_system_user {
             );
             if (!$local_user) {
                 my $msg = "The $user User is not valid to change password.";
-                return &httpErrorResponse(
-                    code => 400,
-                    desc => $desc,
-                    msg  => $msg
-                );
+                return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
             }
         }
 
         if (!&checkValidUser($user, $json_obj->{'password'})) {
             my $msg = "Invalid current password.";
-            return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }
 
     if ($json_obj->{'password'}) {
         if (not exists $json_obj->{'newpassword'}) {
             my $msg = "The parameter newpassword is required.";
-            return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }
 
@@ -143,11 +140,7 @@ sub set_system_user {
 
             if ($error) {
                 my $msg = "Modifying $user.";
-                return &httpErrorResponse(
-                    code => 400,
-                    desc => $desc,
-                    msg  => $msg
-                );
+                return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
             }
         }
 
@@ -161,11 +154,7 @@ sub set_system_user {
                 );
                 if ($zapi_user and $zapi_user ne $user) {
                     my $msg = "The zapikey is not valid.";
-                    return &httpErrorResponse(
-                        code => 400,
-                        desc => $desc,
-                        msg  => $msg
-                    );
+                    return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
                 }
             }
             &setAPI('key', $json_obj->{'zapikey'});
@@ -177,11 +166,7 @@ sub set_system_user {
                 && !&getAPI('zapikey'))
             {
                 my $msg = "It is necessary a zapikey to enable the zapi permissions.";
-                return &httpErrorResponse(
-                    code => 400,
-                    desc => $desc,
-                    msg  => $msg
-                );
+                return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
             }
             if (   $json_obj->{'zapi_permissions'} eq 'true'
                 && &getAPI("status") eq 'false')
@@ -206,7 +191,7 @@ sub set_system_user {
 
     else {
         my $msg = "The user is not found";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     my $msg  = "Settings was changed successfully.";

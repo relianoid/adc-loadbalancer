@@ -23,23 +23,27 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 use Relianoid::Farm::Core;
 
+=pod
+
+=head1 Module
+
+Relianoid::API40::Farm::Put
+
+=cut
+
 my $eload = eval { require Relianoid::ELoad };
 
-sub modify_farm    # ( $json_obj, $farmname )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $json_obj = shift;
-    my $farmname = shift;
-
+sub modify_farm ($json_obj, $farmname) {
     my $desc = "Modify farm";
 
     # Check that the farm exists
     if (!&getFarmExists($farmname)) {
         my $msg = "The farmname $farmname does not exist.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     my $type = &getFarmType($farmname);

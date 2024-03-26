@@ -23,6 +23,7 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 my $eload = eval { require Relianoid::ELoad };
 
@@ -50,9 +51,7 @@ Returns:
 
 =cut
 
-sub getLetsencryptConfigPath    # ( )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub getLetsencryptConfigPath () {
     return &getGlobalConfiguration('le_config_path');
 }
 
@@ -72,12 +71,8 @@ Returns:
 
 =cut
 
-sub getLetsencryptConfig    # ( )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $le_conf_re = {};
-    $le_conf_re->{email} = &getGlobalConfiguration('le_email');
-    return $le_conf_re;
+sub getLetsencryptConfig () {
+    return { email => &getGlobalConfiguration('le_email') };
 }
 
 =pod
@@ -96,13 +91,8 @@ Returns:
 
 =cut
 
-sub setLetsencryptConfig    # ( $le_conf_re )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $le_conf_re = shift;
-    my $rc         = 0;
-    $rc = &setGlobalConfiguration('le_email', $le_conf_re->{email});
-    return $rc;
+sub setLetsencryptConfig ($le_conf_re) {
+    return &setGlobalConfiguration('le_email', $le_conf_re->{email});
 }
 
 =pod
@@ -121,12 +111,8 @@ Returns:
 
 =cut
 
-sub getLetsencryptCronFile    # ( )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $rs = "";
-    $rs = &getGlobalConfiguration('le_cron_file');
-    return $rs;
+sub getLetsencryptCronFile () {
+    return &getGlobalConfiguration('le_cron_file');
 }
 
 =pod
@@ -145,10 +131,7 @@ Returns:
 
 =cut
 
-sub getLetsencryptCertificates    # ( )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $le_cert_name = shift;
+sub getLetsencryptCertificates ($le_cert_name = undef) {
     my $le_certs_ref = [];
 
     my $le_config_path = &getLetsencryptConfigPath();
@@ -171,6 +154,7 @@ sub getLetsencryptCertificates    # ( )
     require Crypt::OpenSSL::X509;
     my $cert_ref;
     my $domains;
+
     foreach my $cert (@{$certs}) {
 
         # name
@@ -220,12 +204,8 @@ Returns:
 
 =cut
 
-sub getLetsencryptCertificateInfo    # ( $le_cert_name )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $le_cert_name = shift;
-    my $cert_ref     = {};
-
+sub getLetsencryptCertificateInfo ($le_cert_name) {
+    my $cert_ref  = {};
     my $cert_info = &getLetsencryptCertificates($le_cert_name);
 
     return if (!$cert_info);
@@ -233,6 +213,7 @@ sub getLetsencryptCertificateInfo    # ( $le_cert_name )
     $cert_info = @{$cert_info}[0];
 
     require Crypt::OpenSSL::X509;
+
     my $status = "unknown";
     my $CN     = "";
     my $ISSUER = "";
@@ -266,6 +247,7 @@ sub getLetsencryptCertificateInfo    # ( $le_cert_name )
     $cert_ref->{type}     = 'LE Certificate';
     $cert_ref->{wildcard} = 'false';
     $cert_ref->{status}   = $status;
+
     if ($@) {
         $cert_ref->{CN}         = '';
         $cert_ref->{issuer}     = '';
@@ -281,7 +263,6 @@ sub getLetsencryptCertificateInfo    # ( $le_cert_name )
         $cert_ref->{domains}    = \@domains;
     }
 
-    #add autorenewal
     my $autorenewal = &getLetsencryptCron($le_cert_name);
     $cert_ref->{autorenewal} = $autorenewal if $autorenewal;
 
@@ -305,10 +286,7 @@ Returns:
 
 =cut
 
-sub setLetsencryptFarmService {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm_name = shift;
-    my $vip       = shift;
+sub setLetsencryptFarmService ($farm_name, $vip) {
 
     # if no exists farm return -1,
     my $le_service = &getGlobalConfiguration('le_service');
@@ -342,21 +320,19 @@ sub setLetsencryptFarmService {
         else {
             $error = &setFarmHTTPNewServiceFirst($farm_name, $le_service);
         }
+
         if ($error) {
             &zenlog("Error creating the service $le_service", "Error", "LetsEncryptZ");
             return 1;
         }
-        &zenlog("The Service $le_service in Farm $farm_name has been created",
-            "Info", "LetsEncryptZ");
 
+        &zenlog("The Service $le_service in Farm $farm_name has been created", "Info", "LetsEncryptZ");
     }
     else {
-        &zenlog("The Service $le_service in Farm $farm_name already exists",
-            "warning", "LetsEncryptZ");
+        &zenlog("The Service $le_service in Farm $farm_name already exists", "warning", "LetsEncryptZ");
     }
 
     if ($eload) {
-
         #Move the service to position 0
         if (not $service_ref or $service_ref->{$le_service}) {
             $error = &eload(
@@ -370,8 +346,7 @@ sub setLetsencryptFarmService {
             }
         }
         else {
-            &zenlog("The Service $le_service in Farm $farm_name is already in the first position",
-                "warning", "LetsEncryptZ");
+            &zenlog("The Service $le_service in Farm $farm_name is already in the first position", "warning", "LetsEncryptZ");
         }
     }
 
@@ -379,8 +354,7 @@ sub setLetsencryptFarmService {
     require Relianoid::Farm::HTTP::Backend;
     $error = &setHTTPFarmServer("", "127.0.0.1", 80, "", "", $farm_name, $le_service);
     if ($error) {
-        &zenlog("Error creating the Local Web Server backend on service $le_service",
-            "Error", "LetsEncryptZ");
+        &zenlog("Error creating the Local Web Server backend on service $le_service", "Error", "LetsEncryptZ");
         return 2;
     }
 
@@ -391,8 +365,7 @@ sub setLetsencryptFarmService {
         return 3;
     }
 
-    &zenlog("The Service $le_service in Farm $farm_name has been configured",
-        "Info", "LetsEncryptZ");
+    &zenlog("The Service $le_service in Farm $farm_name has been configured", "Info", "LetsEncryptZ");
 
     # Restart the farm
     require Relianoid::Farm::Action;
@@ -437,9 +410,7 @@ Returns:
 
 =cut
 
-sub unsetLetsencryptFarmService {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm_name = shift;
+sub unsetLetsencryptFarmService ($farm_name) {
 
     # if no exists farm return -1,
     my $le_service = &getGlobalConfiguration('le_service');
@@ -464,12 +435,10 @@ sub unsetLetsencryptFarmService {
         if (&getHTTPFarmServices($farm_name, $le_service)) {
             my $error = &delHTTPFarmService($farm_name, $le_service);
             if ($error) {
-                &zenlog("Error Deleting the service $le_service on farm $farm_name",
-                    "Error", "LetsEncryptZ");
+                &zenlog("Error Deleting the service $le_service on farm $farm_name", "Error", "LetsEncryptZ");
                 return 3;
             }
-            &zenlog("The service $le_service on farm $farm_name has been deleted",
-                "Info", "LetsEncryptZ");
+            &zenlog("The service $le_service on farm $farm_name has been deleted", "Info", "LetsEncryptZ");
 
             # Restart the farm
             require Relianoid::Farm::Action;
@@ -496,10 +465,7 @@ sub unsetLetsencryptFarmService {
             }
         }
         else {
-            &zenlog(
-                "The Service $le_service in Farm $farm_name can not be deleted, it does not exist",
-                "warning", "LetsEncryptZ"
-            );
+            &zenlog("The Service $le_service in Farm $farm_name can not be deleted, it does not exist", "warning", "LetsEncryptZ");
         }
     }
 
@@ -522,8 +488,7 @@ Returns:
 
 =cut
 
-sub runLetsencryptLocalWebserverStart {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub runLetsencryptLocalWebserverStart () {
     my $http_dir                 = &getGlobalConfiguration('http_server_dir');
     my $pid_file                 = "$http_dir/var/run/cherokee_localhost.pid";
     my $le_webserver_config_file = &getGlobalConfiguration('le_webserver_config_file');
@@ -573,8 +538,7 @@ Returns:
 
 =cut
 
-sub runLetsencryptLocalWebserverStop {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub runLetsencryptLocalWebserverStop () {
     my $http_dir = &getGlobalConfiguration('http_server_dir');
     my $pid_file = "$http_dir/var/run/cherokee_localhost.pid";
     my $pid      = "0";
@@ -621,16 +585,16 @@ Returns:
 
 =cut
 
-sub getLetsencryptLocalWebserverRunning {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub getLetsencryptLocalWebserverRunning () {
     my $rc;
     my $http_dir = &getGlobalConfiguration('http_server_dir');
     my $pid_file = "$http_dir/var/run/cherokee_localhost.pid";
+
     if (-f $pid_file) {
         use Relianoid::System;
+
         if (&checkPidFileRunning($pid_file)) {
-            &zenlog("LetsencryptZ Local Webser is not running but PID file $pid_file exists!",
-                "warning", "LetsEncryptZ");
+            &zenlog("LetsencryptZ Local Webser is not running but PID file $pid_file exists!", "warning", "LetsEncryptZ");
             unlink $pid_file;
         }
         $rc = 0;
@@ -639,9 +603,9 @@ sub getLetsencryptLocalWebserverRunning {
         my $pgrep                    = &getGlobalConfiguration('pgrep');
         my $http_bin                 = &getGlobalConfiguration('http_bin');
         my $le_webserver_config_file = &getGlobalConfiguration('le_webserver_config_file');
+
         if (&logAndRunCheck("$pgrep -f \"$http_bin -d -C $le_webserver_config_file\"")) {
-            &zenlog("LetsencryptZ Local Webserver is running but no PID file $pid_file exists!",
-                "warning", "LetsEncryptZ");
+            &zenlog("LetsencryptZ Local Webserver is running but no PID file $pid_file exists!", "warning", "LetsEncryptZ");
             $rc = 2;
         }
         else {
@@ -669,11 +633,8 @@ Returns:
 
 =cut
 
-sub setLetsencryptCert    # ( $le_cert_name )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $le_cert_name = shift;
-    my $rc           = 1;
+sub setLetsencryptCert ($le_cert_name) {
+    my $rc = 1;
 
     my $le_cert_conf = &getLetsencryptCertificates($le_cert_name);
     if (@{$le_cert_conf}) {
@@ -689,8 +650,7 @@ sub setLetsencryptCert    # ( $le_cert_name )
                 my $cat_bin   = &getGlobalConfiguration('cat_bin');
                 my $cert_dir  = &getGlobalConfiguration('certdir');
                 my $cert_file = "$cert_dir/${cert_name}.pem";
-                &logAndRun(
-                    "$cat_bin $le_cert_conf->{ keypath } $le_cert_conf->{ certpath } > $cert_file");
+                &logAndRun("$cat_bin $le_cert_conf->{ keypath } $le_cert_conf->{ certpath } > $cert_file");
                 return 1 if (!-f $cert_file);
                 $rc = 0;
             }
@@ -712,7 +672,7 @@ Parameters:
     vip - VIP where the new Farm and service is created. The virtual Port will be 80.
     domains_list - List of Domains the certificate is created for.
     test - if "true" the action simulates all the process but no certificate is created.
-    force_update - if "true" forces an update cert and renewal the domains if exists.
+    force - if "true" forces an update cert and renewal the domains if exists.
 
 Returns:
 
@@ -720,11 +680,7 @@ Returns:
 
 =cut
 
-sub runLetsencryptObtain    # ( $farm_name, $vip, $domains_list, $test, $force)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $vip, $domains_list, $test, $force) = @_;
-
+sub runLetsencryptObtain ($farm_name = undef, $vip = undef, $domains_list = undef, $test = undef, $force = undef) {
     return 1 if (!$domains_list);
     return 2 if (!$vip && !$farm_name);
     my $status;
@@ -770,8 +726,7 @@ sub runLetsencryptObtain    # ( $farm_name, $vip, $domains_list, $test, $force)
 
     $status = &logRunAndGet($cmd, "array", 1);
     if ($status->{stderr} and ($challenge eq "http")) {
-        &zenlog("Letsencryptz obtain command failed!: $status->{ stdout }[-1]",
-            "error", "LetsencryptZ");
+        &zenlog("Letsencryptz obtain command failed!: $status->{ stdout }[-1]", "error", "LetsencryptZ");
         $rc = 3;
     }
     else {
@@ -809,10 +764,7 @@ Returns:
 
 =cut
 
-sub runLetsencryptDestroy    # ( $le_cert_name )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $le_cert_name   = shift;
+sub runLetsencryptDestroy ($le_cert_name) {
     my $le_config_path = &getLetsencryptConfigPath();
 
     return 1 if (!$le_cert_name);
@@ -854,7 +806,7 @@ Parameters:
     le_cert_name  - LetsEncrypt Certificate Name
     farm_name     - Farm Name where Letsencrypt will connect.
     vip           - VIP where the new Farm and service is created. The virtual Port will be 80.
-    force_renewal - if "true" forces a renew even the cert not yet due for renewal( over 30 days for expire ).
+    force         - if "true" forces a renew even the cert not yet due for renewal( over 30 days for expire ).
     lock_fh       - FileHandle to lock the process
 
 Returns:
@@ -870,11 +822,7 @@ Variable: $error_ref.
 
 =cut
 
-sub runLetsencryptRenew    # ( $le_cert_name, $farm_name, $vip, $force, $lock_fh )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($le_cert_name, $farm_name, $vip, $force, $lock_fh) = @_;
-
+sub runLetsencryptRenew ($le_cert_name, $farm_name, $vip, $force, $lock_fh) {
     my $status;
     my $error_ref = { code => 0 };
 
@@ -936,8 +884,7 @@ sub runLetsencryptRenew    # ( $le_cert_name, $farm_name, $vip, $force, $lock_fh
     my $webroot_opt   = "--webroot --webroot-path " . &getGlobalConfiguration('le_webroot_path');
     my $configdir_opt = "--config-dir " . &getLetsencryptConfigPath();
     my $email_opt     = "-m " . &getLetsencryptConfig()->{email};
-    my $opts =
-      "--preferred-challenges http-01 --agree-tos --no-eff-email -n --no-random-sleep-on-renew";
+    my $opts          = "--preferred-challenges http-01 --agree-tos --no-eff-email -n --no-random-sleep-on-renew";
 
     my $le_binary = &getGlobalConfiguration('le_certbot_bin');
     my $cmd =
@@ -1009,10 +956,7 @@ Returns:
 
 =cut
 
-sub checkLetsencryptStaging    # ( $le_cert_name )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $le_cert_name   = shift;
+sub checkLetsencryptStaging ($le_cert_name) {
     my $le_config_path = &getLetsencryptConfigPath();
 
     my $rc = 1;
@@ -1039,7 +983,7 @@ Parameters:
 
     le_cert_name - LE Cert Name
     farm_name    - Farm Name where Letsencrypt will connect.
-    VIP          - VIP where the new Farm and service is created. The virtual Port will be 80.
+    vip          - VIP where the new Farm and service is created. The virtual Port will be 80.
     force        - if "true" forces a renew flag even the cert not yet due for renewal( over 30 days for expire ).
     restart      - if "true" forces a restart flag to restart farms affected by the certificate.
 
@@ -1049,10 +993,7 @@ Returns:
 
 =cut
 
-sub setLetsencryptCron    # ( $le_cert_name, $farm_name, $nic, $force, $restart )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($le_cert_name, $farm_name, $vip, $force, $restart) = @_;
+sub setLetsencryptCron ($le_cert_name, $farm_name, $vip, $force, $restart) {
     my $rc = 0;
 
     return 1 if (!$le_cert_name);
@@ -1094,11 +1035,8 @@ Returns:
 
 =cut
 
-sub unsetLetsencryptCron    # ( $le_cert_name )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $le_cert_name = shift;
-    my $rc           = 0;
+sub unsetLetsencryptCron ($le_cert_name) {
+    my $rc = 0;
 
     return 1 if (!$le_cert_name);
 
@@ -1130,11 +1068,8 @@ Returns:
 
 =cut
 
-sub getLetsencryptCron    # ( $le_cert_name )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $le_cert_name = shift;
-    my $cron_ref     = {
+sub getLetsencryptCron ($le_cert_name) {
+    my $cron_ref = {
         status  => "disabled",
         farm    => undef,
         vip     => undef,
@@ -1156,9 +1091,7 @@ sub getLetsencryptCron    # ( $le_cert_name )
         require Relianoid::Validate;
         my $farm_name = &getValidFormat('farm_name');
         my $vip       = &getValidFormat('ip_addr');
-        if ($le_cron[0] =~
-            /$command(?: --farm ($farm_name))?(?: --vip ($vip))?(?:( --force))?(?:( --restart))?$/)
-        {
+        if ($le_cron[0] =~ /$command(?: --farm ($farm_name))?(?: --vip ($vip))?(?:( --force))?(?:( --restart))?$/) {
             $cron_ref->{status}  = "enabled";
             $cron_ref->{farm}    = $1;
             $cron_ref->{vip}     = $2;

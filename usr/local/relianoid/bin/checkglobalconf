@@ -31,6 +31,7 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 use File::Copy;
 
@@ -45,10 +46,17 @@ unless (-f $gc_fn) {
     exit $err;
 }
 
-open my $gc_tmp, '>', $gc_tmp_fn;
-open my $gc_tpl, '<', $gc_tpl_fn;
+open my $gc_tpl, '<', $gc_tpl_fn or die "Failed to open '$gc_tpl_fn': $!";
+chomp(my @gc_tpl_ln = <$gc_tpl>);
+close $gc_tpl;
 
-while (my $tpl_line = <$gc_tpl>) {
+open my $gconf, '<', $gc_fn or die "Failed to open '$gc_fn': $!";
+chomp(my @gconf_ln = <$gconf>);
+close $gconf;
+
+my @gc_tmp_ln;
+
+foreach my $tpl_line (@gc_tpl_ln) {
     my $newline = $tpl_line;
 
     # for lines starting with $
@@ -59,9 +67,7 @@ while (my $tpl_line = <$gc_tpl>) {
         $var =~ s/\$//;
         $var =~ s/\s*$//;    # important
 
-        open my $gconf, '<', $gc_fn;
-
-        while (my $gc_line = <$gconf>) {
+        foreach my $gc_line (@gconf_ln) {
             next unless $gc_line =~ /^\$$var\s*=/;
 
             my (undef, $gc_value) = $gc_line =~ /(.+)\s*=\s*(.+)/;
@@ -79,16 +85,14 @@ while (my $tpl_line = <$gc_tpl>) {
 
             last;
         }
-
-        close $gconf;
     }
 
-    print $gc_tmp "$newline";
+    push(@gc_tmp_ln, "$newline");
 }
 
+open my $gc_tmp, '>', $gc_tmp_fn or die "Failed to open '$gc_tmp_fn': $!";
+print $gc_tmp join("\n", @gc_tmp_ln);
 close $gc_tmp;
-close $gc_tpl;
 
 move($gc_tmp_fn, $gc_fn);
 print "Update global.conf file done...\n";
-

@@ -24,7 +24,6 @@
 use strict;
 use warnings;
 use feature qw(signatures state);
-no warnings 'experimental::args_array_with_signatures';
 
 use Carp;
 
@@ -41,8 +40,6 @@ Relianoid::Net::Interface
 =cut
 
 sub getInterfaceConfigFile ($if_name) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $configdir = &getGlobalConfiguration('configdir');
     return "$configdir/if_${if_name}_conf";
 }
@@ -98,13 +95,11 @@ See Also:
 
     <$if_ref>
 
-    zcluster-manager, zenbui.pl, zapi/v?/interface.cgi, zcluster_functions.cgi, networking_functions_ext
+    zcluster-manager, noid-bui, api/v?/interface.cgi, cluster_functions.cgi, networking_functions_ext
 
 =cut
 
 sub getInterfaceConfig ($if_name, $ip_v = '') {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     unless (defined $if_name) {
         &zenlog('getInterfaceConfig got undefined interface name', 'debug2', 'network');
     }
@@ -138,18 +133,17 @@ sub getInterfaceConfig ($if_name, $ip_v = '') {
         gateway => undef,
     };
 
-    $iface->{name} = $fileHandler->{$if_name}->{name} // $if_name;
-    $iface->{addr} = $fileHandler->{$if_name}->{addr} if (length $fileHandler->{$if_name}->{addr});
-    $iface->{mask} = $fileHandler->{$if_name}->{mask} if (length $fileHandler->{$if_name}->{mask});
-    $iface->{gateway} = $fileHandler->{$if_name}->{gateway}
-      if (length $fileHandler->{$if_name}->{gateway});
-    $iface->{status} = $fileHandler->{$if_name}->{status} // '';
-    $iface->{dev}    = $if_name;
-    $iface->{vini}   = undef;
-    $iface->{vlan}   = undef;
-    $iface->{mac}    = $fileHandler->{$if_name}->{mac} // undef;
-    $iface->{type}   = &getInterfaceType($iface->{name});
-    $iface->{parent} = &getParentInterfaceName($iface->{name});
+    $iface->{name}    = $fileHandler->{$if_name}->{name} // $if_name;
+    $iface->{addr}    = $fileHandler->{$if_name}->{addr}    if (length $fileHandler->{$if_name}->{addr});
+    $iface->{mask}    = $fileHandler->{$if_name}->{mask}    if (length $fileHandler->{$if_name}->{mask});
+    $iface->{gateway} = $fileHandler->{$if_name}->{gateway} if (length $fileHandler->{$if_name}->{gateway});
+    $iface->{status}  = $fileHandler->{$if_name}->{status} // '';
+    $iface->{dev}     = $if_name;
+    $iface->{vini}    = undef;
+    $iface->{vlan}    = undef;
+    $iface->{mac}     = $fileHandler->{$if_name}->{mac} // undef;
+    $iface->{type}    = &getInterfaceType($iface->{name});
+    $iface->{parent}  = &getParentInterfaceName($iface->{name});
 
     if (not $ip_v and defined $iface->{addr}) {
         if ($iface->{addr} =~ /:/) {
@@ -159,9 +153,9 @@ sub getInterfaceConfig ($if_name, $ip_v = '') {
             $ip_v = '4';
         }
     }
-    $iface->{ip_v} = $ip_v;
-    $iface->{net}  = &getAddressNetwork($iface->{addr}, $iface->{mask}, $iface->{ip_v})
-      if $iface->{addr};
+
+    $iface->{ip_v}    = $ip_v;
+    $iface->{net}     = &getAddressNetwork($iface->{addr}, $iface->{mask}, $iface->{ip_v}) if $iface->{addr};
     $iface->{dhcp}    = $fileHandler->{$if_name}->{dhcp}    // 'false' if ($eload);
     $iface->{isolate} = $fileHandler->{$if_name}->{isolate} // 'false' if ($eload);
 
@@ -190,11 +184,7 @@ sub getInterfaceConfig ($if_name, $ip_v = '') {
     }
 
     if ($eload) {
-
-        # complex check to avoid warnings
-        if ((!exists($iface->{vini}) || !defined($iface->{vini}) || $iface->{vini} eq '')
-            && $iface->{addr})
-        {
+        if ((!exists($iface->{vini}) || !defined($iface->{vini}) || $iface->{vini} eq '') && $iface->{addr}) {
             require Config::Tiny;
             my $float = Config::Tiny->read(&getGlobalConfiguration('floatfile'));
             $iface->{float} = $float->{_}->{ $iface->{name} } // '';
@@ -204,7 +194,6 @@ sub getInterfaceConfig ($if_name, $ip_v = '') {
     state $saved_bond_slaves = 0;
 
     if ($eload && $iface->{type} eq 'nic') {
-
         # not die if the appliance has not a certificate
         eval {
             unless ($saved_bond_slaves) {
@@ -239,7 +228,7 @@ Gets a hash reference of configuration params of a network interface.
 
 Parameters:
 
-    if_name - Interface name.
+    if_name    - Interface name.
     params_ref - Array ref of params
 
 Returns:
@@ -249,8 +238,6 @@ Returns:
 =cut
 
 sub getInterfaceConfigParam ($if_name, $params_ref) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $config_ref;
     my $config_filename = &getInterfaceConfigFile($if_name);
 
@@ -295,13 +282,11 @@ Returns:
 
 See Also:
 
-    <getInterfaceConfig>, <setInterfaceUp>, relianoid, zenbui.pl, zapi/v?/interface.cgi
+    <getInterfaceConfig>, <setInterfaceUp>, relianoid, noid-bui, api/v?/interface.cgi
 
 =cut
 
 sub setInterfaceConfig ($if_ref) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     require Config::Tiny;
 
     my $fileHandle = Config::Tiny->new;
@@ -312,14 +297,13 @@ sub setInterfaceConfig ($if_ref) {
 
     if (&debug() > 2) {
         require Data::Dumper;
-        &zenlog("setInterfaceConfig: " . Dumper($if_ref), "debug", "NETWORK");
+        &zenlog("setInterfaceConfig: " . Data::Dumper->Dumper($if_ref), "debug", "NETWORK");
     }
 
     my @if_params       = ('status', 'name', 'addr', 'mask', 'gateway', 'mac', 'dhcp', 'isolate');
     my $configdir       = &getGlobalConfiguration('configdir');
     my $config_filename = "$configdir/if_$$if_ref{ name }_conf";
 
-    # create file if it is not exist
     if (!-f $config_filename) {
         require Relianoid::File;
         return 0 if (&createFile($config_filename));
@@ -358,8 +342,6 @@ Returns:
 =cut
 
 sub cleanInterfaceConfig ($if_ref) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $configdir = &getGlobalConfiguration('configdir');
     my $file      = "$configdir/if_$$if_ref{name}\_conf";
     my $err       = 0;
@@ -403,7 +385,7 @@ Returns:
 
     Reference to a hash with:
 
-    dev - NIC or Bonding part of the interface name.
+    dev  - NIC or Bonding part of the interface name.
     vlan - VLAN part of the interface name.
     vini - Virtual interface part of the interface name.
 
@@ -414,8 +396,6 @@ See Also:
 =cut
 
 sub getDevVlanVini ($if_name) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my %if = (dev => $if_name);
 
     if ($if{dev} =~ /:/) {
@@ -452,36 +432,39 @@ See Also:
 =cut
 
 sub getConfigInterfaceList ($params_ref = undef) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+    my @interfaces = ();
+    my $configdir  = &getGlobalConfiguration('configdir');
+    my @filenames  = ();
 
-    my @configured_interfaces;
-    my $configdir = &getGlobalConfiguration('configdir');
-
-    if (opendir my $dir, "$configdir") {
-        for my $filename (readdir $dir) {
-            if ($filename =~ /if_(.+)_conf/) {
-                my $if_name = $1;
-                my $if_ref;
-
-                if (defined $params_ref) {
-                    $if_ref = &getInterfaceConfigParam($if_name, $params_ref);
-                }
-                else {
-                    $if_ref = &getInterfaceConfig($if_name);
-                }
-                if (defined $if_ref) {
-                    push @configured_interfaces, $if_ref;
-                }
-            }
-        }
-
+    if (opendir my $dir, $configdir) {
+        @filenames = readdir $dir;
         closedir $dir;
     }
     else {
         &zenlog("Error reading directory $configdir: $!", "error", "NETWORK");
     }
 
-    return \@configured_interfaces;
+    for my $filename (@filenames) {
+        unless ($filename =~ /if_(.+)_conf/) {
+            next;
+        }
+
+        my $if_name = $1;
+        my $if_ref;
+
+        if (defined $params_ref) {
+            $if_ref = &getInterfaceConfigParam($if_name, $params_ref);
+        }
+        else {
+            $if_ref = &getInterfaceConfig($if_name);
+        }
+
+        if (defined $if_ref) {
+            push @interfaces, $if_ref;
+        }
+    }
+
+    return \@interfaces;
 }
 
 =pod
@@ -505,8 +488,6 @@ See Also:
 =cut
 
 sub getInterfaceSystemStatus ($if_ref) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $parent_if_name = &getParentInterfaceName($if_ref->{name});
     my $status_if_name = $if_ref->{name};
 
@@ -580,16 +561,12 @@ Returns:
 =cut
 
 sub getInterfaceSystemStatusAll () {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $ip_bin    = &getGlobalConfiguration('ip_bin');
     my $ip_output = &logAndGet("$ip_bin -o link", "array");
     my $links_ref;
 
     foreach my $link (@{$ip_output}) {
-        if ($link =~
-            /^\d+: ([a-zA-Z0-9\-]+(?:\.\d{1,4})?)(?:@[a-zA-Z0-9\-]+)?: <(.+)> .+ state (\w+) /)
-        {
+        if ($link =~ /^\d+: ([a-zA-Z0-9\-]+(?:\.\d{1,4})?)(?:@[a-zA-Z0-9\-]+)?: <(.+)> .+ state (\w+) /) {
             my $interface = $1;
             my $flag      = $2;
             my $status    = lc $3;
@@ -650,8 +627,6 @@ See Also:
 =cut
 
 sub getParentInterfaceName ($if_name) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $if_ref = &getDevVlanVini($if_name);
     my $parent_if_name;
 
@@ -696,13 +671,11 @@ Returns:
 
 See Also:
 
-    Zapi v3: post.cgi, put.cgi, system.cgi
+    API v4: post.cgi, put.cgi, system.cgi
 
 =cut
 
 sub getActiveInterfaceList () {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my @configured_interfaces = @{ &getConfigInterfaceList() };
 
     # sort list
@@ -759,12 +732,11 @@ Returns:
 
 See Also:
 
-    zapi/v?/interface.cgi, zapi/v3/cluster.cgi
+    api/v4/interface.cgi, api/v4/cluster.cgi
 
 =cut
 
 sub getSystemInterfaceList () {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     use IO::Interface qw(:flags);
 
     my @interfaces;    # output
@@ -876,8 +848,6 @@ See Also:
 =cut
 
 sub getSystemInterface ($if_name) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $if_ref = { name => $if_name };
 
     use IO::Interface qw(:flags);
@@ -946,8 +916,6 @@ Returns:
 =cut
 
 sub getInterfaceType ($if_name) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $type;
 
     if ($if_name eq '' || !defined $if_name) {
@@ -1118,12 +1086,11 @@ Returns:
 =cut
 
 sub getInterfaceTypeList ($list_type, $iface_name = undef) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my @interfaces = ();
 
-    if ($list_type =~ /^(?:nic|bond|vlan|gre)$/) {
+    if (grep { $list_type eq $_ } qw(nic bond vlan gre)) {
         my @system_interfaces;
+
         if ($iface_name) {
             push @system_interfaces, $iface_name;
         }
@@ -1165,10 +1132,9 @@ sub getInterfaceTypeList ($list_type, $iface_name = undef) {
                     $parents_list->{ $iface->{parent} } =
                       &getInterfaceConfig($iface->{parent});
                 }
-                $iface->{mask} = $parents_list->{ $iface->{parent} }->{mask};
-                $iface->{mac}  = $parents_list->{ $iface->{parent} }->{mac};
-                $iface->{gateway} =
-                  $parents_list->{ $iface->{parent} }->{gateway};
+                $iface->{mask}    = $parents_list->{ $iface->{parent} }->{mask};
+                $iface->{mac}     = $parents_list->{ $iface->{parent} }->{mac};
+                $iface->{gateway} = $parents_list->{ $iface->{parent} }->{gateway};
                 push(@interfaces, $iface);
             }
         }
@@ -1203,8 +1169,6 @@ Returns:
 
 # Get vlan or virtual interfaces appended from a interface
 sub getAppendInterfaces ($if_parent, $type) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my @output      = ();
     my @list        = &getInterfaceList();
     my $vlan_tag    = &getValidFormat('vlan_tag');
@@ -1246,8 +1210,6 @@ See Also:
 =cut
 
 sub getInterfaceList () {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my @if_list = ();
     push @if_list, &getLinkNameList();
     push @if_list, &getVirtualInterfaceNameList();
@@ -1271,8 +1233,6 @@ Returns:
 =cut
 
 sub getVirtualInterfaceNameList () {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     require Relianoid::Validate;
 
     opendir(my $conf_dir, &getGlobalConfiguration('configdir'));
@@ -1305,8 +1265,6 @@ Returns:
 =cut
 
 sub getLinkNameList () {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $sys_net_dir = &getGlobalConfiguration('sys_net_dir');
 
     # Get link interfaces (nic, bond and vlan)
@@ -1334,8 +1292,6 @@ Returns:
 =cut
 
 sub getInterfaceNameStruct ($if_type = undef) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $interfaces_ref;
 
     my $bonding_struct;
@@ -1423,8 +1379,6 @@ Returns:
 =cut
 
 sub getInterfaceByIp ($ip) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     require Relianoid::Net::Validate;
 
     my $output         = "";
@@ -1473,8 +1427,6 @@ Returns:
 =cut
 
 sub getIpAddressExists ($ip) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     require Relianoid::Net::Validate;
 
     my $output         = 0;
@@ -1523,8 +1475,6 @@ Returns:
 =cut
 
 sub getIpAddressList () {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my @out    = ();
     my $params = ["addr"];
     foreach my $if_ref (@{ &getConfigInterfaceList($params) }) {
@@ -1555,8 +1505,6 @@ Returns:
 =cut
 
 sub getInterfaceChild ($if_name) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     unless (length $if_name) {
         croak('required non-empty string');
     }
@@ -1608,8 +1556,6 @@ Returns:
 =cut
 
 sub getAddressNetwork ($addr, $mask, $ip_v = undef) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     require NetAddr::IP;
     require Scalar::Util;
 
@@ -1647,8 +1593,6 @@ Returns:
 =cut
 
 sub get_interface_list_struct () {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     require Relianoid::User;
 
     my @output_list;
@@ -1769,8 +1713,6 @@ Returns:
 =cut
 
 sub get_nic_struct ($nic) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $interface;
     my @nic_list = &getInterfaceTypeList('nic', $nic);
     my $if_ref   = $nic_list[0];
@@ -1822,8 +1764,6 @@ Returns:
 =cut
 
 sub get_nic_list_struct () {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my @output_list;
     my $interface_ref = &getInterfaceNameStruct();
 
@@ -1902,8 +1842,6 @@ Returns:
 =cut
 
 sub get_vlan_struct ($vlan) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my @vlan_list = &getInterfaceTypeList('vlan', $vlan);
     my $interface = $vlan_list[0];
 
@@ -1955,8 +1893,6 @@ Returns:
 =cut
 
 sub get_vlan_list_struct () {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my @output_list;
     my $cluster_if;
 
@@ -2025,8 +1961,6 @@ Returns:
 =cut
 
 sub get_virtual_struct ($virtual) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my @virtual_list = &getInterfaceTypeList('virtual', $virtual);
     my $interface    = $virtual_list[0];
 
@@ -2077,8 +2011,6 @@ Returns:
 =cut
 
 sub get_virtual_list_struct () {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my @output_list = ();
     my $all_status  = &getInterfaceSystemStatusAll();
     for my $if_ref (&getInterfaceTypeList('virtual')) {
@@ -2134,8 +2066,6 @@ Returns:
 =cut
 
 sub setVlan ($if_ref, $params) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $err = 0;
 
     require Relianoid::Net::Core;
@@ -2192,13 +2122,11 @@ sub setVlan ($if_ref, $params) {
 
     if ($eload && exists $params->{mac}) {
         return 1
-          if (
-            &eload(
-                module => 'Relianoid::Net::Mac',
-                func   => 'addMAC',
-                args   => [ $if_ref->{name}, $if_ref->{mac} ]
-            )
-          );
+          if (&eload(
+            module => 'Relianoid::Net::Mac',
+            func   => 'addMAC',
+            args   => [ $if_ref->{name}, $if_ref->{mac} ]
+          ));
     }
 
     # if the GW is changed, change it in all appending virtual interfaces
@@ -2259,8 +2187,6 @@ Returns:
 =cut
 
 sub createVlan ($if_ref) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     require Relianoid::Net::Core;
     require Relianoid::Net::Route;
 

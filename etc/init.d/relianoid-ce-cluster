@@ -31,44 +31,29 @@
 #
 ###############################################################################
 
-my $action         = $ARGV[0];
-my $enable_cluster = "false";    # false = disable cluster, true = enable cluster
+my $action = $ARGV[0];
 
-if ("$action" eq "start") {
-    if ($enable_cluster eq "true") {
-        print "Starting RELIANOID CE Cluster...\n";
-        my $command = &run_cluster;
-        my @run     = `$command`;
-        my $exec    = `nohup /usr/local/relianoid/app/zeninotify/zeninotify.pl >/dev/null 2>&1 &`;
-        exit;
-    }
-    else {
-        print "Cluster is disabled, enable cluster in /etc/init.d/relianoid-ce-cluster";
-    }
+my $cluster_status_file = "/etc/relianoid-ce-cluster.status";
+
+if ($action eq "start") {
+    print "Starting RELIANOID CE Cluster...\n";
+    require "/usr/local/relianoid/app/ucarp/etc/cluster.conf";
+    my $command =
+        "$ucarp -r ${dead_ratio} --interface=$interface --srcip=$local_ip --vhid=$cluster_id "
+      . "--pass=$password --addr=$cluster_ip --upscript=$up_script --downscript=$down_script -B";
+    my @run  = `$command`;
+    my $exec = `nohup /usr/local/relianoid/app/zeninotify/zeninotify.pl >/dev/null 2>&1 &`;
+    exit;
 }
 
-if ("$action" eq "stop") {
-
+if ($action eq "stop") {
     print "Stopping RELIANOID CE Cluster...\n";
-    my $command = &stop_cluster;
+    my $command = "pkill -9 ucarp ; kill -9 `pidof -x zeninotify.pl` 2>/dev/null";
     my @run     = `$command`;
-    if (-e "/etc/relianoid-ce-cluster.status") {
-        unlink "/etc/relianoid-ce-cluster.status";
+    if (-e $cluster_status_file) {
+        unlink $cluster_status_file;
     }
     exit;
 }
 
 print "Usage: /etc/init.d/relianoid-ce-cluster ( stop | start )\n";
-
-sub run_cluster {
-    require "/usr/local/relianoid/app/ucarp/etc/cluster.conf";
-    my $exec_string =
-      "$ucarp -r ${dead_ratio} --interface=$interface --srcip=$local_ip --vhid=$cluster_id --pass=$password --addr=$cluster_ip --upscript=$up_script --downscript=$down_script -B";
-    return $exec_string;
-}
-
-sub stop_cluster {
-    require "/usr/local/relianoid/app/ucarp/etc/cluster.conf";
-    my $exec_string = "pkill -9 ucarp ; kill -9 `pidof -x zeninotify.pl` 2>/dev/null";
-    return $exec_string;
-}

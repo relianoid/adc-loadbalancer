@@ -24,7 +24,6 @@
 use strict;
 use warnings;
 use feature qw(signatures state);
-no warnings 'experimental::args_array_with_signatures';
 
 use Relianoid::Log;
 
@@ -58,10 +57,7 @@ See Also:
 
 =cut
 
-sub getGlobalConfiguration {
-    my $parameter    = shift;
-    my $force_reload = shift // 0;
-
+sub getGlobalConfiguration ($parameter, $force_reload = 0) {
     state $global_conf = &parseGlobalConfiguration();
     $global_conf = &parseGlobalConfiguration() if ($force_reload);
 
@@ -75,8 +71,7 @@ sub getGlobalConfiguration {
             return;
         }
         else {
-            &zenlog("The global configuration parameter '$parameter' has not been found",
-                'warning', 'Configuration')
+            &zenlog("The global configuration parameter '$parameter' has not been found", 'warning', 'Configuration')
               if ($parameter ne "debug");
             return;
         }
@@ -105,9 +100,7 @@ See Also:
 
 =cut
 
-sub parseGlobalConfiguration {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
+sub parseGlobalConfiguration () {
     my $global_conf_filepath = "/usr/local/relianoid/config/global.conf";
     my $global_conf;
 
@@ -117,6 +110,7 @@ sub parseGlobalConfiguration {
 
         # build globalconf struct
         for my $conf_line (@lines) {
+
             # extract variable name and value
             if ($conf_line =~ /^\s*\$(\w+)\s*=\s*(?:"(.*)"|\'(.*)\');(?:\s*#update)?\s*$/) {
                 $global_conf->{$1} = $2;
@@ -127,7 +121,7 @@ sub parseGlobalConfiguration {
         my $msg = "Could not open $global_conf_filepath: $!";
         &zenlog($msg, "error", "SYSTEM");
         die $msg;
-    };
+    }
 
     # expand the variables, by replacing every variable used in the $var_value by its content
     foreach my $param (keys %{$global_conf}) {
@@ -162,15 +156,11 @@ Bugs:
 
 See Also:
 
-    Zapi v3: <set_ntp>
+    API v4: <set_ntp>
 
 =cut
 
-sub setGlobalConfiguration    # ( parameter, value )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($param, $value) = @_;
-
+sub setGlobalConfiguration ($param, $value) {
     my $global_conf_file = &getGlobalConfiguration('globalcfg');
     my $output           = -1;
 
@@ -208,11 +198,7 @@ Returns:
 
 =cut
 
-sub setConfigStr2Arr {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $obj        = shift;
-    my $param_list = shift;
-
+sub setConfigStr2Arr ($obj, $param_list) {
     foreach my $param_name (@{$param_list}) {
         my @list = ();
 
@@ -243,10 +229,7 @@ See Also:
 
 =cut
 
-sub getTiny {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $file_path = shift;
-
+sub getTiny ($file_path) {
     if (!-f $file_path) {
         open my $fi, '>', $file_path;
         if ($fi) {
@@ -291,8 +274,6 @@ Returns:
 =cut
 
 sub getTinyObj ($filepath, $section = undef, $key_ref = undef, $key_action = "error") {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $conf = &getTiny($filepath);
     if (not defined $conf) {
         return;
@@ -359,10 +340,7 @@ Returns:
 
 =cut
 
-sub setTinyObj {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($path, $object, $key, $value, $action) = @_;
-
+sub setTinyObj ($path, $object = undef, $key = undef, $value = undef, $action = undef) {
     unless ($object) {
         &zenlog("Object not defined trying to save it in file $path");
         return;
@@ -440,11 +418,7 @@ Returns:
 
 =cut
 
-sub delTinyObj {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $path   = shift;
-    my $object = shift;
-
+sub delTinyObj ($path, $object) {
     &zenlog("Delete $object from $path", "debug2");
 
     require Relianoid::Lock;
@@ -478,9 +452,7 @@ Returns:
 
 =cut
 
-sub migrateConfigFiles {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
+sub migrateConfigFiles () {
     my $MIG_DIR = &getGlobalConfiguration('mig_dir');
     my @listing = `ls $MIG_DIR`;
 

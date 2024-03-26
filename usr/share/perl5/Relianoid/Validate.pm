@@ -24,7 +24,6 @@
 use strict;
 use warnings;
 use feature qw(signatures);
-no warnings 'experimental::args_array_with_signatures';
 
 use Carp;
 use Regexp::IPv6 qw($IPv6_re);
@@ -40,14 +39,13 @@ Relianoid::Validate
 
 =cut
 
-
 # Notes about regular expressions:
 #
 # \w matches the 63 characters [a-zA-Z0-9_] (most of the time)
 #
 
-my $UNSIGNED8BITS = qr/(?:25[0-5]|2[0-4]\d|(?!0)[1]?\d\d?|0)/;     # (0-255)
-my $UNSIGNED7BITS = qr/(?:[0-9]{1,2}|10[0-9]|11[0-9]|12[0-8])/;    # (0-128)
+my $UNSIGNED8BITS = qr/(?:25[0-5]|2[0-4]\d|(?!0)[1]?\d\d?|0)/;                         # (0-255)
+my $UNSIGNED7BITS = qr/(?:[0-9]{1,2}|10[0-9]|11[0-9]|12[0-8])/;                        # (0-128)
 my $HEXCHAR       = qr/(?:[A-Fa-f0-9])/;
 my $ipv6_word     = qr/(?:$HEXCHAR+){1,4}/;
 my $ipv4_addr     = qr/(?:$UNSIGNED8BITS\.){3}$UNSIGNED8BITS/;
@@ -57,14 +55,13 @@ my $ipv4v6        = qr/(?:$ipv4_addr|$ipv6_addr)/;
 my $boolean       = qr/(?:true|false)/;
 my $enable        = qr/(?:enable|disable)/;
 my $integer       = qr/\d+/;
-my $natural       = qr/[1-9]\d*/;                                  # natural number = {1, 2, 3, ...}
+my $natural       = qr/[1-9]\d*/;                                                      # natural number = {1, 2, 3, ...}
 my $weekdays      = qr/(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)/;
 my $minutes       = qr/(?:\d|[0-5]\d)/;
 my $hours         = qr/(?:\d|[0-1]\d|2[0-3])/;
 my $months        = qr/(?:[1-9]|1[0-2])/;
-my $dayofmonth    = qr/(?:[1-9]|[1-2]\d|3[01])/;                                      # day of month
-my $rrdTime =
-  qr/\d\d-\d\d-(?:\d\d)?\d\d-\d\d:\d\d/;    # MM-DD-[YY]YY-hh:mm ; example: "11-09-2020-14:05";
+my $dayofmonth    = qr/(?:[1-9]|[1-2]\d|3[01])/;                                       # day of month
+my $rrdTime       = qr/\d\d-\d\d-(?:\d\d)?\d\d-\d\d:\d\d/;    # MM-DD-[YY]YY-hh:mm ; example: "11-09-2020-14:05";
 
 my $hostname = qr/[a-z][a-z0-9\-]{0,253}[a-z0-9]/;
 my $service  = qr/[a-zA-Z0-9][a-zA-Z0-9_\-\.]*/;
@@ -72,14 +69,13 @@ my $zone     = qr/(?:$hostname\.)+[a-z]{2,}/;
 
 my $cert_name = qr/(?:\*[_|\.])?\w[\w\.\(\)\@ \-]*/;
 
-my $vlan_tag    = qr/\d{1,4}/;
-my $virtual_tag = qr/[a-zA-Z0-9\-]{1,13}/;
-my $nic_if      = qr/[a-zA-Z0-9\-]{1,15}/;
-my $bond_if     = qr/[a-zA-Z0-9\-]{1,15}/;
-my $vlan_if     = qr/[a-zA-Z0-9\-]{1,13}\.$vlan_tag/;
-my $interface   = qr/$nic_if(?:\.$vlan_tag)?(?:\:$virtual_tag)?/;
-my $port_range =
-  qr/(?:[1-9]\d{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])/;
+my $vlan_tag        = qr/\d{1,4}/;
+my $virtual_tag     = qr/[a-zA-Z0-9\-]{1,13}/;
+my $nic_if          = qr/[a-zA-Z0-9\-]{1,15}/;
+my $bond_if         = qr/[a-zA-Z0-9\-]{1,15}/;
+my $vlan_if         = qr/[a-zA-Z0-9\-]{1,13}\.$vlan_tag/;
+my $interface       = qr/$nic_if(?:\.$vlan_tag)?(?:\:$virtual_tag)?/;
+my $port_range      = qr/(?:[1-9]\d{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])/;
 my $graphsFrequency = qr/(?:daily|weekly|monthly|yearly)/;
 
 my $blacklists_source = qr{(?:\d{1,3}\.){3}\d{1,3}(?:\/\d{1,2})?};
@@ -117,8 +113,7 @@ my %format_re = (
 
     # common
     'port'      => $port_range,
-    'multiport' =>
-      qr/(?:\*|(?:$port_range|$port_range\:$port_range)(?:,$port_range|,$port_range\:$port_range)*)/,
+    'multiport' => qr/(?:\*|(?:$port_range|$port_range\:$port_range)(?:,$port_range|,$port_range\:$port_range)*)/,
 
     'user'     => qr/[\w]+/,
     'password' => qr/.+/,
@@ -132,9 +127,9 @@ my %format_re = (
     'snmp_ip'        => qr/(?:$ipv4v6|\*)/,
     'snmp_community' => qr{.+},
     'snmp_port'      => $port_range,
-    'snmp_scope'     => qr{(?:\d{1,3}\.){3}\d{1,3}\/\d{1,2}},  # ip/mask
+    'snmp_scope'     => qr{(?:\d{1,3}\.){3}\d{1,3}\/\d{1,2}},    # ip/mask
     'ntp'            => qr{[\w\.\-]+},
-    'http_proxy'     => qr{\S*},                               # use any character except the spaces
+    'http_proxy'     => qr{\S*},                                 # use any character except the spaces
 
     # farms
     'farm_name'             => qr/[a-zA-Z0-9\-]+/,
@@ -167,23 +162,22 @@ my %format_re = (
     'http_sts_timeout' => qr/(?:\d+)/,
 
     # GSLB
-    'zone'          => qr/(?:$hostname\.)+[a-z]{2,}/,
-    'resource_id'   => qr/\d+/,
-    'resource_name' => qr/(?:[\w\-\.]+|\@)/,
-    'resource_ttl'  => qr/$natural/,                                         # except zero
-    'resource_type' => qr/(?:NS|A|AAAA|CNAME|DYNA|MX|SRV|TXT|PTR|NAPTR)/,    # not used from API 4
-    'resource_data'       => qr/.+/,                         # allow anything (TXT type needs it)
+    'zone'                => qr/(?:$hostname\.)+[a-z]{2,}/,
+    'resource_id'         => qr/\d+/,
+    'resource_name'       => qr/(?:[\w\-\.]+|\@)/,
+    'resource_ttl'        => qr/$natural/,                                            # except zero
+    'resource_type'       => qr/(?:NS|A|AAAA|CNAME|DYNA|MX|SRV|TXT|PTR|NAPTR)/,       # not used from API 4
+    'resource_data'       => qr/.+/,                                                  # allow anything (TXT type needs it)
     'resource_data_A'     => $ipv4_addr,
     'resource_data_AAAA'  => $ipv6_addr,
     'resource_data_DYNA'  => $service,
     'resource_data_NS'    => qr/[a-zA-Z0-9\-]+/,
     'resource_data_CNAME' => qr/[a-z\.]+/,
     'resource_data_MX'    => qr/[a-z\.\ 0-9]+/,
-    'resource_data_TXT'   => qr/.+/,                         # all characters allow
-    'resource_data_SRV'   => qr/[0-9]+ [0-9]+ [0-9]+ .+/,    # https://www.ietf.org/rfc/rfc2782
+    'resource_data_TXT'   => qr/.+/,                                                  # all characters allow
+    'resource_data_SRV'   => qr/[0-9]+ [0-9]+ [0-9]+ .+/,                             # https://www.ietf.org/rfc/rfc2782
     'resource_data_PTR'   => qr/[a-z\.]+/,
-    'resource_data_NAPTR' =>
-      qr/[0-9]+ [0-9]+\|[a-zA-Z]?\|[a-zA-Z0-9\+]*\|.*\|.+/,    # https://www.ietf.org/rfc/rfc2915
+    'resource_data_NAPTR' => qr/[0-9]+ [0-9]+\|[a-zA-Z]?\|[a-zA-Z0-9\+]*\|.*\|.+/,    # https://www.ietf.org/rfc/rfc2915
 
     # interfaces ( WARNING: length in characters < 16  )
     'mac_addr'         => $mac_addr,
@@ -198,15 +192,14 @@ my %format_re = (
     'virtual_tag'      => qr/$virtual_tag/,
     'bond_mode_num'    => qr/[0-6]/,
     'bond_mode_short'  =>
-      qr/(?:balance-rr|active-backup|balance-xor|broadcast|802.3ad|balance-tlb|balance-alb)/
-    ,    # not used from API 4
+      qr/(?:balance-rr|active-backup|balance-xor|broadcast|802.3ad|balance-tlb|balance-alb)/,    # not used from API 4
 
     # notifications
     'notif_alert'  => qr/(?:backends|cluster|license|interface|package|certificate)/,
     'notif_method' => qr/(?:email)/,
     'notif_tls'    => $boolean,
     'notif_action' => $enable,
-    'notif_time'   => $natural,    # this value can't be 0
+    'notif_time'   => $natural,                                                                  # this value can't be 0
 
     # IPDS
     # blacklists
@@ -379,7 +372,6 @@ See also:
 =cut
 
 sub getValidFormat ($format_name, $value = undef, %new_format_re) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     # Checks if it should use the formats passed by parameters.
     %format_re = %new_format_re if (%new_format_re);
@@ -426,13 +418,11 @@ Returns:
 
 See Also:
 
-    zapi/v3/post.cgi
+    api/v4/post.cgi
 
 =cut
 
 sub getValidPort ($port, $profile = undef) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     if ($profile =~ /^(?:HTTP|GSLB)$/i) {
         return &getValidFormat('port', $port);
     }
@@ -449,117 +439,6 @@ sub getValidPort ($port, $profile = undef) {
     {
         return 0;
     }
-}
-
-=pod
-
-=head1 getValidOptParams
-
-[DEPRECATED]: It is used untill the API 3.2. Now, use checkApiParams
-
-Check parameters when all params are optional
-
-Before called:	getValidPutParams
-
-Parameters:
-
-    \%json_obj - .
-    \@allowParams - .
-
-Returns:
-
-    none
-
-=cut
-
-sub getValidOptParams    # ( \%json_obj, \@allowParams )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $params         = shift;
-    my $allowParamsRef = shift;
-    my @allowParams    = @{$allowParamsRef};
-    my $output;
-    my $pattern;
-
-    if (!keys %{$params}) {
-        return "Not found any param.";
-    }
-
-    # Check if any param isn't for this call
-    $pattern .= "$_|" for (@allowParams);
-    chop($pattern);
-    my @errorParams = grep { !/^(?:$pattern)$/ } keys %{$params};
-    if (@errorParams) {
-        $output .= "$_, " for (@errorParams);
-        chop($output);
-        chop($output);
-        $output = "Illegal params: $output";
-    }
-
-    return $output;
-}
-
-=pod
-
-=head1 getValidReqParams
-
-[DEPRECATED]: It is used untill the API 3.2. Now, use checkApiParams
-
-Check parameters when there are required params
-
-Before called:	getValidPostParams
-
-Parameters:
-
-    \%json_obj - .
-    \@requiredParams - .
-    \@optionalParams - .
-
-Returns:
-
-    none
-
-=cut
-
-sub getValidReqParams    # ( \%json_obj, \@requiredParams, \@optionalParams )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $params            = shift;
-    my $requiredParamsRef = shift;
-    my $allowParamsRef    = shift || [];
-    my @requiredParams    = @{$requiredParamsRef};
-    my @allowParams;
-    @allowParams = @{$allowParamsRef} if ($allowParamsRef);
-    push @allowParams, @requiredParams;
-    my $output;
-    my $pattern;
-
-    # Check all required params are in called
-    $pattern .= "$_|" for (@requiredParams);
-
-    chop($pattern);
-    my $aux = grep { /^(?:$pattern)$/ } keys %{$params};
-    if ($aux != scalar @requiredParams) {
-        $aux    = scalar @requiredParams - $aux;
-        $output = "Missing required parameters. Parameters missed: $aux.";
-    }
-
-    # Check if any param isn't for this call
-    if (!$output) {
-        $output  = "";
-        $pattern = "";
-        $pattern .= "$_|" for (@allowParams);
-        chop($pattern);
-        my @errorParams = grep { !/^(?:$pattern)$/ } keys %{$params};
-        if (@errorParams) {
-            $output .= "$_, " for (@errorParams);
-            chop($output);
-            chop($output);
-            $output = "Illegal params: $output";
-        }
-    }
-
-    return $output;
 }
 
 =pod
@@ -620,8 +499,6 @@ Returns:
 =cut
 
 sub checkApiParams ($json_obj, $param_obj, $description) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $err_msg;
 
     ## Remove parameters do not according to the edition
@@ -660,7 +537,7 @@ sub checkApiParams ($json_obj, $param_obj, $description) {
         # Store the input value to keep the data type,
         # and to be restored at the end of the loop.
         # This is because numeric type are converted to string
-        # when used in a string context, like in a regex. 
+        # when used in a string context, like in a regex.
         my $current_param_value = $json_obj->{$param};
 
         if (exists $param_obj->{$param}->{format_msg}) {
@@ -690,13 +567,11 @@ sub checkApiParams ($json_obj, $param_obj, $description) {
         if (exists $param_obj->{$param}->{'ref'}) {
             if ($r eq '') {
                 if ('none' !~ /$param_obj->{ $param }->{ 'ref' }/) {
-                    return
-                      "The parameter '$param' expects a '$param_obj->{ $param }->{ref}' reference as input";
+                    return "The parameter '$param' expects a '$param_obj->{ $param }->{ref}' reference as input";
                 }
             }
             elsif ($r !~ /^$param_obj->{ $param }->{ 'ref' }$/i) {
-                return
-                  "The parameter '$param' expects a '$param_obj->{ $param }->{ref}' reference as input";
+                return "The parameter '$param' expects a '$param_obj->{ $param }->{ref}' reference as input";
             }
         }
         elsif ($r eq 'ARRAY' or $r eq 'HASH') {
@@ -714,7 +589,7 @@ sub checkApiParams ($json_obj, $param_obj, $description) {
                 }
             }
             else {
-                if (!grep { $json_obj->{ $param } eq $_ } @{ $param_obj->{$param}->{'values'} }) {
+                if (!grep { $json_obj->{$param} eq $_ } @{ $param_obj->{$param}->{'values'} }) {
                     return
                       "The parameter '$param' expects one of the following values: '"
                       . join("', '", @{ $param_obj->{$param}->{'values'} }) . "'";
@@ -748,8 +623,7 @@ sub checkApiParams ($json_obj, $param_obj, $description) {
         if (    (exists $param_obj->{$param}->{'exceptions'})
             and (grep { /^$json_obj->{ $param }$/ } @{ $param_obj->{$param}->{'exceptions'} }))
         {
-            return
-              "The value '$json_obj->{ $param }' is a reserved word of the parameter '$param'.";
+            return "The value '$json_obj->{ $param }' is a reserved word of the parameter '$param'.";
         }
 
         # regex
@@ -764,8 +638,7 @@ sub checkApiParams ($json_obj, $param_obj, $description) {
                     }
                 }
                 else {
-                    return
-                      "The value '$json_obj->{ $param }' is not valid for the parameter '$param'."
+                    return "The value '$json_obj->{ $param }' is not valid for the parameter '$param'."
                       if ($json_obj->{$param} !~ /^$param_obj->{ $param }->{ 'regex' }$/);
                 }
             }
@@ -783,8 +656,7 @@ sub checkApiParams ($json_obj, $param_obj, $description) {
                     }
                 }
                 else {
-                    return
-                      "The value '$json_obj->{ $param }' is not valid for the parameter '$param'."
+                    return "The value '$json_obj->{ $param }' is not valid for the parameter '$param'."
                       if ($json_obj->{$param} =~ /$param_obj->{ $param }->{ 'negated_regex' }/);
                 }
             }
@@ -808,7 +680,7 @@ sub checkApiParams ($json_obj, $param_obj, $description) {
         }
 
         # Restore the data type that was received as input
-        # from the beginning of the loop 
+        # from the beginning of the loop
         $json_obj->{$param} = $current_param_value;
     }
 
@@ -834,8 +706,6 @@ Returns:
 =cut
 
 sub checkParamsInterval ($interval, $param, $value) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $err_msg;
 
     if ($interval =~ /,/) {
@@ -882,8 +752,6 @@ Returns:
 =cut
 
 sub checkParamsInvalid ($rec_keys, $expect_params) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $err_msg;
     my @non_valid;
 
@@ -893,7 +761,7 @@ sub checkParamsInvalid ($rec_keys, $expect_params) {
 
     if (@non_valid) {
         $err_msg = &putArrayAsText(\@non_valid,
-            "The parameter<sp>s</sp> <pl> <bs>is<|>are</bp> not correct for this call. Please, try with: '"
+                "The parameter<sp>s</sp> <pl> <bs>is<|>are</bp> not correct for this call. Please, try with: '"
               . join("', '", @{$expect_params})
               . "'");
     }
@@ -920,8 +788,6 @@ Returns:
 =cut
 
 sub checkParamsRequired ($rec_keys, $expect_params, $param_obj) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my @miss_params;
     my $err_msg;
 
@@ -935,8 +801,7 @@ sub checkParamsRequired ($rec_keys, $expect_params, $param_obj) {
     }
 
     if (@miss_params) {
-        $err_msg = &putArrayAsText(\@miss_params,
-            "The required parameter<sp>s</sp> <pl> <bs>is<|>are</bp> missing.");
+        $err_msg = &putArrayAsText(\@miss_params, "The required parameter<sp>s</sp> <pl> <bs>is<|>are</bp> missing.");
     }
     return $err_msg;
 }
@@ -961,8 +826,6 @@ Returns:
 =cut
 
 sub httpResponseHelp ($param_obj, $desc) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $resp_param = [];
 
     # build the output
@@ -1044,8 +907,6 @@ Returns:
 =cut
 
 sub putArrayAsText ($array_ref, $msg) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my @array = @{$array_ref};
 
     # one element

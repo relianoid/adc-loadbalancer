@@ -24,7 +24,6 @@
 use strict;
 use warnings;
 use feature qw(signatures);
-no warnings 'experimental::args_array_with_signatures';
 
 use Carp;
 use Unix::Syslog qw(:macros :subs);    # Syslog macros
@@ -42,11 +41,6 @@ Relianoid::Log
 sub warning_signal {    ## no critic Subroutines::RequireArgUnpacking
     print STDERR @_;
     zenlog("@_", "warn");
-}
-
-sub die_signal {    ## no critic Subroutines::RequireArgUnpacking
-    print STDERR @_;
-    zenlog("@_", "error");
 }
 
 # Get the program name for zenlog
@@ -97,21 +91,13 @@ Returns:
 
 =cut
 
-sub zenlog    # ($string, $type)
-{
-    my $message = shift;
-    my $type    = shift // 'info';
-    my $tag     = shift // "";
-
+sub zenlog ($message, $type = 'info', $tag = '') {
     if ($tag eq 'PROFILING') {
         $type = "debug5";
-        require Relianoid::Debug;
         return 0 if (&debug() < 5);
     }
 
     if ($type =~ /^(debug)(\d*)?$/) {
-        require Relianoid::Debug;
-
         my $debug_level = $2 // '1';
         if (&debug() lt $debug_level) {
             return;
@@ -172,21 +158,13 @@ Returns:
 
 =cut
 
-sub notlog    # ($string, $type)
-{
-    my $message = shift;
-    my $type    = shift // 'info';
-    my $tag     = shift // "";
-
+sub notlog ($message, $type = 'info', $tag = "") {
     if ($tag eq 'PROFILING') {
         $type = "debug5";
-        require Relianoid::Debug;
         return 0 if (&debug() < 5);
     }
 
     if ($type =~ /^(debug)(\d*)?$/) {
-        require Relianoid::Debug;
-
         my $debug_lvl = $2;
         $debug_lvl = 1 if not $debug_lvl;
         $type      = "$1$debug_lvl";
@@ -225,10 +203,7 @@ Returns:
 
 =cut
 
-sub zlog    # (@message)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my @message = shift;
+sub zlog (@message) {
 
     #my ($package,   # 0
     #$filename,      # 1
@@ -244,11 +219,7 @@ sub zlog    # (@message)
     #) = caller (1);	 # arg = number of suroutines back in the stack trace
 
     #~ use Data::Dumper;
-    &zenlog('>>> '
-          . (caller(3))[3] . ' >>> '
-          . (caller(2))[3] . ' >>> '
-          . (caller(1))[3]
-          . " => @message");
+    &zenlog('>>> ' . (caller(3))[3] . ' >>> ' . (caller(2))[3] . ' >>> ' . (caller(1))[3] . " => @message");
 
     return;
 }
@@ -273,19 +244,15 @@ See Also:
 
 =cut
 
-sub logAndRun    # ($command)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $command = shift;
-
+sub logAndRun ($command) {
     my $program     = $basename;
     my @cmd_output  = `$command 2>&1`;
     my $return_code = $?;
 
     if ($return_code) {
         &zenlog($program . " running: $command", "error", "SYSTEM");
-        &zenlog("out: @cmd_output",     "error", "error", "SYSTEM") if @cmd_output;
-        &zenlog("last command failed!", "error", "SYSTEM");
+        &zenlog("out: @cmd_output",              "error", "SYSTEM") if @cmd_output;
+        &zenlog("last command failed!",          "error", "SYSTEM");
     }
     else {
         &zenlog($program . " running: $command", "debug",  "SYSTEM");
@@ -311,11 +278,7 @@ Returns:
 
 =cut
 
-sub logAndRunBG    # ($command)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $command = shift;
-
+sub logAndRunBG ($command) {
     my $program = $basename;
 
     my $return_code = system("$command >/dev/null 2>&1 &");
@@ -336,8 +299,6 @@ sub logAndRunBG    # ($command)
 
 # Only used in API 3.1, 3.2 and 4.0
 sub zdie ($message) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     &zenlog($message);
     carp($message);
 
@@ -365,11 +326,48 @@ See Also:
 =cut
 
 sub zsystem (@command) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $program = $basename;
 
-    my @cmd_output = `. /etc/profile -notzenbui >/dev/null 2>&1 && @command 2>&1`;
+    my @cmd_output = `. /etc/profile -notbui >/dev/null 2>&1 && @command 2>&1`;
+    my $out        = $?;
+
+    if ($out) {
+        &zenlog($program . " running: @command", "error", "SYSTEM");
+        &zenlog("@cmd_output", "error", "error", "SYSTEM") if @cmd_output;
+        &zenlog("last command failed!", "error", "SYSTEM");
+    }
+    else {
+        &zenlog($program . " running: @command", "debug",  "SYSTEM");
+        &zenlog("out: @cmd_output",              "debug2", "SYSTEM");
+    }
+
+    return $out;
+}
+
+=pod
+
+=head1 zsystem_bg
+
+Run a command with the environment parameters customized in the background.
+
+Parameters:
+
+    exec - Command to run.
+
+Returns:
+
+    integer - Returns 0 on success or another value on failure
+
+See Also:
+
+    <_runGSLBFarmStart>, <_runGSLBFarmStop>, <runGSLBFarmReload>, <runGSLBFarmCreate>
+
+=cut
+
+sub zsystem_bg (@command) {
+    my $program = $basename;
+
+    my @cmd_output = `. /etc/profile -notbui >/dev/null 2>&1 && @command 2>&1 &`;
     my $out        = $?;
 
     if ($out) {
@@ -414,18 +412,16 @@ TODO:
 
 =cut
 
-sub logAndGet {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $cmd        = shift;
-    my $type       = shift // 'string';
-    my $add_stderr = shift // 0;
-
+sub logAndGet ($cmd, $type = 'string', $add_stderr = 0) {
     my $tmp_err = ($add_stderr) ? '&1' : "/tmp/err.log";
     my @print_err;
 
     my $out      = `$cmd 2>$tmp_err`;
     my $err_code = $?;
-    &zenlog("Executed (out: $err_code): $cmd", "debug", "system");
+
+    if (&debug() >= 2) {
+        &zenlog("Executed (out: $err_code): $cmd", "debug2", "system");
+    }
 
     if ($err_code and not $add_stderr) {
 
@@ -479,8 +475,7 @@ See Also:
 
 =cut
 
-sub logAndRunCheck {
-    my $command = shift;
+sub logAndRunCheck ($command) {
     my $program = $basename;
 
     my @cmd_output  = `$command 2>&1`;
@@ -520,12 +515,7 @@ Returns:
 
 =cut
 
-sub logRunAndGet {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $command  = shift;
-    my $format   = shift // 'string';
-    my $outflush = shift // 0;
-
+sub logRunAndGet ($command, $format = 'string', $outflush = 0) {
     $command .= " 2>&1";
     $command .= " > /dev/null" if ($outflush);
 
@@ -571,7 +561,7 @@ sub run3 ($command) {
 
     my $in_fh;
     my $out_fh;
-    my $err_fh = Symbol::gensym();    # required to separate stdout and stderr
+    my $err_fh = Symbol::gensym();                                        # required to separate stdout and stderr
     my $pid    = IPC::Open3::open3($in_fh, $out_fh, $err_fh, $command);
     waitpid($pid, 0);
     my $status = $? >> 8;

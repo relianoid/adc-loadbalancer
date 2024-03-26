@@ -21,16 +21,13 @@
 #
 ###############################################################################
 
-use strict;
 use warnings;
-use feature qw(signatures);
 
 use Linux::Inotify2;
 use Sys::Hostname;
 
 # Load configuration
 require "/usr/local/relianoid/app/ucarp/etc/cluster.conf";
-#
 
 my $hostname = hostname();
 my $sync     = "firstime";
@@ -42,28 +39,30 @@ push(@alert, $rttables);
 open STDERR, '>>', "$zeninolog" or die "Error creating log file";
 open STDOUT, '>>', "$zeninolog" or die "Error creating log file";
 
-print "Running the firs replication...\n";
+print "Running the first replication...\n";
 if ($exclude ne "") {
-    print "$rsync $zenrsync $exclude $configdir\/ root\@$remote_ip:$configdir\/\n";
-    my @eject = `$rsync $zenrsync  $exclude $configdir\/ root\@$remote_ip:$configdir\/`;
-    print @eject;
-    print "$rsync $zenrsync $rttables root\@$remote_ip:$rttables\n";
-    my @eject = `$rsync $zenrsync $rttables root\@$remote_ip:$rttables`;
-    print @eject;
+    my @commands = (
+        "$rsync $zenrsync $exclude $configdir\/ root\@$remote_ip:$configdir\/",
+        "$rsync $zenrsync $rttables root\@$remote_ip:$rttables",
+    );
+
+    for my $cmd (@commands) {
+        print "$cmd\n";
+        my @output = `$cmd`;
+        print @output;
+    }
 }
-print "Terminated the first replication...\n";
+print "First replication finished.\n";
 
 my $inotify = Linux::Inotify2->new();
 
-#foreach ($configdir $rttable)
 foreach (@alert) {
     $inotify->watch($_, IN_MODIFY | IN_CREATE | IN_DELETE);
-
 }
 
 while (1) {
 
-    # By default this will block until something is read
+    # By default this will block until some event is received
     my @events = $inotify->read();
     if (scalar(@events) == 0) {
         print "read error: $!";
@@ -71,36 +70,39 @@ while (1) {
     }
 
     foreach (@events) {
-        if ($_->name !~ /^\..*/ && $_->name !~ /.*\~$/) {
-            $action = sprintf("%d", $_->mask);
-            $name   = sprintf($_->fullname);
-            $file   = sprintf($_->name);
-            if ($action eq 512) {
-                $action = "DELETED";
-            }
-            if ($action eq 2) {
-                $action = "MODIFIED";
-            }
-            if ($action eq 256) {
-                $action = "CREATED";
-            }
-            printf "File: $file; Action: $action Fullname: $name\n";
+        unless ($_->name !~ /^\..*/ && $_->name !~ /.*\~$/) {
+            next;
+        }
 
-            if ($name =~ /config/) {
-                print "Exclude files: $exclude\n";
-                my @eject = `$rsync $zenrsync $exclude $configdir\/ root\@$remote_ip:$configdir\/`;
-                print @eject;
-                print
-                  "run replication process: $rsync $zenrsync $exclude $configdir\/ root\@$remote_ip:$configdir\/\n";
-            }
+        $action = sprintf("%d", $_->mask);
+        $name   = sprintf($_->fullname);
+        $file   = sprintf($_->name);
 
-            if ($name =~ /iproute2/) {
-                my @eject = `$rsync $zenrsync $rttables root\@$remote_ip:$rttables`;
-                print @eject;
-                print
-                  "run replication process: $rsync $zenrsync $rttables root\@$remote_ip:$rttables\n";
-            }
+        if ($action eq 512) {
+            $action = "DELETED";
+        }
+        if ($action eq 2) {
+            $action = "MODIFIED";
+        }
+        if ($action eq 256) {
+            $action = "CREATED";
+        }
+
+        printf "File: $file; Action: $action Fullname: $name\n";
+
+        if ($name =~ /config/) {
+            print "Exclude files: $exclude\n";
+            my $cmd = "$rsync $zenrsync $exclude $configdir\/ root\@$remote_ip:$configdir\/";
+            my @eject = `$cmd`;
+            print @eject;
+            print "ran replication process: $cmd\n";
+        }
+
+        if ($name =~ /iproute2/) {
+            my $cmd = "$rsync $zenrsync $rttables root\@$remote_ip:$rttables";
+            my @eject = `$cmd`;
+            print @eject;
+            print "ran replication process: $cmd\n";
         }
     }
-
 }

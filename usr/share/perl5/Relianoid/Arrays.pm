@@ -23,6 +23,7 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 =pod
 
@@ -41,9 +42,9 @@ This funcion uses the original array to apply the changes, so it does not return
 
 Parameters:
 
-    Array - Array reference with the list to modify.
-    Origin index - Index of the element will be moved.
-    Destination index - Position in the list that the element will have.
+    list - Array reference with the list to modify.
+    ori_index - Index of the element will be moved.
+    dst_index - Position in the list that the element will have.
 
 Returns:
 
@@ -51,10 +52,7 @@ Returns:
 
 =cut
 
-sub moveByIndex {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($list, $ori_index, $dst_index) = @_;
-
+sub moveByIndex ($list, $ori_index, $dst_index) {
     my $elem = $list->[$ori_index];
 
     # delete item
@@ -68,37 +66,35 @@ sub moveByIndex {
 
 =pod
 
-=head1 getARRIndex
+=head1 getArrayIndex
 
-It retuns the index of for a value of a list. It retunrs the first index where the value appears.
+Retuns the first index matching the value given, evaluated as a string.
 
 Parameters:
 
-    Array ref - Array reference with the list to look for.
-    Value     - Value to get its index
+    haystack - Array reference with the list to look for.
+    needle   - Value to get its index
 
 Returns:
 
-    Integer - index for an array value
+    undef   - When the needle was not found
+    integer - index of array with the first match found
 
 =cut
 
-sub getARRIndex {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($list, $item) = @_;
-    my $ind;
+sub getArrayIndex ($haystack, $needle) {
+    my $found_index;
+    my $current_index = 0;
 
-    my $id = 0;
-    foreach my $it (@{$list}) {
-        if ($it eq $item) {
-            $ind = $id;
+    for my $element (@{$haystack}) {
+        if ($element eq $needle) {
+            $found_index = $current_index;
             last;
         }
-        $id++;
+        $current_index++;
     }
 
-    # fixme:  return undef when the index is not found
-    return $ind;
+    return $found_index;
 }
 
 =pod
@@ -118,10 +114,7 @@ Returns:
 
 =cut
 
-sub uniqueArray {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $arr = shift;
-
+sub uniqueArray ($arr) {
     my %hold = ();
     my @hold;
 
@@ -155,11 +148,7 @@ Returns:
 
 =cut
 
-sub getArrayCollision {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $arr1 = shift;
-    my $arr2 = shift;
-
+sub getArrayCollision ($arr1, $arr2) {
     foreach my $it (sort @{$arr1}) {
         if (grep { /^$it$/ } @{$arr2}) {
             return $it;

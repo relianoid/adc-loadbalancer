@@ -24,7 +24,6 @@
 use strict;
 use warnings;
 use feature qw(signatures);
-no warnings 'experimental::args_array_with_signatures';
 
 use File::stat;
 use Time::localtime;
@@ -57,13 +56,11 @@ Returns:
 
 See Also:
 
-    zapi/v3/certificates.cgi, zapi/v2/certificates.cgi
+    api/v4/certificates.cgi
 
 =cut
 
 sub getCertFiles () {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $configdir = &getGlobalConfiguration('certdir');
     my $dir;
 
@@ -96,7 +93,6 @@ Returns:
 =cut
 
 sub getPemCertFiles () {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
     my $configdir = &getGlobalConfiguration('certdir');
 
     opendir(my $dir, $configdir);
@@ -123,13 +119,11 @@ Returns:
 
 See Also:
 
-    <getCertCN>, <getCertIssuer>, zapi/v3/certificates.cgi
+    <getCertCN>, <getCertIssuer>, api/v4/certificates.cgi
 
 =cut
 
 sub getCleanBlanc ($vartoclean) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     $vartoclean =~ s/^\s+//;
     $vartoclean =~ s/\s+$//;
 
@@ -158,13 +152,11 @@ Returns:
 
 See Also:
 
-    <getCertCN>, <getCertIssuer>, <getCertCreation>, <getCertExpiration>, <getCertData>, zapi/v3/certificates.cgi, zapi/v2/certificates.cgi
+    <getCertCN>, <getCertIssuer>, <getCertCreation>, <getCertExpiration>, <getCertData>, api/v4/certificates.cgi
 
 =cut
 
 sub getCertType ($certfile) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $certtype = "none";
 
     if ($certfile =~ /\.pem/ || $certfile =~ /\.crt/) {
@@ -193,18 +185,15 @@ Returns:
 
 See Also:
 
-    zapi/v3/certificates.cgi, zapi/v2/certificates.cgi
+    api/v4/certificates.cgi
 
 =cut
 
 sub getCertCN ($certfile) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $certcn = "";
 
-    my $type = (&getCertType($certfile) eq "Certificate") ? "x509" : "req";
-    my @eject =
-      @{ &logAndGet("$openssl $type -noout -in $certfile -text | grep Subject:", "array") };
+    my $type  = (&getCertType($certfile) eq "Certificate") ? "x509" : "req";
+    my @eject = @{ &logAndGet("$openssl $type -noout -in $certfile -text | grep Subject:", "array") };
 
     my $string = $eject[0];
     chomp $string;
@@ -238,18 +227,15 @@ Bugs:
 
 See Also:
 
-    zapi/v3/certificates.cgi, zapi/v2/certificates.cgi
+    api/v4/certificates.cgi
 
 =cut
 
 sub getCertIssuer ($certfile) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $certissu = "";
 
     if (&getCertType($certfile) eq "Certificate") {
-        my @eject =
-          @{ &logAndGet("$openssl x509 -noout -in $certfile -text | grep Issuer:", "array") };
+        my @eject = @{ &logAndGet("$openssl x509 -noout -in $certfile -text | grep Issuer:", "array") };
         @eject    = split(/CN=/,             $eject[0]);
         @eject    = split(/\/emailAddress=/, $eject[1]);
         $certissu = $eject[0] // '';
@@ -279,13 +265,11 @@ Returns:
 
 See Also:
 
-    zapi/v3/certificates.cgi, zapi/v2/certificates.cgi
+    api/v4/certificates.cgi
 
 =cut
 
 sub getCertCreation ($certfile) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $datecreation = "";
 
     if (&getCertType($certfile) eq "Certificate") {
@@ -319,13 +303,11 @@ Returns:
 
 See Also:
 
-    zapi/v3/certificates.cgi, zapi/v2/certificates.cgi
+    api/v4/certificates.cgi
 
 =cut
 
 sub getCertExpiration ($certfile) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $dateexpiration = "";
 
     if (&getCertType($certfile) eq "Certificate") {
@@ -356,13 +338,11 @@ Returns:
 
 See Also:
 
-    zapi/v3/certificates.cgi, zapi/v2/certificates.cgi
+    api/v4/certificates.cgi
 
 =cut
 
 sub getFarmCertUsed ($cfile) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     require Relianoid::Farm::Core;
 
     my $certdir   = &getGlobalConfiguration('certdir');
@@ -405,8 +385,6 @@ Returns:
 =cut
 
 sub getCertFarmsUsed ($cfile) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     require Relianoid::Farm::Core;
 
     my $certdir   = &getGlobalConfiguration('certdir');
@@ -447,13 +425,11 @@ Returns:
 
 See Also:
 
-    zapi/v3/certificates.cgi
+    api/v4/certificates.cgi
 
 =cut
 
 sub checkFQDN ($certfqdn) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $valid = "true";
 
     if ($certfqdn =~ /^http:/) {
@@ -492,13 +468,11 @@ Bugs:
 
 See Also:
 
-    zapi/v3/certificates.cgi, zapi/v2/certificates.cgi
+    api/v4/certificates.cgi
 
 =cut
 
 sub delCert ($certname) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $certdir = &getGlobalConfiguration('certdir');
 
     # escaping special caracters
@@ -566,15 +540,11 @@ Returns:
 
 See Also:
 
-    zapi/v3/certificates.cgi
+    api/v4/certificates.cgi
 
 =cut
 
-sub createCSR ($name, $fqdn, $country, $state, $locality, $organization, $division, $mail, $key,
-    $password)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
+sub createCSR ($name, $fqdn, $country, $state, $locality, $organization, $division, $mail, $key, $password) {
     my $configdir = &getGlobalConfiguration('certdir');
     my $output;
 
@@ -638,13 +608,11 @@ Returns:
 
 See Also:
 
-    zapi/v3/certificates.cgi
+    api/v4/certificates.cgi
 
 =cut
 
 sub getCertData ($filepath, $check = undef) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $cmd;
     my $filepath_orig = $filepath;
     $filepath = quotemeta($filepath);
@@ -669,34 +637,6 @@ sub getCertData ($filepath, $check = undef) {
     }
 
     return $cert;
-}
-
-=pod
-
-=head1 getCertIsValid
-
-Check if a certificate is a valid x509 object
-
-Parameters:
-
-    String - Certificate path.
-
-Returns:
-
-    Integer - 0 if the cert is a valid x509 object, 1 if not
-
-=cut
-
-sub getCertIsValid ($cert_filepath) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $rc = 1;
-    eval {
-        require Crypt::OpenSSL::X509;
-        Crypt::OpenSSL::X509->new_from_file($cert_filepath);
-        $rc = 0;
-    };
-    return $rc;
-
 }
 
 =pod
@@ -822,7 +762,6 @@ Returns:
 =cut
 
 sub getDateEpoc ($date_string) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     # my @months      = qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
 
@@ -850,8 +789,6 @@ Returns:
 =cut
 
 sub getCertDaysToExpire ($cert_ends) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     use Time::Local;
 
     my $end       = &getDateEpoc($cert_ends);
@@ -872,47 +809,6 @@ sub getCertDaysToExpire ($cert_ends) {
 
 =pod
 
-=head1 checkCertPEMFormat
-
-Checks if a certificate is in PEM Format: Text File and headers --BEGIN-- and --END--
-
-Parameters:
-
-    cert_path - path to the certificate
-
-Returns:
-
-    0 if the certificate is in PEM Format, otherwise 1
-
-=cut
-
-sub checkCertPEMFormat ($cert_path) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my $rc = 1;
-
-    if (-T $cert_path) {
-        require Tie::File;
-        use Fcntl 'O_RDONLY';
-        tie my @cert_file, 'Tie::File', "$cert_path", mode => O_RDONLY;
-        my $found = 0;
-        my $begin = 0;
-        foreach (@cert_file) {
-            if ($_ =~ /^-+BEGIN.*-+$/) {
-                $begin = 1;
-            }
-            if (($_ =~ /^-+END.*-+$/) and ($begin)) {
-                $found++;
-            }
-        }
-        $rc = 0 if $found;
-    }
-
-    return $rc;
-}
-
-=pod
-
 =head1 getCertPEM
 
 It returns an object with all certificates: key, fullchain
@@ -928,8 +824,6 @@ Returns:
 =cut
 
 sub getCertPEM ($cert_path) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $pem_config;
 
     if (-T $cert_path) {
@@ -989,8 +883,6 @@ Returns:
 =cut
 
 sub checkCertPEMKeyEncrypted ($cert_path) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $rc         = -1;
     my $pem_config = &getCertPEM($cert_path);
 
@@ -1007,13 +899,11 @@ sub checkCertPEMKeyEncrypted ($cert_path) {
             my @strerr    = split(/:/, $error);
             my $error_str = $strerr[4];
             if ($error_str eq "bad decrypt") {
-                &zenlog("Private Key Encrypted was found in '$cert_path': " . $strerr[4],
-                    "debug", "LSLB");
+                &zenlog("Private Key Encrypted was found in '$cert_path': " . $strerr[4], "debug", "LSLB");
                 $rc = 1;
             }
             else {
-                &zenlog("Error checking Private Key Encrypted in '$cert_path': " . $strerr[4],
-                    "debug", "LSLB");
+                &zenlog("Error checking Private Key Encrypted in '$cert_path': " . $strerr[4], "debug", "LSLB");
                 $rc = -1;
             }
         }
@@ -1048,8 +938,6 @@ Variable: $error_ref.
 =cut
 
 sub checkCertPEMValid ($cert_path) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     use Net::SSLeay;
     $Net::SSLeay::trace = 1;
 
@@ -1175,8 +1063,6 @@ Variable: $error_ref.
 =cut
 
 sub createPEM ($cert_name, $cert_key, $cert_ca, $cert_intermediates) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $error_ref->{code} = 0;
 
     if (not $cert_name or not $cert_key or not $cert_ca) {

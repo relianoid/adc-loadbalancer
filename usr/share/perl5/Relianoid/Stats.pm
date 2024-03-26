@@ -23,6 +23,7 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 my $eload = eval { require Relianoid::ELoad };
 
@@ -62,14 +63,12 @@ Returns:
 
 See Also:
 
-    memory-rrd.pl, zapi/v3/system_stats.cgi, zapi/v2/system_stats.cgi
+    memory-rrd.pl, api/v4/system_stats.cgi
 
 =cut
 
-sub getMemStats {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub getMemStats ($format = "mb") {
     my $meminfo_filename = '/proc/meminfo';
-    my ($format) = @_;
     my @data;
     my ($mvalue, $mfvalue, $mused, $mbvalue, $mcvalue, $swtvalue, $swfvalue, $swused, $swcvalue);
     my ($mname, $mfname, $mbname, $mcname, $swtname, $swfname, $swcname);
@@ -78,8 +77,6 @@ sub getMemStats {
         print "$0: Error: File $meminfo_filename not exist ...\n";
         exit 1;
     }
-
-    $format = "mb" unless $format;
     my @lines = ();
 
     if (open my $file, '<', $meminfo_filename) {
@@ -196,12 +193,11 @@ Returns:
 
 See Also:
 
-    load-rrd.pl, zapi/v3/system_stats.cgi, zapi/v2/system_stats.cgi
+    load-rrd.pl, api/v4/system_stats.cgi
 
 =cut
 
-sub getLoadStats {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub getLoadStats () {
     my $load_filename = '/proc/loadavg';
 
     my $last;
@@ -279,16 +275,11 @@ Returns:
 
 See Also:
 
-    iface-rrd.pl, zapi/v3/system_stats.cgi, zapi/v2/system_stats.cgi
+    iface-rrd.pl, api/v4/system_stats.cgi
 
 =cut
 
-sub getNetworkStats {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($format) = @_;
-
-    $format = "" unless defined $format;    # removes undefined variable warnings
-
+sub getNetworkStats ($format = "") {
     my $netinfo_filename = '/proc/net/dev';
 
     unless (-f $netinfo_filename) {
@@ -371,8 +362,7 @@ sub getNetworkStats {
     }
 
     for (my $j = 0 ; $j <= $i ; $j++) {
-        push @data, [ $interface[$j] . ' in', $interfacein[$j] ],
-          [ $interface[$j] . ' out', $interfaceout[$j] ];
+        push @data, [ $interface[$j] . ' in', $interfacein[$j] ], [ $interface[$j] . ' out', $interfaceout[$j] ];
     }
 
     if ($format eq 'hash') {
@@ -411,12 +401,11 @@ Returns:
 
 See Also:
 
-    zapi/v3/system_stats.cgi, zapi/v2/system_stats.cgi, cpu-rrd.pl
+    api/v4/system_stats.cgi, cpu-rrd.pl
 
 =cut
 
-sub getCPU {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub getCPU () {
     my @data;
     my $interval         = 1;
     my $cpuinfo_filename = '/proc/stat';
@@ -460,14 +449,7 @@ sub getCPU {
                 $cpu_iowait1  = $line_s[5];
                 $cpu_irq1     = $line_s[6];
                 $cpu_softirq1 = $line_s[7];
-                $cpu_total1 =
-                  $cpu_user1 +
-                  $cpu_nice1 +
-                  $cpu_sys1 +
-                  $cpu_idle1 +
-                  $cpu_iowait1 +
-                  $cpu_irq1 +
-                  $cpu_softirq1;
+                $cpu_total1   = $cpu_user1 + $cpu_nice1 + $cpu_sys1 + $cpu_idle1 + $cpu_iowait1 + $cpu_irq1 + $cpu_softirq1;
             }
         }
     }
@@ -488,14 +470,7 @@ sub getCPU {
                 $cpu_iowait2  = $line_s[5];
                 $cpu_irq2     = $line_s[6];
                 $cpu_softirq2 = $line_s[7];
-                $cpu_total2 =
-                  $cpu_user2 +
-                  $cpu_nice2 +
-                  $cpu_sys2 +
-                  $cpu_idle2 +
-                  $cpu_iowait2 +
-                  $cpu_irq2 +
-                  $cpu_softirq2;
+                $cpu_total2   = $cpu_user2 + $cpu_nice2 + $cpu_sys2 + $cpu_idle2 + $cpu_iowait2 + $cpu_irq2 + $cpu_softirq2;
             }
         }
     }
@@ -550,8 +525,7 @@ sub getCPU {
     return @data;
 }
 
-sub getCPUUsageStats {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub getCPUUsageStats () {
     my $out;
 
     my @data_cpu = &getCPU();
@@ -604,8 +578,7 @@ See Also:
 
 =cut
 
-sub getDiskSpace {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub getDiskSpace () {
     my @data;
 
     my $df_bin = &getGlobalConfiguration('df_bin');
@@ -630,10 +603,7 @@ sub getDiskSpace {
         my $used = $s_line[2] * 1024;
         my $free = $s_line[3] * 1024;
 
-        push(@data,
-            [ $partitions . ' Total', $tot ],
-            [ $partitions . ' Used',  $used ],
-            [ $partitions . ' Free',  $free ]);
+        push(@data, [ $partitions . ' Total', $tot ], [ $partitions . ' Used', $used ], [ $partitions . ' Free', $free ]);
     }
 
     return @data;
@@ -676,12 +646,11 @@ Returns:
 
 See Also:
 
-    zapi/v3/system_stats.cgi
+    api/v4/system_stats.cgi
 
 =cut
 
-sub getDiskPartitionsInfo {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub getDiskPartitionsInfo () {
     my $partitions;
 
     my $df_bin = &getGlobalConfiguration('df_bin');
@@ -729,10 +698,7 @@ See Also:
 
 =cut
 
-sub getDiskMountPoint {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($dev) = @_;
-
+sub getDiskMountPoint ($dev) {
     my $df_bin    = &getGlobalConfiguration('df_bin');
     my @df_system = @{ &logAndGet("$df_bin -k", "array") };
     my $mount;
@@ -769,8 +735,7 @@ See Also:
 
 =cut
 
-sub getCPUTemp {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub getCPUTemp () {
     my $filename = &getGlobalConfiguration("temperatureFile");
     my $lastline;
 

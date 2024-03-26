@@ -23,6 +23,7 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 use Relianoid::Core;
 use Relianoid::Log;

@@ -24,7 +24,6 @@
 use strict;
 use warnings;
 use feature qw(signatures);
-no warnings 'experimental::args_array_with_signatures';
 
 use Relianoid::Config;
 
@@ -59,8 +58,6 @@ NOTE:
 =cut
 
 sub getFarmType ($farm_name) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $farm_filename = &getFarmFile($farm_name);
 
     if ($farm_filename =~ /^$farm_name\_proxy.cfg/) {
@@ -107,8 +104,6 @@ NOTE:
 =cut
 
 sub getFarmFile ($farm_name) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     opendir(my $dir, "$configdir") || return -1;
     my @farm_files =
       grep {
@@ -147,8 +142,6 @@ NOTE:
 =cut
 
 sub getFarmName ($farm_filename) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my @filename_split = split("_", $farm_filename);
     return $filename_split[0];
 }
@@ -174,8 +167,6 @@ NOTE:
 =cut
 
 sub getFarmList() {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     opendir(my $directory, $configdir);
     my @cfgFiles = sort (grep { /\.cfg$/ } readdir($directory));
     closedir($directory);
@@ -210,8 +201,6 @@ NOTE:
 =cut
 
 sub getFarmsByType ($farm_type) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my @farm_names = ();
 
     opendir(my $dir, "$configdir") || return -1;
@@ -250,9 +239,7 @@ Returns:
 
 =cut
 
-sub getFarmNameList {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
+sub getFarmNameList () {
     my @farm_names = ();
 
     foreach my $farm_filename (&getFarmList()) {
@@ -279,8 +266,6 @@ Returns:
 =cut
 
 sub getFarmExists ($farmname) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $out = 0;
     $out = 1 if (grep { /^$farmname$/ } &getFarmNameList());
     return $out;

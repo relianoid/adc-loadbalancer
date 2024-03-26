@@ -23,17 +23,24 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 use Relianoid::Config;
 use Relianoid::Farm::Core;
 use Relianoid::Farm::Base;
 
+=pod
+
+=head1 Module
+
+Relianoid::API40::Farm::Get
+
+=cut
+
 my $eload = eval { require Relianoid::ELoad };
 
 #GET /farms
-sub farms    # ()
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub farms () {
     require Relianoid::Farm::Base;
 
     my @out;
@@ -76,9 +83,7 @@ sub farms    # ()
 }
 
 # GET /farms/LSLBFARM
-sub farms_lslb    # ()
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub farms_lslb () {
     require Relianoid::Farm::Base;
 
     my @out;
@@ -122,9 +127,7 @@ sub farms_lslb    # ()
 }
 
 # GET /farms/DATALINKFARM
-sub farms_dslb    # ()
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub farms_dslb () {
     require Relianoid::Farm::Base;
 
     my @out;
@@ -167,17 +170,13 @@ sub farms_dslb    # ()
 }
 
 #GET /farms/<name>/summary
-sub farms_name_summary    # ( $farmname )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farmname = shift;
-
+sub farms_name_summary ($farmname) {
     my $desc = "Show farm $farmname";
 
     # Check if the farm exists
     if (!&getFarmExists($farmname)) {
         my $msg = "Farm not found.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     my $type = &getFarmType($farmname);
@@ -193,17 +192,13 @@ sub farms_name_summary    # ( $farmname )
 }
 
 #GET /farms/<name>
-sub farms_name    # ( $farmname )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farmname = shift;
-
+sub farms_name ($farmname) {
     my $desc = "Show farm $farmname";
 
     # Check if the farm exists
     if (!&getFarmExists($farmname)) {
         my $msg = "Farm not found.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     my $type = &getFarmType($farmname);
@@ -232,17 +227,13 @@ sub farms_name    # ( $farmname )
 }
 
 #GET /farms/<name>/status
-sub farms_name_status    # ( $farmname )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farmname = shift;
-
+sub farms_name_status ($farmname) {
     my $desc = "Show farm $farmname status";
 
     # Check if the farm exists
     if (!&getFarmExists($farmname)) {
         my $msg = "Farm not found.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     my $status = &getFarmVipStatus($farmname);
@@ -258,13 +249,8 @@ sub farms_name_status    # ( $farmname )
 }
 
 # function to standarizate the backend output
-sub getAPIFarmBackends {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $out_b        = shift;
-    my $type         = shift;
-    my $add_api_keys = shift // [];
-    my $translate    = shift // {};
-    my @api_keys     = @{$add_api_keys};
+sub getAPIFarmBackends ($out_b, $type, $add_api_keys = [], $translate = {}) {
+    my @api_keys = @{$add_api_keys};
 
     require Relianoid::Farm::Backend;
 
@@ -307,9 +293,7 @@ sub getAPIFarmBackends {
 }
 
 # GET /farms/modules/summary
-sub farms_module_summary {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
+sub farms_module_summary () {
     require Relianoid::Farm::Service;
     my $out = { lslb => [], gslb => [], dslb => [], };
 

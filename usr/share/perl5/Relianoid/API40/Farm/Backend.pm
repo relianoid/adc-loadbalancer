@@ -24,7 +24,6 @@
 use strict;
 use warnings;
 use feature qw(signatures);
-no warnings 'experimental::args_array_with_signatures';
 
 use Relianoid::API40::HTTP;
 use Relianoid::Farm::Core;
@@ -32,13 +31,19 @@ use Relianoid::Farm::Base;
 use Relianoid::Net::Validate;
 use Relianoid::API40::Farm::Get;
 
+=pod
+
+=head1 Module
+
+Relianoid::API40::Farm::Backend
+
+=cut
+
 my $eload = eval { require Relianoid::ELoad };
 
 # POST
 
 sub new_farm_backend ($json_obj, $farmname) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     require Relianoid::Farm::Backend;
 
     # Initial parameters
@@ -47,13 +52,13 @@ sub new_farm_backend ($json_obj, $farmname) {
     # Check that the farm exists
     if (!&getFarmExists($farmname)) {
         my $msg = "The farmname $farmname does not exist.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     my $type = &getFarmType($farmname);
     if ($type ne 'datalink' and $type ne 'l4xnat') {
         my $msg = "The $type farm profile has backends only in services.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     my $params =
@@ -63,7 +68,7 @@ sub new_farm_backend ($json_obj, $farmname) {
 
     # Check allowed parameters
     my $error_msg = &checkApiParams($json_obj, $params, $desc);
-    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+    return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg })
       if ($error_msg);
 
     my $id = &getFarmBackendAvailableID($farmname);
@@ -74,7 +79,7 @@ sub new_farm_backend ($json_obj, $farmname) {
     if ($type eq 'datalink') {
         my $msg = &validateDatalinkBackendIface($json_obj);
         if ($msg) {
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }
 
@@ -84,10 +89,9 @@ sub new_farm_backend ($json_obj, $farmname) {
         my $farm_vip = &getL4FarmParam("vip", $farmname);
 
         if (&ipversion($json_obj->{ip}) ne &ipversion($farm_vip)) {
-            my $msg =
-              "The IP version of backend IP '$json_obj->{ ip }' does not match with farm VIP '$farm_vip'";
+            my $msg = "The IP version of backend IP '$json_obj->{ ip }' does not match with farm VIP '$farm_vip'";
 
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }
 
@@ -95,11 +99,11 @@ sub new_farm_backend ($json_obj, $farmname) {
     my $status = &setFarmServer($farmname, undef, $id, $json_obj);
     if ($status == -1) {
         my $msg = "It was not possible to create the backend";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
     if ($status == -2) {
         my $msg = "The IP $json_obj->{ip} is already set in farm $farmname";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     &zenlog("New backend created in farm $farmname with IP $json_obj->{ip}.", "info", "FARMS");
@@ -111,8 +115,7 @@ sub new_farm_backend ($json_obj, $farmname) {
         my $priorities = &getL4FarmPriorities($farmname);
         if (my $prio = &priorityAlgorithmIsOK($priorities)) {
             $info_msg = "Backends with high priority value ($prio) will not be used.";
-            &zenlog("Warning, backend with high priority value ($prio) in farm $farmname.",
-                "warning", "FARMS");
+            &zenlog("Warning, backend with high priority value ($prio) in farm $farmname.", "warning", "FARMS");
         }
     }
 
@@ -122,7 +125,7 @@ sub new_farm_backend ($json_obj, $farmname) {
 
     if (!$out_b) {
         my $msg = "Error when retrieving the backend created";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     &getAPIFarmBackends($out_b, $type);
@@ -147,7 +150,6 @@ sub new_farm_backend ($json_obj, $farmname) {
 }
 
 sub new_service_backend ($json_obj, $farmname, $service) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     # Initial parameters
     my $desc = "New service backend";
@@ -157,7 +159,7 @@ sub new_service_backend ($json_obj, $farmname, $service) {
     # Check that the farm exists
     if (!&getFarmExists($farmname)) {
         my $msg = "The farmname $farmname does not exist.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     # validate FARM TYPE
@@ -171,7 +173,7 @@ sub new_service_backend ($json_obj, $farmname, $service) {
     }
     elsif ($type !~ /^https?$/) {
         my $msg = "The $type farm profile does not support services.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     # HTTP
@@ -187,29 +189,38 @@ sub new_service_backend ($json_obj, $farmname, $service) {
     # Check if the provided service is configured in the farm
     unless (grep { /^$service$/ } @services) {
         my $msg = "Invalid service name, please insert a valid value.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     # check if the service has configured a redirect
     if (&getHTTPFarmVS($farmname, $service, 'redirect')) {
-        my $msg =
-          "It is not possible to create a backend when the service has a redirect configured.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        my $msg = "It is not possible to create a backend when the service has a redirect configured.";
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $params = &getAPIModel("farm_http_service_backend-add.json");
     if (&getGlobalConfiguration('proxy_ng') ne 'true') {
         undef $params->{"connection_limit"};
-        undef $params->{"priority"};
     }
 
     # Check allowed parameters
     my $error_msg = &checkApiParams($json_obj, $params, $desc);
-    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+    return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg })
       if ($error_msg);
 
     # get an ID for the new backend
     my $id = &getHTTPFarmBackendAvailableID($farmname, $service);
+
+    my $prio = 1;
+    $prio = $json_obj->{priority} + 0
+      if (defined $json_obj->{priority} && $json_obj->{priority} !~ /^$/);
+    if ($type =~ /http/ && &getGlobalConfiguration('proxy_ng') ne 'true' && $prio > 1) {
+        my $priorities = &getHTTPFarmPriorities($farmname, $service);
+        if (scalar(@{$priorities}) >= 1) {
+            my $msg = "Only one backend as second priority is allowed.";
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+        }
+    }
 
     # First param ($id) is an empty string to let function autogenerate the id for the new backend
     my $status = &setHTTPFarmServer(
@@ -223,24 +234,19 @@ sub new_service_backend ($json_obj, $farmname, $service) {
         my $msg =
             "It's not possible to create the backend with ip $json_obj->{ ip }"
           . " and port $json_obj->{ port } for the $farmname farm";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     # no error found, return successful response
-    &zenlog(
-        "Success, a new backend has been created in farm $farmname in service $service with IP $json_obj->{ip}.",
-        "info", "FARMS"
-    );
+    &zenlog("Success, a new backend has been created in farm $farmname in service $service with IP $json_obj->{ip}.",
+        "info", "FARMS");
 
     my $info_msg;
-    if ($type =~ /http/) {
+    if ($type =~ /http/ and &getGlobalConfiguration('proxy_ng') eq 'true') {
         my $priorities = &getHTTPFarmPriorities($farmname, $service);
         if (my $prio = &priorityAlgorithmIsOK($priorities)) {
             $info_msg = "Backends with high priority value ($prio) will not be used.";
-            &zenlog(
-                "Warning, backend with high priority value ($prio) in farm $farmname in service $service.",
-                "warning", "FARMS"
-            );
+            &zenlog("Warning, backend with high priority value ($prio) in farm $farmname in service $service.", "warning", "FARMS");
         }
     }
 
@@ -288,21 +294,19 @@ sub new_service_backend ($json_obj, $farmname, $service) {
 
 #GET /farms/<name>/backends
 sub backends ($farmname) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $desc = "List backends";
     require Relianoid::Farm::Backend;
 
     # Check that the farm exists
     if (!&getFarmExists($farmname)) {
         my $msg = "The farmname $farmname does not exist.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     my $type = &getFarmType($farmname);
     if ($type ne 'l4xnat' and $type ne 'datalink') {
         my $msg = "The farm $farmname with profile $type does not support this request.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $backends = &getFarmServers($farmname);
@@ -319,14 +323,12 @@ sub backends ($farmname) {
 
 #GET /farms/<name>/services/<service>/backends
 sub service_backends ($farmname, $service) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $desc = "List service backends";
 
     # Check that the farm exists
     if (!&getFarmExists($farmname)) {
         my $msg = "The farmname $farmname does not exist.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     my $type = &getFarmType($farmname);
@@ -341,7 +343,7 @@ sub service_backends ($farmname, $service) {
 
     if ($type !~ /^https?$/) {
         my $msg = "The farm profile $type does not support this request.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     # HTTP
@@ -352,7 +354,7 @@ sub service_backends ($farmname, $service) {
     # check if the requested service exists
     if ($service_ref == -1) {
         my $msg = "The service $service does not exist.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     my $body = {
@@ -367,8 +369,6 @@ sub service_backends ($farmname, $service) {
 # PUT
 
 sub modify_backends ($json_obj, $farmname, $id_server) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $desc = "Modify backend";
 
     require Relianoid::Farm::Backend;
@@ -377,13 +377,13 @@ sub modify_backends ($json_obj, $farmname, $id_server) {
     # Check that the farm exists
     if (!&getFarmExists($farmname)) {
         my $msg = "The farmname $farmname does not exist.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     my $type = &getFarmType($farmname);
     if ($type ne 'datalink' and $type ne 'l4xnat') {
         my $msg = "The $type farm profile has backends only in services.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     # get backends
@@ -393,7 +393,7 @@ sub modify_backends ($json_obj, $farmname, $id_server) {
 
     if (!$backend || ref($backend) ne "HASH") {
         my $msg = "Could not find a backend with such id.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     my $params =
@@ -404,7 +404,7 @@ sub modify_backends ($json_obj, $farmname, $id_server) {
     # Check allowed parameters
     my %json_params = %{$json_obj};
     my $error_msg   = &checkApiParams(\%json_params, $params, $desc);
-    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+    return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg })
       if ($error_msg);
 
     # check of ip version
@@ -413,9 +413,8 @@ sub modify_backends ($json_obj, $farmname, $id_server) {
             require Relianoid::Farm::L4xNAT::Config;
             my $farm_vip = &getL4FarmParam("vip", $farmname);
             if (&ipversion($json_obj->{ip}) ne &ipversion($farm_vip)) {
-                my $msg =
-                  "The IP version of backend IP '$json_obj->{ ip }' does not match with farm VIP '$farm_vip'";
-                &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+                my $msg = "The IP version of backend IP '$json_obj->{ ip }' does not match with farm VIP '$farm_vip'";
+                &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
             }
         }
     }
@@ -429,18 +428,18 @@ sub modify_backends ($json_obj, $farmname, $id_server) {
     if ($type eq 'datalink') {
         my $msg = &validateDatalinkBackendIface($backend);
         if ($msg) {
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }
 
     my $error = &setFarmServer($farmname, undef, $id_server, $backend);
     if ($error == -2) {
         my $msg = "The IP $json_obj->{ip} is already set in farm $farmname";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
     if ($error) {
         my $msg = "Error trying to modify the backend $id_server.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $info_msg;
@@ -449,14 +448,11 @@ sub modify_backends ($json_obj, $farmname, $id_server) {
         require Relianoid::Farm::Validate;
         if (my $prio = &priorityAlgorithmIsOK(&getL4FarmPriorities($farmname))) {
             $info_msg = "Backends with high priority value ($prio) will not be used.";
-            &zenlog("Warning, backend with high priority value ($prio) in farm $farmname.",
-                "warning", "FARMS");
+            &zenlog("Warning, backend with high priority value ($prio) in farm $farmname.", "warning", "FARMS");
         }
     }
 
-    &zenlog(
-        "Success, some parameters have been changed in the backend $id_server in farm $farmname.",
-        "info", "FARMS");
+    &zenlog("Success, some parameters have been changed in the backend $id_server in farm $farmname.", "info", "FARMS");
 
     my $message = "Backend modified.";
     my $body    = {
@@ -478,8 +474,6 @@ sub modify_backends ($json_obj, $farmname, $id_server) {
 }
 
 sub modify_service_backends ($json_obj, $farmname, $service, $id_server) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $desc = "Modify service backend";
 
     my $type = &getFarmType($farmname);
@@ -487,7 +481,7 @@ sub modify_service_backends ($json_obj, $farmname, $service, $id_server) {
     # Check that the farm exists
     if (!&getFarmExists($farmname)) {
         my $msg = "The farmname $farmname does not exist.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     if ($type eq "gslb" && $eload) {
@@ -499,7 +493,7 @@ sub modify_service_backends ($json_obj, $farmname, $service, $id_server) {
     }
     elsif ($type !~ /^https?$/) {
         my $msg = "The $type farm profile does not support services.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     # HTTP
@@ -515,7 +509,7 @@ sub modify_service_backends ($json_obj, $farmname, $service, $id_server) {
     # check if the service exists
     if (!$found_service) {
         my $msg = "Could not find the requested service.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     # validate BACKEND
@@ -528,18 +522,17 @@ sub modify_service_backends ($json_obj, $farmname, $service, $id_server) {
     # check if the backend was found
     if (!$be) {
         my $msg = "Could not find a service backend with such id.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     my $params = &getAPIModel("farm_http_service_backend-modify.json");
     if (&getGlobalConfiguration('proxy_ng') ne 'true') {
         undef $params->{"connection_limit"};
-        undef $params->{"priority"};
     }
 
     # Check allowed parameters
     my $error_msg = &checkApiParams($json_obj, $params, $desc);
-    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+    return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg })
       if ($error_msg);
 
     # apply BACKEND change
@@ -551,17 +544,25 @@ sub modify_service_backends ($json_obj, $farmname, $service, $id_server) {
     $be->{timeout}          = $json_obj->{timeout}          // $be->{timeout};
     $be->{connection_limit} = $json_obj->{connection_limit} // $be->{connection_limit};
 
+    my $prio = 1;
+    $prio = $be->{priority} + 0 if (defined $be->{priority} && $be->{priority} !~ /^$/);
+    if ($type =~ /http/ && &getGlobalConfiguration('proxy_ng') ne 'true' && $prio > 1) {
+        my $priorities = &getHTTPFarmPriorities($farmname, $service);
+        if (scalar(@{$priorities}) >= 1) {
+            my $msg = "Only one backend as second priority is allowed.";
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+        }
+    }
+
     my $status = &setHTTPFarmServer(
-        $id_server,    $be->{ip},       $be->{port},
-        $be->{weight}, $be->{timeout},  $farmname,
-        $service,      $be->{priority}, $be->{connection_limit}
+        $id_server, $be->{ip}, $be->{port},     $be->{weight}, $be->{timeout},
+        $farmname,  $service,  $be->{priority}, $be->{connection_limit}
     );
 
     # check if there was an error modifying the backend
     if ($status == -1) {
-        my $msg =
-          "It's not possible to modify the backend with IP $json_obj->{ip} in service $service.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        my $msg = "It's not possible to modify the backend with IP $json_obj->{ip} in service $service.";
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $info_msg;
@@ -572,10 +573,7 @@ sub modify_service_backends ($json_obj, $farmname, $service, $id_server) {
         require Relianoid::Farm::Validate;
         if (my $prio = &priorityAlgorithmIsOK(&getHTTPFarmPriorities($farmname, $service))) {
             $info_msg = "Backends with high priority value ($prio) will not be used.";
-            &zenlog(
-                "Warning, backend with high priority value ($prio) in farm $farmname in service $service.",
-                "warning", "FARMS"
-            );
+            &zenlog("Warning, backend with high priority value ($prio) in farm $farmname in service $service.", "warning", "FARMS");
         }
     }
     my $msg  = "Backend modified.";
@@ -619,8 +617,6 @@ sub modify_service_backends ($json_obj, $farmname, $service, $id_server) {
 
 # DELETE /farms/<farmname>/backends/<backendid> Delete a backend of a Farm
 sub delete_backend ($farmname, $id_server) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     require Relianoid::Farm::Backend;
 
     my $desc = "Delete backend";
@@ -628,14 +624,14 @@ sub delete_backend ($farmname, $id_server) {
     # validate FARM NAME
     if (!&getFarmExists($farmname)) {
         my $msg = "The farmname $farmname does not exist.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     # validate FARM TYPE
     my $type = &getFarmType($farmname);
     unless ($type eq 'l4xnat' || $type eq 'datalink') {
         my $msg = "The $type farm profile has backends only in services.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $backends = &getFarmServers($farmname);
@@ -643,15 +639,14 @@ sub delete_backend ($farmname, $id_server) {
 
     if (!$exists) {
         my $msg = "Could not find a backend with such id.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     my $status = &runFarmServerDelete($id_server, $farmname);
 
     if ($status == -1) {
-        my $msg =
-          "It's not possible to delete the backend with ID $id_server of the $farmname farm.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        my $msg = "It's not possible to delete the backend with ID $id_server of the $farmname farm.";
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $info_msg;
@@ -659,8 +654,7 @@ sub delete_backend ($farmname, $id_server) {
         require Relianoid::Farm::Validate;
         if (my $prio = &priorityAlgorithmIsOK(&getL4FarmPriorities($farmname))) {
             $info_msg = "Backends with high priority value ($prio) will not be used.";
-            &zenlog("Warning, backend with high priority value ($prio) in farm $farmname.",
-                "warning", "FARMS");
+            &zenlog("Warning, backend with high priority value ($prio) in farm $farmname.", "warning", "FARMS");
         }
     }
 
@@ -693,14 +687,12 @@ sub delete_backend ($farmname, $id_server) {
 
 #  DELETE /farms/<farmname>/services/<servicename>/backends/<backendid> Delete a backend of a Service
 sub delete_service_backend ($farmname, $service, $id_server) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $desc = "Delete service backend";
 
     # validate FARM NAME
     if (!&getFarmExists($farmname)) {
         my $msg = "The farmname $farmname does not exist.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     # validate FARM TYPE
@@ -715,7 +707,7 @@ sub delete_service_backend ($farmname, $service, $id_server) {
     }
     elsif ($type !~ /^https?$/) {
         my $msg = "The $type farm profile does not support services.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     # HTTP
@@ -730,7 +722,7 @@ sub delete_service_backend ($farmname, $service, $id_server) {
     # check if the SERVICE exists
     unless (grep { $service eq $_ } @services) {
         my $msg = "Could not find the requested service.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     # check if the backend id is available
@@ -742,7 +734,7 @@ sub delete_service_backend ($farmname, $service, $id_server) {
 
     unless ($be_found) {
         my $msg = "Could not find the requested backend.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $status = &runHTTPFarmServerDelete($id_server, $farmname, $service);
@@ -752,7 +744,7 @@ sub delete_service_backend ($farmname, $service, $id_server) {
         &zenlog("It's not possible to delete the backend.", "info", "FARMS");
 
         my $msg = "Could not find the backend with ID $id_server of the $farmname farm.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     my $info_msg;
@@ -760,17 +752,12 @@ sub delete_service_backend ($farmname, $service, $id_server) {
         require Relianoid::Farm::Validate;
         if (my $prio = &priorityAlgorithmIsOK(&getHTTPFarmPriorities($farmname, $service))) {
             $info_msg = "Backends with high priority value ($prio) will not be used.";
-            &zenlog(
-                "Warning, backend with high priority value ($prio) in service $service in farm $farmname.",
-                "warning", "FARMS"
-            );
+            &zenlog("Warning, backend with high priority value ($prio) in service $service in farm $farmname.", "warning", "FARMS");
         }
     }
 
     # no error found, return successful response
-    &zenlog(
-        "Success, the backend $id_server in service $service in farm $farmname has been deleted.",
-        "info", "FARMS");
+    &zenlog("Success, the backend $id_server in service $service in farm $farmname has been deleted.", "info", "FARMS");
 
     my $message = "Backend removed";
     my $body    = {
@@ -810,8 +797,6 @@ sub delete_service_backend ($farmname, $service, $id_server) {
 }
 
 sub validateDatalinkBackendIface ($backend) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     require Relianoid::Net::Interface;
 
     my $msg;
@@ -824,8 +809,7 @@ sub validateDatalinkBackendIface ($backend) {
         $msg = "It is not possible to configure vlan interface for datalink backends";
     }
     elsif (!&validateGateway($iface_ref->{addr}, $iface_ref->{mask}, $backend->{ip})) {
-        $msg =
-          "The $backend->{ ip } IP must be in the same network than the $iface_ref->{ addr } interface.";
+        $msg = "The $backend->{ ip } IP must be in the same network than the $iface_ref->{ addr } interface.";
     }
 
     return $msg;

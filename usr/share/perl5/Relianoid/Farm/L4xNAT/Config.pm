@@ -28,7 +28,7 @@ use feature qw(signatures);
 use Relianoid::Config;
 use Relianoid::Nft;
 
-my $eload = eval { require Relianoid::ELoad };
+my $eload     = eval { require Relianoid::ELoad };
 my $configdir = &getGlobalConfiguration('configdir');
 
 =pod
@@ -67,7 +67,7 @@ Parameters:
         "nfqueue":      queue to verdict the packets
         "sourceaddr":   get the source address
 
-    farmname - Farm name
+    farm_name - Farm name
 
 Returns:
 
@@ -75,10 +75,7 @@ Returns:
 
 =cut
 
-sub getL4FarmParam {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($param, $farm_name) = @_;
-
+sub getL4FarmParam ($param, $farm_name) {
     require Relianoid::Farm::Core;
 
     my $farm_filename = &getFarmFile($farm_name);
@@ -136,7 +133,7 @@ Parameters:
 
     value - the new value of the given parameter of a certain farm
 
-    farmname - Farm name
+    farm_name - Farm name
 
 Returns:
 
@@ -144,10 +141,7 @@ Returns:
 
 =cut
 
-sub setL4FarmParam {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($param, $value, $farm_name) = @_;
-
+sub setL4FarmParam ($param, $value, $farm_name) {
     require Relianoid::Farm::Core;
 
     my $farm_filename = &getFarmFile($farm_name);
@@ -337,15 +331,13 @@ sub setL4FarmParam {
 
     require Relianoid::Farm::L4xNAT::Action;
 
-    $output = &sendL4NlbCmd(
-        {
-            farm          => $farm_name,
-            farm_new_name => $farm_req,
-            file          => ($param ne 'status') ? "$configdir/$farm_filename" : undef,
-            method        => "PUT",
-            body          => qq({"farms" : [ { "name" : "$farm_name"$parameters } ] })
-        }
-    );
+    $output = &sendL4NlbCmd({
+        farm          => $farm_name,
+        farm_new_name => $farm_req,
+        file          => ($param ne 'status') ? "$configdir/$farm_filename" : undef,
+        method        => "PUT",
+        body          => qq({"farms" : [ { "name" : "$farm_name"$parameters } ] })
+    });
 
     # Finally, reload rules
     if ($param eq "vip") {
@@ -397,13 +389,7 @@ Returns:
 
 =cut
 
-sub _getL4ParseFarmConfig {
-    {
-        no warnings;
-        &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-        use warnings;
-    }
-    my ($param, $value, $config) = @_;
+sub _getL4ParseFarmConfig ($param, $value, $config) {
     my $output = -1;
     my $exit   = 1;
 
@@ -576,11 +562,7 @@ Returns:
 
 =cut
 
-sub modifyLogsParam {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farmname  = shift;
-    my $logsValue = shift;
-
+sub modifyLogsParam ($farmname, $logsValue) {
     my $msg;
     my $err = 0;
 
@@ -615,10 +597,7 @@ Returns:
 
 =cut
 
-sub getL4FarmStatus {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm_name = shift;
-
+sub getL4FarmStatus ($farm_name) {
     require Relianoid::Farm::L4xNAT::Action;
 
     my $pidfile = &getL4FarmPidFile($farm_name);
@@ -669,11 +648,10 @@ Returns:
 
 =cut
 
-sub getL4FarmStruct {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub getL4FarmStruct ($farmname) {
     my %farm;
 
-    $farm{name} = shift;
+    $farm{name} = $farmname;
 
     require Relianoid::Farm::L4xNAT::Backend;
 
@@ -719,56 +697,6 @@ sub getL4FarmStruct {
 
 =pod
 
-=head1 getL4FarmsPorts
-
-Get all port used of L4xNAT farms in up status and using a protocol
-
-Parameters:
-
-    protocol - protocol used by l4xnat farm
-
-Returns:
-
-    String - return a list with the used ports by all L4xNAT farms. Format: "portList1,portList2,..."
-
-=cut
-
-sub getL4FarmsPorts {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $protocol = shift;
-
-    my $port_list       = "";
-    my @farms_filenames = &getFarmList();
-
-    unless ($#farms_filenames > -1) {
-        return $port_list;
-    }
-
-    foreach my $farm_filename (@farms_filenames) {
-        my $farm_name = &getFarmName($farm_filename);
-        my $farm_type = &getFarmType($farm_name);
-
-        next if not($farm_type eq "l4xnat");
-
-        my $farm_protocol = &getL4FarmParam('proto', $farm_name);
-
-        next if not($protocol eq $farm_protocol);
-        next if (&getL4FarmParam('status', $farm_name) ne "up");
-
-        my $farm_port = &getL4FarmParam('vipp', $farm_name);
-        $farm_port = join(',', &getFarmPortList($farm_port));
-        next if not &validL4ExtPort($farm_protocol, $farm_port);
-
-        $port_list .= "$farm_port,";
-    }
-
-    chop($port_list);
-
-    return $port_list;
-}
-
-=pod
-
 =head1 loadL4Modules
 
 Load sip, ftp or tftp conntrack module for l4 farms
@@ -783,10 +711,7 @@ Returns:
 
 =cut
 
-sub loadL4Modules {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $protocol = shift;
-
+sub loadL4Modules ($protocol) {
     require Relianoid::Netfilter;
 
     my $status = 0;
@@ -818,10 +743,8 @@ Returns:
 
 =cut
 
-sub unloadL4Modules {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $protocol = shift;
-    my $status   = 0;
+sub unloadL4Modules ($protocol) {
+    my $status = 0;
 
     require Relianoid::Netfilter;
 
@@ -835,45 +758,10 @@ sub unloadL4Modules {
         }
         if (not $n_farms) {
             $status = &removeNfModule("nf_nat_$protocol");
-            $status = $status || &removeNfModule("nf_conntrack_$protocol", "");
+            $status = $status || &removeNfModule("nf_conntrack_$protocol");
         }
     }
 
-    return $status;
-}
-
-=pod
-
-=head1 validL4ExtPort
-
-check if the port is valid for a sip, ftp or tftp farm
-
-Parameters:
-
-    protocol - protocol module to load
-
-    ports - port string
-
-Returns:
-
-    Integer - 1 is valid or 0 is not valid
-
-=cut
-
-sub validL4ExtPort {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_protocol, $ports) = @_;
-
-    my $status = 0;
-
-    if (   $farm_protocol eq "sip"
-        || $farm_protocol eq "ftp"
-        || $farm_protocol eq "tftp")
-    {
-        if ($ports =~ /^\d+$/ || $ports =~ /^((\d+),(\d+))+$/) {
-            $status = 1;
-        }
-    }
     return $status;
 }
 
@@ -893,10 +781,7 @@ Returns:
 
 =cut
 
-sub getFarmPortList {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $fvipp = shift;
-
+sub getFarmPortList ($fvipp) {
     my @portlist    = split(',', $fvipp);
     my @retportlist = ();
 
@@ -937,10 +822,7 @@ Returns:
 
 =cut
 
-sub getL4ProtocolTransportLayer {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $vproto = shift;
-
+sub getL4ProtocolTransportLayer ($vproto) {
     return
         ($vproto =~ /sip|tftp/) ? 'udp'
       : ($vproto eq 'ftp')      ? 'tcp'
@@ -963,10 +845,7 @@ Returns:
 
 =cut
 
-sub doL4FarmProbability {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm = shift;
-
+sub doL4FarmProbability ($farm) {
     $$farm{prob} = 0;
 
     foreach my $server_ref (@{ $$farm{servers} }) {
@@ -990,7 +869,7 @@ Parameters:
 
     farm_name - farm hash ref. It is a hash with all information about the farm
 
-    prev_farm_ref - farm ref of the old configuration
+    prev_farm_ref - farm reference of the old configuration. Optional.
 
 Returns:
 
@@ -998,23 +877,22 @@ Returns:
 
 =cut
 
-sub doL4FarmRules {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $action        = shift;
-    my $farm_name     = shift;
-    my $prev_farm_ref = shift;
-
+sub doL4FarmRules ($action, $farm_name, $prev_farm_ref = undef) {
     my $farm_ref = &getL4FarmStruct($farm_name);
 
     require Relianoid::Farm::Backend;
 
     foreach my $server (@{ $farm_ref->{servers} }) {
-        &setBackendRule("del", $farm_ref, $server->{tag})
-          if ($action eq "stop");
-        &setBackendRule("del", $prev_farm_ref, $server->{tag})
-          if ($action eq "reload");
-        &setBackendRule("add", $farm_ref, $server->{tag})
-          if ($action eq "start" || $action eq "reload");
+        if ($action eq "stop") {
+            &setBackendRule("del", $farm_ref, $server->{tag});
+        }
+        elsif ($action eq "reload") {
+            &setBackendRule("del", $prev_farm_ref, $server->{tag});
+            &setBackendRule("add", $farm_ref,      $server->{tag});
+        }
+        elsif ($action eq "start") {
+            &setBackendRule("add", $farm_ref, $server->{tag});
+        }
     }
 
     return;
@@ -1038,12 +916,7 @@ Returns:
 
 =cut
 
-sub writeL4NlbConfigFile {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my $nftfile = shift;
-    my $cfgfile = shift;
-
+sub writeL4NlbConfigFile ($nftfile, $cfgfile) {
     require Relianoid::Lock;
 
     if (!-e "$nftfile") {
@@ -1114,10 +987,8 @@ Returns:
 
 =cut
 
-sub resetL4FarmConntrack {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm_name = shift;
-    my $error     = 0;
+sub resetL4FarmConntrack ($farm_name) {
+    my $error = 0;
 
     my $servers = &getL4FarmServers($farm_name);
     foreach my $server (@{$servers}) {

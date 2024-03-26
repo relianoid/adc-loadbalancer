@@ -23,30 +23,35 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 use Relianoid::Farm::Core;
 use Relianoid::Farm::Base;
 use Relianoid::Farm::Action;
 
+=pod
+
+=head1 Module
+
+Relianoid::API40::Farm::Delete
+
+=cut
+
 my $eload = eval { require Relianoid::ELoad };
 
 # DELETE /farms/FARMNAME
-sub delete_farm    # ( $farmname )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farmname = shift;
-
+sub delete_farm ($farmname) {
     my $desc = "Delete farm $farmname";
 
     if (!&getFarmExists($farmname)) {
         my $msg = "The farm $farmname doesn't exist, try another name.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     if (&getFarmStatus($farmname) eq 'up') {
         if (&runFarmStop($farmname, "true")) {
             my $msg = "The farm $farmname could not be stopped.";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
 
         &eload(
@@ -60,7 +65,7 @@ sub delete_farm    # ( $farmname )
 
     if ($error) {
         my $msg = "The Farm $farmname hasn't been deleted";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     &zenlog("Success, the farm $farmname has been deleted.", "info", "FARMS");

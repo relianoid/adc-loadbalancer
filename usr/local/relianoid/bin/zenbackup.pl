@@ -49,7 +49,8 @@ if ($action eq "-c") {
     zenlog("Creating backup $backup_file");
 
     my $cmd = "$tar -czf $backup_file $backupfor";
-    zenlog(`$cmd 2>&1`);
+    my $output = `$cmd 2>&1`;
+    zenlog($output);
 
     unlink $z_version_file;
 }
@@ -67,8 +68,8 @@ if ($action eq "-D52to60") {
     }
     print "Will be kept: current hostname, global.conf and activation certificate file.\n";
     print "Cluster config file will not be imported\n";
-    print "Press a key to start...\n";
-    <STDIN>;
+    print "Press ENTER to start...\n";
+    read(STDIN, my $tmp, 1);
 
     my @eject = `$tar $exclude_52_60 -xvzf $backupdir\/backup-$name.tar.gz -C /`;
     print "@eject\n";

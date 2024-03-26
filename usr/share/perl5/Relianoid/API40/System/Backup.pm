@@ -23,12 +23,20 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 use Relianoid::Backup;
 
+=pod
+
+=head1 Module
+
+Relianoid::API40::System::Backup
+
+=cut
+
 #	GET	/system/backup
-sub get_backup {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub get_backup () {
     my $desc    = "Get backups";
     my $backups = &getBackup();
 
@@ -37,28 +45,25 @@ sub get_backup {
 }
 
 #	POST  /system/backup
-sub create_backup {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $json_obj = shift;
-
+sub create_backup ($json_obj) {
     my $desc = "Create a backups";
 
     my $params = &getAPIModel("system_backup-create.json");
 
     # Check allowed parameters
     my $error_msg = &checkApiParams($json_obj, $params, $desc);
-    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+    return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg })
       if ($error_msg);
 
     if (&getExistsBackup($json_obj->{'name'})) {
         my $msg = "A backup already exists with this name.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $error = &createBackup($json_obj->{'name'});
     if ($error) {
         my $msg = "Error creating backup.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $msg  = "Backup $json_obj->{ 'name' } was created successfully.";
@@ -73,15 +78,12 @@ sub create_backup {
 }
 
 #	GET	/system/backup/BACKUP
-sub download_backup {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $backup = shift;
-
+sub download_backup ($backup) {
     my $desc = "Download a backup";
 
     if (!&getExistsBackup($backup)) {
         my $msg = "Not found $backup backup.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     # Download function ends communication if itself finishes successful.
@@ -89,39 +91,35 @@ sub download_backup {
     &downloadBackup($backup);
 
     my $msg = "Error, downloading backup.";
-    &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+    &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     return;
 }
 
 #	PUT	/system/backup/BACKUP
-sub upload_backup {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $upload_filehandle = shift;
-    my $name              = shift;
-
+sub upload_backup ($upload_filehandle, $name) {
     my $desc = "Upload a backup";
 
     if (!$upload_filehandle || !$name) {
         my $msg = "It's necessary to add a data binary file.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
     elsif (&getExistsBackup($name)) {
         my $msg = "A backup already exists with this name.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
     elsif (!&getValidFormat('backup', $name)) {
         my $msg = "The backup name has invalid characters.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $error = &uploadBackup($name, $upload_filehandle);
     if ($error == 1) {
         my $msg = "Error creating backup.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
     elsif ($error == 2) {
         my $msg = "$name is not a valid backup.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $msg  = "Backup $name was created successfully.";
@@ -132,22 +130,19 @@ sub upload_backup {
 }
 
 #	DELETE /system/backup/BACKUP
-sub del_backup {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $backup = shift;
-
+sub del_backup ($backup) {
     my $desc = "Delete backup $backup'";
 
     if (!&getExistsBackup($backup)) {
         my $msg = "$backup doesn't exist.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $error = &deleteBackup($backup);
 
     if ($error) {
         my $msg = "There was a error deleting list $backup.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $msg  = "The list $backup has been deleted successfully.";
@@ -162,23 +157,19 @@ sub del_backup {
 }
 
 #	POST /system/backup/BACKUP/actions
-sub apply_backup {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $json_obj = shift;
-    my $backup   = shift;
-
+sub apply_backup ($json_obj, $backup) {
     my $desc = "Apply a backup to the system";
 
     my $params = &getAPIModel("system_backup-apply.json");
 
     # Check allowed parameters
     my $error_msg = &checkApiParams($json_obj, $params, $desc);
-    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+    return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg })
       if ($error_msg);
 
     if (!&getExistsBackup($backup)) {
         my $msg = "Not found $backup backup.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     my $b_version   = &getBackupVersion($backup);
@@ -189,12 +180,10 @@ sub apply_backup {
         {
             my $msg =
               "The backup version ($b_version) is different to the Relianoid version ($sys_version). The parameter 'force' must be used to force the backup applying.";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
         else {
-            &zenlog(
-                "Applying The backup version ($b_version) is different to the Relianoid version ($sys_version)."
-            );
+            &zenlog("Applying The backup version ($b_version) is different to the Relianoid version ($sys_version).");
         }
     }
 
@@ -203,7 +192,7 @@ sub apply_backup {
 
     if ($error) {
         $msg = "There was a error applying the backup.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     &httpResponse({ code => 200, body => { description => $desc, message => $msg } });

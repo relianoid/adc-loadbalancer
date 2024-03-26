@@ -23,6 +23,15 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
+
+=pod
+
+=head1 Module
+
+Relianoid::API40::Routes
+
+=cut
 
 my $q = getCGI();
 
@@ -120,8 +129,7 @@ if (   $q->path_info =~ qr{^/monitoring/fg}
     require Relianoid::API40::Farm::Guardian;
 
     POST qr{^/farms/($farm_re)(?:/services/($service_re))?/fg$} => \&add_farmguardian_farm;
-    DELETE qr{^/farms/($farm_re)(?:/services/($service_re))?/fg/($fg_name_re)$} =>
-      \&rem_farmguardian_farm;
+    DELETE qr{^/farms/($farm_re)(?:/services/($service_re))?/fg/($fg_name_re)$} => \&rem_farmguardian_farm;
 
     GET qr{^/monitoring/fg$} => \&list_farmguardian;
     POST qr{^/monitoring/fg$} => \&create_farmguardian;
@@ -142,8 +150,7 @@ if ($q->path_info =~ qr{^/farms/$farm_re.*/backends/$be_re/maintenance}) {
     PUT qr{^/farms/($farm_re)/services/($service_re)/backends/($be_re)/maintenance$} =>
       \&service_backend_maintenance;    #  (HTTP only)
 
-    PUT qr{^/farms/($farm_re)/backends/($be_re)/maintenance$} =>
-      \&backend_maintenance;            #  (L4xNAT only)
+    PUT qr{^/farms/($farm_re)/backends/($be_re)/maintenance$} => \&backend_maintenance;    #  (L4xNAT only)
 }
 
 if ($q->path_info =~ qr{^/farms/$farm_re(?:/services/$service_re)?/backends}) {
@@ -161,11 +168,9 @@ if ($q->path_info =~ qr{^/farms/$farm_re(?:/services/$service_re)?/backends}) {
 
     POST qr{^/farms/($farm_re)/services/($service_re)/backends$} => \&new_service_backend;
 
-    PUT qr{^/farms/($farm_re)/services/($service_re)/backends/($be_re)$} =>
-      \&modify_service_backends;
+    PUT qr{^/farms/($farm_re)/services/($service_re)/backends/($be_re)$} => \&modify_service_backends;
 
-    DELETE qr{^/farms/($farm_re)/services/($service_re)/backends/($be_re)$} =>
-      \&delete_service_backend;
+    DELETE qr{^/farms/($farm_re)/services/($service_re)/backends/($be_re)$} => \&delete_service_backend;
 }
 
 if ($q->path_info =~ qr{^/farms/$farm_re/services}) {
@@ -314,8 +319,7 @@ if ($q->path_info =~ qr{^/graphs}) {
     GET qr{^/graphs/system/($system_id_re)/($frequency_re)$} => \&get_sys_graphs_freq;
 
     #  GET the interval of a system graph
-    GET qr{^/graphs/system/($system_id_re)/custom/start/($rrd_re)/end/($rrd_re)$} =>
-      \&get_sys_graphs_interval;
+    GET qr{^/graphs/system/($system_id_re)/custom/start/($rrd_re)/end/($rrd_re)$} => \&get_sys_graphs_interval;
 
     ##### /graphs/system/disk
 
@@ -325,8 +329,7 @@ if ($q->path_info =~ qr{^/graphs}) {
     GET qr{^/graphs/system/disk$} => \&list_disks_graphs;
 
     #  GET the interval of a disk graph
-    GET qr{^/graphs/system/disk/($disk_re)/custom/start/($rrd_re)/end/($rrd_re)$} =>
-      \&get_disk_graphs_interval;
+    GET qr{^/graphs/system/disk/($disk_re)/custom/start/($rrd_re)/end/($rrd_re)$} => \&get_disk_graphs_interval;
 
     # keep before next request
     GET qr{^/graphs/system/disk/($disk_re)/($frequency_re)$} => \&get_disk_graphs_freq;
@@ -345,8 +348,7 @@ if ($q->path_info =~ qr{^/graphs}) {
     GET qr{^/graphs/interfaces/($nic_re|$vlan_re)/($frequency_re)$} => \&get_iface_graphs_frec;
 
     #  GET the interval of an interface graph
-    GET qr{^/graphs/interfaces/($nic_re|$vlan_re)/custom/start/($rrd_re)/end/($rrd_re)$} =>
-      \&get_iface_graphs_interval;
+    GET qr{^/graphs/interfaces/($nic_re|$vlan_re)/custom/start/($rrd_re)/end/($rrd_re)$} => \&get_iface_graphs_interval;
 
     ##### /graphs/farms
 
@@ -360,8 +362,7 @@ if ($q->path_info =~ qr{^/graphs}) {
     GET qr{^/graphs/farms/($farm_re)/($frequency_re)$} => \&get_farm_graphs_frec;
 
     #  GET the interval of a farm graph
-    GET qr{^/graphs/farms/($farm_re)/custom/start/($rrd_re)/end/($rrd_re)$} =>
-      \&get_farm_graphs_interval;
+    GET qr{^/graphs/farms/($farm_re)/custom/start/($rrd_re)/end/($rrd_re)$} => \&get_farm_graphs_interval;
 }
 
 # System
@@ -440,14 +441,11 @@ if ($q->path_info =~ qr{/ciphers$}) {
     GET qr{^/ciphers$} => \&ciphers_available;
 }
 
-if ($ENV{PATH_INFO} =~
-    qr{^/farms/$farm_re/(?:replacerequestheader|replaceresponseheader)/(\d+)/actions$})
-{
+if ($ENV{PATH_INFO} =~ qr{^/farms/$farm_re/(?:replacerequestheader|replaceresponseheader)/(\d+)/actions$}) {
     require Relianoid::API40::Farm::HTTP;
 
-    POST qr{^/farms/($farm_re)/replacerequestheader/(\d+)/actions$} => \&move_replacerequestheader;
-    POST qr{^/farms/($farm_re)/replaceresponseheader/(\d+)/actions$} =>
-      \&move_replaceresponseheader;
+    POST qr{^/farms/($farm_re)/replacerequestheader/(\d+)/actions$}  => \&move_replacerequestheader;
+    POST qr{^/farms/($farm_re)/replaceresponseheader/(\d+)/actions$} => \&move_replaceresponseheader;
 }
 
 if ($ENV{PATH_INFO} =~

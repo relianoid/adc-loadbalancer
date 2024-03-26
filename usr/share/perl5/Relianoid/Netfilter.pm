@@ -23,6 +23,7 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 my $eload = eval { require Relianoid::ELoad };
 
@@ -40,11 +41,7 @@ Relianoid::Netfilter
 
 =cut
 
-sub loadNfModule    # ($modname,$params)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($modname, $params) = @_;
-
+sub loadNfModule ($modname, $params) {
     my $status  = 0;
     my $lsmod   = &getGlobalConfiguration('lsmod');
     my @modules = @{ &logAndGet($lsmod, "array") };
@@ -66,11 +63,7 @@ sub loadNfModule    # ($modname,$params)
 
 =cut
 
-sub removeNfModule    # ($modname)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $modname = shift;
-
+sub removeNfModule ($modname) {
     my $modprobe         = &getGlobalConfiguration('modprobe');
     my $modprobe_command = "$modprobe -r $modname";
 
@@ -85,11 +78,7 @@ sub removeNfModule    # ($modname)
 
 =cut
 
-sub getNewMark    # ($farm_name)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm_name = shift;
-
+sub getNewMark ($farm_name) {
     require Tie::File;
     require Relianoid::Lock;
 
@@ -124,11 +113,7 @@ sub getNewMark    # ($farm_name)
 
 =cut
 
-sub delMarks    # ($farm_name,$mark)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $mark) = @_;
-
+sub delMarks ($farm_name = "", $mark = "") {
     require Relianoid::Lock;
 
     my $status      = 0;
@@ -148,36 +133,6 @@ sub delMarks    # ($farm_name,$mark)
     }
 
     return $status;
-}
-
-=pod
-
-=head1 renameMarks
-
-=cut
-
-sub renameMarks    # ( $farm_name, $newfname )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my $farm_name = shift;
-    my $newfname  = shift;
-
-    require Tie::File;
-
-    my $status = 0;
-
-    if ($farm_name ne "") {
-        my $fwmarksconf = &getGlobalConfiguration('fwmarksconf');
-        tie my @contents, 'Tie::File', "$fwmarksconf";
-        foreach my $line (@contents) {
-            $line =~ s/ \/\/ FARM\_$farm_name\_/ \/\/ FARM\_$newfname\_/x;
-        }
-        $status = $?;    # FIXME
-        untie @contents;
-    }
-
-    return $status;      # FIXME
 }
 
 1;

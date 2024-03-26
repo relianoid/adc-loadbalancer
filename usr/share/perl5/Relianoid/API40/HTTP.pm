@@ -24,7 +24,14 @@
 use strict;
 use warnings;
 use feature qw(signatures);
-no warnings 'experimental::args_array_with_signatures';
+
+=pod
+
+=head1 Module
+
+Relianoid::API40::HTTP
+
+=cut
 
 my $LOG_TAG = "";
 $LOG_TAG = "ZAPI"   if (exists $ENV{HTTP_ZAPI_KEY});
@@ -51,15 +58,26 @@ my %http_status_codes = (
     422 => 'Unprocessable Entity',
 );
 
-sub GET ($path, $code, $mod = undef) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+# Examples of path regexes:
+# - Non-capturing: (?^:^/interfaces/nic$)
+# - Capturing:     (?^:^/farms/([a-zA-Z0-9\-]+)$)
+my $CAPTURING_REGEX = qr{\/.+\(};
 
+sub GET ($path, $code, $mod = undef) {
     return
       unless $ENV{REQUEST_METHOD} eq 'GET'
       or $ENV{REQUEST_METHOD} eq 'HEAD';
 
     my @captures = ($ENV{PATH_INFO} =~ $path);
+
+    # if @capture is false, there was no match
     return unless @captures;
+
+    # When there is nothing to be captured: @captures = (1)
+    # Only attempt to save captured text when there are parenthesis on the url regex '('
+    if ($path !~ $CAPTURING_REGEX) {
+        @captures = ();
+    }
 
     if (ref $code eq 'CODE') {
         $code->(@captures);
@@ -71,12 +89,18 @@ sub GET ($path, $code, $mod = undef) {
 }
 
 sub POST ($path, $code, $mod = undef) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     return unless $ENV{REQUEST_METHOD} eq 'POST';
 
     my @captures = ($ENV{PATH_INFO} =~ $path);
+
+    # if @capture is false, there was no match
     return unless @captures;
+
+    # When there is nothing to be captured: @captures = (1)
+    # Only attempt to save captured text when there are parenthesis on the url regex '('
+    if ($path !~ $CAPTURING_REGEX) {
+        @captures = ();
+    }
 
     my $data = &getCgiParam('POSTDATA');
     my $input_ref;
@@ -111,6 +135,10 @@ sub POST ($path, $code, $mod = undef) {
     {
         $input_ref = $data;
     }
+    elsif (!exists $ENV{CONTENT_TYPE} && !$data && $ENV{PATH_INFO} == '/session') {
+
+        # allow no content type when there is no body, this is only used for /session
+    }
     else {
         &zenlog("Content-Type not supported: $ENV{ CONTENT_TYPE }", "error", $LOG_TAG);
         my $body = { message => 'Content-Type not supported', error => 'true' };
@@ -130,12 +158,18 @@ sub POST ($path, $code, $mod = undef) {
 }
 
 sub PUT ($path, $code, $mod = undef) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     return unless $ENV{REQUEST_METHOD} eq 'PUT';
 
     my @captures = ($ENV{PATH_INFO} =~ $path);
+
+    # if @capture is false, there was no match
     return unless @captures;
+
+    # When there is nothing to be captured: @captures = (1)
+    # Only attempt to save captured text when there are parenthesis on the url regex '('
+    if ($path !~ $CAPTURING_REGEX) {
+        @captures = ();
+    }
 
     my $data = &getCgiParam('PUTDATA');
     my $input_ref;
@@ -186,12 +220,18 @@ sub PUT ($path, $code, $mod = undef) {
 }
 
 sub DELETE ($path, $code, $mod = undef) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     return unless $ENV{REQUEST_METHOD} eq 'DELETE';
 
     my @captures = ($ENV{PATH_INFO} =~ $path);
+
+    # if @capture is false, there was no match
     return unless @captures;
+
+    # When there is nothing to be captured: @captures = (1)
+    # Only attempt to save captured text when there are parenthesis on the url regex '('
+    if ($path !~ $CAPTURING_REGEX) {
+        @captures = ();
+    }
 
     if (ref $code eq 'CODE') {
         $code->(@captures);
@@ -204,12 +244,18 @@ sub DELETE ($path, $code, $mod = undef) {
 }
 
 sub OPTIONS ($path, $code) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     return unless $ENV{REQUEST_METHOD} eq 'OPTIONS';
 
     my @captures = ($ENV{PATH_INFO} =~ $path);
+
+    # if @capture is false, there was no match
     return unless @captures;
+
+    # When there is nothing to be captured: @captures = (1)
+    # Only attempt to save captured text when there are parenthesis on the url regex '('
+    if ($path !~ $CAPTURING_REGEX) {
+        @captures = ();
+    }
 
     &zenlog("OPTIONS captures( @captures )", "debug", $LOG_TAG) if &debug();
 
@@ -218,8 +264,8 @@ sub OPTIONS ($path, $code) {
     return;
 }
 
-=begin nd
-	Function: httpResponse
+=pod
+=head1 httpResponse
 
 	Render and print zapi response fron data input.
 
@@ -237,8 +283,6 @@ sub OPTIONS ($path, $code) {
 =cut
 
 sub httpResponse ($self) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     return $self unless exists $ENV{GATEWAY_INTERFACE};
 
     die 'httpResponse: Bad input' if not defined $self or ref $self ne 'HASH';
@@ -272,8 +316,7 @@ sub httpResponse ($self) {
     {
         push @headers,
           'Access-Control-Allow-Methods' => 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers' =>
-          'ZAPI_KEY, Authorization, Set-cookie, Content-Type, X-Requested-With',
+          'Access-Control-Allow-Headers' => 'ZAPI_KEY, Authorization, Set-cookie, Content-Type, X-Requested-With',
           ;
     }
 
@@ -285,7 +328,7 @@ sub httpResponse ($self) {
             my $session_cookie = $q->cookie(CGISESSID => $session->id);
 
             push @headers,
-              'Set-Cookie' => $session_cookie . "; SameSite=None; Secure; HttpOnly",
+              'Set-Cookie'                    => $session_cookie . "; SameSite=None; Secure; HttpOnly",
               'Access-Control-Expose-Headers' => 'Set-Cookie, Content-Disposition',
               ;
         }
@@ -355,20 +398,7 @@ sub httpResponse ($self) {
     exit;
 }
 
-sub httpErrorResponse (@args) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my $args;
-
-    eval { $args = @args == 1 ? shift @args : {@args}; };
-
-    # check errors loading the hash reference
-    if ($@) {
-        &zenlog($@, "debug", "zapi");
-        &zdie("httpErrorResponse: Wrong argument received");
-    }
-
-    # verify we have a hash reference
+sub httpErrorResponse ($args) {
     unless (ref($args) eq 'HASH') {
         &zdie("httpErrorResponse: Argument is not a hash reference.");
     }
@@ -405,10 +435,7 @@ sub httpErrorResponse (@args) {
     return;
 }
 
-# WARNING: Function unfinished.
 sub httpSuccessResponse ($args) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     unless (ref($args) eq 'HASH') {
         &zdie("httpSuccessResponse: Argument is not a hash reference");
     }
@@ -433,8 +460,6 @@ sub httpSuccessResponse ($args) {
 }
 
 sub httpDownloadResponse (@args) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $args;
 
     eval { $args = @args == 1 ? shift @args : {@args}; };
@@ -455,13 +480,13 @@ sub httpDownloadResponse (@args) {
 
     unless (-d $args->{dir}) {
         my $msg = "Invalid directory '$args->{ dir }'";
-        &httpErrorResponse(code => 400, desc => $args->{desc}, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $args->{desc}, msg => $msg });
     }
 
     my $path = "$args->{ dir }/$args->{ file }";
     unless (-f $path) {
         my $msg = "The requested file $path could not be found.";
-        &httpErrorResponse(code => 400, desc => $args->{desc}, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $args->{desc}, msg => $msg });
     }
 
     require Relianoid::File;
@@ -470,7 +495,7 @@ sub httpDownloadResponse (@args) {
 
     unless (defined $body) {
         my $msg = "Could not open file $path: $!";
-        &httpErrorResponse(code => 400, desc => $args->{desc}, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $args->{desc}, msg => $msg });
     }
 
     # make headers
@@ -499,7 +524,6 @@ sub httpDownloadResponse (@args) {
 }
 
 sub buildAPIParams ($out_b, $api_keys, $translate) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     # Delete not visible params
     if (ref $out_b eq "ARRAY") {
@@ -515,8 +539,6 @@ sub buildAPIParams ($out_b, $api_keys, $translate) {
 }
 
 sub buildBackendAPIParams ($out_b, $api_keys, $translate) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my @bk_keys = keys(%{$out_b});
 
     foreach my $param (keys %{$translate}) {

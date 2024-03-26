@@ -23,6 +23,7 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 use Carp;
 use Relianoid::Farm::Backend::Maintenance;
@@ -47,7 +48,7 @@ This function is to not use the getFarmservers that does stats checks.
 
 Parameters:
 
-    farmname - Farm name
+    farm_name - Farm name
     service - service backends related (optional)
 
 Returns:
@@ -56,10 +57,7 @@ Returns:
 
 =cut
 
-sub getFarmServerIds {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my ($farm_name, $service) = @_;
+sub getFarmServerIds ($farm_name, $service) {
     my @servers   = ();
     my $farm_type = &getFarmType($farm_name);
 
@@ -119,7 +117,7 @@ List all farm backends and theirs configuration
 
 Parameters:
 
-    farmname - Farm name
+    farm_name - Farm name
     service - service backends related (optional)
 
 Returns:
@@ -132,12 +130,7 @@ FIXME:
 
 =cut
 
-sub getFarmServers    # ($farm_name, $service)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my ($farm_name, $service) = @_;
-
+sub getFarmServers ($farm_name, $service = undef) {
     my $farm_type = &getFarmType($farm_name);
     my $servers;
 
@@ -182,13 +175,7 @@ Returns:
 
 =cut
 
-sub getFarmServer    # ( $bcks_ref, $value, $param )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $bcks_ref = shift;
-    my $value    = shift;
-    my $param    = shift // "id";
-
+sub getFarmServer ($bcks_ref, $value, $param = "id") {
     foreach my $server (@{$bcks_ref}) {
 
         # preserve type param number
@@ -212,12 +199,12 @@ Add a new Backend
 
 Parameters:
 
-    farmname -  Farm name
-    service  -  service name. For HTTP farms
-    id       -  Backend id, if this id doesn't exist, it will create a new backend
-    backend  -  hash with backend configuration. 
-                Depend on the type of farms, the backend can have the following keys:
-                ip, port, weight, priority, timeout, max_conns or interface
+    farm_name -  Farm name
+    service   -  service name. For HTTP farms
+    ids       -  Backend id, if this id doesn't exist, it will create a new backend
+    bk        -  hash with backend configuration. 
+                 Depend on the type of farms, the backend can have the following keys:
+                 ip, port, weight, priority, timeout, max_conns or interface
 
 Returns:
 
@@ -225,11 +212,7 @@ Returns:
 
 =cut
 
-sub setFarmServer    # $output ($farm_name,$service,$bk_id,$bk_params)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $service, $ids, $bk) = @_;
-
+sub setFarmServer ($farm_name, $service, $ids, $bk) {
     my $farm_type = &getFarmType($farm_name);
     my $output    = -1;
 
@@ -240,8 +223,7 @@ sub setFarmServer    # $output ($farm_name,$service,$bk_id,$bk_params)
 
     if ($farm_type eq "datalink") {
         require Relianoid::Farm::Datalink::Backend;
-        $output = &setDatalinkFarmServer($ids, $bk->{ip}, $bk->{interface},
-            $bk->{weight}, $bk->{priority}, $farm_name);
+        $output = &setDatalinkFarmServer($ids, $bk->{ip}, $bk->{interface}, $bk->{weight}, $bk->{priority}, $farm_name);
     }
     elsif ($farm_type eq "l4xnat") {
         require Relianoid::Farm::L4xNAT::Backend;
@@ -256,9 +238,8 @@ sub setFarmServer    # $output ($farm_name,$service,$bk_id,$bk_params)
     elsif ($farm_type eq "http" || $farm_type eq "https") {
         require Relianoid::Farm::HTTP::Backend;
         $output = &setHTTPFarmServer(
-            $ids,          $bk->{ip},       $bk->{port},
-            $bk->{weight}, $bk->{timeout},  $farm_name,
-            $service,      $bk->{priority}, $bk->{connection_limit}
+            $ids,       $bk->{ip}, $bk->{port},     $bk->{weight}, $bk->{timeout},
+            $farm_name, $service,  $bk->{priority}, $bk->{connection_limit}
         );
     }
 
@@ -274,9 +255,9 @@ Delete a Backend
 
 Parameters:
 
-    id       - Backend id, if this id doesn't exist, it will create a new backend
-    farmname - Farm name
-    service  - service name. For HTTP farms
+    ids       - Backend id, if this id doesn't exist, it will create a new backend
+    farm_name - Farm name
+    service   - service name. For HTTP farms
 
 Returns:
 
@@ -284,11 +265,7 @@ Returns:
 
 =cut
 
-sub runFarmServerDelete    # ($ids,$farm_name,$service)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($ids, $farm_name, $service) = @_;
-
+sub runFarmServerDelete ($ids, $farm_name, $service = undef) {
     my $farm_type = &getFarmType($farm_name);
     my $output    = -1;
 
@@ -333,9 +310,7 @@ Returns:
 
 =cut
 
-sub getFarmBackendAvailableID {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farmname = shift;
+sub getFarmBackendAvailableID ($farmname) {
     my $nbackends;
 
     if (&getFarmType($farmname) eq 'l4xnat') {
@@ -369,12 +344,8 @@ Returns:
 
 =cut
 
-sub setBackendRule {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $action    = shift;
-    my $farm_ref  = shift;
-    my $mark      = shift;
-    my $farm_type = shift // getFarmType($farm_ref->{name});
+sub setBackendRule ($action, $farm_ref, $mark, $farm_type = undef) {
+    $farm_type //= getFarmType($farm_ref->{name});
 
     unless ($action eq "add" or $action eq "del") {
         croak("Rule action must be 'add' or 'del'");
@@ -438,11 +409,7 @@ Variable:
 
 =cut
 
-sub getPriorityAlgorithmStatus {
-    &zenlog(__FILE__ . q{:} . __LINE__ . q{:} . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my ($backends_ref, $bk_index) = @_;
-
+sub getPriorityAlgorithmStatus ($backends_ref, $bk_index = undef) {
     my $alg_status_ref;
     my $sum_prio_ref;
 
@@ -496,4 +463,3 @@ sub getPriorityAlgorithmStatus {
 }
 
 1;
-

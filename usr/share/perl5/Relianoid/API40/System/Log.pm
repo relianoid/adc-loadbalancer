@@ -23,12 +23,20 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 use Relianoid::System::Log;
 
+=pod
+
+=head1 Module
+
+Relianoid::API40::System::Log
+
+=cut
+
 #	GET	/system/logs
-sub get_logs {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub get_logs () {
     my $desc = "Get logs";
     my $logs = &getLogs();
 
@@ -37,10 +45,7 @@ sub get_logs {
 }
 
 #	GET	/system/logs/LOG
-sub download_logs {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $logFile = shift;
-
+sub download_logs ($logFile) {
     my $desc     = "Download log file '$logFile'";
     my $logfiles = &getLogs();
     my $error    = 1;
@@ -55,7 +60,7 @@ sub download_logs {
 
     if ($error) {
         my $msg = "Not found $logFile file.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     # Download function ends communication if itself finishes successful. It is not necessary send "200 OK" msg
@@ -66,13 +71,9 @@ sub download_logs {
 }
 
 #	GET	/system/logs/LOG/lines/LINES
-sub show_logs {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $logFile      = shift;
-    my $lines_number = shift;    # number of lines to show
-
+sub show_logs ($logFile, $lines_number) {
     my $desc     = "Show a log file";
-    my $logfiles = &getLogs;
+    my $logfiles = &getLogs();
     my $error    = 1;
 
     # check if the file exists
@@ -85,7 +86,7 @@ sub show_logs {
 
     if ($error) {
         my $msg = "Not found $logFile file.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     my $lines = &getLogLines($logFile, $lines_number);

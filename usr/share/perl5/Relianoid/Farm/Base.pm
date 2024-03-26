@@ -24,13 +24,12 @@
 use strict;
 use warnings;
 use feature qw(signatures);
-no warnings 'experimental::args_array_with_signatures';
 
 use Relianoid::Config;
 use Relianoid::Farm::Core;
 
 my $configdir = &getGlobalConfiguration('configdir');
-my $eload = eval { require Relianoid::ELoad };
+my $eload     = eval { require Relianoid::ELoad };
 
 =pod
 
@@ -65,8 +64,6 @@ See Also:
 =cut
 
 sub getFarmVip ($info, $farm_name) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $farm_type = &getFarmType($farm_name);
     my $output    = -1;
 
@@ -114,8 +111,6 @@ NOTE:
 =cut
 
 sub getFarmStatus ($farm_name) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $output = -1;
     return $output if !defined($farm_name);
 
@@ -191,8 +186,6 @@ NOTE:
 =cut
 
 sub getFarmVipStatus ($farm_name) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $output     = -1;
     my $farmStatus = &getFarmStatus($farm_name);
     return $output if !defined($farm_name);
@@ -248,7 +241,7 @@ sub getFarmVipStatus ($farm_name) {
 
     # checking status
     foreach my $be (@{$backends}) {
-        $up_flag          = 1 if $be->{'status'} eq "up";
+        $up_flag          = 1 if grep { $be->{'status'} eq $_ } qw(up undefined);
         $maintenance_flag = 1 if $be->{'status'} eq "maintenance";
         $down_flag        = 1
           if ($be->{'status'} eq "down" || $be->{'status'} eq "fgDOWN");
@@ -301,8 +294,6 @@ Returns:
 =cut
 
 sub getFarmPid ($farm_name) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $farm_type = &getFarmType($farm_name);
     my @output    = ();
 
@@ -344,8 +335,6 @@ Returns:
 =cut
 
 sub getFarmBootStatus ($farm_name) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $farm_type = &getFarmType($farm_name);
     my $output    = "down";
 
@@ -397,8 +386,6 @@ FIXME:
 =cut
 
 sub getFarmProto ($farm_name) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $farm_type = &getFarmType($farm_name);
     my $output    = -1;
 
@@ -433,8 +420,6 @@ Returns:
 =cut
 
 sub getNumberOfFarmTypeRunning ($type) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $counter = 0;
     foreach my $farm_name (&getFarmNameList()) {
 
@@ -469,8 +454,6 @@ Returns:
 =cut
 
 sub getFarmListByVip ($ip, $port = undef) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     require Relianoid::Net::Validate;
 
     my @out = ();
@@ -504,8 +487,6 @@ Returns:
 =cut
 
 sub getFarmRunning() {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my @out = ();
 
     foreach my $farm (&getFarmNameList()) {

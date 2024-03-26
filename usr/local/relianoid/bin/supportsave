@@ -65,8 +65,8 @@ echo "- Packages"
 dpkg -l                                 >> $backup_dir/package_list.txt
 
 echo "- Processes"
-echo "ps axo user,ppid,pid,pcpu,pmem,vsz,rss,tty,stat,start,time,command"                           >> $backup_dir/ps.txt
-ps axo user,ppid,pid,pcpu,pmem,vsz,rss,tty,stat,start,time,command >> $backup_dir/ps.txt
+echo "ps axo user,ppid,pid,pcpu,pmem,vsz,rss,tty,stat,start,time,command" >> $backup_dir/ps.txt
+ps axo user,ppid,pid,pcpu,pmem,vsz,rss,tty,stat,start,time,command        >> $backup_dir/ps.txt
 
 echo "- Resources"
 echo "--- Uptime information ---"       >> $backup_dir/system_resources.txt
@@ -77,21 +77,21 @@ echo -e "\n--- CPU information ---"     >> $backup_dir/system_resources.txt
 cat /proc/cpuinfo                       >> $backup_dir/system_resources.txt
 echo -e "\n--- TOP information ---"     >> $backup_dir/system_resources.txt
 /usr/bin/top -b -n1                     >> $backup_dir/system_resources.txt
-echo -e "\n--- Resolv config ---"	>> $backup_dir/system_resources.txt
-cat /etc/resolv.conf 			>> $backup_dir/system_resources.txt
-echo -e "\n---Kernel Version ---"	>> $backup_dir/system_resources.txt
-uname -a				>> $backup_dir/system_resources.txt
+echo -e "\n--- Resolv config ---"	    >> $backup_dir/system_resources.txt
+cat /etc/resolv.conf 			        >> $backup_dir/system_resources.txt
+echo -e "\n---Kernel Version ---"	    >> $backup_dir/system_resources.txt
+uname -a				                >> $backup_dir/system_resources.txt
 
 echo "- Partitions"
-/bin/df -h                              >> $backup_dir/partitions.txt 2>&1
+/bin/df -h                              &>> $backup_dir/partitions.txt
 
 echo "- Time"
-${zbindir}/zenntp                    	>> $backup_dir/ntp_test.txt 2>&1
+${zbindir}/zenntp                    	&>> $backup_dir/ntp_test.txt
 
 if [[ ! -z $ssyncdctl_bin ]]; then
 	echo "- Sessions Table"
-	$ssyncdctl_bin show http >> $backup_dir/sessions_http.txt 2>&1
-	$ssyncdctl_bin show nft	>> $backup_dir/sessions_nft.txt 2>&1
+	$ssyncdctl_bin show http            &>> $backup_dir/sessions_http.txt
+	$ssyncdctl_bin show nft	            &>> $backup_dir/sessions_nft.txt
 fi
 
 if [[ -d ${home_dir}/lib/Relianoid/RBAC ]];
@@ -102,10 +102,17 @@ then
 fi
 
 echo "- Subscription"
-cat /etc/apt/apt.conf			>> $backup_dir/apt.conf.txt
-cat /etc/apt/sources.list		>> $backup_dir/sources.list.txt
+if [ -f /etc/apt/apt.conf ];
+then
+	cat /etc/apt/apt.conf			    >> $backup_dir/apt.conf.txt
+fi
+if [[ -d /etc/apt/apt.conf.d ]];
+then
+	head -n 10000 /etc/apt/apt.conf.d/* >> $backup_dir/apt.conf.d.txt
+fi
+cat /etc/apt/sources.list		        >> $backup_dir/sources.list.txt
 for i in `ls /etc/apt/sources.list.d/`; do
-	cat /etc/apt/sources.list.d/$i >> $backup_dir/sources.list.d.$i.txt
+	cat /etc/apt/sources.list.d/$i      >> $backup_dir/sources.list.d.$i.txt
 done
 
 echo "Saving network information:"
@@ -116,26 +123,28 @@ echo "- Interfaces"
 /sbin/ip link show                      >> $backup_dir/ip_link.txt
 /sbin/ip addr show                      >> $backup_dir/ip_addr.txt
 
-echo "- Bondings"
-for i in  `ls /proc/net/bonding/`
-do
-	echo ">>>>Interface $i"		>> $backup_dir/bonding_system.txt
-	cat /proc/net/bonding/$i	>> $backup_dir/bonding_system.txt
-done
-
+if [[ -d /proc/net/bonding ]];
+then
+	echo "- Bondings"
+	for i in  `ls /proc/net/bonding/`
+	do
+		echo ">>>>Interface $i"		    >> $backup_dir/bonding_system.txt
+		cat /proc/net/bonding/$i	    >> $backup_dir/bonding_system.txt
+	done
+fi
 echo "- Routes"
 for i in `cat /etc/iproute2/rt_tables  | grep "table_" | grep -v '^#' | awk {'print $2'}`
 do
     echo "ip route list table $i"       >> $backup_dir/route.txt
-    /sbin/ip route list table $i        >> $backup_dir/route.txt
-    /sbin/ip -6 route list table $i        >> $backup_dir/route.txt
+    /sbin/ip route list table $i        &>> $backup_dir/route.txt
+    /sbin/ip -6 route list table $i     &>> $backup_dir/route.txt
 done
 echo "ip route list table main"         >> $backup_dir/route.txt
-/sbin/ip route list table main          >> $backup_dir/route.txt
-/sbin/ip -6 route list table main       >> $backup_dir/route.txt
+/sbin/ip route list table main          &>> $backup_dir/route.txt
+/sbin/ip -6 route list table main       &>> $backup_dir/route.txt
 echo "ip rule list"                     >> $backup_dir/route.txt
-/sbin/ip rule list                      >> $backup_dir/route.txt
-/sbin/ip -6 rule list                   >> $backup_dir/route.txt
+/sbin/ip rule list                      &>> $backup_dir/route.txt
+/sbin/ip -6 rule list                   &>> $backup_dir/route.txt
 
 echo "- Sockets"
 echo "netstat -putan"                   >> $backup_dir/netstat.txt
@@ -164,25 +173,25 @@ fstatus="$backup_dir/proxy_status.txt"
 for i in `ls /tmp/*_proxy.socket 2>/dev/null`
 do
 	farm=`basename $i |cut -d"_" -f1`
-	echo "############# Farm: $farm" >> $fstatus
-	echo "" >> $fstatus
+	echo "############# Farm: $farm"                          >> $fstatus
+	echo ""                                                   >> $fstatus
 	echo "# ps -feww | grep ${farm}_proxy.cfg | grep -v grep" >> $fstatus
-	ps -feww | grep ${farm}_proxy.cfg | grep -v grep >> $fstatus
-	echo "" >> $fstatus
-	echo "# $proxyctl -c $i" >> $fstatus
-	$proxyctl -c $i >> $fstatus
-	echo "" >> $fstatus
+	ps -feww | grep ${farm}_proxy.cfg | grep -v grep          >> $fstatus
+	echo ""                                                   >> $fstatus
+	echo "# $proxyctl -c $i"                                  >> $fstatus
+	$proxyctl -c $i                                           >> $fstatus
+	echo ""                                                   >> $fstatus
 	if [ "$proxy_ng" == "true" ]
 	then
 		echo "# curl --connect-timeout 10 --unix-socket $i http://localhost/listener" >> $backup_dir/proxy_status.txt
-		$CURL --connect-timeout 10 --unix-socket $i http://localhost/listener >> $backup_dir/proxy_status.txt
-		echo "" >> $fstatus
-		echo "" >> $fstatus
-		echo "# curl --connect-timeout 10 --unix-socket $i http://localhost/debug" >> $backup_dir/proxy_status.txt
-		$CURL --connect-timeout 10 --unix-socket $i http://localhost/debug  >> $fstatus
-		echo "" >> $fstatus
+		$CURL --connect-timeout 10 --unix-socket $i http://localhost/listener         >> $backup_dir/proxy_status.txt
+		echo ""                                                                       >> $fstatus
+		echo ""                                                                       >> $fstatus
+		echo "# curl --connect-timeout 10 --unix-socket $i http://localhost/debug"    >> $backup_dir/proxy_status.txt
+		$CURL --connect-timeout 10 --unix-socket $i http://localhost/debug            >> $fstatus
+		echo ""                                                                       >> $fstatus
 	fi
-	echo "" >> $fstatus
+	echo ""                                                                           >> $fstatus
 done
 
 
@@ -192,7 +201,7 @@ echo "- ARP table"
 echo "- nf_conntrack"
 if [ -f /usr/sbin/conntrack ];
 then
-    /usr/sbin/conntrack -L              >> $backup_dir/conntrack.txt 2>&1
+    /usr/sbin/conntrack -L              &>> $backup_dir/conntrack.txt
 fi
 
 if [ -f /etc/relianoid_version ]; then
@@ -209,8 +218,8 @@ echo "Saving file descriptors data"
 #################################
 for i in `ls -d /proc/[0-9]*/` 
 do 
-	fd=`ls ${i}/fd/ | wc -l`
-	echo "${i//[!0-9]/} = $fd" >> $backup_dir/fd.txt
+	fd=`ls ${i}/fd/ 2>/dev/null | wc -l `
+	echo "${i//[!0-9]/} = $fd"          >> $backup_dir/fd.txt 
 done
 
 echo "Saving monitoring files"

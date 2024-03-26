@@ -23,6 +23,7 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 =pod
 
@@ -40,10 +41,9 @@ Get all ESTABLISHED connections for a backend
 
 Parameters:
 
-    farmname - Farm name
-
-    ip_backend - IP backend
-
+    farm_name - Farm name
+    be_ip - IP backend
+    be_port - Backend port
     netstat - reference to array with Conntrack -L output
 
 Returns:
@@ -56,10 +56,7 @@ FIXME:
 
 =cut
 
-sub getL4BackendEstConns {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $be_ip, $be_port, $netstat) = @_;
-
+sub getL4BackendEstConns ($farm_name, $be_ip, $be_port, $netstat) {
     my $farm = &getL4FarmStruct($farm_name);
 
     my @fportlist   = &getFarmPortList($farm->{vport});
@@ -89,13 +86,9 @@ sub getL4BackendEstConns {
             # tcp      6 431998 ESTABLISHED src=192.168.0.168 dst=192.168.100.241 sport=40130 dport=81 src=192.168.100.254 dst=192.168.100.241 sport=80 dport=40130 [ASSURED] mark=523 use=1
             #protocol				 status		      client                         vip                                                           vport          backend_ip                   (vip, but can change)    backend_port
             $connections += scalar @{
-                &getNetstatFilter(
-                    "tcp",
-                    "",
+                &getNetstatFilter("tcp", "",
                     "\.* ESTABLISHED src=\.* dst=$farm->{ vip } \.* dport=$regexp \.*src=$be_ip \.*$add_search",
-                    "",
-                    $netstat
-                )
+                    "", $netstat)
             };
         }
         if (   $farm->{proto} eq "sip"
@@ -103,13 +96,8 @@ sub getL4BackendEstConns {
             || $farm->{proto} eq "udp")
         {
             $connections += scalar @{
-                &getNetstatFilter(
-                    "udp",
-                    "",
-                    "\.* src=\.* dst=$farm->{ vip } \.* dport=$regexp .*src=$be_ip \.*$add_search",
-                    "",
-                    $netstat
-                )
+                &getNetstatFilter("udp", "", "\.* src=\.* dst=$farm->{ vip } \.* dport=$regexp .*src=$be_ip \.*$add_search",
+                    "", $netstat)
             };
         }
     }
@@ -119,13 +107,9 @@ sub getL4BackendEstConns {
             || $farm->{proto} eq "tcp")
         {
             $connections += scalar @{
-                &getNetstatFilter(
-                    "tcp",
-                    "",
+                &getNetstatFilter("tcp", "",
                     "\.*ESTABLISHED src=\.* dst=$farm->{ vip } sport=\.* dport=$regexp \.*src=$be_ip \.*$add_search",
-                    "",
-                    $netstat
-                )
+                    "", $netstat)
             };
         }
         if (   $farm->{proto} eq "sip"
@@ -133,13 +117,8 @@ sub getL4BackendEstConns {
             || $farm->{proto} eq "udp")
         {
             $connections += scalar @{
-                &getNetstatFilter(
-                    "udp",
-                    "",
-                    "\.* src=\.* dst=$farm->{ vip } \.* dport=$regexp .*src=$be_ip \.*$add_search",
-                    "",
-                    $netstat
-                )
+                &getNetstatFilter("udp", "", "\.* src=\.* dst=$farm->{ vip } \.* dport=$regexp .*src=$be_ip \.*$add_search",
+                    "", $netstat)
             };
         }
     }
@@ -155,8 +134,7 @@ Get all ESTABLISHED connections for a farm
 
 Parameters:
 
-    farmname - Farm name
-
+    farm_name - Farm name
     netstat - reference to array with Conntrack -L output
 
 Returns:
@@ -169,9 +147,7 @@ FIXME:
 
 =cut
 
-sub getL4FarmEstConns {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $netstat) = @_;
+sub getL4FarmEstConns ($farm_name, $netstat) {
     require Relianoid::Net::ConnStats;
 
     my $farm = &getL4FarmStruct($farm_name);
@@ -200,13 +176,9 @@ sub getL4FarmEstConns {
                     || $farm->{proto} eq "tcp")
                 {
                     $connections += scalar @{
-                        &getNetstatFilter(
-                            "tcp",
-                            "",
+                        &getNetstatFilter("tcp", "",
                             "\.* $established_filter src=\.* dst=$farm->{ vip } \.* dport=$regexp .*src=$backend->{ ip } \.*",
-                            "",
-                            $netstat
-                        )
+                            "", $netstat)
                     };
                 }
 
@@ -215,13 +187,8 @@ sub getL4FarmEstConns {
                     || $farm->{proto} eq "udp")
                 {
                     $connections += scalar @{
-                        &getNetstatFilter(
-                            "udp",
-                            "",
-                            "\.* src=\.* dst=$farm->{ vip } \.* dport=$regexp .*src=$backend->{ ip } \.*",
-                            "",
-                            $netstat
-                        )
+                        &getNetstatFilter("udp", "", "\.* src=\.* dst=$farm->{ vip } \.* dport=$regexp .*src=$backend->{ ip } \.*",
+                            "", $netstat)
                     };
                 }
             }
@@ -231,13 +198,9 @@ sub getL4FarmEstConns {
                     || $farm->{proto} eq "tcp")
                 {
                     $connections += scalar @{
-                        &getNetstatFilter(
-                            "tcp",
-                            "",
+                        &getNetstatFilter("tcp", "",
                             "\.* $established_filter src=\.* dst=$farm->{ vip } \.* dport=$regexp .*src=$backend->{ ip } \.*",
-                            "",
-                            $netstat
-                        )
+                            "", $netstat)
                     };
                 }
 
@@ -245,15 +208,8 @@ sub getL4FarmEstConns {
                     || $farm->{proto} eq "all"
                     || $farm->{proto} eq "udp")
                 {
-                    $connections += scalar @{
-                        &getNetstatFilter(
-                            "udp",
-                            "",
-                            "\.* src=\.* dst=$farm->{ vip } \.* dport=$regexp .*src=$backend->{ ip }",
-                            "",
-                            $netstat
-                        )
-                    };
+                    $connections += scalar @{ &getNetstatFilter("udp", "",
+                            "\.* src=\.* dst=$farm->{ vip } \.* dport=$regexp .*src=$backend->{ ip }", "", $netstat) };
                 }
             }
         }
@@ -273,9 +229,8 @@ UDP protocol doesn't have pending concept
 Parameters:
 
     farmname - Farm name
-
-    ip_backend - IP backend
-
+    be_ip - IP backend
+    be_port - Backend port
     netstat - reference to array with Conntrack -L output
 
 Returns:
@@ -288,10 +243,7 @@ FIXME:
 
 =cut
 
-sub getL4BackendSYNConns {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $be_ip, $be_port, $netstat) = @_;
-
+sub getL4BackendSYNConns ($farm_name, $be_ip, $be_port, $netstat) {
     my $farm = &getL4FarmStruct($farm_name);
 
     my @fportlist   = &getFarmPortList($farm->{vport});
@@ -317,13 +269,8 @@ sub getL4BackendSYNConns {
             || $farm->{proto} eq "tcp")
         {
             $connections += scalar @{
-                &getNetstatFilter(
-                    "tcp",
-                    "",
-                    "\.* SYN\.* src=\.* dst=$farm->{ vip } \.* dport=$regexp \.* src=$be_ip \.*$add_search",
-                    "",
-                    $netstat
-                )
+                &getNetstatFilter("tcp", "", "\.* SYN\.* src=\.* dst=$farm->{ vip } \.* dport=$regexp \.* src=$be_ip \.*$add_search",
+                    "", $netstat)
             };
         }
 
@@ -335,13 +282,8 @@ sub getL4BackendSYNConns {
             || $farm->{proto} eq "tcp")
         {
             $connections += scalar @{
-                &getNetstatFilter(
-                    "tcp",
-                    "",
-                    "\.* SYN\.* src=\.* dst=$farm->{ vip } \.* dport=$regexp \.* src=$be_ip \.*$add_search",
-                    "",
-                    $netstat
-                )
+                &getNetstatFilter("tcp", "", "\.* SYN\.* src=\.* dst=$farm->{ vip } \.* dport=$regexp \.* src=$be_ip \.*$add_search",
+                    "", $netstat)
             };
         }
 
@@ -361,8 +303,7 @@ UDP protocol doesn't have pending concept
 
 Parameters:
 
-    farmname - Farm name
-
+    farm_name - Farm name
     netstat - reference to array with Conntrack -L output
 
 Returns:
@@ -375,11 +316,7 @@ FIXME:
 
 =cut
 
-sub getL4FarmSYNConns    # ($farm_name,$netstat)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $netstat) = @_;
-
+sub getL4FarmSYNConns ($farm_name, $netstat) {
     my $farm = &getL4FarmStruct($farm_name);
 
     my @fportlist   = &getFarmPortList($farm->{vport});
@@ -404,13 +341,8 @@ sub getL4FarmSYNConns    # ($farm_name,$netstat)
                     || $farm->{proto} eq "tcp")
                 {
                     $connections += scalar @{
-                        &getNetstatFilter(
-                            "tcp",
-                            "",
-                            "\.* SYN\.* src=\.* dst=$farm->{ vip } \.* dport=$regexp \.* src=$backend->{ ip } \.*",
-                            "",
-                            $netstat
-                        )
+                        &getNetstatFilter("tcp", "", "\.* SYN\.* src=\.* dst=$farm->{ vip } \.* dport=$regexp \.* src=$backend->{ ip } \.*",
+                            "", $netstat)
                     };
                 }
 
@@ -422,13 +354,8 @@ sub getL4FarmSYNConns    # ($farm_name,$netstat)
                     || $farm->{proto} eq "tcp")
                 {
                     $connections += scalar @{
-                        &getNetstatFilter(
-                            "tcp",
-                            "",
-                            "\.* SYN\.* src=\.* dst=$farm->{ vip } \.* dport=$regexp \.* src=$backend->{ ip } \.*",
-                            "",
-                            $netstat
-                        )
+                        &getNetstatFilter("tcp", "", "\.* SYN\.* src=\.* dst=$farm->{ vip } \.* dport=$regexp \.* src=$backend->{ ip } \.*",
+                            "", $netstat)
                     };
                 }
 
@@ -454,31 +381,31 @@ Returns:
 
 =cut
 
-sub getL4FarmBackendsStats {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farmname = shift;
-
+sub getL4FarmBackendsStats ($farmname) {
     require Relianoid::Net::ConnStats;
     require Relianoid::Farm::L4xNAT::Config;
 
     # Get list of backend hashes and add stats
-    my $farm_st = &getL4FarmStruct($farmname);
-
+    my $farm_st  = &getL4FarmStruct($farmname);
     my $backends = $farm_st->{servers};
 
     foreach my $be (@{$backends}) {
+
+        # Copy port value, to keep getL4BackendEstConns and
+        # getL4BackendSYNConns from converting it to string.
+        my $port    = $be->{'port'};
         my $netstat = &getConntrack("", $farm_st->{vip}, $be->{'ip'}, "", "");
 
         # Established
         $be->{'established'} =
-          &getL4BackendEstConns($farmname, $be->{'ip'}, $be->{'port'}, $netstat);
+          &getL4BackendEstConns($farmname, $be->{'ip'}, $port, $netstat);
 
         # Pending
         $be->{'pending'} = 0;
 
         if ($farm_st->{proto} ne "udp") {
             $be->{'pending'} =
-              &getL4BackendSYNConns($farmname, $be->{'ip'}, $be->{'port'}, $netstat);
+              &getL4BackendSYNConns($farmname, $be->{'ip'}, $port, $netstat);
         }
     }
 

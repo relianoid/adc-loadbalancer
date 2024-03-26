@@ -23,20 +23,25 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 use Relianoid::FarmGuardian;
 use Relianoid::Farm::Config;
 use Relianoid::Farm::Backend;
 use Relianoid::Farm::L4xNAT::Config;
 
+=pod
+
+=head1 Module
+
+Relianoid::API40::Farm::Get::L4xNAT
+
+=cut
+
 my $eload = eval { require Relianoid::ELoad };
 
 # GET /farms/<farmname> Request info of a l4xnat Farm
-sub farms_name_l4    # ( $farmname )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farmname = shift;
-
+sub farms_name_l4 ($farmname) {
     my $out_p;
 
     my $farm   = &getL4FarmStruct($farmname);

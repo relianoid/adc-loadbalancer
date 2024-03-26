@@ -23,11 +23,12 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 use Relianoid::Config;
 use Relianoid::Nft;
 
-my $eload = eval { require Relianoid::ELoad };
+my $eload     = eval { require Relianoid::ELoad };
 my $configdir = &getGlobalConfiguration('configdir');
 
 =pod
@@ -55,22 +56,16 @@ Returns:
 
 =cut
 
-sub startL4Farm    # ($farm_name)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my $farm_name = shift;
-    my $writeconf = shift // 0;
-
+sub startL4Farm ($farm_name, $writeconf = 0) {
     require Relianoid::Farm::L4xNAT::Config;
 
-    &zlog("Starting farm $farm_name") if &debug == 2;
+    &zlog("Starting farm $farm_name") if &debug() == 2;
 
     my $status = 0;
     my $farm   = &getL4FarmStruct($farm_name);
 
     &zenlog("startL4Farm << farm_name:$farm_name")
-      if &debug;
+      if &debug();
 
     &loadL4Modules($$farm{vproto});
 
@@ -112,18 +107,13 @@ Returns:
 
 =cut
 
-sub stopL4Farm    # ($farm_name)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my $farm_name = shift;
-    my $writeconf = shift;
-    my $pidfile   = &getL4FarmPidFile($farm_name);
+sub stopL4Farm ($farm_name, $writeconf) {
+    my $pidfile = &getL4FarmPidFile($farm_name);
 
     require Relianoid::Farm::Core;
     require Relianoid::Farm::L4xNAT::Config;
 
-    &zlog("Stopping farm $farm_name") if &debug > 2;
+    &zlog("Stopping farm $farm_name") if &debug() > 2;
 
     my $farm = &getL4FarmStruct($farm_name);
 
@@ -168,12 +158,7 @@ Returns:
 
 =cut
 
-sub setL4NewFarmName    # ($farm_name, $new_farm_name)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm_name     = shift;
-    my $new_farm_name = shift;
-
+sub setL4NewFarmName ($farm_name, $new_farm_name) {
     my $err = &setL4FarmParam('name', "$new_farm_name", $farm_name);
 
     unlink "$configdir\/${farm_name}_l4xnat.cfg";
@@ -206,13 +191,8 @@ Returns:
 
 =cut
 
-sub copyL4Farm    # ($farm_name, $new_farm_name)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm_name     = shift;
-    my $new_farm_name = shift;
-    my $del           = shift // '';
-    my $output        = 0;
+sub copyL4Farm ($farm_name, $new_farm_name, $del = '') {
+    my $output = 0;
 
     use File::Copy qw(copy);
 
@@ -269,25 +249,19 @@ Returns:
 
 =cut
 
-sub loadL4FarmNlb    # ($farm_name)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm_name = shift;
-
+sub loadL4FarmNlb ($farm_name) {
     require Relianoid::Farm::Core;
 
     my $farmfile = &getFarmFile($farm_name);
 
     return 0 if ($farmfile eq "-1" or (!-e "$configdir/$farmfile"));
 
-    return &httpNlbRequest(
-        {
-            farm   => $farm_name,
-            method => "POST",
-            uri    => "/farms",
-            body   => qq(\@$configdir/$farmfile)
-        }
-    );
+    return &httpNlbRequest({
+        farm   => $farm_name,
+        method => "POST",
+        uri    => "/farms",
+        body   => qq(\@$configdir/$farmfile)
+    });
 }
 
 =pod
@@ -307,12 +281,7 @@ Returns:
 
 =cut
 
-sub startL4FarmNlb    # ($farm_name)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm_name = shift;
-    my $writeconf = shift;
-
+sub startL4FarmNlb ($farm_name, $writeconf) {
     require Relianoid::Farm::L4xNAT::Config;
 
     my $output = &setL4FarmParam(($writeconf) ? 'bootstatus' : 'status', "up", $farm_name);
@@ -344,12 +313,7 @@ Returns:
 
 =cut
 
-sub stopL4FarmNlb    # ($farm_name)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm_name = shift;
-    my $writeconf = shift;
-
+sub stopL4FarmNlb ($farm_name, $writeconf) {
     require Relianoid::Farm::Core;
 
     my $out = &setL4FarmParam(($writeconf) ? 'bootstatus' : 'status', "down", $farm_name);
@@ -373,10 +337,7 @@ Returns:
 
 =cut
 
-sub getL4FarmPidFile {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name) = @_;
-
+sub getL4FarmPidFile ($farm_name) {
     my $piddir  = &getGlobalConfiguration('piddir');
     my $pidfile = "$piddir/$farm_name\_l4xnat.pid";
 
@@ -406,11 +367,7 @@ Returns:
 
 =cut
 
-sub sendL4NlbCmd {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my $self    = shift;
-
+sub sendL4NlbCmd ($self) {
     my $cfgfile = "";
     my $output  = -1;
 
@@ -429,13 +386,11 @@ sub sendL4NlbCmd {
         my $file  = "/tmp/get_farm_$$";
         my $match = 0;
 
-        $output = &httpNlbRequest(
-            {
-                method => "GET",
-                uri    => "/farms/" . $self->{farm},
-                file   => "$file",
-            }
-        );
+        $output = &httpNlbRequest({
+            method => "GET",
+            uri    => "/farms/" . $self->{farm},
+            file   => "$file",
+        });
 
         if (-e "$file") {
             open my $fh, "<", $file;
@@ -496,30 +451,6 @@ sub sendL4NlbCmd {
     $output = &httpNlbRequest($self);
 
     return $output;
-}
-
-=pod
-
-=head1 saveL4Conf
-
-=cut
-
-sub saveL4Conf {
-    my $farm = shift;
-
-    my $configdir = &getGlobalConfiguration('configdir');
-    my $farmfile  = &getFarmFile($farm);
-    my $file      = "$configdir/$farmfile";
-
-    my $req = {
-        method => "GET",
-        file   => $file,
-        uri    => "/farms/" . $farm,
-    };
-
-    my $err = &httpNlbRequest($req);
-
-    return $err;
 }
 
 1;

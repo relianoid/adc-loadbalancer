@@ -32,6 +32,7 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 use Getopt::Long;
 use Relianoid::Config;
@@ -68,7 +69,7 @@ GetOptions(
 
 # check params
 
-if ((not defined $vip && !defined $farm_name)) {
+if ((!defined $vip && !defined $farm_name)) {
     $msg = "No 'vip' or 'farm' param found.";
     &zenlog($msg, "ERROR", "Letsencryptz-renewal");
     exit 2;

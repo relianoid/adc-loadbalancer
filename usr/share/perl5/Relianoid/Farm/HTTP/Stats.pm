@@ -23,6 +23,7 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 my $eload = eval { require Relianoid::ELoad };
 
@@ -42,7 +43,7 @@ Get all ESTABLISHED connections for a farm
 
 Parameters:
 
-    farmname - Farm name
+    farm_name - Farm name
 
 Returns:
 
@@ -50,10 +51,7 @@ Returns:
 
 =cut
 
-sub getHTTPFarmEstConns    # ($farm_name)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name) = @_;
+sub getHTTPFarmEstConns ($farm_name) {
     my $count = 0;
 
     my $vip      = &getFarmVip("vip",  $farm_name);
@@ -82,7 +80,7 @@ Get all SYN connections for a farm
 
 Parameters:
 
-    farmname - Farm name
+    farm_name - Farm name
 
 Returns:
 
@@ -90,11 +88,7 @@ Returns:
 
 =cut
 
-sub getHTTPFarmSYNConns    # ($farm_name)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name) = @_;
-
+sub getHTTPFarmSYNConns ($farm_name) {
     my $vip      = &getFarmVip("vip",  $farm_name);
     my $vip_port = &getFarmVip("vipp", $farm_name);
 
@@ -126,9 +120,10 @@ Get all ESTABLISHED connections for a backend
 
 Parameters:
 
-    farmname     - Farm name
+    farm_name    - Farm name
     backend_ip   - IP backend
     backend_port - backend port
+    mark
 
 Returns:
 
@@ -140,12 +135,7 @@ BUG:
 
 =cut
 
-sub getHTTPBackendEstConns    # ($farm_name,$backend_ip,$backend_port, $netstat)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my ($farm_name, $backend_ip, $backend_port, $mark) = @_;
-
+sub getHTTPBackendEstConns ($farm_name, $backend_ip, $backend_port, $mark = undef) {
     my $filter = {
         proto         => 'tcp',
         orig_dst      => $backend_ip,
@@ -172,9 +162,10 @@ Get all SYN connections for a backend
 
 Parameters:
 
-    farmname     - Farm name
+    farm_name    - Farm name
     backend_ip   - IP backend
     backend_port - backend port
+    mark
 
 Returns:
 
@@ -186,12 +177,7 @@ BUG:
 
 =cut
 
-sub getHTTPBackendSYNConns    # ($farm_name, $backend_ip, $backend_port)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my ($farm_name, $backend_ip, $backend_port, $mark) = @_;
-
+sub getHTTPBackendSYNConns ($farm_name, $backend_ip, $backend_port, $mark = undef) {
     my $filter = {
         proto         => 'tcp',
         orig_dst      => $backend_ip,
@@ -222,7 +208,8 @@ This function take data from pounctl or zproxy and it gives hash format
 
 Parameters:
 
-    farmname - Farm name
+    farm_name    - Farm name
+    service_name - Service name
 
 Returns:
 
@@ -230,12 +217,7 @@ Returns:
 
 =cut
 
-sub getHTTPFarmBackendsStats    # ($farm_name,$service_name)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my ($farm_name, $service_name) = @_;
-
+sub getHTTPFarmBackendsStats ($farm_name, $service_name) {
     if (&getGlobalConfiguration('proxy_ng') eq 'true') {
         return &getZproxyHTTPFarmBackendsStats($farm_name, $service_name);
     }
@@ -252,7 +234,8 @@ This function take data from zproxy and gives it as hash format
 
 Parameters:
 
-    farmname - Farm name
+    farm_name    - Farm name
+    service_name - Service name
 
 Returns:
 
@@ -275,8 +258,8 @@ Returns:
             "id"           = $backend id        # id associated to a backend, it can change depend of session type
             "backend_ip"   = $backend ip        # it is the backend ip
             "backend_port" = $backend port      # it is the backend port
-            "service"      = $service name          
-            "session"      = $session identifier    # it depends on the persistence mode 
+            "service"      = $service name
+            "session"      = $session identifier    # it depends on the persistence mode
             "ttl"          = $ttl               # time remaining to delete session
         }
     ]
@@ -284,11 +267,7 @@ Returns:
     of -1 if error
 =cut
 
-sub getZproxyHTTPFarmBackendsStats    # ($farm_name, $service_name)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $service_name) = @_;
-
+sub getZproxyHTTPFarmBackendsStats ($farm_name, $service_name = undef) {
     require JSON;
     require Relianoid::Farm::HTTP::Config;
     require Relianoid::Farm::HTTP::Service;
@@ -407,7 +386,8 @@ This function take data from pounctl and it gives hash format
 
 Parameters:
 
-    farmname - Farm name
+    farm_name    - Farm name
+    service_name - Service name
 
 Returns:
 
@@ -429,8 +409,8 @@ Returns:
             "id"           = $session_id        # id associated to a backend, it can change depend of session type
             "backend_ip"   = $backend ip        # it is the backend ip
             "backend_port" = $backend port      # it is the backend port
-            "service"      = $service name          
-            "session"      = $session identifier    # it depends on the persistence mode 
+            "service"      = $service name
+            "session"      = $session identifier    # it depends on the persistence mode
         }
     ]
 
@@ -440,11 +420,7 @@ FIXME:
 
 =cut
 
-sub getPoundHTTPFarmBackendsStats    # ($farm_name,$service_name)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $service_name) = @_;
-
+sub getPoundHTTPFarmBackendsStats ($farm_name, $service_name = undef) {
     require Relianoid::Farm::Base;
     require Relianoid::Farm::HTTP::Config;
     require Relianoid::Validate;
@@ -496,10 +472,7 @@ sub getPoundHTTPFarmBackendsStats    # ($farm_name,$service_name)
         # Parse backend connections
         # i.e.
         #      0. Backend 192.168.100.254:80 active (5 0.000 sec) alive (0)
-        if ($line =~
-            /(\d+)\. Backend (\d+\.\d+\.\d+\.\d+|[a-fA-F0-9:]+):(\d+) (\w+) .+ (\w+)(?: \((\d+)\))?/
-          )
-        {
+        if ($line =~ /(\d+)\. Backend (\d+\.\d+\.\d+\.\d+|[a-fA-F0-9:]+):(\d+) (\w+) .+ (\w+)(?: \((\d+)\))?/) {
             my $backendHash = {
                 id      => $1 + 0,
                 ip      => $2,
@@ -508,10 +481,10 @@ sub getPoundHTTPFarmBackendsStats    # ($farm_name,$service_name)
                 pending => 0,
                 service => $serviceName,
             };
-            $backendHash->{alias} = $alias->{$2} if $eload;
-            $backend_info->{ $backendHash->{id} }->{ip} = $backendHash->{ip};
-            $backend_info->{ $backendHash->{id} }->{port} =
-              $backendHash->{port};
+
+            $backendHash->{alias}                         = $alias->{$2} if $eload;
+            $backend_info->{ $backendHash->{id} }->{ip}   = $backendHash->{ip};
+            $backend_info->{ $backendHash->{id} }->{port} = $backendHash->{port};
 
             if (defined $6) {
                 $backendHash->{established} = $6 + 0;
@@ -547,6 +520,9 @@ sub getPoundHTTPFarmBackendsStats    # ($farm_name,$service_name)
 
             $backendHash->{pending} =
               &getBackendSYNConns($farm_name, $backendHash->{ip}, $backendHash->{port});
+
+            # Workaround: getBackendSYNConns changes the port to string
+            $backendHash->{port} += 0;
 
             push(@{ $stats->{backends} }, $backendHash);
         }

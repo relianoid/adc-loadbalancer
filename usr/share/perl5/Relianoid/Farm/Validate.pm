@@ -24,7 +24,6 @@
 use strict;
 use warnings;
 use feature qw(signatures);
-no warnings 'experimental::args_array_with_signatures';
 
 =pod
 
@@ -51,8 +50,6 @@ Returns:
 =cut
 
 sub priorityAlgorithmIsOK ($priority_ref) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     use List::Util qw( min max );
     my @backends = sort @{$priority_ref};
     my @backendstmp;

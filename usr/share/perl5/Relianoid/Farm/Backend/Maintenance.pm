@@ -23,6 +23,7 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 =pod
 
@@ -40,12 +41,12 @@ Function that enable the maintenance mode for backend
 
 Parameters:
 
-    farmname -  Farm name
-    backend  -  Backend id
-    mode     -  Maintenance mode, the options are: 
-                - drain: the backend continues working with the established connections
-                - cut:   the backend cuts all the established connections
-    service  -  Service name
+    farm_name -  Farm name
+    backend   -  Backend id
+    mode      -  Maintenance mode, the options are:
+                 - drain: the backend continues working with the established connections
+                 - cut:   the backend cuts all the established connections
+    service   -  Service name, required for http only
 
 Returns:
 
@@ -53,11 +54,7 @@ Returns:
 
 =cut
 
-sub setFarmBackendMaintenance    # ($farm_name,$backend,$mode,$service)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $backend, $mode, $service) = @_;
-
+sub setFarmBackendMaintenance ($farm_name, $backend, $mode, $service = undef) {
     my $farm_type = &getFarmType($farm_name);
     my $output    = -1;
 
@@ -81,9 +78,9 @@ Function that disable the maintenance mode for backend
 
 Parameters:
 
-    farmname - Farm name
-    backend  - Backend id
-    service  - Service name
+    farm_name - Farm name
+    backend   - Backend id
+    service   - Service name
 
 Returns:
 
@@ -91,11 +88,7 @@ Returns:
 
 =cut
 
-sub setFarmBackendNoMaintenance    # ($farm_name,$backend,$service)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $backend, $service) = @_;
-
+sub setFarmBackendNoMaintenance ($farm_name, $backend, $service = undef) {
     my $farm_type = &getFarmType($farm_name);
     my $output    = -1;
 

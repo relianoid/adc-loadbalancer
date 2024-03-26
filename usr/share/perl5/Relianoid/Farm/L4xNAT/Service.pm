@@ -23,6 +23,7 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 my $eload = eval { require Relianoid::ELoad };
 
@@ -52,9 +53,7 @@ Returns:
 
 =cut
 
-sub loadL4FarmModules {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
+sub loadL4FarmModules () {
     my $modprobe_bin = &getGlobalConfiguration("modprobe");
     my $error        = 0;
     if ($eload) {

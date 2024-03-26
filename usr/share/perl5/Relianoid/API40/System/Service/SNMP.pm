@@ -23,25 +23,29 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 use Relianoid::SNMP;
 
-# GET /system/snmp
-sub get_snmp {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+=pod
 
+=head1 Module
+
+Relianoid::API40::System::Service::SNMP
+
+=cut
+
+# GET /system/snmp
+sub get_snmp () {
     my $desc = "Get snmp";
-    my $snmp = &translateSNMPConfigToApi( &getSnmpdConfig() );
+    my $snmp = &translateSNMPConfigToApi(&getSnmpdConfig());
 
     &httpResponse({ code => 200, body => { description => $desc, params => $snmp } });
     return;
 }
 
 #  POST /system/snmp
-sub set_snmp {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $json_obj = shift;
-
+sub set_snmp ($json_obj) {
     my $desc = "Post snmp";
 
     require Relianoid::Net::Interface;
@@ -53,29 +57,28 @@ sub set_snmp {
 
     # Check allowed parameters
     my $error_msg = &checkApiParams($json_obj, $params, $desc);
-    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+    return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg })
       if ($error_msg);
 
     # check scope value
     if (defined $json_obj->{'scope'}) {
         my $network = NetAddr::IP->new($json_obj->{'scope'})->network();
         if ($network ne $json_obj->{'scope'}) {
-            my $msg =
-              "The value '$json_obj->{ 'scope' }' is not a valid network value for the parameter 'scope'.";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            my $msg = "The value '$json_obj->{ 'scope' }' is not a valid network value for the parameter 'scope'.";
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }
 
-    my $snmp       = &getSnmpdConfig();
+    my $snmp = &getSnmpdConfig();
 
-    my $status = $json_obj->{'status'} // $snmp->{ status };
+    my $status = $json_obj->{'status'} // $snmp->{status};
     my $port   = $json_obj->{'port'}   // $snmp->{port};
     my $ip     = $json_obj->{'ip'}     // $snmp->{ip};
 
     if (($port ne $snmp->{port}) or ($ip ne $snmp->{ip})) {
         if ($status eq 'true' and not &validatePort($ip, $port, 'udp', undef, 'snmp')) {
             my $msg = "The '$ip' ip and '$port' port are in use.";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }
 
@@ -85,20 +88,20 @@ sub set_snmp {
     }
 
     my $error = &setSnmpdConfig($snmp);
-    &translateSNMPConfigToApi( $snmp );
+    &translateSNMPConfigToApi($snmp);
 
     if ($error) {
         my $msg = "There was an error modifying SNMP.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
-    if ($status eq 'true' && $snmp->{ status } eq 'false') {
+    if ($status eq 'true' && $snmp->{status} eq 'false') {
         &setSnmpdStatus('true');
     }
-    elsif ($status eq 'false' && $snmp->{ status } eq 'true') {
+    elsif ($status eq 'false' && $snmp->{status} eq 'true') {
         &setSnmpdStatus('false');
     }
-    elsif ($status ne 'false' && $snmp->{ status } ne 'false') {
+    elsif ($status ne 'false' && $snmp->{status} ne 'false') {
         &setSnmpdStatus('false');
         &setSnmpdStatus('true');
     }
@@ -107,16 +110,14 @@ sub set_snmp {
     sleep(1);
     $snmp->{status} = &getSnmpdStatus();
 
-    &httpResponse(
-        {
-            code => 200,
-            body => {
-                description => $desc,
-                params      => $snmp,
-                message     => "The SNMP service has been updated successfully."
-            }
+    &httpResponse({
+        code => 200,
+        body => {
+            description => $desc,
+            params      => $snmp,
+            message     => "The SNMP service has been updated successfully."
         }
-    );
+    });
     return;
 }
 

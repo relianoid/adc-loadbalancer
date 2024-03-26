@@ -23,6 +23,7 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 use Carp;
 use RRDs;
@@ -64,8 +65,7 @@ Returns:
 
 =cut
 
-sub translateRRDTime {
-    my $time = shift;
+sub translateRRDTime ($time) {
     if (!defined $time) {
         return "now";
     }
@@ -101,9 +101,7 @@ Returns:
 
 =cut
 
-sub logRRDError {
-    my $graph = shift;
-
+sub logRRDError ($graph) {
     my $rrdError = RRDs::error;
     if ($rrdError || !-s $graph) {
         $rrdError //= 'The graph was not generated';
@@ -132,10 +130,7 @@ Returns:
 
 =cut
 
-sub getRRDAxisXLimits {
-    my $start = shift;
-    my $last  = shift;
-
+sub getRRDAxisXLimits ($start, $last) {
     my $format = "%m-%d-%Y-%H:%M";
 
     use Time::localtime;
@@ -173,11 +168,7 @@ See Also:
 
 =cut
 
-sub printImgFile    #($file)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($file) = @_;
-
+sub printImgFile ($file) {
     if (open my $png, '<', $file) {
         my $raw_string = do { local $/ = undef; <$png>; };
         my $encoded    = encode_base64($raw_string);
@@ -213,12 +204,7 @@ See Also:
 
 =cut
 
-sub delGraph    #($name, type)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $name = shift;
-    my $type = shift;
-
+sub delGraph ($name, $type) {
     my $rrdap_dir = &getGlobalConfiguration('rrdap_dir');
     my $rrd_dir   = &getGlobalConfiguration('rrd_dir');
 
@@ -274,11 +260,7 @@ See Also:
 
 =cut
 
-sub printGraph    #($type,$time)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($type, $time, $end) = @_;
-
+sub printGraph ($type, $time, $end = "now") {
     my $img_dir = &getGlobalConfiguration('img_dir');
     my $graph   = $img_dir . "/" . $type . "_" . $time . ".png";
 
@@ -343,7 +325,7 @@ Parameters:
 
     type - Database name without extension.
     graph - Path to file to be generated.
-    time - time which the graph starts. Format: MM-DD-YYYY-HH:mm (ie: 11-09-2020-14:05)
+    start - time which the graph starts. Format: MM-DD-YYYY-HH:mm (ie: 11-09-2020-14:05)
     end - time which the graph stops
 
 
@@ -359,11 +341,7 @@ See Also:
 
 =cut
 
-sub genCpuGraph    #($type,$graph,$time)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($type, $graph, $start, $end) = @_;
-
+sub genCpuGraph ($type, $graph, $start, $end) {
     my $db_cpu = "$rrdap_dir/$rrd_dir/$type.rrd";
 
     if (-e $db_cpu) {
@@ -442,7 +420,7 @@ Parameters:
 
     type - Database name without extension.
     graph - Path to file to be generated.
-    time - time which the graph starts. Format: MM-DD-YYYY-HH:mm (ie: 11-09-2020-14:05)
+    start - time which the graph starts. Format: MM-DD-YYYY-HH:mm (ie: 11-09-2020-14:05)
     end - time which the graph stops
 
 Returns:
@@ -457,11 +435,7 @@ See Also:
 
 =cut
 
-sub genDiskGraph    #($type,$graph,$time)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($type, $graph, $start, $end) = @_;
-
+sub genDiskGraph ($type, $graph, $start, $end) {
     my $db_hd = "$rrdap_dir/$rrd_dir/$type.rrd";
 
     my $dev = $type;
@@ -505,7 +479,8 @@ Parameters:
 
     type - Database name without extension.
     graph - Path to file to be generated.
-    time - Period of time shown in the graph.
+    start - Period of time shown in the graph.
+    end - End time period
 
 Returns:
 
@@ -519,11 +494,7 @@ See Also:
 
 =cut
 
-sub genLoadGraph    #($type,$graph,$time)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($type, $graph, $start, $end) = @_;
-
+sub genLoadGraph ($type, $graph, $start, $end) {
     my $db_load = "$rrdap_dir/$rrd_dir/$type.rrd";
 
     if (-e $db_load) {
@@ -558,7 +529,7 @@ Parameters:
 
     type - Database name without extension.
     graph - Path to file to be generated.
-    time - time which the graph starts. Format: MM-DD-YYYY-HH:mm (ie: 11-09-2020-14:05)
+    start - time which the graph starts. Format: MM-DD-YYYY-HH:mm (ie: 11-09-2020-14:05)
     end - time which the graph stops
 
 Returns:
@@ -573,11 +544,7 @@ See Also:
 
 =cut
 
-sub genMemGraph    #($type,$graph,$time)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($type, $graph, $start, $end) = @_;
-
+sub genMemGraph ($type, $graph, $start, $end) {
     my $db_mem = "$rrdap_dir/$rrd_dir/$type.rrd";
 
     if (-e $db_mem) {
@@ -616,7 +583,7 @@ Parameters:
 
     type - Database name without extension.
     graph - Path to file to be generated.
-    time - time which the graph starts. Format: MM-DD-YYYY-HH:mm (ie: 11-09-2020-14:05)
+    start - time which the graph starts. Format: MM-DD-YYYY-HH:mm (ie: 11-09-2020-14:05)
     end - time which the graph stops
 
 Returns:
@@ -631,11 +598,7 @@ See Also:
 
 =cut
 
-sub genMemSwGraph    #($type,$graph,$time)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($type, $graph, $start, $end) = @_;
-
+sub genMemSwGraph ($type, $graph, $start, $end) {
     my $db_memsw = "$rrdap_dir/$rrd_dir/$type.rrd";
 
     if (-e $db_memsw) {
@@ -674,7 +637,7 @@ Parameters:
 
     type - Database name without extension.
     graph - Path to file to be generated.
-    time - time which the graph starts. Format: MM-DD-YYYY-HH:mm (ie: 11-09-2020-14:05)
+    start - time which the graph starts. Format: MM-DD-YYYY-HH:mm (ie: 11-09-2020-14:05)
     end - time which the graph stops
 
 Returns:
@@ -689,45 +652,27 @@ See Also:
 
 =cut
 
-sub genNetGraph    #($type,$graph,$time)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($type, $graph, $start, $end) = @_;
-
+sub genNetGraph ($type, $graph, $start, $end) {
     my $db_if   = "$rrdap_dir/$rrd_dir/$type.rrd";
     my $if_name = $type;
     $if_name =~ s/iface//g;
 
     if (-e $db_if) {
         RRDs::graph(
-            "$graph",
-            "--imgformat=$imagetype",
-            "--start=$start",
-            "--end=$end",
-            "--height=$height",
-            "--width=$width",
-            "--lazy",
-            "-l 0",
-            "--alt-autoscale-max",
-            "--title=TRAFFIC ON $if_name",
-            "--vertical-label=BANDWIDTH",
-            "DEF:in=$db_if:in:AVERAGE",
-            "DEF:out=$db_if:out:AVERAGE",
-            "CDEF:in_bytes=in,1024,*",
-            "CDEF:out_bytes=out,1024,*",
-            "CDEF:out_bytes_neg=out_bytes,-1,*",
-            "AREA:in_bytes#46b971:In ",
-            "LINE1:in_bytes#000000",
-            "GPRINT:in_bytes:LAST:Last\\:%5.1lf %sByte/sec",
-            "GPRINT:in_bytes:MIN:Min\\:%5.1lf %sByte/sec",
-            "GPRINT:in_bytes:AVERAGE:Avg\\:%5.1lf %sByte/sec",
-            "GPRINT:in_bytes:MAX:Max\\:%5.1lf %sByte/sec\\n",
-            "AREA:out_bytes_neg#595959:Out",
-            "LINE1:out_bytes_neg#000000",
-            "GPRINT:out_bytes:LAST:Last\\:%5.1lf %sByte/sec",
-            "GPRINT:out_bytes:MIN:Min\\:%5.1lf %sByte/sec",
-            "GPRINT:out_bytes:AVERAGE:Avg\\:%5.1lf %sByte/sec",
-            "GPRINT:out_bytes:MAX:Max\\:%5.1lf %sByte/sec\\n",
+            "$graph",                                           "--imgformat=$imagetype",
+            "--start=$start",                                   "--end=$end",
+            "--height=$height",                                 "--width=$width",
+            "--lazy",                                           "-l 0",
+            "--alt-autoscale-max",                              "--title=TRAFFIC ON $if_name",
+            "--vertical-label=BANDWIDTH",                       "DEF:in=$db_if:in:AVERAGE",
+            "DEF:out=$db_if:out:AVERAGE",                       "CDEF:in_bytes=in,1024,*",
+            "CDEF:out_bytes=out,1024,*",                        "CDEF:out_bytes_neg=out_bytes,-1,*",
+            "AREA:in_bytes#46b971:In ",                         "LINE1:in_bytes#000000",
+            "GPRINT:in_bytes:LAST:Last\\:%5.1lf %sByte/sec",    "GPRINT:in_bytes:MIN:Min\\:%5.1lf %sByte/sec",
+            "GPRINT:in_bytes:AVERAGE:Avg\\:%5.1lf %sByte/sec",  "GPRINT:in_bytes:MAX:Max\\:%5.1lf %sByte/sec\\n",
+            "AREA:out_bytes_neg#595959:Out",                    "LINE1:out_bytes_neg#000000",
+            "GPRINT:out_bytes:LAST:Last\\:%5.1lf %sByte/sec",   "GPRINT:out_bytes:MIN:Min\\:%5.1lf %sByte/sec",
+            "GPRINT:out_bytes:AVERAGE:Avg\\:%5.1lf %sByte/sec", "GPRINT:out_bytes:MAX:Max\\:%5.1lf %sByte/sec\\n",
             "HRULE:0#000000"
         );
     }
@@ -745,7 +690,7 @@ Parameters:
 
     type - Database name without extension.
     graph - Path to file to be generated.
-    time - time which the graph starts. Format: MM-DD-YYYY-HH:mm (ie: 11-09-2020-14:05)
+    start - time which the graph starts. Format: MM-DD-YYYY-HH:mm (ie: 11-09-2020-14:05)
     end - time which the graph stops
 
 Returns:
@@ -760,11 +705,7 @@ See Also:
 
 =cut
 
-sub genFarmGraph    #($type,$graph,$time)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($type, $graph, $start, $end) = @_;
-
+sub genFarmGraph ($type, $graph, $start, $end) {
     my $db_farm = "$rrdap_dir/$rrd_dir/$type.rrd";
     my $fname   = $type;
     $fname =~ s/-farm$//g;
@@ -834,45 +775,27 @@ See Also:
 
 =cut
 
-sub genVPNGraph    #($type,$graph,$time)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($type, $graph, $time) = @_;
-
+sub genVPNGraph ($type, $graph, $time) {
     my $db_vpn   = "$type.rrd";
     my $vpn_name = $type;
     $vpn_name =~ s/-vpn$//g;
 
     if (-e "$rrdap_dir/$rrd_dir/$db_vpn") {
         RRDs::graph(
-            "$graph",
-            "--imgformat=$imagetype",
-            "--start=-1$time",
-            "--height=$height",
-            "--width=$width",
-            "--lazy",
-            "-l 0",
-            "--alt-autoscale-max",
-            "--title=TRAFFIC ON $vpn_name",
-            "--vertical-label=BANDWIDTH",
-            "DEF:in=$rrdap_dir/$rrd_dir/$db_vpn:in:AVERAGE",
-            "DEF:out=$rrdap_dir/$rrd_dir/$db_vpn:out:AVERAGE",
-            "CDEF:in_bytes=in,1024,*",
-            "CDEF:out_bytes=out,1024,*",
-            "CDEF:out_bytes_neg=out_bytes,-1,*",
-            "AREA:in_bytes#46b971:In ",
-            "LINE1:in_bytes#000000",
-            "GPRINT:in_bytes:LAST:Last\\:%5.1lf %sByte/sec",
-            "GPRINT:in_bytes:MIN:Min\\:%5.1lf %sByte/sec",
-            "GPRINT:in_bytes:AVERAGE:Avg\\:%5.1lf %sByte/sec",
-            "GPRINT:in_bytes:MAX:Max\\:%5.1lf %sByte/sec\\n",
-            "AREA:out_bytes_neg#595959:Out",
-            "LINE1:out_bytes_neg#000000",
-            "GPRINT:out_bytes:LAST:Last\\:%5.1lf %sByte/sec",
-            "GPRINT:out_bytes:MIN:Min\\:%5.1lf %sByte/sec",
-            "GPRINT:out_bytes:AVERAGE:Avg\\:%5.1lf %sByte/sec",
-            "GPRINT:out_bytes:MAX:Max\\:%5.1lf %sByte/sec\\n",
-            "HRULE:0#000000"
+            "$graph",                                          "--imgformat=$imagetype",
+            "--start=-1$time",                                 "--height=$height",
+            "--width=$width",                                  "--lazy",
+            "-l 0",                                            "--alt-autoscale-max",
+            "--title=TRAFFIC ON $vpn_name",                    "--vertical-label=BANDWIDTH",
+            "DEF:in=$rrdap_dir/$rrd_dir/$db_vpn:in:AVERAGE",   "DEF:out=$rrdap_dir/$rrd_dir/$db_vpn:out:AVERAGE",
+            "CDEF:in_bytes=in,1024,*",                         "CDEF:out_bytes=out,1024,*",
+            "CDEF:out_bytes_neg=out_bytes,-1,*",               "AREA:in_bytes#46b971:In ",
+            "LINE1:in_bytes#000000",                           "GPRINT:in_bytes:LAST:Last\\:%5.1lf %sByte/sec",
+            "GPRINT:in_bytes:MIN:Min\\:%5.1lf %sByte/sec",     "GPRINT:in_bytes:AVERAGE:Avg\\:%5.1lf %sByte/sec",
+            "GPRINT:in_bytes:MAX:Max\\:%5.1lf %sByte/sec\\n",  "AREA:out_bytes_neg#595959:Out",
+            "LINE1:out_bytes_neg#000000",                      "GPRINT:out_bytes:LAST:Last\\:%5.1lf %sByte/sec",
+            "GPRINT:out_bytes:MIN:Min\\:%5.1lf %sByte/sec",    "GPRINT:out_bytes:AVERAGE:Avg\\:%5.1lf %sByte/sec",
+            "GPRINT:out_bytes:MAX:Max\\:%5.1lf %sByte/sec\\n", "HRULE:0#000000"
         );
 
         my $rrdError = RRDs::error;
@@ -898,16 +821,12 @@ Returns:
 
 See Also:
 
-    zapi/v3/system_stats.cgi
+    api/v4/system_stats.cgi
 
 =cut
 
 #function that returns the graph list to show
-sub getGraphs2Show    #($graphtype)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($graphtype) = @_;
-
+sub getGraphs2Show ($graphtype) {
     my @results = ();
     my @dir_list;
     if (opendir(my $dir, "$rrdap_dir/$rrd_dir")) {
@@ -920,24 +839,24 @@ sub getGraphs2Show    #($graphtype)
 
     if ($graphtype eq 'System') {
         my @disk = grep { /^dev-.*$/ } @dir_list;
-        for (@disk) { s/.rrd$//g };
+        for (@disk) { s/.rrd$//g }
         @results = ("cpu", @disk, "load", "mem", "memsw");
     }
     elsif ($graphtype eq 'Network') {
         @results = grep { /iface.rrd$/ } @dir_list;
-        for (@results) { s/.rrd$//g };
+        for (@results) { s/.rrd$//g }
     }
     elsif ($graphtype eq 'Farm') {
         @results = grep { /farm.rrd$/ } @dir_list;
-        for (@results) { s/.rrd$//g };
+        for (@results) { s/.rrd$//g }
     }
     elsif ($graphtype eq 'VPN') {
         @results = grep { /vpn.rrd$/ } @dir_list;
-        for (@results) { s/.rrd$//g };
+        for (@results) { s/.rrd$//g }
     }
     else {
         @results = grep { /.rrd$/ } @dir_list;
-        for (@results) { s/.rrd$//g };
+        for (@results) { s/.rrd$//g }
     }
 
     return @results;

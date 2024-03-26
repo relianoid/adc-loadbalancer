@@ -24,7 +24,6 @@
 use strict;
 use warnings;
 use feature qw(signatures);
-no warnings 'experimental::args_array_with_signatures';
 
 use Relianoid::Log;
 use Relianoid::Farm::Core;
@@ -38,7 +37,7 @@ use Relianoid::Net::Util;
 use Relianoid::Lock;
 
 local $ENV{SCRIPT_NAME} = 'relianoid';
-local $SIG{__WARN__} = \&warning_signal;
+local $SIG{__WARN__}    = \&warning_signal;
 
 my $eload = eval { require Relianoid::ELoad };
 
@@ -66,9 +65,7 @@ sub printAndLog (@params) {
 }
 
 # Read interfaces data blocks
-sub getInterfaceBlocks {
-    my @file_lines = @_;
-
+sub getInterfaceBlocks (@file_lines) {
     my @interface_list = ();
     my @interface      = ();
     my $in_block       = undef;
@@ -104,9 +101,7 @@ sub getInterfaceBlocks {
     return @interface_list;
 }
 
-sub local_http_service {
-    my ($command) = @_;
-
+sub local_http_service ($command) {
     die "local_http_service '$command' command not recognized"
       unless $command =~ /^(?:start|stop|restart)$/;
 
@@ -159,7 +154,7 @@ if ($action eq "start") {
             module => $mod,
             func   => 'service_cert_message',
         );
-        print $print_msg . "\n";
+        print $print_msg . "\n" if $print_msg;
     }
 
     # Load required modules
@@ -253,7 +248,7 @@ if ($action eq "start") {
     # enterprise hook
     if ($eload) {
         $print_msg = &eload(module => $mod, func => 'start_service');
-        print $print_msg . "\n";
+        print $print_msg if $print_msg;
     }
 
     print("* Starting Interfaces:\n");
@@ -328,10 +323,10 @@ if ($action eq "start") {
                 &upIf($iface);
 
                 if (exists $$iface{addr} and length $$iface{addr}) {
-                    print("    Ip:$$iface{addr} Netmask:$$iface{mask}");
+                    print("    Ip:$$iface{addr} Netmask:$$iface{mask} ");
 
                     if (defined $$iface{gateway} and $$iface{gateway} ne '') {
-                        print(" Gateway:$$iface{gateway}");
+                        print("Gateway:$$iface{gateway} ");
                     }
 
                     my $return_code = &addIp($iface);
@@ -349,10 +344,10 @@ if ($action eq "start") {
                     &applyRoutes("local", $iface);
 
                     if ($return_code == 0) {
-                        print(" \033[1;32m OK \033[0m \n");
+                        print("\033[1;32m OK \033[0m\n");
                     }
                     else {
-                        print(" \033[1;31m ERROR \033[0m \n");
+                        print("\033[1;31m ERROR \033[0m\n");
                     }
                 }
 
@@ -390,10 +385,10 @@ if ($action eq "start") {
 
             if ($$iface{status} eq "up") {
                 print("  * Starting interface $$iface{name}\n");
-                print("    Ip:$$iface{addr} Netmask:$$iface{mask}");
+                print("    Ip:$$iface{addr} Netmask:$$iface{mask} ");
 
                 if ($$iface{gateway}) {
-                    print(" Gateway:$$iface{gateway}");
+                    print("Gateway:$$iface{gateway} ");
                 }
 
                 &upIf($iface);
@@ -405,10 +400,10 @@ if ($action eq "start") {
                 }
 
                 if ($return_code == 0) {
-                    print(" \033[1;32m OK \033[0m \n");
+                    print("\033[1;32m OK \033[0m\n");
                 }
                 else {
-                    print(" \033[1;31m ERROR \033[0m \n");
+                    print("\033[1;31m ERROR \033[0m\n");
                 }
 
                 &applyRoutes("local", $iface);
@@ -420,20 +415,19 @@ if ($action eq "start") {
         }
     }
 
-    # Hook to enable cluster
+    # Hook to enable cluster and modules
     if ($eload) {
         &zenlog("RELIANOID: Setting up Cluster...");
 
         $print_msg = &eload(module => $mod, func => 'start_cluster');
-        print $print_msg . "\n";
+        print $print_msg . "\n" if $print_msg;
 
         $print_msg = &eload(module => $mod, func => 'enable_cluster');
-        print $print_msg . "\n";
+        print $print_msg . "\n" if $print_msg;
 
         # enable modules
         $print_msg = &eload(module => $mod, func => 'start_modules');
-        print $print_msg . "\n";
-
+        print $print_msg if $print_msg;
     }
 
     &zenlog("RELIANOID: Setting up virtual interfaces...");
@@ -655,17 +649,17 @@ if ($action eq "start") {
 }
 
 if ($action eq "stop") {
-    &printAndLog("Stopping RELIANOID Load Balancer...\n");
+    &printAndLog("Stopping RELIANOID Load Balancer...");
 
     if ($eload) {
         $print_msg = &eload(
             module => $mod,
             func   => 'service_cert_message',
         );
-        print $print_msg . "\n";
+        print $print_msg . "\n" if $print_msg;
 
         $print_msg = &eload(module => $mod, func => 'stop_service');
-        print $print_msg . "\n";
+        print $print_msg . "\n" if $print_msg;
     }
 
     print("* Stopping Farms:\n");

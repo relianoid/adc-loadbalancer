@@ -23,6 +23,7 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 my $eload = eval { require Relianoid::ELoad };
 
@@ -42,12 +43,11 @@ Create a farm
 
 Parameters:
 
-    type     - Farm type. The available options are: "http", "https", "datalink", "l4xnat" or "gslb"
-    vip      - Virtual IP where the virtual service is listening
-    port     - Virtual port where the virtual service is listening
-    farmname - Farm name
-    type     - Specify if farm is HTTP or HTTPS
-    iface    - Inteface wich uses the VIP. This parameter is only used in datalink farms
+    farm_type - Farm type. The available options are: "http", "https", "datalink", "l4xnat" or "gslb"
+    vip       - Virtual IP where the virtual service is listening
+    vip_port  - Virtual port where the virtual service is listening
+    farm_name - Farm name
+    fdev      - Inteface wich uses the VIP. This parameter is only used in datalink farms
 
 Returns:
 
@@ -59,11 +59,7 @@ FIXME:
 
 =cut
 
-sub runFarmCreate    # ($farm_type,$vip,$vip_port,$farm_name,$fdev)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_type, $vip, $vip_port, $farm_name, $fdev) = @_;
-
+sub runFarmCreate ($farm_type, $vip, $vip_port, $farm_name, $fdev) {
     my $output        = -1;
     my $farm_filename = &getFarmFile($farm_name);
 
@@ -136,9 +132,8 @@ Returns:
 
 =cut
 
-sub runFarmCreateFrom {
-    my $params = shift;
-    my $err    = 0;
+sub runFarmCreateFrom ($params) {
+    my $err = 0;
 
     require Relianoid::Lock;
 

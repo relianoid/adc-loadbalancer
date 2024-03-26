@@ -23,6 +23,7 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 my $eload = eval { require Relianoid::ELoad };
 
@@ -44,7 +45,7 @@ Run a HTTP farm
 
 Parameters:
 
-    farmname  - Farm name
+    farm_name - Farm name
     writeconf - write this change in configuration status "writeconf" for true or omit it for false
 
 Returns:
@@ -53,11 +54,7 @@ Returns:
 
 =cut
 
-sub _runHTTPFarmStart    # ($farm_name, $writeconf = 0)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $writeconf) = @_;
-
+sub _runHTTPFarmStart ($farm_name, $writeconf = undef) {
     require Relianoid::System;
     require Relianoid::Farm::HTTP::Backend;
     require Relianoid::Farm::Config;
@@ -116,17 +113,14 @@ sub _runHTTPFarmStart    # ($farm_name, $writeconf = 0)
               qq({"farms" : [ { "name" : "$farm_name", "virtual-addr" : "$farm_vip", "virtual-ports" : "$farm_vport", "mode" : "local", "state": "up", "family" : "$vip_family" }]});
 
             require Relianoid::Nft;
-            my $error = &httpNlbRequest(
-                {
-                    farm   => $farm_name,
-                    method => "PUT",
-                    uri    => "/farms",
-                    body   => $body
-                }
-            );
+            my $error = &httpNlbRequest({
+                farm   => $farm_name,
+                method => "PUT",
+                uri    => "/farms",
+                body   => $body
+            });
             if ($error) {
-                &zenlog("L4xnat Farm Type local for '$farm_name' can not be created.",
-                    "warning", "LSLB");
+                &zenlog("L4xnat Farm Type local for '$farm_name' can not be created.", "warning", "LSLB");
             }
         }
 
@@ -154,7 +148,7 @@ Stop a HTTP farm
 
 Parameters:
 
-    farmname  - Farm name
+    farm_name - Farm name
     writeconf - write this change in configuration status "writeconf" for true or omit it for false
 
 Returns:
@@ -163,11 +157,7 @@ Returns:
 
 =cut
 
-sub _runHTTPFarmStop    # ($farm_name, $writeconf = 0)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $writeconf) = @_;
-
+sub _runHTTPFarmStop ($farm_name, $writeconf = undef) {
     require Relianoid::FarmGuardian;
     my $time = &getGlobalConfiguration("http_farm_stop_grace_time");
 
@@ -195,13 +185,11 @@ sub _runHTTPFarmStop    # ($farm_name, $writeconf = 0)
         if (&getGlobalConfiguration("proxy_ng") eq 'true') {
             if (&getGlobalConfiguration("mark_routing_L7") eq 'true') {
                 require Relianoid::Nft;
-                &httpNlbRequest(
-                    {
-                        farm   => $farm_name,
-                        method => "DELETE",
-                        uri    => "/farms/" . $farm_name,
-                    }
-                );
+                &httpNlbRequest({
+                    farm   => $farm_name,
+                    method => "DELETE",
+                    uri    => "/farms/" . $farm_name,
+                });
                 &doL7FarmRules("stop", $farm_name);
             }
         }
@@ -217,8 +205,7 @@ sub _runHTTPFarmStop    # ($farm_name, $writeconf = 0)
 
     }
     else {
-        &zenlog("Farm $farm_name can't be stopped, check the logs and modify the configuration",
-            "info", "LSLB");
+        &zenlog("Farm $farm_name can't be stopped, check the logs and modify the configuration", "info", "LSLB");
         return 1;
     }
 
@@ -234,9 +221,9 @@ If the flag has the value 'del', the old farm will be deleted.
 
 Parameters:
 
-    farmname    - Farm name
+    farm_name   - Farm name
     newfarmname - New farm name
-    flag        - It expets a 'del' string to delete the old farm. 
+    del         - It expects a 'del' string to delete the old farm.
                   It is used to copy or rename the farm.
 
 Returns:
@@ -245,11 +232,7 @@ Returns:
 
 =cut
 
-sub copyHTTPFarm    # ($farm_name,$new_farm_name)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $new_farm_name, $del) = @_;
-
+sub copyHTTPFarm ($farm_name, $new_farm_name, $del = undef) {
     use File::Copy qw(copy);
     require Relianoid::File;
 
@@ -362,10 +345,7 @@ Returns:
 
 =cut
 
-sub sendL7ZproxyCmd {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $self = shift;
-
+sub sendL7ZproxyCmd ($self) {
     if (&getGlobalConfiguration('proxy_ng') ne 'true') {
         &zenlog("Property only available for zproxy", "error", "LSLB");
         return 1;
@@ -423,10 +403,7 @@ Returns:
 
 =cut
 
-sub checkFarmHTTPSystemStatus    # ($farm_name, $status, $fix)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $status, $fix) = @_;
+sub checkFarmHTTPSystemStatus ($farm_name, $status, $fix = undef) {
     if ($status eq "down") {
         my $pid_file = getHTTPFarmPidFile($farm_name);
         if (-e $pid_file) {
@@ -437,11 +414,7 @@ sub checkFarmHTTPSystemStatus    # ($farm_name, $status, $fix)
         my $farm_file    = &getFarmFile($farm_name);
         my $config_dir   = &getGlobalConfiguration("configdir");
         my $proxy        = &getGlobalConfiguration("proxy");
-        my @pids_running = @{
-            &logAndGet(
-                "$pgrep -f \"$proxy (-s )?-f $config_dir/$farm_file -p $pid_file\"", "array"
-            )
-        };
+        my @pids_running = @{ &logAndGet("$pgrep -f \"$proxy (-s )?-f $config_dir/$farm_file -p $pid_file\"", "array") };
 
         if (@pids_running) {
             kill 9, @pids_running if (defined $fix and $fix eq "true");

@@ -34,6 +34,7 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 use Time::HiRes qw(ualarm usleep clock_gettime CLOCK_REALTIME);
 
@@ -131,10 +132,8 @@ if (not -e "$pidfile") {
         "l4sd: Daemon launched with pid $pid -g $g_param -n $n_param -l $l_param -a $algorithm");
 }
 
-sub min    #($value1,$value2,$value3)
+sub min ($x,$y,$z)
 {
-    my ($x, $y, $z) = @_;
-
     my $min = $x;
 
     if ($y < $min) {
@@ -148,14 +147,14 @@ sub min    #($value1,$value2,$value3)
     return $min;
 }
 
-sub sigUSR1Handler {
+sub sigUSR1Handler () {
     &zenlog("l4sd: Signal sigUSR1 received...");
     $init = 1;
     kill ALRM => $pid;
     return;
 }
 
-sub sigTERMHandler {
+sub sigTERMHandler () {
     &zenlog("l4sd: Signal sigTERM/sigINT received...");
     unlink $pidfile;
     exit;

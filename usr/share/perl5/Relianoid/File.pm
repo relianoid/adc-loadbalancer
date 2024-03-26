@@ -51,10 +51,7 @@ Returns:
 
 =cut
 
-sub getFile {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $file_name = shift;
-
+sub getFile ($file_name) {
     unless (-f $file_name) {
         &zenlog("Could not find file '$file_name'");
         return;
@@ -98,11 +95,7 @@ Returns:
 
 =cut
 
-sub setFile {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $path    = shift;
-    my $content = shift;
-
+sub setFile ($path, $content) {
     unless (defined $content) {
         &zenlog("Trying to save undefined content");
         return 0;
@@ -123,61 +116,14 @@ sub setFile {
 
 =pod
 
-=head1 saveFileHandler
-
-Parameters:
-
-    path - string with the location of the file
-
-    file_handler - file handler, as received from open()
-
-Returns:
-
-    integer
-
-    1 - success
-    0 - failure
-
-=cut
-
-sub saveFileHandler {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $path       = shift;
-    my $content_fh = shift;
-
-    unless (defined $content_fh) {
-        &zenlog("Trying to save undefined file handler");
-        return 0;
-    }
-
-    if (open(my $fh, '>', $path)) {
-        binmode $fh;
-        while (my $line = <$content_fh>) {
-            print $fh $line;
-        }
-        close $fh;
-    }
-    else {
-        &zenlog("Could not open file '$path': $!");
-        return 0;
-    }
-
-    return 1;
-}
-
-=pod
-
 =head1 insertFileWithPattern
 
 Insert an array in a file before or after a pattern
 
 =cut
 
-sub insertFileWithPattern {
-    my ($file, $array, $pattern, $opt) = @_;
+sub insertFileWithPattern ($file, $array, $pattern, $opt = 'after') {
     my $err = 0;
-
-    $opt //= 'after';
 
     my $index = 0;
     my $found = 0;
@@ -221,9 +167,7 @@ Returns:
 
 =cut
 
-sub createFile {
-    my $filename = shift;
-
+sub createFile ($filename) {
     if (-f $filename) {
         &zenlog("The file $filename already exists", "error", "System");
         return 1;
@@ -246,9 +190,7 @@ sub createFile {
 
 =cut
 
-sub deleteFile {
-    my $file = shift;
-
+sub deleteFile ($file) {
     if (!-f $file) {
         &zenlog("The file $file doesn't exist", "error", "System");
         return 1;
@@ -273,9 +215,7 @@ Returns:
 
 =cut
 
-sub getFileDateGmt {
-    my $filepath = shift;
-
+sub getFileDateGmt ($filepath) {
     use File::stat;
     my @eject = split(/ /, gmtime(stat($filepath)->mtime));
     splice(@eject, 0, 1);
@@ -303,11 +243,8 @@ Returns:
 
 =cut
 
-sub getFileChecksumMD5 {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my $filepath = shift;
-    my $md5      = {};
+sub getFileChecksumMD5 ($filepath) {
+    my $md5 = {};
 
     if (-d $filepath) {
         opendir(my $directory, $filepath);
@@ -347,11 +284,7 @@ Returns:
 
 =cut
 
-sub getFileChecksumAction {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my $checksum_filepath1 = shift;
-    my $checksum_filepath2 = shift;
+sub getFileChecksumAction ($checksum_filepath1, $checksum_filepath2) {
     my $files_changed;
 
     foreach my $file (keys %{$checksum_filepath1}) {
@@ -450,43 +383,6 @@ sub writeFileFromArray ($file_name, $array_ref) {
     }
 
     return 1;
-}
-
-=pod
-
-=head1 readDirAsArray
-
-Get a list of filenames in a directory
-
-Parameters:
-
-    dir_name - string. path to directory
-
-Returns:
-
-    list - list of files in the directory
-
-=cut
-
-sub readDirAsArray ($dir_name) {
-    unless (-d $dir_name) {
-        my $msg = "Could not find directory '$dir_name'";
-        &zenlog($msg, 'error');
-        croak($msg);
-    }
-
-    my @files;
-    if (opendir(my $dh, $dir_name)) {
-        @files = readdir($dh);
-        closedir $dh;
-    }
-    else {
-        my $msg = "Could not open directory '$dir_name': $!";
-        &zenlog($msg, 'error');
-        croak($msg);
-    }
-
-    return @files;
 }
 
 1;

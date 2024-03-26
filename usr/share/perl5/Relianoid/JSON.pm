@@ -23,6 +23,7 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 use JSON;
 use Relianoid::Lock;
@@ -46,9 +47,7 @@ Relianoid::JSON
 
 =cut
 
-sub decodeJSONFile {
-    my $file = shift;
-
+sub decodeJSONFile ($file) {
     my $file_str;
     my $fh = &openlock($file, '<');
     return if !defined $fh;
@@ -68,34 +67,6 @@ sub decodeJSONFile {
     }
 
     return $f_json;
-}
-
-=pod
-
-=head1 encodeJSONFile
-
-=cut
-
-sub encodeJSONFile {
-    my $f_json = shift;
-    my $file   = shift;
-
-    my $file_str;
-
-    eval { $file_str = $json->encode($f_json); };
-
-    if ($@) {
-        &zenlog("Error encoding the file $file");
-        &zenlog("json: $@", 'debug');
-    }
-
-    my $fh = &openlock($file, '>');
-    return 1 if not defined $fh;
-
-    print $fh $file_str;
-    close $fh;
-
-    return 0;
 }
 
 1;

@@ -23,15 +23,20 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
+
+=pod
+
+=head1 Module
+
+Relianoid::API40::Interface::Virtual
+
+=cut
 
 my $eload = eval { require Relianoid::ELoad };
 
 # POST /interfaces/virtual Create a new virtual network interface
-sub new_vini    # ( $json_obj )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $json_obj = shift;
-
+sub new_vini ($json_obj) {
     my $desc = "Add a virtual interface";
 
     my $nic_re         = &getValidFormat('nic_interface');
@@ -42,19 +47,19 @@ sub new_vini    # ( $json_obj )
 
     # Check allowed parameters
     my $error_msg = &checkApiParams($json_obj, $params, $desc);
-    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+    return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg })
       if ($error_msg);
 
     # virtual_name = pather_name + . + virtual_tag
     # size < 16: size = pather_name:virtual_name
     if (length $json_obj->{name} > 15) {
         my $msg = "Virtual interface name has a maximum length of 15 characters";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     unless ($json_obj->{name} =~ /^($nic_re|$vlan_re):($virtual_tag_re)$/) {
         my $msg = "Interface name is not valid";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     $json_obj->{parent} = $1;
@@ -75,11 +80,11 @@ sub new_vini    # ( $json_obj )
       &getInterfaceConfig($json_obj->{parent}, $json_obj->{ip_v});
     unless ($parent_exist eq "true" && $if_parent) {
         my $msg = "The parent interface $json_obj->{ parent } doesn't exist.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
     if ($if_parent->{type} eq 'nic' and not $if_parent->{addr}) {
         my $msg = "The parent interface $json_obj->{ parent } must be configured.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     # Check network interface errors
@@ -88,7 +93,7 @@ sub new_vini    # ( $json_obj )
 
     if ($if_ref) {
         my $msg = "Network interface $json_obj->{ name } already exists.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     # Check new IP address is not in use
@@ -99,7 +104,7 @@ sub new_vini    # ( $json_obj )
     for my $ip (@activeips) {
         if ($ip eq $json_obj->{ip}) {
             my $msg = "IP address $json_obj->{ip} already in use.";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }
 
@@ -107,7 +112,7 @@ sub new_vini    # ( $json_obj )
     $if_ref = &getInterfaceConfig($json_obj->{parent}, $json_obj->{ip_v});
 
     # $json_obj->{addr} must exist in getInterfaceSystemStatus()
-    $json_obj->{addr}    = $json_obj->{ip};
+    $json_obj->{addr}  = $json_obj->{ip};
     $if_ref->{status}  = &getInterfaceSystemStatus($json_obj);
     $if_ref->{name}    = $json_obj->{name};
     $if_ref->{vini}    = $json_obj->{vini};
@@ -118,7 +123,7 @@ sub new_vini    # ( $json_obj )
 
     unless (&validateGateway($if_parent->{addr}, $if_ref->{mask}, $if_ref->{addr})) {
         my $msg = "IP Address $json_obj->{ip} must be same net than the parent interface.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     require Relianoid::Net::Core;
@@ -147,7 +152,7 @@ sub new_vini    # ( $json_obj )
     if ($@) {
         &zenlog("Module failed: $@", "error", "net");
         my $msg = "The $json_obj->{ name } virtual network interface can't be created";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     &eload(
@@ -172,11 +177,7 @@ sub new_vini    # ( $json_obj )
     return;
 }
 
-sub delete_interface_virtual    # ( $virtual )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $virtual = shift;
-
+sub delete_interface_virtual ($virtual) {
     require Relianoid::Net::Interface;
 
     my $desc   = "Delete virtual interface";
@@ -185,7 +186,7 @@ sub delete_interface_virtual    # ( $virtual )
 
     if (!$if_ref) {
         my $msg = "The virtual interface $virtual doesn't exist.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     # check if some farm is using this ip
@@ -196,15 +197,15 @@ sub delete_interface_virtual    # ( $virtual )
     if (@farms) {
         my $str = join(', ', @farms);
         my $msg = "This interface is being used as farm vip in the farm(s): $str.";
-        return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my @child = &getInterfaceChild($virtual);
 
     if (@child) {
         my $child_string = join(', ', @child);
-        my $msg = "Before removing $virtual interface, disable the floating IPs: $child_string.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        my $msg          = "Before removing $virtual interface, disable the floating IPs: $child_string.";
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     require Relianoid::Net::Route;
@@ -238,7 +239,7 @@ sub delete_interface_virtual    # ( $virtual )
     if ($@) {
         &zenlog("Module failed: $@", "error", "net");
         my $msg = "The virtual interface $virtual can't be deleted";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     if ($eload) {
@@ -260,9 +261,7 @@ sub delete_interface_virtual    # ( $virtual )
     return;
 }
 
-sub get_virtual_list    # ()
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub get_virtual_list () {
     require Relianoid::Net::Interface;
 
     my $desc        = "List virtual interfaces";
@@ -285,11 +284,7 @@ sub get_virtual_list    # ()
     return;
 }
 
-sub get_virtual    # ()
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $virtual = shift;
-
+sub get_virtual ($virtual) {
     require Relianoid::Net::Interface;
 
     my $desc      = "Show virtual interface $virtual";
@@ -297,7 +292,7 @@ sub get_virtual    # ()
 
     unless ($interface) {
         my $msg = "Virtual interface not found.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     my $body = {
@@ -309,12 +304,7 @@ sub get_virtual    # ()
     return;
 }
 
-sub actions_interface_virtual    # ( $json_obj, $virtual )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $json_obj = shift;
-    my $virtual  = shift;
-
+sub actions_interface_virtual ($json_obj, $virtual) {
     require Relianoid::Net::Interface;
 
     my $desc = "Action on virtual interface";
@@ -324,13 +314,13 @@ sub actions_interface_virtual    # ( $json_obj, $virtual )
 
     # Check allowed parameters
     my $error_msg = &checkApiParams($json_obj, $params, $desc);
-    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+    return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg })
       if ($error_msg);
 
     # validate VLAN
     unless (grep { $virtual eq $_->{name} } &getInterfaceTypeList('virtual')) {
         my $msg = "Virtual interface not found";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     my $if_ref = &getInterfaceConfig($virtual, $ip_v);
@@ -350,9 +340,8 @@ sub actions_interface_virtual    # ( $json_obj, $virtual )
         }
 
         unless ($parent_if_status eq 'up') {
-            my $msg =
-              "The interface $if_ref->{name} has a parent interface DOWN, check the interfaces status";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            my $msg = "The interface $if_ref->{name} has a parent interface DOWN, check the interfaces status";
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
 
         my $state = &upIf($if_ref, 'writeconf');
@@ -368,7 +357,7 @@ sub actions_interface_virtual    # ( $json_obj, $virtual )
         }
         else {
             my $msg = "The interface could not be set UP";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
 
         &eload(
@@ -384,7 +373,7 @@ sub actions_interface_virtual    # ( $json_obj, $virtual )
 
         if ($state) {
             my $msg = "The interface could not be set DOWN";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
 
         if ($eload) {
@@ -406,12 +395,7 @@ sub actions_interface_virtual    # ( $json_obj, $virtual )
     return;
 }
 
-sub modify_interface_virtual    # ( $json_obj, $virtual )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $json_obj = shift;
-    my $virtual  = shift;
-
+sub modify_interface_virtual ($json_obj, $virtual) {
     require Relianoid::Net::Interface;
     require Net::Netmask;
 
@@ -424,20 +408,20 @@ sub modify_interface_virtual    # ( $json_obj, $virtual )
 
     # Check allowed parameters
     my $error_msg = &checkApiParams($json_obj, $params, $desc);
-    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+    return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg })
       if ($error_msg);
 
     unless ($if_ref) {
         my $msg = "Virtual interface not found";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     my @child = &getInterfaceChild($virtual);
 
     if (@child) {
         my $child_string = join(', ', @child);
-        my $msg = "Before modifying $virtual interface, disable the floating IPs: $child_string.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        my $msg          = "Before modifying $virtual interface, disable the floating IPs: $child_string.";
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     require Relianoid::Farm::Base;
@@ -451,11 +435,7 @@ sub modify_interface_virtual    # ( $json_obj, $virtual )
 
             if (grep { $json_obj->{ip} eq $_ } &listallips()) {
                 my $msg = "The IP address is already in use for other interface.";
-                return &httpErrorResponse(
-                    code => 400,
-                    desc => $desc,
-                    msg  => $msg
-                );
+                return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
             }
         }
 
@@ -463,7 +443,7 @@ sub modify_interface_virtual    # ( $json_obj, $virtual )
             my $str = join(', ', @farms);
             my $msg =
               "The IP is being used as farm vip in the farm(s): $str. If you are sure, repeat with parameter 'force'. All farms using this interface will be restarted.";
-            return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }
 
@@ -471,9 +451,8 @@ sub modify_interface_virtual    # ( $json_obj, $virtual )
     my $if_ref_parent = &getInterfaceConfig($if_ref->{parent});
 
     unless (&validateGateway($if_ref_parent->{addr}, $if_ref_parent->{mask}, $json_obj->{ip})) {
-        my $msg =
-          "IP address $json_obj->{ip} must be on the same network than the parent interface.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        my $msg = "IP address $json_obj->{ip} must be on the same network than the parent interface.";
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     require Relianoid::Net::Core;
@@ -523,7 +502,7 @@ sub modify_interface_virtual    # ( $json_obj, $virtual )
     if ($@) {
         &zenlog("Module failed: $@", "error", "net");
         my $msg = "Errors found trying to modify interface $virtual";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     if ($eload) {

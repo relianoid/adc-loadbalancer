@@ -23,6 +23,7 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 use Relianoid::Core;
 use Relianoid::Farm::L4xNAT::Action;
@@ -48,13 +49,10 @@ Create a l4xnat farm
 Parameters:
 
     vip - Virtual IP
-
-    port - Virtual port. In l4xnat it ls possible to define multiport 
-            using ',' to add ports and ':' for ranges
-
-    farmname - Farm name
-
-    status - Set the initial status of the farm. The possible values are: 
+    farm_name - Farm name
+    vip_port - Virtual port. In l4xnat it ls possible to define multiport
+               using ',' to add ports and ':' for ranges
+    status - Set the initial status of the farm. The possible values are:
              - 'down' for creating the farm and do not run it
              - 'up' (default) for running the farm when it has been created
 
@@ -64,12 +62,7 @@ Returns:
 
 =cut
 
-sub runL4FarmCreate {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($vip, $farm_name, $vip_port, $status) = @_;
-
-    $status = 'up' if not defined $status;
-
+sub runL4FarmCreate ($vip, $farm_name, $vip_port, $status = 'up') {
     my $output        = -1;
     my $farm_type     = 'l4xnat';
     my $farm_filename = "$configdir/$farm_name\_$farm_type.cfg";
@@ -91,15 +84,13 @@ sub runL4FarmCreate {
         $vip_family = "ipv4";
     }
 
-    $output = &sendL4NlbCmd(
-        {
-            farm   => $farm_name,
-            file   => "$farm_filename",
-            method => "POST",
-            body   =>
-              qq({"farms" : [ { "name" : "$farm_name", "virtual-addr" : "$vip", "virtual-ports" : "$vip_port", "protocol" : "$proto", "mode" : "snat", "scheduler" : "weight", "state" : "$status", "family" : "$vip_family" } ] })
-        }
-    );
+    $output = &sendL4NlbCmd({
+        farm   => $farm_name,
+        file   => "$farm_filename",
+        method => "POST",
+        body   =>
+          qq({"farms" : [ { "name" : "$farm_name", "virtual-addr" : "$vip", "virtual-ports" : "$vip_port", "protocol" : "$proto", "mode" : "snat", "scheduler" : "weight", "state" : "$status", "family" : "$vip_family" } ] })
+    });
 
     if ($output) {
         require Relianoid::Farm::Action;
@@ -130,10 +121,7 @@ Returns:
 
 =cut
 
-sub runL4FarmDelete {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name) = @_;
-
+sub runL4FarmDelete ($farm_name) {
     my $output = -1;
 
     require Relianoid::Farm::L4xNAT::Action;

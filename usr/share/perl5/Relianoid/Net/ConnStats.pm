@@ -24,7 +24,6 @@
 use strict;
 use warnings;
 use feature qw(signatures);
-no warnings 'experimental::args_array_with_signatures';
 
 use Carp;
 
@@ -65,7 +64,6 @@ Returns:
 =cut
 
 sub getConntrack ($orig_src, $orig_dst, $reply_src, $reply_dst, $protocol) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     # remove newlines in every argument
     chomp($orig_src, $orig_dst, $reply_src, $reply_dst, $protocol);
@@ -112,8 +110,6 @@ Returns:
 
 # Returns array execution of netstat
 sub getNetstatFilter ($proto, $state, $ninfo, $fpid, $netstat) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $lfpid = $fpid;
     chomp($lfpid);
 
@@ -279,8 +275,6 @@ Returns:
 =cut
 
 sub getConntrackParams ($filter) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $conntrack_bin    = &getGlobalConfiguration('conntrack');
     my $conntrack_params = '';
 
@@ -327,20 +321,19 @@ Returns:
 =cut
 
 sub getConntrackCount ($conntrack_params) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $conntrack_bin = &getGlobalConfiguration('conntrack');
     my $conntrack_cmd = "$conntrack_bin -L $conntrack_params 2>&1 >/dev/null";
 
-    &zenlog("getConntrackCount conntrack_cmd: $conntrack_cmd", "debug", "MONITOR");
+    require Relianoid::Debug;
+
+    &zenlog("Conntrack count: $conntrack_cmd", "debug", "MONITOR") if &debug();
 
     # Do not use the function 'logAndGet', this function manages the output error and code
     my $summary = `$conntrack_cmd`;
     my $error   = $?;
     my ($count) = $summary =~ m/: ([0-9]+) flow entries have been shown./;
 
-    &zenlog("getConntrackCount: An error happened running conntrack command: $conntrack_cmd",
-        "error", "MONITOR")
+    &zenlog("Conntrack count: An error happened running the command: $conntrack_cmd", "error", "MONITOR")
       if $error;
 
     return $count + 0;

@@ -24,7 +24,6 @@
 use strict;
 use warnings;
 use feature qw(signatures);
-no warnings 'experimental::args_array_with_signatures';
 
 use Carp;
 use Relianoid::Core;
@@ -63,8 +62,7 @@ sub getNetIpFormat ($ip, $bin) {
         return $x->to_string_compressed();
     }
     else {
-        &zenlog("The bin '$bin' is not recoignized. The ip '$ip' couldn't be converted",
-            "error", "networking");
+        &zenlog("The bin '$bin' is not recoignized. The ip '$ip' couldn't be converted", "error", "networking");
     }
 
     return $ip;
@@ -90,8 +88,6 @@ Returns:
 =cut
 
 sub getProtoTransport ($profile) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $proto = [];
     my $all   = [ "tcp", "udp", "sctp" ];
 
@@ -129,8 +125,7 @@ sub getProtoTransport ($profile) {
         $proto = [ "tcp", "udp" ];
     }
     else {
-        &zenlog("The funct 'getProfileProto' does not understand the parameter '$profile'",
-            "error", "networking");
+        &zenlog("The funct 'getProfileProto' does not understand the parameter '$profile'", "error", "networking");
     }
 
     return $proto;
@@ -167,7 +162,6 @@ Returns:
 =cut
 
 sub validatePortKernelSpace ($ip, $port, $proto, $farmname = undef) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     # get l4 farms
     require Relianoid::Farm::Base;
@@ -229,8 +223,6 @@ Returns:
 =cut
 
 sub getMultiporExpanded ($port) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my @total_port = ();
     if ($port ne '*') {
         foreach my $p (split(',', $port)) {
@@ -264,8 +256,6 @@ Returns:
 =cut
 
 sub getMultiportRegex ($port) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $reg = $port;
 
     if ($port eq '*') {
@@ -301,8 +291,6 @@ Returns:
 =cut
 
 sub validatePortUserSpace ($ip, $port, $proto, $farmname, $process = undef) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $override;
 
     # skip if the running farm is itself
@@ -318,8 +306,7 @@ sub validatePortUserSpace ($ip, $port, $proto, $farmname, $process = undef) {
                 and $cur_vip eq $ip
                 and $cur_port eq $port)
             {
-                &zenlog("The networking configuration matches with the own farm",
-                    "debug", "networking");
+                &zenlog("The networking configuration matches with the own farm", "debug", "networking");
                 return 1;
             }
         }
@@ -375,8 +362,7 @@ sub validatePortUserSpace ($ip, $port, $proto, $farmname, $process = undef) {
     my $filter = '^\s*(?:[^\s]+\s+){3,3}' . $ip_reg . ':' . $port_reg . '\s';
     @out = grep { /$filter/ } @out;
     if (@out) {
-        &zenlog("The ip '$ip' and the port '$port' are being used for some process",
-            "warning", "networking");
+        &zenlog("The ip '$ip' and the port '$port' are being used for some process", "warning", "networking");
         return 0;
     }
 
@@ -418,13 +404,11 @@ See Also:
 =cut
 
 sub validatePort ($ip, $port, $proto, $farmname = undef, $process = undef) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     # validate inputs
     $ip = '0.0.0.0' if $ip eq '*';
     if (!defined $proto && !defined $farmname) {
-        &zenlog("Check port needs the protocol to validate the ip '$ip' and the port '$port'",
-            "error", "networking");
+        &zenlog("Check port needs the protocol to validate the ip '$ip' and the port '$port'", "error", "networking");
         return 0;
     }
 
@@ -465,8 +449,6 @@ Returns:
 =cut
 
 sub ipisok ($checkip, $version = undef) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $return = "false";
 
     require Data::Validate::IP;
@@ -527,8 +509,6 @@ Returns:
 =cut
 
 sub ipversion ($ip) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $output = "-";
 
     require Data::Validate::IP;
@@ -568,17 +548,17 @@ Returns:
 
 =cut
 
-sub validateGateway ($ip, $mask, $ip2) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
+sub validateGateway ($ip, $mask, $ip2, $mask2 = undef) {
     require NetAddr::IP;
 
-    my $addr1 = NetAddr::IP->new($ip,  $mask);
-    my $addr2 = NetAddr::IP->new($ip2, $mask);
+    unless (defined $mask2) {
+        $mask2 = $mask;
+    }
 
-    return (defined $addr1 && defined $addr2 && ($addr1->network() eq $addr2->network()))
-      ? 1
-      : 0;
+    my $addr1 = NetAddr::IP->new($ip,  $mask);
+    my $addr2 = NetAddr::IP->new($ip2, $mask2);
+
+    return (defined $addr1 && defined $addr2 && ($addr1->network() eq $addr2->network())) ? 1 : 0;
 }
 
 =pod
@@ -606,8 +586,6 @@ Bugs:
 =cut
 
 sub ifexist ($nif) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     use IO::Interface qw(:flags);    # Needs to load with 'use'
 
     require IO::Socket;
@@ -654,12 +632,11 @@ Returns:
 
     String - interface name where the checked network exists
 
-    v3.2/interface/vlan, v3.2/interface/nic, v3.2/interface/bonding
+    v4/interface/vlan, v4/interface/nic, v4/interface/bonding
 
 =cut
 
 sub checkNetworkExists ($net, $mask, $exception = undef, $duplicated = undef) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     #if duplicated network is allowed then don't check if network exists.
     if (defined $duplicated) {
@@ -720,12 +697,11 @@ Returns:
 
     String - interface name where the checked network exists
 
-    v3.2/interface/vlan, v3.2/interface/nic, v3.2/interface/bonding
+    v4/interface/vlan, v4/interface/nic, v4/interface/bonding
 
 =cut
 
 sub checkDuplicateNetworkExists () {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     #if duplicated network is not allowed then don't check if network exists.
     require Relianoid::Config;
@@ -764,8 +740,6 @@ Returns:
 =cut
 
 sub validBackendStack ($be_aref, $ip) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $ip_stack     = &ipversion($ip);
     my $ipv_mismatch = 0;
 

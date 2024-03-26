@@ -24,6 +24,7 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 use IO::Interface::Simple;
 

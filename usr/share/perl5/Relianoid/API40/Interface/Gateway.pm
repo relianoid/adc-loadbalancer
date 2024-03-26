@@ -24,11 +24,16 @@
 use strict;
 use warnings;
 use feature qw(signatures);
-no warnings 'experimental::args_array_with_signatures';
+
+=pod
+
+=head1 Module
+
+Relianoid::API40::Interface::Gateway
+
+=cut
 
 sub get_gateway ($ip_ver) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     require Relianoid::Net::Route;
 
     my $desc = "Default gateway";
@@ -53,8 +58,6 @@ sub get_gateway ($ip_ver) {
 }
 
 sub modify_gateway ($json_obj, $ip_ver) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     require Relianoid::Net::Route;
 
     my $desc       = "Modify default gateway";
@@ -73,7 +76,7 @@ sub modify_gateway ($json_obj, $ip_ver) {
 
     # Check allowed parameters
     my $error_msg = &checkApiParams($json_obj, $params, $desc);
-    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+    return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg })
       if ($error_msg);
 
     # validate INTERFACE
@@ -84,7 +87,7 @@ sub modify_gateway ($json_obj, $ip_ver) {
 
         unless (grep ({ $json_obj->{interface} eq $_ } @system_interfaces)) {
             my $msg = "Gateway interface not found.";
-            &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
         }
     }
 
@@ -103,7 +106,7 @@ sub modify_gateway ($json_obj, $ip_ver) {
 
     unless (&validateGateway($if_ref->{addr}, $if_ref->{mask}, $address)) {
         my $msg = "The gateway is not valid for the network.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     &zenlog("applyRoutes interface:$interface address:$address if_ref:$if_ref", "debug", "NETWORK")
@@ -113,7 +116,7 @@ sub modify_gateway ($json_obj, $ip_ver) {
 
     if ($error) {
         my $msg = "The default gateway hasn't been changed";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $msg  = "The default gateway has been changed successfully";
@@ -128,8 +131,6 @@ sub modify_gateway ($json_obj, $ip_ver) {
 }
 
 sub delete_gateway ($ip_ver) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     require Relianoid::Net::Route;
     require Relianoid::Net::Interface;
 
@@ -144,7 +145,7 @@ sub delete_gateway ($ip_ver) {
 
     if ($error) {
         my $msg = "The default gateway hasn't been deleted";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $addr    = ($ip_v == 6) ? &getIPv6DefaultGW()   : &getDefaultGW();

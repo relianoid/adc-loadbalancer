@@ -24,7 +24,6 @@
 use strict;
 use warnings;
 use feature qw(signatures);
-no warnings 'experimental::args_array_with_signatures';
 
 use Relianoid::Config;
 
@@ -58,7 +57,6 @@ Returns:
 =cut
 
 sub _runFarmStart ($farm_name, $writeconf = 0) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     # The parameter expect "undef" to not write it
     $writeconf = 0 if ($writeconf eq 'false');
@@ -141,14 +139,14 @@ NOTE:
 =cut
 
 sub runFarmStart ($farm_name, $writeconf = 0) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $status = &_runFarmStart($farm_name, $writeconf);
+    &zenlog("Farm start status: $status");
 
     return $status if ($status != 0);
 
     require Relianoid::FarmGuardian;
-    &runFarmGuardianStart($farm_name, "");
+    my $fg_status = &runFarmGuardianStart($farm_name, "");
+    &zenlog("Farm guardian start status: $fg_status");
 
     if ($eload) {
         &eload(
@@ -191,8 +189,6 @@ NOTE:
 =cut
 
 sub runFarmStop ($farm_name, $writeconf = 0) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     if ($eload) {
         &eload(
             module => 'Relianoid::IPDS::Base',
@@ -233,8 +229,6 @@ Returns:
 =cut
 
 sub _runFarmStop ($farm_name, $writeconf = 0) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     $writeconf = 0 if ($writeconf eq 'false');
 
     require Relianoid::Farm::Base;
@@ -295,8 +289,6 @@ NOTE:
 =cut
 
 sub runFarmDelete ($farm_name) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     require Relianoid::Netfilter;
 
     my $configdir = &getGlobalConfiguration('configdir');
@@ -343,20 +335,17 @@ sub runFarmDelete ($farm_name) {
 
             # Check if local farm exists and delete it
             require Relianoid::Nft;
-            my $output = &httpNlbRequest(
-                {
-                    method => "GET",
-                    uri    => "/farms/" . $farm_name,
-                    check  => 1,
-                }
-            );
-            $output = &httpNlbRequest(
-                {
-                    farm   => $farm_name,
-                    method => "DELETE",
-                    uri    => "/farms/" . $farm_name,
-                }
-            ) if (!$output);
+            my $output = &httpNlbRequest({
+                method => "GET",
+                uri    => "/farms/" . $farm_name,
+                check  => 1,
+            });
+            $output = &httpNlbRequest({
+                farm   => $farm_name,
+                method => "DELETE",
+                uri    => "/farms/" . $farm_name,
+            })
+              if (!$output);
         }
         elsif ($farm_type eq "datalink") {
 
@@ -400,8 +389,6 @@ Returns:
 =cut
 
 sub runFarmReload ($farm_name) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     require Relianoid::Farm::Action;
 
     if (&getFarmRestartStatus($farm_name)) {
@@ -438,8 +425,6 @@ Returns:
 =cut
 
 sub _runFarmReload ($farm) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $err = 0;
 
     require Relianoid::Farm::Base;
@@ -475,8 +460,6 @@ NOTE:
 =cut
 
 sub getFarmRestartFile ($farm_name) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     return "/tmp/_farm_need_restart_$farm_name";
 }
 
@@ -501,8 +484,6 @@ NOTE:
 =cut
 
 sub getFarmRestartStatus ($fname) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     require Relianoid::Farm::Action;
     my $lfile = &getFarmRestartFile($fname);
 
@@ -531,7 +512,6 @@ NOTE:
 =cut
 
 sub setFarmRestart ($farm_name) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     # do nothing if the farm is not running
     require Relianoid::Farm::Base;
@@ -566,8 +546,6 @@ NOTE:
 =cut
 
 sub setFarmNoRestart ($farm_name) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $lf = &getFarmRestartFile($farm_name);
     unlink($lf) if -e $lf;
 
@@ -592,8 +570,6 @@ Returns:
 =cut
 
 sub setNewFarmName ($farm_name, $new_farm_name) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $rrdap_dir = &getGlobalConfiguration('rrdap_dir');
     my $rrd_dir   = &getGlobalConfiguration('rrd_dir');
 
@@ -633,15 +609,14 @@ sub setNewFarmName ($farm_name, $new_farm_name) {
 
     # farmguardian renaming
     if ($output == 0) {
-        &zenlog("restarting farmguardian", 'info', 'FG') if &debug;
+        &zenlog("restarting farmguardian", 'info', 'FG') if &debug();
         &runFGFarmStart($farm_name);
     }
 
     # end of farmguardian renaming
 
     # rename rrd
-    File::Copy::move("$rrdap_dir/$rrd_dir/$farm_name-farm.rrd",
-        "$rrdap_dir/$rrd_dir/$new_farm_name-farm.rrd");
+    File::Copy::move("$rrdap_dir/$rrd_dir/$farm_name-farm.rrd", "$rrdap_dir/$rrd_dir/$new_farm_name-farm.rrd");
 
     # delete old graphs
     unlink("img/graphs/bar$farm_name.png");
@@ -682,8 +657,6 @@ Returns:
 =cut
 
 sub copyFarm ($farm_name, $new_farm_name) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $farm_type = &getFarmType($farm_name);
     my $output    = -1;
 

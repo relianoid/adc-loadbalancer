@@ -23,6 +23,7 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 my $eload = eval { require Relianoid::ELoad };
 
@@ -42,8 +43,8 @@ Configure check time for resurected back-end. It is a farm paramter.
 
 Parameters:
 
-    checktime - time for resurrected checks
-    farmname  - Farm name
+    blacklist_time - time for resurrected checks
+    farm_name - Farm name
 
 Returns:
 
@@ -51,15 +52,11 @@ Returns:
 
 See Also:
 
-    zapi/v3/put_http.cgi
+    api/v4/put_http.cgi
 
 =cut
 
-sub setFarmBlacklistTime    # ($blacklist_time,$farm_name)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($blacklist_time, $farm_name) = @_;
-
+sub setFarmBlacklistTime ($blacklist_time, $farm_name) {
     my $farm_type = &getFarmType($farm_name);
     my $output    = -1;
 
@@ -73,42 +70,6 @@ sub setFarmBlacklistTime    # ($blacklist_time,$farm_name)
 
 =pod
 
-=head1 getFarmBlacklistTime
-
-Return time for resurrected checks for a farm.
-
-Parameters:
-
-    farmname - Farm name
-
-Returns:
-
-    integer - seconds for check or -1 on failure.
-
-See Also:
-
-    zapi/v3/put_http.cgi
-
-=cut
-
-sub getFarmBlacklistTime    # ($farm_name)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name) = @_;
-
-    my $farm_type      = &getFarmType($farm_name);
-    my $blacklist_time = -1;
-
-    if ($farm_type eq "http" || $farm_type eq "https") {
-        require Relianoid::Farm::HTTP::Config;
-        $blacklist_time = &getHTTPFarmBlacklistTime($farm_name);
-    }
-
-    return $blacklist_time;
-}
-
-=pod
-
 =head1 setFarmSessionType
 
 Configure type of persistence
@@ -116,7 +77,7 @@ Configure type of persistence
 Parameters:
 
     session  - type of session: nothing, HEADER, URL, COOKIE, PARAM, BASIC or IP, for HTTP farms; none or ip, for l4xnat farms
-    farmname - Farm name
+    farm_name - Farm name
 
 Returns:
 
@@ -124,15 +85,11 @@ Returns:
 
 See Also:
 
-    zapi/v3/put_l4.cgi
+    api/v4/put_l4.cgi
 
 =cut
 
-sub setFarmSessionType    # ($session,$farm_name)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($session, $farm_name) = @_;
-
+sub setFarmSessionType ($session, $farm_name) {
     my $farm_type = &getFarmType($farm_name);
     my $output    = -1;
 
@@ -182,7 +139,7 @@ Asign a timeout value to a farm
 Parameters:
 
     timeout  - Time out in seconds
-    farmname - Farm name
+    farm_name - Farm name
 
 Returns:
 
@@ -190,60 +147,19 @@ Returns:
 
 See Also:
 
-    zapi/v3/put_http.cgi
+    api/v4/put_http.cgi
 
 =cut
 
-sub setFarmTimeout    # ($timeout,$farm_name)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($timeout, $farm_name) = @_;
-
+sub setFarmTimeout ($timeout, $farm_name) {
     my $farm_type = &getFarmType($farm_name);
     my $output    = -1;
 
-    &zenlog("setting 'Timeout $timeout' for $farm_name farm $farm_type",
-        "info", "LSLB", "info", "LSLB");
+    &zenlog("setting 'Timeout $timeout' for $farm_name farm $farm_type", "info", "LSLB");
 
     if ($farm_type eq "http" || $farm_type eq "https") {
         require Relianoid::Farm::HTTP::Config;
         $output = &setHTTPFarmTimeout($timeout, $farm_name);
-    }
-
-    return $output;
-}
-
-=pod
-
-=head1 getFarmTimeout
-
-Return the farm time out
-
-Parameters:
-
-    farmname - Farm name
-
-Returns:
-
-    Integer - Return time out, or -1 on failure.
-
-See Also:
-
-    zapi/v3/get_http.cgi
-
-=cut
-
-sub getFarmTimeout    # ($farm_name)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name) = @_;
-
-    my $farm_type = &getFarmType($farm_name);
-    my $output    = -1;
-
-    if ($farm_type eq "http" || $farm_type eq "https") {
-        require Relianoid::Farm::HTTP::Config;
-        $output = &getHTTPFarmTimeout($farm_name);
     }
 
     return $output;
@@ -260,7 +176,7 @@ Supports farm types: TCP, Datalink, L4xNAT.
 Parameters:
 
     algorithm - Type of balancing mode
-    farmname - Farm name
+    farm_name - Farm name
 
 Returns:
 
@@ -272,16 +188,12 @@ FIXME:
 
 See Also:
 
-    zapi/v3/put_l4.cgi
-    zapi/v3/put_datalink.cgi
+    api/v4/put_l4.cgi
+    api/v4/put_datalink.cgi
 
 =cut
 
-sub setFarmAlgorithm    # ($algorithm,$farm_name)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($algorithm, $farm_name) = @_;
-
+sub setFarmAlgorithm ($algorithm, $farm_name) {
     my $farm_type = &getFarmType($farm_name);
     my $output    = -1;
 
@@ -309,7 +221,7 @@ Supports farm types: Datalink, L4xNAT.
 
 Parameters:
 
-    farmname - Farm name
+    farm_name - Farm name
 
 Returns:
 
@@ -319,16 +231,12 @@ See Also:
 
     <_runDatalinkFarmStart>
 
-    zapi/v3/get_l4.cgi
-    zapi/v3/get_datalink.cgi
+    api/v4/get_l4.cgi
+    api/v4/get_datalink.cgi
 
 =cut
 
-sub getFarmAlgorithm    # ($farm_name)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name) = @_;
-
+sub getFarmAlgorithm ($farm_name) {
     my $farm_type = &getFarmType($farm_name);
     my $algorithm = -1;
 
@@ -353,7 +261,7 @@ Set the maximum time for a client
 Parameters:
 
     maximumTO - Maximum client time
-    farmname - Farm name
+    farm_name - Farm name
 
 Returns:
 
@@ -361,16 +269,11 @@ Returns:
 
 =cut
 
-sub setFarmMaxClientTime    # ($max_client_time,$track,$farm_name)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($max_client_time, $track, $farm_name) = @_;
-
+sub setFarmMaxClientTime ($max_client_time, $track, $farm_name) {
     my $farm_type = &getFarmType($farm_name);
     my $output    = -1;
 
-    &zenlog("setting 'MaxClientTime $max_client_time $track' for $farm_name farm $farm_type",
-        "info", "LSLB");
+    &zenlog("setting 'MaxClientTime $max_client_time $track' for $farm_name farm $farm_type", "info", "LSLB");
 
     if ($farm_type eq "http" || $farm_type eq "https") {
         require Relianoid::Farm::HTTP::Config;
@@ -386,42 +289,6 @@ sub setFarmMaxClientTime    # ($max_client_time,$track,$farm_name)
 
 =pod
 
-=head1 getFarmMaxClientTime
-
-Return the maximum time for a client
-
-Parameters:
-
-    farmname - Farm name
-
-Returns:
-
-    Integer - Return maximum time, or -1 on failure.
-
-=cut
-
-sub getFarmMaxClientTime    # ($farm_name)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name) = @_;
-
-    my $farm_type = &getFarmType($farm_name);
-    my @max_client_time;
-
-    if ($farm_type eq "http" || $farm_type eq "https") {
-        require Relianoid::Farm::HTTP::Config;
-        @max_client_time = &getHTTPFarmMaxClientTime($farm_name);
-    }
-    elsif ($farm_type eq "l4xnat") {
-        require Relianoid::Farm::L4xNAT::Config;
-        @max_client_time = &getL4FarmParam('persisttm', $farm_name);
-    }
-
-    return @max_client_time;
-}
-
-=pod
-
 =head1 setFarmVirtualConf
 
 Set farm virtual IP and virtual PORT
@@ -430,10 +297,10 @@ Parameters:
 
     vip - virtual ip
 
-    port or inteface - virtual port (interface in datalink farms). 
-                       If the port is not sent, the port will not be changed
+    vip_port - virtual port (interface in datalink farms).
+               If the port is not sent, the port will not be changed
 
-    farmname - Farm name
+    farm_name - Farm name
 
 Returns:
 
@@ -445,11 +312,7 @@ See Also:
 
 =cut
 
-sub setFarmVirtualConf    # ($vip,$vip_port,$farm_name)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($vip, $vip_port, $farm_name) = @_;
-
+sub setFarmVirtualConf ($vip, $vip_port, $farm_name) {
     my $farm_type = &getFarmType($farm_name);
     my $stat      = -1;
 
@@ -503,11 +366,7 @@ Returns:
 
 =cut
 
-sub setAllFarmByVip {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $vip      = shift;
-    my $farmList = shift;
-
+sub setAllFarmByVip ($vip, $farmList) {
     require Relianoid::Farm::Action;
 
     foreach my $farm (@{$farmList}) {
@@ -530,49 +389,13 @@ sub setAllFarmByVip {
 
 =pod
 
-=head1 checkFarmnameOK
-
-Checks the farmname has correct characters (number, letters and lowercases)
-
-Parameters:
-
-    farmname - Farm name
-
-Returns:
-
-    Integer - return 0 on success or -1 on failure
-
-FIXME:
-
-    Use check_function.cgi regexp instead.
-
-    WARNING: Only used in HTTP function setFarmHTTPNewService.
-
-NOTE:
-
-    Generic function.
-
-=cut
-
-sub checkFarmnameOK    # ($farm_name)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm_name = shift;
-
-    return ($farm_name =~ /^[a-zA-Z0-9\-]+$/)
-      ? 0
-      : -1;
-}
-
-=pod
-
 =head1 getFarmVS
 
 Return virtual server parameter
 
 Parameters:
 
-    farmname - Farm name
+    farm_name - Farm name
     service  - Service name
     tag      - Indicate which field will be returned
 
@@ -582,11 +405,7 @@ Returns:
 
 =cut
 
-sub getFarmVS    # ($farm_name, $service, $tag)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $service, $tag) = @_;
-
+sub getFarmVS ($farm_name, $service, $tag) {
     my $output = "";
     require Relianoid::Farm::Core;
     my $farm_type = &getFarmType($farm_name);
@@ -614,7 +433,7 @@ Set values for service parameters
 
 Parameters:
 
-    farmname - Farm name
+    farm_name - Farm name
     service  - Service name
     tag      - Indicate which parameter modify
     string   - value for the field "tag"
@@ -625,11 +444,7 @@ Returns:
 
 =cut
 
-sub setFarmVS    # ($farm_name,$service,$tag,$string)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $service, $tag, $string) = @_;
-
+sub setFarmVS ($farm_name, $service, $tag, $string) {
     my $output    = "";
     my $farm_type = &getFarmType($farm_name);
 
@@ -664,11 +479,9 @@ Returns:
 
 =cut
 
-sub getFarmStruct {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub getFarmStruct ($farmName) {
     require Relianoid::Farm::Core;
-    my $farm;                                 # declare output hash
-    my $farmName = shift;                     # input: farm name
+    my $farm;    # declare output hash
     my $farmType = &getFarmType($farmName);
     return if ($farmType eq 1);
 
@@ -696,9 +509,9 @@ sub getFarmStruct {
     return $farm;    # return a hash reference
 }
 
-=begin nd
+=pod
 
-Function: getFarmPlainInfo
+=head1 getFarmPlainInfo
 
 Return the L4 farm text configuration
 
@@ -712,11 +525,7 @@ Returns:
 
 =cut
 
-sub getFarmPlainInfo    # ($farm_name)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm_name = shift;
-    my $file      = shift // undef;
+sub getFarmPlainInfo ($farm_name, $file = undef) {
     my @content;
 
     my $configdir = &getGlobalConfiguration('configdir');
@@ -758,9 +567,7 @@ FIXME:
 
 =cut
 
-sub reloadFarmsSourceAddress {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
+sub reloadFarmsSourceAddress () {
     require Relianoid::Farm::Core;
 
     for my $farm_name (&getFarmNameList()) {
@@ -786,9 +593,7 @@ Returns:
 
 =cut
 
-sub reloadL7FarmsSourceAddress {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
+sub reloadL7FarmsSourceAddress () {
     require Relianoid::Farm::Core;
 
     my @farms = &getFarmsByType('http');
@@ -825,13 +630,10 @@ FIXME:
 
 =cut
 
-sub reloadFarmsSourceAddressByFarm {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
+sub reloadFarmsSourceAddressByFarm ($farm_name) {
     require Relianoid::Farm::Core;
     require Relianoid::Farm::Base;
 
-    my $farm_name = shift;
     return if &getFarmStatus($farm_name) ne 'up';
 
     my $farm_type = &getFarmType($farm_name);
@@ -946,11 +748,7 @@ Returns:
 
 =cut
 
-sub checkLocalFarmSourceAddress {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my ($farm_name, $floating_ref) = @_;
-
+sub checkLocalFarmSourceAddress ($farm_name, $floating_ref) {
     my $farm_srcaddr_ref;
 
     require Relianoid::Farm::Core;
@@ -1064,9 +862,7 @@ Returns:
 
 =cut
 
-sub reloadBackendsSourceAddressByIface {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
+sub reloadBackendsSourceAddressByIface ($iface_name) {
     require Relianoid::Farm::Core;
     require Relianoid::Farm::Base;
 
@@ -1111,11 +907,9 @@ Returns:
 
 =cut
 
-sub getPersistence {
+sub getPersistence ($farm_name) {
 
-    my $farm_name = shift;
-    my $farm_type = &getFarmType($farm_name);
-    my $farm_ref;
+    my $farm_type  = &getFarmType($farm_name);
     my $nodestatus = "";
 
     return 1 if $farm_type !~ /l4xnat|http/;
@@ -1133,8 +927,6 @@ sub getPersistence {
     if ($farm_type eq 'l4xnat') {
         require Relianoid::Farm::L4xNAT::Config;
 
-        #return 1 if (&getL4FarmStatus($farm_name)) ne "up";
-        $farm_ref = &getL4FarmStruct($farm_name);
         my $persist = &getL4FarmParam('persist', $farm_name);
 
         if ($persist !~ /^$/) {
@@ -1148,9 +940,6 @@ sub getPersistence {
         require Relianoid::Config;
         require Relianoid::Lock;
 
-        #return 1 if (&getHTTPFarmStatus($farm_name)) ne "up";
-        $farm_ref = &getHTTPServiceBlocks($farm_name);
-        ##search in a hash string "Session" with no #.
         my $farm_file = &getFarmFile($farm_name);
         my $pathconf  = &getGlobalConfiguration('configdir');
         my $lock_fh   = &openlock("$pathconf/$farm_file", 'r');

@@ -23,7 +23,7 @@
 
 use strict;
 use warnings;
-use feature 'state';
+use feature qw(signatures state);
 
 =pod
 
@@ -57,9 +57,16 @@ See Also:
 
 =cut
 
-sub debug {
+sub debug () {
     require Relianoid::Config;
-    state $debug = &getGlobalConfiguration('debug') // 0;
+
+    state $debug;
+
+    if (not defined $debug) {
+        $debug = &getGlobalConfiguration('debug') // 0;
+        $debug += 0;
+    }
+
     return $debug;
 }
 
@@ -83,8 +90,7 @@ See Also:
 
 =cut
 
-sub getMemoryUsage {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub getMemoryUsage () {
     my $mem_string = `grep RSS /proc/$$/status`;
 
     chomp($mem_string);

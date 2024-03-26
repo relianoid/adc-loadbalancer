@@ -23,12 +23,20 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
+
+=pod
+
+=head1 Module
+
+Relianoid::API40::Ids
+
+=cut
 
 require Relianoid::Ids;
 
 # GET /ids
-sub list_ids {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub list_ids () {
     my $desc = "Get a load balancer object IDs";
 
     my $tree = &getIdsTree();

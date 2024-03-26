@@ -23,6 +23,7 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 use File::stat;
 use File::Basename;
@@ -51,12 +52,11 @@ Returns:
 
 See Also:
 
-    <getExistsBackup>, zapi/v3/system.cgi
+    <getExistsBackup>, api/v4/system.cgi
 
 =cut
 
-sub getBackup {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub getBackup () {
     my @backups;
     my $backupdir = &getGlobalConfiguration('backupdir');
     my $backup_re = &getValidFormat('backup');
@@ -105,16 +105,14 @@ Returns:
 
 See Also:
 
-    zapi/v3/system.cgi
+    api/v4/system.cgi
 
 =cut
 
-sub getExistsBackup {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $name = shift;
+sub getExistsBackup ($name) {
     my $find;
 
-    foreach my $backup (@{&getBackup}) {
+    foreach my $backup (@{ &getBackup() }) {
         if ($backup->{'name'} =~ /^$name/,) {
             $find = 1;
             last;
@@ -139,13 +137,11 @@ Returns:
 
 See Also:
 
-    zapi/v3/system.cgi
+    api/v4/system.cgi
 
 =cut
 
-sub createBackup {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $name      = shift;
+sub createBackup ($name) {
     my $zenbackup = &getGlobalConfiguration('zenbackup');
     my $error     = &logAndRun("$zenbackup $name -c");
 
@@ -176,44 +172,40 @@ See Also:
 
 =cut
 
-sub downloadBackup {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my $backup = shift;
+sub downloadBackup ($backup) {
     $backup = "backup-$backup.tar.gz";
 
-    my $backup_dir = &getGlobalConfiguration('backupdir');
+    my $backup_dir      = &getGlobalConfiguration('backupdir');
     my $backup_filename = "${backup_dir}\/${backup}";
 
-    unless (-f $backup_filename) {
-        my $msg = "Backup file '$backup_filename' not found";
+    unless (-r $backup_filename) {
+        my $msg = "Backup file '$backup_filename' not readable.";
         zenlog($msg, 'error');
         return $msg;
     }
 
+    my $cgi                         = &getCGI();
+    my $access_control_allow_origin = (exists $ENV{HTTP_ZAPI_KEY}) ? '*' : "https://$ENV{ HTTP_HOST }/";
+
+    print $cgi->header(
+        -type                              => 'application/x-download',
+        -attachment                        => $backup,
+        'Content-length'                   => -s "${backup_filename}",
+        'Access-Control-Allow-Origin'      => $access_control_allow_origin,
+        'Access-Control-Allow-Credentials' => 'true',
+    );
+
     if (open(my $download_fh, '<', $backup_filename)) {
-        my $cgi = &getCGI();
-        my $access_control_allow_origin =
-        (exists $ENV{HTTP_ZAPI_KEY}) ? '*' : "https://$ENV{ HTTP_HOST }/";
-
-        print $cgi->header(
-            -type                              => 'application/x-download',
-            -attachment                        => $backup,
-            'Content-length'                   => -s "${backup_filename}",
-            'Access-Control-Allow-Origin'      => $access_control_allow_origin,
-            'Access-Control-Allow-Credentials' => 'true',
-        );
-
         binmode $download_fh;
         print while <$download_fh>;
         close $download_fh;
         exit;
     }
-
-    my $msg = "Could not open backup file '$backup_filename': $!";
-    zenlog($msg, 'error');
-
-    return $msg;
+    else {
+        my $msg = "Could not open backup file '$backup_filename': $!";
+        zenlog($msg, 'error');
+        return $msg;
+    }
 }
 
 =pod
@@ -235,16 +227,11 @@ Returns:
 
 See Also:
 
-    zapi/v3/system.cgi
+    api/v4/system.cgi
 
 =cut
 
-sub uploadBackup {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my $filename          = shift;
-    my $upload_filehandle = shift;
-
+sub uploadBackup ($filename, $upload_filehandle) {
     my $error;
     my $backupdir = &getGlobalConfiguration('backupdir');
     my $tar       = &getGlobalConfiguration('tar');
@@ -300,13 +287,11 @@ Returns:
 
 See Also:
 
-    zapi/v3/system.cgi
+    api/v4/system.cgi
 
 =cut
 
-sub deleteBackup {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $file = shift;
+sub deleteBackup ($file) {
     $file = "backup-$file.tar.gz";
     my $backupdir = &getGlobalConfiguration("backupdir");
     my $filepath  = "$backupdir/$file";
@@ -340,13 +325,11 @@ Returns:
 
 See Also:
 
-    zapi/v3/system.cgi
+    api/v4/system.cgi
 
 =cut
 
-sub applyBackup {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $backup = shift;
+sub applyBackup ($backup) {
     my $error;
     my $tar  = &getGlobalConfiguration('tar');
     my $file = &getGlobalConfiguration('backupdir') . "/backup-$backup.tar.gz";
@@ -412,10 +395,7 @@ Returns:
 
 =cut
 
-sub getBackupVersion {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $backup = shift;
-
+sub getBackupVersion ($backup) {
     my $tar         = &getGlobalConfiguration('tar');
     my $file        = &getGlobalConfiguration('backupdir') . "/backup-$backup.tar.gz";
     my $config_path = &getGlobalConfiguration('globalcfg');

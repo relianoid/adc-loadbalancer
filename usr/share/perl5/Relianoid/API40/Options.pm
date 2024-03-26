@@ -23,6 +23,15 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
+
+=pod
+
+=head1 Module
+
+Relianoid::API40::Options
+
+=cut
 
 #  OPTIONS PreAuth
 OPTIONS qr{^/.*$} => sub {

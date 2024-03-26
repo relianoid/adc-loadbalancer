@@ -23,10 +23,18 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
+
+=pod
+
+=head1 Module
+
+Relianoid::API40::System::Service::DNS
+
+=cut
 
 # GET /system/dns
-sub get_dns {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub get_dns () {
     require Relianoid::System::DNS;
 
     my $desc = "Get dns";
@@ -37,10 +45,7 @@ sub get_dns {
 }
 
 #  POST /system/dns
-sub set_dns {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $json_obj = shift;
-
+sub set_dns ($json_obj) {
     require Relianoid::System::DNS;
 
     my $desc = "Modify the DNS";
@@ -49,25 +54,23 @@ sub set_dns {
 
     # Check allowed parameters
     my $error_msg = &checkApiParams($json_obj, $params, $desc);
-    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+    return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg })
       if ($error_msg);
 
     foreach my $key (keys %{$json_obj}) {
         my $msg = &setDns($key, $json_obj->{$key});
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg) if $msg;
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg }) if $msg;
     }
 
     my $dns = &getDns();
-    &httpResponse(
-        {
-            code => 200,
-            body => {
-                description => $desc,
-                params      => $dns,
-                message     => "The DNS service has been updated successfully."
-            }
+    &httpResponse({
+        code => 200,
+        body => {
+            description => $desc,
+            params      => $dns,
+            message     => "The DNS service has been updated successfully."
         }
-    );
+    });
     return;
 }
 

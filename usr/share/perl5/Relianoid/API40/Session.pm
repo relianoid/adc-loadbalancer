@@ -23,6 +23,15 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
+
+=pod
+
+=head1 Module
+
+Relianoid::API40::Session
+
+=cut
 
 my $LOG_TAG = "";
 $LOG_TAG = "ZAPI"   if (exists $ENV{HTTP_ZAPI_KEY});
@@ -36,8 +45,10 @@ POST qr{^/session$} => \&session_login;
 #  DELETE session to logout
 DELETE qr{^/session$} => \&session_logout;
 
-sub session_login {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+# POST /session
+# `empty_hash` argument is declared for backards compatibility with empty json, it's not used.
+# This call should have no body, so also no content type.
+sub session_login ($empty_hash = undef) {
     my $desc    = "Login to new session";
     my $session = CGI::Session->new(&getCGI());
 
@@ -45,7 +56,7 @@ sub session_login {
 
     unless ($session && !$session->param('is_logged_in')) {
         my $msg = "Already logged in a session";
-        &httpErrorResponse(code => 401, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 401, desc => $desc, msg => $msg });
     }
 
     # not validated credentials
@@ -56,14 +67,14 @@ sub session_login {
         $session->flush();
 
         my $msg = "The username and/or password are incorrect";
-        &httpErrorResponse(code => 401, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 401, desc => $desc, msg => $msg });
     }
 
     # check if the user has got permissions
     my (undef, undef, undef, $webgui_group) = getgrnam('webgui');
     if (!grep { /(^| )$username( |$)/ } $webgui_group) {
         my $msg = "The user $username has not web permissions";
-        &httpErrorResponse(code => 401, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 401, desc => $desc, msg => $msg });
     }
 
     $session->param('is_logged_in', 1);
@@ -80,33 +91,31 @@ sub session_login {
     $body->{version} = &getGlobalConfiguration("version");
 
     &zenlog("Login successful for user: $username", "info", $LOG_TAG);
-    &httpResponse(
-        {
-            code    => 200,
-            body    => $body,
-            headers => {
-                'Set-cookie' => $session_cookie . "; SameSite=None; Secure; HttpOnly"
-            },
-        }
-    );
+    &httpResponse({
+        code    => 200,
+        body    => $body,
+        headers => {
+            'Set-cookie' => $session_cookie . "; SameSite=None; Secure; HttpOnly"
+        },
+    });
     return;
 }
 
-sub session_logout {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+# DELETE /session
+sub session_logout () {
     my $desc = "Logout of session";
     my $cgi  = &getCGI();
 
     unless ($cgi->http('Cookie')) {
         my $msg = "Session cookie not found";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $session = CGI::Session->new($cgi);
 
     unless ($session && $session->param('is_logged_in')) {
         my $msg = "Session expired or not found";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $username = $session->param('username');

@@ -23,6 +23,11 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
+
+use Relianoid::Log;
+
+my $eload = eval { require Relianoid::ELoad; };
 
 =pod
 
@@ -48,12 +53,11 @@ Returns:
 
 See Also:
 
-    zapi/v3/system_stats.cgi
+    api/v4/system_stats.cgi
 
 =cut
 
-sub getTotalConnections {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub getTotalConnections () {
     my $conntrack = &getGlobalConfiguration("conntrack");
     my $conns     = &logAndGet("$conntrack -C");
     $conns =~ s/(\d+)/$1/;
@@ -79,15 +83,11 @@ Returns:
 
 See Also:
 
-    Zapi v3: <new_bond>
+    API v4: <new_bond>
 
 =cut
 
-sub indexOfElementInArray {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $searched_element = shift;
-    my $array_ref        = shift;
-
+sub indexOfElementInArray ($searched_element, $array_ref) {
     if (ref $array_ref ne 'ARRAY') {
         return -2;
     }
@@ -129,11 +129,7 @@ Returns:
 
 =cut
 
-sub slurpFile {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my $path = shift;
-
+sub slurpFile ($path) {
     require Relianoid::Log;
 
     my $file;
@@ -169,17 +165,13 @@ Returns:
 
 =cut
 
-sub getSpaceFree {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my $dir      = shift;
+sub getSpaceFree ($dir) {
     my $df_bin   = &getGlobalConfiguration("df_bin");
     my $sed_bin  = &getGlobalConfiguration("sed_bin");
     my $cut_bin  = &getGlobalConfiguration("cut_bin");
     my $grep_bin = &getGlobalConfiguration("grep_bin");
 
-    my $cmd =
-      "$df_bin -B1 $dir | $grep_bin -Ev '^(Filesystem|\$)' | $sed_bin -E 's/\\s+/ /g' | $cut_bin -d ' ' -f4";
+    my $cmd  = "$df_bin -B1 $dir | $grep_bin -Ev '^(Filesystem|\$)' | $sed_bin -E 's/\\s+/ /g' | $cut_bin -d ' ' -f4";
     my $size = &logAndGet($cmd);
 
     &zenlog("Dir: $dir, Free space (Bytes): $size", "debug2");
@@ -203,11 +195,7 @@ Returns:
 
 =cut
 
-sub getSpaceFormatHuman {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my $size = shift;
-
+sub getSpaceFormatHuman ($size) {
     my $human = $size;
     my $unit  = 'B';
 
@@ -247,9 +235,7 @@ Returns:
 
 =cut
 
-sub getSupportSaveSize {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
+sub getSupportSaveSize () {
     my $offset = "20971520";                               # 20 MB
     my $dirs   = "/usr/local/relianoid/config /var/log";
 
@@ -276,27 +262,19 @@ Returns:
 
 =cut
 
-sub checkSupportSaveSpace {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my $dir = shift // "/tmp";
-
-    my $supp_size = &getSupportSaveSize($dir);
+sub checkSupportSaveSpace ($dir = "/tmp") {
+    my $supp_size = &getSupportSaveSize();
     my $freeSpace = &getSpaceFree($dir);
 
     my $out = ($freeSpace > $supp_size) ? 0 : $supp_size;
 
     if ($out) {
-        &zenlog(
-            "There is no enough free space ('$freeSpace') in the '$dir' partition. Supportsave needs '$supp_size' bytes",
-            "error", "system"
-        );
+        &zenlog("There is no enough free space ('$freeSpace') in the '$dir' partition. Supportsave needs '$supp_size' bytes",
+            "error", "system");
     }
     else {
-        &zenlog(
-            "Checking free space ('$freeSpace') in the '$dir' partition. Supportsave needs '$supp_size' bytes",
-            "debug", "system"
-        );
+        &zenlog("Checking free space ('$freeSpace') in the '$dir' partition. Supportsave needs '$supp_size' bytes",
+            "debug", "system");
     }
 
     return $out;
@@ -318,8 +296,7 @@ Returns:
 
 =cut
 
-sub getSupportSave {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub getSupportSave () {
     my $zbindir   = &getGlobalConfiguration('zbindir');
     my @ss_output = @{ &logAndGet("${zbindir}/supportsave", "array") };
 
@@ -332,52 +309,6 @@ sub getSupportSave {
     my (undef, $ss_filename) = split('/tmp/', $ss_path);
 
     return $ss_filename;
-}
-
-=pod
-
-=head1 applyFactoryReset
-
-Run a factory reset in the load balancer. It can be executed using several modes. The modes are described in the type parameter.
-
-Parameters:
-
-    Interface - Management interface that will not me delete while the factory reset process.
-    Reset Type - Type of reset factory. The options are:
-
-        'remove-backups', expecifies that the backups will be deleted.
-        'hard-reset', reset factory is executed in its hard mode, deleting the relianoid certificate.
-        'hardware', is a hard reset, and set up the management interface with the hardware default IP.
-        If no paratemers are used in the function, the reset factory does not delete the backups and it will executed in its soft mode.
-
-Returns:
-
-    Integer - The function will return 0 on success, or another value on failure
-
-=cut
-
-sub applyFactoryReset {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my $if_name    = shift;
-    my $reset_type = shift // '';
-
-    if (!$if_name) {
-        &zenlog("Factory reset needs a interface", "error", "Factory");
-        return -1;
-    }
-
-    unless ($reset_type =~ /^(?:remove-backups|hardware||hard-reset)$/) {
-        &zenlog("Reset type do not recognized: $reset_type", "error", "Factory");
-        return -2;
-    }
-
-    $reset_type = "--$reset_type" if ($reset_type ne '');
-
-    my $cmd = &getGlobalConfiguration('factory_reset_bin') . " -i $if_name $reset_type";
-    my $err = &logAndRunBG($cmd);    # it has to be executed in background for being used from api
-
-    return $err;
 }
 
 =pod
@@ -396,10 +327,7 @@ Returns:
 
 =cut
 
-sub checkPidRunning    #( $pid )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $pid = shift;
+sub checkPidRunning ($pid) {
     my $ret = 1;
     $ret = 0 if (-e "/proc/" . $pid);
     return $ret;
@@ -421,15 +349,218 @@ Returns:
 
 =cut
 
-sub checkPidFileRunning    #( $pid_file )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $pid_file = shift;
+sub checkPidFileRunning ($pid_file) {
     open my $fileh, '<', $pid_file;
     my $pid = <$fileh>;
     chomp $pid;
     close $fileh;
     return &checkPidRunning($pid);
+}
+
+=pod
+
+=head1 setSshDefaultConfig
+
+Apply default SSH config if it was not changed by this service
+before. Then, reload the service generators.
+
+Parameters:
+
+    None.
+
+Returns:
+
+    ssh_config - Hash reference with SSH default configuration.
+
+=cut
+
+sub setSshDefaultConfig () {
+    my $output = 0;
+    $output = &eload(
+        module => 'Relianoid::System::SSH',
+        func   => 'setSshDefaultConfigPriv',
+        soft   => 1
+    ) if ($eload);
+    return $output;
+}
+
+=pod
+
+=head1 setSshFactoryReset
+
+Set default configuration of the ssh service.
+
+Parameters:
+
+    None.
+
+Returns:
+
+    integer - 0 on success, or -1 on failure.
+
+=cut
+
+sub setSshFactoryReset () {
+    my $ssh_tpl = "/etc/ssh/sshd_config.ucf-dist";
+    my $ssh_cfg = "/etc/ssh/sshd_config";
+    my $output  = 0;
+
+    if (-f $ssh_tpl) {
+        my $cmd = "cp -f $ssh_tpl $ssh_cfg";
+        &logAndRun($cmd);
+    }
+
+    $output = &eload(
+        module => 'Relianoid::System::SSH',
+        func   => 'setSshFactoryResetPriv',
+        soft   => 1
+    ) if ($eload);
+    return $output;
+}
+
+=pod
+
+=head1 initHttpServer
+
+Initialize required files to make http server to work.
+
+Parameters:
+
+    None.
+
+Returns:
+
+    none 0 on success other value if there is an error.
+
+=cut
+
+sub initHttpServer () {
+    my $httpFile          = &getGlobalConfiguration('confhttp');
+    my $httpFileTpl       = &getGlobalConfiguration('confhttp_tpl');
+    my $httpServerKey     = &getGlobalConfiguration('http_server_key');
+    my $httpServerKeyTpl  = &getGlobalConfiguration('http_server_key_tpl');
+    my $httpServerCert    = &getGlobalConfiguration('http_server_cert');
+    my $httpServerCertTpl = &getGlobalConfiguration('http_server_cert_tpl');
+    my $output            = 0;
+    my $cmd;
+
+    if (!-f "$httpFile") {
+        $cmd = "cp -f $httpFileTpl $httpFile";
+        $output += &logAndRun($cmd);
+    }
+
+    if (!-f "$httpServerKey") {
+        $cmd = "cp -f $httpServerKeyTpl $httpServerKey";
+        $output += &logAndRun($cmd);
+    }
+
+    if (!-f "$httpServerCert") {
+        $cmd = "cp -f $httpServerCertTpl $httpServerCert";
+        $output += &logAndRun($cmd);
+    }
+
+    $output += &eload(
+        module => 'Relianoid::System::HTTP',
+        func   => 'setHttpDefaultConfigPriv',
+        soft   => 1
+    ) if ($eload);
+    return $output;
+}
+
+=pod
+
+=head1 setHttpDefaultConfig
+
+Apply default HTTP config if it was not changed by this service
+before. Then, reload the service generators.
+
+Parameters:
+
+    None.
+
+Returns:
+
+    http_conf - Hash reference with HTTP default configuration.
+
+=cut
+
+sub setHttpDefaultConfig () {
+    my $output = 0;
+    $output = &eload(
+        module => 'Relianoid::System::HTTP',
+        func   => 'setHttpDefaultConfigPriv',
+        soft   => 1
+    ) if ($eload);
+    return $output;
+}
+
+=pod
+
+=head1 restartHttpServer
+
+Restart the HTTP web server.
+
+Parameters:
+
+    None.
+
+Returns:
+
+    none 0 on success other value if there is an error.
+
+=cut
+
+sub restartHttpServer () {
+    my $output = 0;
+    $output = &eload(
+        module => 'Relianoid::System::HTTP',
+        func   => 'restartHttpServerPriv',
+        soft   => 1
+    ) if ($eload);
+    return $output;
+}
+
+=pod
+
+=head1 setHttpFactoryReset
+
+Set default configuration of the http service.
+
+Parameters:
+
+    None.
+
+Returns:
+
+    integer - 0 on success, or -1 on failure.
+
+=cut
+
+sub setHttpFactoryReset () {
+    my $httpFile          = &getGlobalConfiguration('confhttp');
+    my $httpFileTpl       = &getGlobalConfiguration('confhttp_tpl');
+    my $httpServerKey     = &getGlobalConfiguration('http_server_key');
+    my $httpServerKeyTpl  = &getGlobalConfiguration('http_server_key_tpl');
+    my $httpServerCert    = &getGlobalConfiguration('http_server_cert');
+    my $httpServerCertTpl = &getGlobalConfiguration('http_server_cert_tpl');
+    my $output            = 0;
+
+    my $cmd = "cp -f $httpFileTpl $httpFile";
+    $output += &logAndRun($cmd);
+
+    $cmd = "cp -f $httpServerKeyTpl $httpServerKey";
+    $output += &logAndRun($cmd);
+
+    $cmd = "cp -f $httpServerCertTpl $httpServerCert";
+    $output += &logAndRun($cmd);
+
+    $output += &eload(
+        module => 'Relianoid::System::HTTP',
+        func   => 'setHttpDefaultConfigPriv',
+        soft   => 1
+    ) if ($eload);
+
+    return $output;
 }
 
 1;

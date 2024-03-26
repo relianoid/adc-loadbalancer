@@ -23,6 +23,7 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 =pod
 
@@ -47,9 +48,7 @@ Returns:
     Integer - Error code: 0 on success or other value on failure
 =cut
 
-sub runL4sdDaemon {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
+sub runL4sdDaemon () {
     my $l4sdbin = &getGlobalConfiguration('l4sd');
     my $pidfile = &getGlobalConfiguration('l4sdpid');
 
@@ -75,9 +74,7 @@ Returns:
     Integer - Error code: 0 on success or other value on failure
 =cut
 
-sub sendL4sdSignal {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
+sub sendL4sdSignal () {
     my $output  = -1;
     my $pidfile = &getGlobalConfiguration('l4sdpid');
 
@@ -109,12 +106,9 @@ Returns:
     String - Returns a string with the type of dynamic scheduler, empty if none.
 =cut
 
-sub getL4sdType {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my $farm_name = shift;
-    my $output    = "";
-    my $l4sdfile  = &getGlobalConfiguration('l4sdcfg');
+sub getL4sdType ($farm_name) {
+    my $output   = "";
+    my $l4sdfile = &getGlobalConfiguration('l4sdcfg');
 
     if (!-f "$l4sdfile") {
         return $output;
@@ -147,12 +141,8 @@ Returns:
 
 =cut
 
-sub setL4sdType {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my $farm_name = shift;
-    my $type      = shift;
-    my $l4sdfile  = &getGlobalConfiguration('l4sdcfg');
+sub setL4sdType ($farm_name, $type) {
+    my $l4sdfile = &getGlobalConfiguration('l4sdcfg');
 
     if (!-f "$l4sdfile") {
         open my $fd, '>', $l4sdfile;

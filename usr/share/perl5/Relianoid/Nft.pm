@@ -23,6 +23,7 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 =pod
 
@@ -48,9 +49,7 @@ Returns:
 
 =cut
 
-sub getNlbPid {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
+sub getNlbPid () {
     my $nlbpidfile = &getNlbPidFile();
     my $nlbpid     = -1;
 
@@ -85,9 +84,7 @@ Returns:
 
 =cut
 
-sub getNlbPidFile {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
+sub getNlbPidFile () {
     my $piddir     = &getGlobalConfiguration('piddir');
     my $nlbpidfile = "$piddir/nftlb.pid";
 
@@ -111,8 +108,7 @@ Returns:
 
 =cut
 
-sub startNlb {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub startNlb () {
     my $nftlbd         = &getGlobalConfiguration('zbindir') . "/nftlbd";
     my $pidof          = &getGlobalConfiguration('pidof');
     my $nlbpidfile     = &getNlbPidFile();
@@ -133,35 +129,6 @@ sub startNlb {
         open my $fd, '>', "$nlbpidfile";
         print $fd "$nlbpid";
         close $fd;
-    }
-
-    return $nlbpid;
-}
-
-=pod
-
-=head1 stopNlb
-
-Stop the nftlb daemon. Do nothing if is already stopped.
-
-Parameters:
-
-    none
-
-Returns:
-
-    Integer - return PID on success or <= 0 on failure
-
-=cut
-
-sub stopNlb {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my $nftlbd = &getGlobalConfiguration('zbindir') . "/nftlbd";
-    my $nlbpid = &getNlbPid();
-
-    if ($nlbpid ne "-1") {
-        &logAndRun("$nftlbd stop");
     }
 
     return $nlbpid;
@@ -190,9 +157,7 @@ Returns:
 
 =cut
 
-sub httpNlbRequest {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $self     = shift;
+sub httpNlbRequest ($self) {
     my $curl_cmd = &getGlobalConfiguration('curl_bin');
     my $body     = "";
 
@@ -226,7 +191,7 @@ sub httpNlbRequest {
     if ($output !~ /^2/)    # err
     {
         my $tag = (exists $self->{check}) ? 'debug' : 'error';
-        &zenlog("cmd failed: $execmd", $tag, 'system') if (!&debug);
+        &zenlog("cmd failed: $execmd", $tag, 'system') if (!&debug());
         if (open(my $fh, '<', $file)) {
             local $/ = undef;
             my $err = <$fh>;
@@ -275,13 +240,7 @@ Returns:
 
 =cut
 
-sub execNft {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $action    = shift;
-    my $table     = shift;
-    my $chain_def = shift;
-    my $rule      = shift;
-
+sub execNft ($action, $table, $chain_def, $rule) {
     my $nft   = &getGlobalConfiguration('nft_bin');
     my $chain = "";
     ($chain) = $chain_def =~ /^([\w\-\.\d]+)\s*.*$/;

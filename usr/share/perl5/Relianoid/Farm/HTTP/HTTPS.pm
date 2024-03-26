@@ -23,8 +23,9 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
-my $eload = eval { require Relianoid::ELoad };
+my $eload     = eval { require Relianoid::ELoad };
 my $configdir = &getGlobalConfiguration('configdir');
 
 =pod
@@ -43,7 +44,7 @@ Return the certificate applied to the farm
 
 Parameters:
 
-    farmname - Farm name
+    farm_name - Farm name
 
 Returns:
 
@@ -55,11 +56,7 @@ FIXME:
 
 =cut
 
-sub getFarmCertificate    # ($farm_name)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name) = @_;
-
+sub getFarmCertificate ($farm_name) {
     my $output = -1;
 
     my $farm_filename = &getFarmFile($farm_name);
@@ -87,9 +84,8 @@ Configure a certificate for a HTTP farm
 
 Parameters:
 
-    certificate - certificate file name
-
-    farmname - Farm name
+    cfile - certificate file name
+    farm_name - Farm name
 
 Returns:
 
@@ -101,11 +97,7 @@ FIXME:
 
 =cut
 
-sub setFarmCertificate    # ($cfile,$farm_name)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($cfile, $farm_name) = @_;
-
+sub setFarmCertificate ($cfile, $farm_name) {
     require Tie::File;
     require Relianoid::Lock;
     require Relianoid::Farm::HTTP::Config;
@@ -158,15 +150,7 @@ Returns:
 
 =cut
 
-sub setFarmCipherList    # ($farm_name,$ciphers,$cipherc)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    # assign first/second/third argument or take global value
-    my $farm_name = shift;
-    my $ciphers   = shift;
-    my $cipherc   = shift;
-
+sub setFarmCipherList ($farm_name, $ciphers, $cipherc) {
     require Tie::File;
     require Relianoid::Lock;
     require Relianoid::Farm::HTTP::Config;
@@ -237,11 +221,8 @@ Returns:
     scalar - return a string with cipher value or -1 on failure
 =cut
 
-sub getFarmCipherList    # ($farm_name)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm_name = shift;
-    my $output    = -1;
+sub getFarmCipherList ($farm_name) {
+    my $output = -1;
 
     my $farm_filename = &getFarmFile($farm_name);
 
@@ -283,11 +264,7 @@ Returns:
 
 =cut
 
-sub getFarmCipherSet    # ($farm_name)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farm_name = shift;
-
+sub getFarmCipherSet ($farm_name) {
     my $output = -1;
 
     my $cipher_list = &getFarmCipherList($farm_name);
@@ -318,7 +295,7 @@ Get if a security protocol version is enabled or disabled in a HTTPS farm
 
 Parameters:
 
-    farmname - Farm name
+    farm_name - Farm name
     protocol - SSL or TLS protocol get status (disabled or enabled)
 
 Returns:
@@ -327,11 +304,7 @@ Returns:
 
 =cut
 
-sub getHTTPFarmDisableSSL    # ($farm_name, $protocol)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $protocol) = @_;
-
+sub getHTTPFarmDisableSSL ($farm_name, $protocol) {
     my $farm_filename = &getFarmFile($farm_name);
     my $output        = -1;
 
@@ -358,7 +331,7 @@ Enable or disable a security protocol for a HTTPS farm
 
 Parameters:
 
-    farmname - Farm name
+    farm_name - Farm name
     protocol - SSL or TLS protocol to disable/enable: SSLv2|SSLv3|TLSv1|TLSv1_1|TLSv1_2
     action   - The available actions are: 1 to disable or 0 to enable
 
@@ -368,11 +341,7 @@ Returns:
 
 =cut
 
-sub setHTTPFarmDisableSSL    # ($farm_name, $protocol, $action )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $protocol, $action) = @_;
-
+sub setHTTPFarmDisableSSL ($farm_name, $protocol, $action) {
     require Tie::File;
     require Relianoid::Lock;
     require Relianoid::Farm::HTTP::Config;

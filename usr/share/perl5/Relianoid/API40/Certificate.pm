@@ -23,15 +23,22 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
+
+=pod
+
+=head1 Module
+
+Relianoid::API40::Certificate
+
+=cut
 
 my $eload = eval { require Relianoid::ELoad };
 
 my $CSR_KEY_SIZE = 2048;
 
 # GET /certificates
-sub certificates    # ()
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub certificates () {
     require Relianoid::Certificate;
 
     my $desc         = "List certificates";
@@ -53,11 +60,7 @@ sub certificates    # ()
 }
 
 # GET /certificates/CERTIFICATE/info
-sub get_certificate_info    # ()
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $cert_filename = shift;
-
+sub get_certificate_info ($cert_filename) {
     require Relianoid::Certificate;
 
     my $desc     = "Show certificate details";
@@ -66,7 +69,7 @@ sub get_certificate_info    # ()
     # check is the certificate file exists
     if (!-f "$cert_dir\/$cert_filename") {
         my $msg = "Certificate file not found.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     if (&getValidFormat('certificate', $cert_filename)) {
@@ -76,24 +79,20 @@ sub get_certificate_info    # ()
     }
     else {
         my $msg = "Could not get such certificate information";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
     return;
 }
 
 # GET /certificates/CERTIFICATE
-sub download_certificate    # ()
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $cert_filename = shift;
-
+sub download_certificate ($cert_filename) {
     my $desc      = "Download certificate";
     my $cert_dir  = &getGlobalConfiguration('certdir');
     my $cert_path = "$cert_dir/$cert_filename";
 
     unless ($cert_filename =~ /\.(pem|csr)$/ && -f $cert_path) {
         my $msg = "Could not find such certificate";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     &httpDownloadResponse(
@@ -105,11 +104,7 @@ sub download_certificate    # ()
 }
 
 # DELETE /certificates/CERTIFICATE
-sub delete_certificate    # ( $cert_filename )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $cert_filename = shift;
-
+sub delete_certificate ($cert_filename) {
     require Relianoid::Certificate;
     require Relianoid::LetsencryptZ;
 
@@ -119,7 +114,7 @@ sub delete_certificate    # ( $cert_filename )
     # check is the certificate file exists
     if (!-f "$cert_dir\/$cert_filename") {
         my $msg = "Certificate file not found.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     my $status = &getFarmCertUsed($cert_filename);
@@ -127,7 +122,7 @@ sub delete_certificate    # ( $cert_filename )
     # check is the certificate is being used
     if ($status == 0) {
         my $msg = "File can't be deleted because it's in use by a farm.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     if ($eload) {
@@ -139,7 +134,7 @@ sub delete_certificate    # ( $cert_filename )
 
         if ($status == 0) {
             my $msg = "File can't be deleted because it's in use by HTTPS server";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }
 
@@ -170,7 +165,7 @@ sub delete_certificate    # ( $cert_filename )
 
     if ($error) {
         my $msg = "LE Certificate can not be removed";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     &delCert($cert_filename);
@@ -178,7 +173,7 @@ sub delete_certificate    # ( $cert_filename )
     # check if the certificate exists
     if (-f "$cert_dir\/$cert_filename") {
         my $msg = "Error deleting certificate $cert_filename.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     # no errors found, make a succesful response
@@ -194,10 +189,7 @@ sub delete_certificate    # ( $cert_filename )
 }
 
 # POST /certificates (Create CSR)
-sub create_csr {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $json_obj = shift;
-
+sub create_csr ($json_obj) {
     require Relianoid::Certificate;
 
     my $desc      = 'Create CSR';
@@ -205,7 +197,7 @@ sub create_csr {
 
     if (-f "$configdir/$json_obj->{name}.csr") {
         my $msg = "$json_obj->{name} already exists.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $params = &getAPIModel("certificate_csr-create.json");
@@ -213,19 +205,18 @@ sub create_csr {
 
     # Check allowed parameters
     my $error_msg = &checkApiParams($json_obj, $params, $desc);
-    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+    return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg })
       if ($error_msg);
 
     my $error = &createCSR(
-        $json_obj->{name},     $json_obj->{fqdn},     $json_obj->{country},
-        $json_obj->{state},    $json_obj->{locality}, $json_obj->{organization},
-        $json_obj->{division}, $json_obj->{mail},     $CSR_KEY_SIZE,
-        ""
+        $json_obj->{name},     $json_obj->{fqdn},         $json_obj->{country},  $json_obj->{state},
+        $json_obj->{locality}, $json_obj->{organization}, $json_obj->{division}, $json_obj->{mail},
+        $CSR_KEY_SIZE,         ""
     );
 
     if ($error) {
         my $msg = "Error, creating certificate $json_obj->{ name }.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $message = "Certificate $json_obj->{ name } created";
@@ -240,12 +231,7 @@ sub create_csr {
 }
 
 # POST /certificates/CERTIFICATE (Upload PEM)
-sub upload_certificate    # ()
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $upload_data = shift;
-    my $filename    = shift;
-
+sub upload_certificate ($upload_data, $filename) {
     require Relianoid::File;
 
     my $desc      = "Upload PEM certificate";
@@ -258,12 +244,12 @@ sub upload_certificate    # ()
     $filename =~ s/[\(\)\@ ]//g;
     if (-f "$configdir/$filename") {
         my $msg = "Certificate file name already exists";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     unless (&setFile("$configdir/$filename", $upload_data)) {
         my $msg = "Could not save the certificate file";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     # no errors found, return sucessful response
@@ -279,9 +265,7 @@ sub upload_certificate    # ()
 }
 
 # GET /ciphers
-sub ciphers_available    # ( $json_obj, $farmname )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub ciphers_available () {
     my $desc = "Get the ciphers available";
 
     my @out = (
@@ -310,12 +294,7 @@ sub ciphers_available    # ( $json_obj, $farmname )
 }
 
 # POST /farms/FARM/certificates (Add certificate to farm)
-sub add_farm_certificate    # ( $json_obj, $farmname )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $json_obj = shift;
-    my $farmname = shift;
-
+sub add_farm_certificate ($json_obj, $farmname) {
     require Relianoid::Farm::Core;
     require Relianoid::Farm::Base;
     unless ($eload) { require Relianoid::Farm::HTTP::HTTPS; }
@@ -325,20 +304,20 @@ sub add_farm_certificate    # ( $json_obj, $farmname )
     # Check if the farm exists
     if (!&getFarmExists($farmname)) {
         my $msg = "Farm not found";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     # Check if the farm exists
     if (&getFarmType($farmname) ne 'https') {
         my $msg = "This feature is only available for 'https' farms";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $params = &getAPIModel("farm_certificate-add.json");
 
     # Check allowed parameters
     my $error_msg = &checkApiParams($json_obj, $params, $desc);
-    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+    return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg })
       if ($error_msg);
 
     my $configdir = &getGlobalConfiguration('certdir');
@@ -346,7 +325,7 @@ sub add_farm_certificate    # ( $json_obj, $farmname )
     # validate certificate filename and format
     unless (-f $configdir . "/" . $json_obj->{file}) {
         my $msg = "The certificate does not exist.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     my $cert_in_use;
@@ -363,7 +342,7 @@ sub add_farm_certificate    # ( $json_obj, $farmname )
 
     if ($cert_in_use) {
         my $msg = "The certificate already exists in the farm.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $status;
@@ -379,11 +358,10 @@ sub add_farm_certificate    # ( $json_obj, $farmname )
     }
 
     if ($status) {
-        my $msg =
-          "It's not possible to add the certificate with name $json_obj->{file} for the $farmname farm";
+        my $msg = "It's not possible to add the certificate with name $json_obj->{file} for the $farmname farm";
 
         &zenlog("It's not possible to add the certificate.", "error", "LSLB");
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     # no errors found, return succesful response
@@ -426,12 +404,7 @@ sub add_farm_certificate    # ( $json_obj, $farmname )
 }
 
 # DELETE /farms/FARM/certificates/CERTIFICATE
-sub delete_farm_certificate    # ( $farmname, $certfilename )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farmname     = shift;
-    my $certfilename = shift;
-
+sub delete_farm_certificate ($farmname, $certfilename) {
     require Relianoid::Farm::Core;
     require Relianoid::Farm::Base;
 
@@ -439,20 +412,20 @@ sub delete_farm_certificate    # ( $farmname, $certfilename )
 
     unless ($eload) {
         my $msg = "HTTPS farm without certificate is not allowed.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     # Check if the farm exists
     if (!&getFarmExists($farmname)) {
         my $msg = "The farmname $farmname does not exist.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     # validate certificate
     unless ($certfilename && &getValidFormat('cert_pem', $certfilename)) {
         my $msg = "Invalid certificate id, please insert a valid value.";
         &zenlog("Invalid certificate id.", "error", "LSLB");
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my @certSNI = &eload(
@@ -464,13 +437,12 @@ sub delete_farm_certificate    # ( $farmname, $certfilename )
     my $number = scalar grep ({ $_ eq $certfilename } @certSNI);
     if (!$number) {
         my $msg = "Certificate is not used by the farm.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     if (@certSNI == 1 or ($number == @certSNI)) {
-        my $msg =
-          "The certificate '$certfilename' could not be deleted, the farm needs one certificate at least.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        my $msg = "The certificate '$certfilename' could not be deleted, the farm needs one certificate at least.";
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $status;
@@ -489,19 +461,16 @@ sub delete_farm_certificate    # ( $farmname, $certfilename )
     if ($status == -1) {
         &zenlog("It's not possible to delete the certificate.", "error", "LSLB");
 
-        my $msg =
-          "It isn't possible to delete the selected certificate $certfilename from the SNI list";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        my $msg = "It isn't possible to delete the selected certificate $certfilename from the SNI list";
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     # check if removing the certificate would leave the SNI list empty, not supported
     if ($status == 1) {
-        &zenlog("It's not possible to delete all certificates, at least one is required for HTTPS.",
-            "error", "LSLB");
+        &zenlog("It's not possible to delete all certificates, at least one is required for HTTPS.", "error", "LSLB");
 
-        my $msg =
-          "It isn't possible to delete all certificates, at least one is required for HTTPS profiles";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        my $msg = "It isn't possible to delete all certificates, at least one is required for HTTPS profiles";
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     # no errors found, return succesful response
@@ -541,17 +510,14 @@ sub delete_farm_certificate    # ( $farmname, $certfilename )
 }
 
 # POST /certificates/pem (Create PEM)
-sub create_certificate    # ()
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $json_obj = shift;
-    my $desc     = "Create certificate";
+sub create_certificate ($json_obj) {
+    my $desc = "Create certificate";
 
     my $configdir = &getGlobalConfiguration('certdir');
 
     if (-f "$configdir/$json_obj->{ name }.pem") {
         my $msg = "$json_obj->{ name } already exists.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $params = &getAPIModel("certificate_pem-create.json");
@@ -559,7 +525,7 @@ sub create_certificate    # ()
     # Check allowed parameters
     my $error_msg = &checkApiParams($json_obj, $params, $desc);
     if ($error_msg) {
-        &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg });
     }
 
     require Relianoid::Certificate;
@@ -567,7 +533,7 @@ sub create_certificate    # ()
       &createPEM($json_obj->{name}, $json_obj->{key}, $json_obj->{ca}, $json_obj->{intermediates});
 
     if ($error->{code}) {
-        &httpErrorResponse(code => 400, desc => $desc, msg => $error->{desc});
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $error->{desc} });
     }
 
     # no errors found, return sucessful response

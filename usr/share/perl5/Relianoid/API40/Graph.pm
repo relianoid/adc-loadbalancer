@@ -23,15 +23,22 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 use Relianoid::RRD;
+
+=pod
+
+=head1 Module
+
+Relianoid::API40::Graph
+
+=cut
 
 my $eload = eval { require Relianoid::ELoad };
 
 #GET the list of graphs availables in the load balancer
-sub list_possible_graphs    #()
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub list_possible_graphs () {
     require Relianoid::Stats;
 
     my @farms = ();
@@ -86,11 +93,10 @@ sub list_possible_graphs    #()
         };
     }
     my $body = {
-        description =>
-          "These are the possible graphs, you'll be able to access to the daily, weekly, monthly or yearly graph",
-        system     => \@sys,
-        interfaces => \@net,
-        farms      => \@farms
+        description => "These are the possible graphs, you'll be able to access to the daily, weekly, monthly or yearly graph",
+        system      => \@sys,
+        interfaces  => \@net,
+        farms       => \@farms
     };
 
     if ($eload) {
@@ -103,9 +109,7 @@ sub list_possible_graphs    #()
 }
 
 # GET all system graphs
-sub list_sys_graphs    #()
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub list_sys_graphs () {
     require Relianoid::Stats;
 
     # System values
@@ -135,11 +139,7 @@ sub list_sys_graphs    #()
 }
 
 # GET system graphs
-sub get_sys_graphs    #()
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $key = shift;
-
+sub get_sys_graphs ($key) {
     my $desc = "Get $key graphs";
 
     $key = 'mem'   if ($key eq 'ram');
@@ -165,12 +165,7 @@ sub get_sys_graphs    #()
 }
 
 # GET frequency system graphs
-sub get_sys_graphs_freq    #()
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $key       = shift;
-    my $frequency = shift;
-
+sub get_sys_graphs_freq ($key, $frequency) {
     my $desc = "Get $frequency $key graphs";
 
     $key = 'mem'   if ($key eq 'ram');
@@ -191,13 +186,7 @@ sub get_sys_graphs_freq    #()
 
 # GET a system graph using an interval
 # /graphs/system/cpu/custom/start/11-25-2020-05:55/end/11-25-2020-22:25
-sub get_sys_graphs_interval    #()
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $key   = shift;
-    my $start = shift;
-    my $end   = shift;
-
+sub get_sys_graphs_interval ($key, $start, $end) {
     my $desc = "Get $key graphs";
 
     $key = 'mem'   if ($key eq 'ram');
@@ -217,17 +206,14 @@ sub get_sys_graphs_interval    #()
 }
 
 # GET all interface graphs
-sub list_iface_graphs    #()
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
+sub list_iface_graphs () {
     my @iface = ();
     for my $graph (&getGraphs2Show("Network")) {
         $graph =~ s/iface$//;
         push(@iface, $graph);
     }
 
-    my $body  = {
+    my $body = {
         description =>
           "These are the possible interface graphs, you'll be able to access to the daily, weekly, monthly or yearly graph",
         interfaces => \@iface
@@ -238,11 +224,7 @@ sub list_iface_graphs    #()
 }
 
 # GET interface graphs
-sub get_iface_graphs    #()
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $iface = shift;
-
+sub get_iface_graphs ($iface) {
     require Relianoid::Net::Interface;
 
     my $desc              = "Get interface graphs";
@@ -251,13 +233,13 @@ sub get_iface_graphs    #()
     # validate NIC NAME
     if (!grep { /^$iface$/ } @system_interfaces) {
         my $msg = "Nic interface not found.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     # graph for this farm doesn't exist
     elsif (!grep { /${iface}iface$/ } &getGraphs2Show("Network")) {
         my $msg = "There is no rrd files yet.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     # Print Graph Function
@@ -280,12 +262,7 @@ sub get_iface_graphs    #()
 }
 
 # GET frequency interface graphs
-sub get_iface_graphs_frec    #()
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $iface     = shift;
-    my $frequency = shift;
-
+sub get_iface_graphs_frec ($iface, $frequency) {
     require Relianoid::Net::Interface;
 
     my $desc              = "Get interface graphs";
@@ -294,11 +271,11 @@ sub get_iface_graphs_frec    #()
     # validate NIC NAME
     if (!grep { /^$iface$/ } @system_interfaces) {
         my $msg = "Nic interface not found.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
     elsif (!grep { /${iface}iface$/ } &getGraphs2Show("Network")) {
         my $msg = "There is no rrd files yet.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     # Print Graph Function
@@ -315,13 +292,7 @@ sub get_iface_graphs_frec    #()
 }
 
 # GET interface graph in an interval
-sub get_iface_graphs_interval    #()
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $iface = shift;
-    my $start = shift;
-    my $end   = shift;
-
+sub get_iface_graphs_interval ($iface, $start, $end) {
     require Relianoid::Net::Interface;
 
     my $desc              = "Get interface graphs";
@@ -330,11 +301,11 @@ sub get_iface_graphs_interval    #()
     # validate NIC NAME
     if (!grep { /^$iface$/ } @system_interfaces) {
         my $msg = "Nic interface not found.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
     elsif (!grep { /${iface}iface$/ } &getGraphs2Show("Network")) {
         my $msg = "There is no rrd files yet.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     # Print Graph Function
@@ -351,10 +322,7 @@ sub get_iface_graphs_interval    #()
 }
 
 # GET all farm graphs
-sub list_farm_graphs    #()
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
+sub list_farm_graphs () {
     my @farms = ();
     for my $graph (&getGraphs2Show("Farm")) {
         $graph =~ s/-farm$//;
@@ -381,11 +349,7 @@ sub list_farm_graphs    #()
 }
 
 # GET farm graphs
-sub get_farm_graphs    #()
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farmName = shift;
-
+sub get_farm_graphs ($farmName) {
     require Relianoid::Farm::Core;
 
     my $desc = "Get farm graphs";
@@ -393,13 +357,13 @@ sub get_farm_graphs    #()
     # this farm doesn't exist
     if (!&getFarmExists($farmName)) {
         my $msg = "$farmName doesn't exist.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     # graph for this farm doesn't exist
     elsif (!grep { /^$farmName-farm$/ } &getGraphs2Show("Farm")) {
         my $msg = "There are no rrd files yet.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     # Print Graph Function
@@ -422,12 +386,7 @@ sub get_farm_graphs    #()
 }
 
 # GET frequency farm graphs
-sub get_farm_graphs_frec    #()
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farmName  = shift;
-    my $frequency = shift;
-
+sub get_farm_graphs_frec ($farmName, $frequency) {
     require Relianoid::Farm::Core;
 
     my $desc = "Get farm graphs";
@@ -435,13 +394,13 @@ sub get_farm_graphs_frec    #()
     # this farm doesn't exist
     if (!&getFarmExists($farmName)) {
         my $msg = "$farmName doesn't exist.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     # graph for this farm doesn't exist
     elsif (!grep { /$farmName-farm/ } &getGraphs2Show("Farm")) {
         my $msg = "There is no rrd files yet.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     # Print Graph Function
@@ -458,13 +417,7 @@ sub get_farm_graphs_frec    #()
 }
 
 # GET farm graph in an interval
-sub get_farm_graphs_interval    #()
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $farmName = shift;
-    my $start    = shift;
-    my $end      = shift;
-
+sub get_farm_graphs_interval ($farmName, $start, $end) {
     require Relianoid::Farm::Core;
 
     my $desc = "Get farm graphs";
@@ -472,13 +425,13 @@ sub get_farm_graphs_interval    #()
     # this farm doesn't exist
     if (!&getFarmExists($farmName)) {
         my $msg = "$farmName doesn't exist.";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     # graph for this farm doesn't exist
     elsif (!grep { /$farmName-farm/ } &getGraphs2Show("Farm")) {
         my $msg = "There is no rrd files yet.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     # Print Graph Function
@@ -495,9 +448,7 @@ sub get_farm_graphs_interval    #()
 }
 
 #GET mount points list
-sub list_disks_graphs    #()
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub list_disks_graphs () {
     require Relianoid::Stats;
 
     my @mount_points;
@@ -521,11 +472,7 @@ sub list_disks_graphs    #()
 }
 
 #GET disk graphs for all periods
-sub get_disk_graphs    #()
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $mount_point = shift;
-
+sub get_disk_graphs ($mount_point) {
     require Relianoid::Stats;
 
     $mount_point =~ s/^root[\/]?/\//;    # remove leading 'root/'
@@ -537,7 +484,7 @@ sub get_disk_graphs    #()
 
     unless ($part_key) {
         my $msg = "Mount point not found";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     my $dev_id = $parts->{$part_key}->{rrd_id};
@@ -562,12 +509,7 @@ sub get_disk_graphs    #()
 }
 
 #GET disk graph for a single period
-sub get_disk_graphs_freq    #()
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $mount_point = shift;
-    my $frequency   = shift;
-
+sub get_disk_graphs_freq ($mount_point, $frequency) {
     require Relianoid::Stats;
 
     my $desc  = "Disk partition usage graph";
@@ -579,7 +521,7 @@ sub get_disk_graphs_freq    #()
 
     unless ($part_key) {
         my $msg = "Mount point not found";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     my $dev_id = $parts->{$part_key}->{rrd_id};
@@ -596,13 +538,7 @@ sub get_disk_graphs_freq    #()
 }
 
 #GET disk graph in an interval
-sub get_disk_graphs_interval    #()
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $mount_point = shift;
-    my $start       = shift;
-    my $end         = shift;
-
+sub get_disk_graphs_interval ($mount_point, $start, $end) {
     require Relianoid::Stats;
 
     my $desc  = "Disk partition usage graph";
@@ -614,7 +550,7 @@ sub get_disk_graphs_interval    #()
 
     unless ($part_key) {
         my $msg = "Mount point not found";
-        &httpErrorResponse(code => 404, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     my $dev_id = $parts->{$part_key}->{rrd_id};

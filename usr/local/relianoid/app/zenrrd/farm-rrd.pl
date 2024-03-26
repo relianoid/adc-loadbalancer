@@ -28,10 +28,7 @@ use Relianoid::Farm::Base;
 use Relianoid::Farm::Stats;
 use Relianoid::Net::ConnStats;
 
-my $eload;
-if (eval { require Relianoid::ELoad; }) {
-    $eload = 1;
-}
+my $eload = eval { require Relianoid::ELoad; };
 
 my $rrdap_dir = &getGlobalConfiguration('rrdap_dir');
 my $rrd_dir   = &getGlobalConfiguration('rrd_dir');

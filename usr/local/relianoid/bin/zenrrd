@@ -21,7 +21,7 @@
 #
 ###############################################################################
 
-# this script run all pl files with -rrd.pl regexh in $rrdap_dir,
+# this script run all pl files with -rrd.pl regex in $rrdap_dir,
 # this -rrd.pl files will create the rrd graphs that RELIANOID load balancer gui
 # will paint in Monitoring section
 # USE:
@@ -38,6 +38,7 @@ use feature qw(signatures);
 
 use Relianoid::Config;
 use Relianoid::Log;
+use Relianoid::Debug;
 
 my $rrdap_dir = &getGlobalConfiguration('rrdap_dir');
 my $lockfile  = "/tmp/rrd.lock";
@@ -53,13 +54,19 @@ else {
 }
 
 opendir(my $dir, $rrdap_dir);
-my @rrd_scripts = grep (/-rrd.(?:pl|sh)$/, readdir($dir));
+my @rrd_scripts = grep { /-rrd.(?:pl|sh)$/ } readdir($dir);
 closedir($dir);
 
 foreach my $script_rrd (@rrd_scripts) {
     print "Executing $script_rrd...\n";
 
-    &logAndRun("$rrdap_dir/$script_rrd");
+    if (&debug() == 0) {
+        my $errno = system("$rrdap_dir/$script_rrd >/dev/null 2>&1");
+        &zenlog("Error running '$rrdap_dir/$script_rrd' from zenrrd", "error", "SYSTEM") if $errno;
+    }
+    else {
+        &logAndRun("$rrdap_dir/$script_rrd");
+    }
 }
 
 if (-e $lockfile) {

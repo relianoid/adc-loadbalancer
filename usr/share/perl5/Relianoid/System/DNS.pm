@@ -24,7 +24,6 @@
 use strict;
 use warnings;
 use feature qw(signatures);
-no warnings 'experimental::args_array_with_signatures';
 
 =pod
 
@@ -57,13 +56,11 @@ Returns:
 
 See Also:
 
-    zapi/v3/system.cgi
+    api/v4/system.cgi
 
 =cut
 
-sub getDns {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
+sub getDns () {
     my $dns     = { 'primary' => '', 'secondary' => '' };
     my $dnsFile = &getGlobalConfiguration('filedns');
 
@@ -110,13 +107,11 @@ Bugs:
 
 See Also:
 
-    zapi/v3/system.cgi
+    zapi/v4/system.cgi
 
 =cut
 
 sub setDns ($dns, $value) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $dnsFile = &getGlobalConfiguration('filedns');
 
     if (!-f $dnsFile) {

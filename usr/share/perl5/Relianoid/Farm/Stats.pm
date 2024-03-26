@@ -23,6 +23,7 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 my $eload = eval { require Relianoid::ELoad };
 
@@ -42,8 +43,8 @@ Get all ESTABLISHED connections for a farm
 
 Parameters:
 
-    farmname - Farm name
-    netstat  - reference to array with Conntrack -L output
+    farm_name - Farm name
+    netstat   - reference to array with Conntrack -L output
 
 Returns:
 
@@ -51,11 +52,7 @@ Returns:
 
 =cut
 
-sub getFarmEstConns    # ($farm_name,$netstat)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $netstat) = @_;
-
+sub getFarmEstConns ($farm_name, $netstat) {
     my $farm_type   = &getFarmType($farm_name);
     my $connections = 0;
 
@@ -90,7 +87,7 @@ Get all SYN connections for a backend
 
 Parameters:
 
-    farmname     - Farm name
+    farm_name    - Farm name
     ip_backend   - IP backend
     port_backend - backend port
     netstat      - reference to array with Conntrack -L output
@@ -101,11 +98,7 @@ Returns:
 
 =cut
 
-sub getBackendSYNConns    # ($farm_name,$ip_backend,$port_backend,$netstat)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $ip_backend, $port_backend, $netstat) = @_;
-
+sub getBackendSYNConns ($farm_name, $ip_backend, $port_backend, $netstat = undef) {
     my $farm_type   = &getFarmType($farm_name);
     my $connections = 0;
 
@@ -129,8 +122,8 @@ Get all SYN connections for a farm
 
 Parameters:
 
-    farmname - Farm name
-    netstat  - reference to array with Conntrack -L output
+    farm_name - Farm name
+    netstat   - reference to array with Conntrack -L output
 
 Returns:
 
@@ -138,11 +131,7 @@ Returns:
 
 =cut
 
-sub getFarmSYNConns    # ($farm_name, $netstat)
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my ($farm_name, $netstat) = @_;
-
+sub getFarmSYNConns ($farm_name, $netstat = undef) {
     my $farm_type   = &getFarmType($farm_name);
     my $connections = 0;
 

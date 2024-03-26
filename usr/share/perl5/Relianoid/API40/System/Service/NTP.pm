@@ -23,54 +23,55 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
+
+=pod
+
+=head1 Module
+
+Relianoid::API40::System::Service::NTP
+
+=cut
 
 # GET /system/ntp
-sub get_ntp {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub get_ntp () {
     my $desc = "Get ntp";
     my $ntp  = &getGlobalConfiguration('ntp');
 
-    &httpResponse(
-        {
-            code => 200,
-            body => { description => $desc, params => { "server" => $ntp } }
-        }
-    );
+    &httpResponse({
+        code => 200,
+        body => { description => $desc, params => { "server" => $ntp } }
+    });
     return;
 }
 
 #  POST /system/ntp
-sub set_ntp {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $json_obj = shift;
-
+sub set_ntp ($json_obj) {
     my $desc = "Post ntp";
 
     my $params = &getAPIModel("system_ntp-modify.json");
 
     # Check allowed parameters
     my $error_msg = &checkApiParams($json_obj, $params, $desc);
-    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+    return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg })
       if ($error_msg);
 
     my $error = &setGlobalConfiguration('ntp', $json_obj->{'server'});
 
     if ($error) {
         my $msg = "There was a error modifying ntp.";
-        &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+        &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $ntp = &getGlobalConfiguration('ntp');
-    &httpResponse(
-        {
-            code => 200,
-            body => {
-                description => $desc,
-                params      => $ntp,
-                message     => "The NTP service has been updated successfully."
-            }
+    &httpResponse({
+        code => 200,
+        body => {
+            description => $desc,
+            params      => $ntp,
+            message     => "The NTP service has been updated successfully."
         }
-    );
+    });
     return;
 }
 

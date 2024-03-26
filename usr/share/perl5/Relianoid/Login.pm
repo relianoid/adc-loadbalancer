@@ -24,7 +24,6 @@
 use strict;
 use warnings;
 use feature qw(signatures);
-no warnings 'experimental::args_array_with_signatures';
 
 my $passfile = "/etc/shadow";
 
@@ -58,13 +57,11 @@ Bugs:
 
 See Also:
 
-    Zapi v3: <set_user>, <set_user_zapi>
+    API v4: <set_user>, <set_user_zapi>
 
 =cut
 
 sub changePassword ($user, $newpass, $verifypass) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     $verifypass = $newpass if (!$verifypass);
 
     ##write \$ instead $
@@ -112,13 +109,11 @@ Bugs:
 
 See Also:
 
-    Zapi v3: <set_user>
+    API v4: <set_user>
 
 =cut
 
 sub checkValidUser ($user, $passwd_in) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $output = 0;
     use Authen::Simple::Passwd;
     my $passwd = Authen::Simple::Passwd->new(path => "$passfile");

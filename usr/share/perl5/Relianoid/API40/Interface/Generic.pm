@@ -23,13 +23,20 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
+
+=pod
+
+=head1 Module
+
+Relianoid::API40::Interface::Generic
+
+=cut
 
 my $eload = eval { require Relianoid::ELoad };
 
 # GET /interfaces Get params of the interfaces
-sub get_interfaces    # ()
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
+sub get_interfaces () {
     require Relianoid::Net::Interface;
 
     my $desc = "List interfaces";

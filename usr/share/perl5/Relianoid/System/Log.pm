@@ -24,7 +24,6 @@
 use strict;
 use warnings;
 use feature qw(signatures);
-no warnings 'experimental::args_array_with_signatures';
 
 =pod
 
@@ -57,13 +56,11 @@ Returns:
 
 See Also:
 
-    zapi/v3/system.cgi
+    api/v4/system.cgi
 
 =cut
 
-sub getLogs {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
+sub getLogs () {
     my @logs;
     my $logdir = &getGlobalConfiguration('logdir');
 
@@ -104,12 +101,11 @@ Returns:
 
 See Also:
 
-    zapi/v31/system.cgi
+    api/v4/system.cgi
+
 =cut
 
 sub getLogLines ($logFile, $lines_number) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my @lines;
     my $path = &getGlobalConfiguration('logdir');
     my $tail = &getGlobalConfiguration('tail');

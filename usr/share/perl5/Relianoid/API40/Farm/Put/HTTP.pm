@@ -23,20 +23,24 @@
 
 use strict;
 use warnings;
+use feature qw(signatures);
 
 use Relianoid::Farm::Base;
 use Relianoid::Farm::Config;
 use Relianoid::Farm::Action;
 
+=pod
+
+=head1 Module
+
+Relianoid::API40::Farm::Put::HTTP
+
+=cut
+
 my $eload = eval { require Relianoid::ELoad };
 
 # PUT /farms/<farmname> Modify a http|https Farm
-sub modify_http_farm    # ( $json_obj, $farmname )
-{
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    my $json_obj = shift;
-    my $farmname = shift;
-
+sub modify_http_farm ($json_obj, $farmname) {
     my $desc = "Modify HTTP farm $farmname";
 
     require Relianoid::Net::Interface;
@@ -60,7 +64,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 
     # Check allowed parameters
     my $error_msg = &checkApiParams($json_obj, $params, $desc);
-    return &httpErrorResponse(code => 400, desc => $desc, msg => $error_msg)
+    return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg })
       if ($error_msg);
 
     # Get current conf
@@ -76,7 +80,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
         {
             my $msg =
               "The '$vip' ip and '$vport' port are being used for another farm. This farm should be stopped before modifying it";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }
     if (exists($json_obj->{vip})) {
@@ -85,9 +89,8 @@ sub modify_http_farm    # ( $json_obj, $farmname )
             my $if_name = &getInterfaceByIp($json_obj->{vip});
             my $if_ref  = &getInterfaceConfig($if_name);
             if (&getInterfaceSystemStatus($if_ref) ne "up") {
-                my $msg =
-                  "The '$json_obj->{ vip }' ip is not UP. This farm should be stopped before modifying it";
-                &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+                my $msg = "The '$json_obj->{ vip }' ip is not UP. This farm should be stopped before modifying it";
+                &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
             }
         }
     }
@@ -105,7 +108,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
         if ($resurrectime < $conntimeout) {
             my $msg =
               "The param 'resurrectime' value ( $resurrectime ) can not be lower than the param 'contimeout' value ( $conntimeout )";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }
 
@@ -138,19 +141,19 @@ sub modify_http_farm    # ( $json_obj, $farmname )
     if (exists($json_obj->{newfarmname})) {
         unless ($farm_st->{status} eq 'down') {
             my $msg = 'Cannot change the farm name while the farm is running';
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
 
         #Check if the new farm's name alredy exists
         if (&getFarmExists($json_obj->{newfarmname})) {
             my $msg = "The farm $json_obj->{newfarmname} already exists, try another name.";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
 
         # Change farm name
         if (&setNewFarmName($farmname, $json_obj->{newfarmname})) {
             my $msg = "Error modifying the farm name.";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
 
         $farmname = $json_obj->{newfarmname};
@@ -160,7 +163,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
     if (exists $json_obj->{contimeout}) {
         if (&setFarmConnTO($json_obj->{contimeout}, $farmname) == -1) {
             my $msg = "Some errors happened trying to modify the contimeout.";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }
 
@@ -168,7 +171,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
     if (exists($json_obj->{restimeout})) {
         if (&setFarmTimeout($json_obj->{restimeout}, $farmname) == -1) {
             my $msg = "Some errors happened trying to modify the restimeout.";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }
 
@@ -176,7 +179,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
     if (exists($json_obj->{resurrectime})) {
         if (&setFarmBlacklistTime($json_obj->{resurrectime}, $farmname) == -1) {
             my $msg = "Some errors happened trying to modify the resurrectime.";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }
 
@@ -184,7 +187,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
     if (exists($json_obj->{reqtimeout})) {
         if (&setFarmClientTimeout($json_obj->{reqtimeout}, $farmname) == -1) {
             my $msg = "Some errors happened trying to modify the reqtimeout.";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }
 
@@ -212,7 +215,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 
         if (&setFarmRewriteL($farmname, $rewritelocation, $path) == -1) {
             my $msg = "Some errors happened trying to modify the rewritelocation.";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }
 
@@ -223,14 +226,13 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 
         if ($status) {
             my $msg = "Some errors happened trying to modify the log parameter.";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }
 
     # Enable or disable ignore 100 continue header
     if (exists($json_obj->{ignore_100_continue})
-        and ($json_obj->{ignore_100_continue} ne $farm_st->{ignore_100_continue})
-      )    # this is a bugfix
+        and ($json_obj->{ignore_100_continue} ne $farm_st->{ignore_100_continue}))    # this is a bugfix
     {
         my $action = ($json_obj->{ignore_100_continue} eq "true") ? 1 : 0;
 
@@ -238,7 +240,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 
         if ($status == -1) {
             my $msg = "Some errors happened trying to modify the ignore_100_continue parameter.";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }
 
@@ -247,7 +249,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
         my $code = &getHTTPVerbCode($json_obj->{httpverb});
         if (&setFarmHttpVerb($code, $farmname) == -1) {
             my $msg = "Some errors happened trying to modify the httpverb.";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }
 
@@ -255,7 +257,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
     if (exists($json_obj->{errorWAF})) {
         if (&setFarmErr($farmname, $json_obj->{errorWAF}, "WAF") == -1) {
             my $msg = "Some errors happened trying to modify the errorWAF.";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }
 
@@ -263,7 +265,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
     if (exists($json_obj->{error414})) {
         if (&setFarmErr($farmname, $json_obj->{error414}, "414") == -1) {
             my $msg = "Some errors happened trying to modify the error414.";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }
 
@@ -271,7 +273,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
     if (exists($json_obj->{error500})) {
         if (&setFarmErr($farmname, $json_obj->{error500}, "500") == -1) {
             my $msg = "Some errors happened trying to modify the error500.";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }
 
@@ -279,7 +281,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
     if (exists($json_obj->{error501})) {
         if (&setFarmErr($farmname, $json_obj->{error501}, "501") == -1) {
             my $msg = "Some errors happened trying to modify the error501.";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }
 
@@ -287,7 +289,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
     if (exists($json_obj->{error503})) {
         if (&setFarmErr($farmname, $json_obj->{error503}, "503") == -1) {
             my $msg = "Some errors happened trying to modify the error503.";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }
 
@@ -295,7 +297,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
     if (exists($json_obj->{listener})) {
         if (&setFarmListen($farmname, $json_obj->{listener}) == -1) {
             my $msg = "Some errors happened trying to modify the listener.";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
 
         $farm_st->{listener} = $json_obj->{listener};    # update listener type
@@ -309,7 +311,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
                 and $params->{$key}->{listener} eq 'https')
             {
                 my $msg = "The farm listener has to be 'HTTPS' to configure the parameter '$key'.";
-                &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+                &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
             }
         }
     }
@@ -344,7 +346,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 
             if (&setFarmCipherList($farmname, $ciphers_lib) == -1) {
                 my $msg = "Error modifying ciphers.";
-                &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+                &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
             }
 
             $farm_st->{ciphers} = $json_obj->{ciphers};    # update ciphers value
@@ -358,12 +360,12 @@ sub modify_http_farm    # ( $json_obj, $farmname )
                 $json_obj->{cipherc} =~ s/\ //g;
                 if (&setFarmCipherList($farmname, $ciphers_lib, $json_obj->{cipherc}) == -1) {
                     my $msg = "Some errors happened trying to modify the cipherc.";
-                    &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+                    &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
                 }
             }
             else {
                 my $msg = "'ciphers' has to be 'customsecurity' to set the 'cipherc' parameter.";
-                &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+                &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
             }
         }
 
@@ -373,9 +375,8 @@ sub modify_http_farm    # ( $json_obj, $farmname )
             my $configdir = &getGlobalConfiguration('configdir');
 
             if (!-f "$configdir/$json_obj->{ certname }") {
-                my $msg =
-                  "The certificate $json_obj->{ certname } has to be uploaded to use it in a farm.";
-                &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+                my $msg = "The certificate $json_obj->{ certname } has to be uploaded to use it in a farm.";
+                &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
             }
 
             if ($eload) {
@@ -391,7 +392,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 
             if ($status == -1) {
                 my $msg = "Some errors happened trying to modify the certname.";
-                &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+                &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
             }
         }
 
@@ -415,8 +416,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
         foreach my $key_ssl (keys %ssl_proto_hash) {
             next if (!exists $json_obj->{$key_ssl});
             next
-              if ($json_obj->{$key_ssl} eq $farm_st->{$key_ssl})
-              ;    # skip when the farm already has the request value
+              if ($json_obj->{$key_ssl} eq $farm_st->{$key_ssl});    # skip when the farm already has the request value
 
             $action    = $bool_to_int{ $json_obj->{$key_ssl} };
             $ssl_proto = $ssl_proto_hash{$key_ssl}
@@ -424,7 +424,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
 
             if (&setHTTPFarmDisableSSL($farmname, $ssl_proto, $action) == -1) {
                 my $msg = "Some errors happened trying to modify $key_ssl.";
-                &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+                &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
             }
         }
     }
@@ -435,7 +435,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
         require Relianoid::Net::Interface;
         unless (&getIpAddressExists($json_obj->{vip})) {
             my $msg = "The vip IP must exist in some interface.";
-            &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }
 
@@ -443,7 +443,7 @@ sub modify_http_farm    # ( $json_obj, $farmname )
     if (exists($json_obj->{vip}) or exists($json_obj->{vport})) {
         if (&setFarmVirtualConf($vip, $vport, $farmname)) {
             my $msg = "Could not set the virtual configuration.";
-            return &httpErrorResponse(code => 400, desc => $desc, msg => $msg);
+            return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }
 

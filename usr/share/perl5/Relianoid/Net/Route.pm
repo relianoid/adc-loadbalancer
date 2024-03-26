@@ -24,7 +24,6 @@
 use strict;
 use warnings;
 use feature qw(signatures);
-no warnings 'experimental::args_array_with_signatures';
 
 use Carp;
 use Relianoid::Core;
@@ -61,8 +60,6 @@ Returns:
 
 # create table route identification, complemented in delIf()
 sub writeRoutes ($if_name) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $rttables = &getGlobalConfiguration('rttables');
 
     &zenlog("Creating table 'table_$if_name'", "debug");
@@ -114,8 +111,6 @@ Returns:
 =cut
 
 sub deleteRoutesTable ($if_name) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $rttables = &getGlobalConfiguration('rttables');
 
     open my $route_table_in, '<', $rttables;
@@ -193,9 +188,7 @@ See Also:
 =cut
 
 sub addlocalnet ($if_ref) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-    &zenlog("addlocalnet( name: $$if_ref{ name }, addr: $$if_ref{ addr }, mask: $$if_ref{ mask } )",
-        "debug", "NETWORK")
+    &zenlog("addlocalnet( name: $$if_ref{ name }, addr: $$if_ref{ addr }, mask: $$if_ref{ mask } )", "debug", "NETWORK")
       if &debug();
 
     # Get network
@@ -264,11 +257,12 @@ sub addlocalnet ($if_ref) {
     foreach my $iface (@ifaces) {
         next if $iface->{name} eq $if_ref->{name};
         my $iface_sys = &getSystemInterface($iface->{name});
+        use Relianoid::Net::Core;
 
         next if $iface_sys->{status} ne 'up';
         next if $iface->{type} eq 'virtual';
-        next if defined $iface->{is_slave} and $iface->{is_slave} eq 'true'; # Is in bonding iface
-        next if (!defined $iface->{addr} || length $iface->{addr} == 0);     # IP addr doesn't exist
+        next if defined $iface->{is_slave} and $iface->{is_slave} eq 'true';    # Is in bonding iface
+        next if (!defined $iface->{addr} || length $iface->{addr} == 0);        # IP addr doesn't exist
         next if (!&isIp($iface));
 
         # do not import the iface route if it is isolate
@@ -282,8 +276,7 @@ sub addlocalnet ($if_ref) {
         }
         next if (grep { /^(?:\*|table_$$if_ref{name})$/ } @isolates);
 
-        &zenlog("addlocalnet: into current interface: name $$iface{name} type $$iface{type}",
-            "debug", "NETWORK");
+        &zenlog("addlocalnet: into current interface: name $$iface{name} type $$iface{type}", "debug", "NETWORK");
 
         #if duplicated network, next
         my $ip    = NetAddr::IP->new($$iface{addr}, $$iface{mask});
@@ -317,62 +310,6 @@ sub addlocalnet ($if_ref) {
 
 =pod
 
-=head1 dellocalnet
-
-Remove the input interface of the other routing tables.
-It removes the interfaces own table too.
-It removes the custom routes too.
-
-Parameters:
-
-    if_ref - network interface hash reference.
-
-Returns:
-
-    none
-
-=cut
-
-sub dellocalnet ($if_ref) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    if (defined $$if_ref{addr}) {
-        use NetAddr::IP;
-        my $ip  = NetAddr::IP->new($$if_ref{addr}, $$if_ref{mask});
-        my $net = $ip->network();
-
-        my @links      = ('main', &getLinkNameList());
-        my @rtables_id = &listRoutingTablesNames();
-
-        foreach my $link (@links) {
-            next if $link eq 'lo';
-            next if $link eq 'cl_maintenance';
-
-            my $table = ($link eq 'main') ? "main" : "table_$link";
-
-            next if (!grep { /^$table$/ } @rtables_id);
-
-            # TODO: use the function 'buildRouteCmd' to create this command and use it here and with 'applyRoutingCmd'
-            my $cmd_param = "$net dev $$if_ref{name} src $$if_ref{addr} table $table";
-
-            next if (!&isRoute($cmd_param, $$if_ref{ip_v}));
-
-            &applyRoutingCmd('del', $if_ref, $table);
-        }
-
-        if ($eload) {
-            &eload(
-                module => 'Relianoid::Net::Routing',
-                func   => 'applyRoutingCustom',
-                args   => [ 'del', "table_$$if_ref{name}" ],
-            );
-        }
-    }
-    return;
-}
-
-=pod
-
 =head1 isRoute
 
 Checks if any of the routes applied to the system matchs according to the input parameters.
@@ -392,8 +329,6 @@ Returns:
 =cut
 
 sub isRoute ($route, $ipv = undef) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     $ipv = $ipv ? "-$ipv" : '';
     my $exist  = 1;
     my $ip_cmd = "$ip_bin $ipv route list $route";
@@ -438,8 +373,6 @@ Returns:
 =cut
 
 sub existRoute ($route, $via, $src) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     require Relianoid::Validate;
     my $ip_re = &getValidFormat('ipv4v6');
     $route =~ s/via ($ip_re)// unless $via;
@@ -478,8 +411,6 @@ Returns:
 =cut
 
 sub buildRuleCmd ($action, $conf) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $cmd = "";
     my $ipv = (exists $conf->{ip_v}) ? "-$conf->{ip_v}" : "";
 
@@ -522,8 +453,6 @@ Todo:
 =cut
 
 sub isRule ($conf) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $ipv  = (exists $conf->{ip_v}) ? "-$conf->{ip_v}" : "";
     my $cmd  = "$ip_bin $ipv rule list";
     my $rule = "";
@@ -581,8 +510,6 @@ Bugs:
 =cut
 
 sub applyRule ($action, $rule) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     return -1 if ($rule->{table} eq "");
 
     if ($action eq 'add' and ((!defined $rule->{priority}) || $rule->{priority} eq '')) {
@@ -619,7 +546,6 @@ Returns:
 =cut
 
 sub genRoutingRulesPrio ($type) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
 
     # The maximun priority value in the system is '32766'
     my $farmL4       = &getGlobalConfiguration('routingRulePrioFarmL4');
@@ -690,8 +616,6 @@ Returns:
 =cut
 
 sub listRoutingRulesPrio () {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $rules = &listRoutingRules();
     my @list;
 
@@ -726,8 +650,6 @@ Returns:
 =cut
 
 sub getRuleFromIface ($if_ref) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $from = "";
     if (defined($if_ref->{net}) && $if_ref->{net} ne '') {
         $from =
@@ -768,8 +690,6 @@ Bugs:
 =cut
 
 sub setRule ($action, $rule) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $output = 0;
 
     if (!defined($rule->{from}) || $rule->{from} eq '') {
@@ -825,8 +745,6 @@ See Also:
 =cut
 
 sub applyRoutes ($table, $if_ref, $gateway = undef) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $if_announce = "";
     my $status      = 0;
 
@@ -849,10 +767,8 @@ sub applyRoutes ($table, $if_ref, $gateway = undef) {
     if (!defined $$if_ref{vini} || $$if_ref{vini} eq '') {
         if ($table eq "local") {
             my $gateway = $$if_ref{gateway} // '';
-            &zenlog(
-                "Applying $table routes in stack IPv$$if_ref{ip_v} to $$if_ref{name} with gateway \"${gateway}\"",
-                "info", "NETWORK"
-            );
+            &zenlog("Applying $table routes in stack IPv$$if_ref{ip_v} to $$if_ref{name} with gateway \"${gateway}\"",
+                "info", "NETWORK");
 
             &addlocalnet($if_ref);
 
@@ -886,18 +802,11 @@ sub applyRoutes ($table, $if_ref, $gateway = undef) {
                 }
 
                 if (&existRoute("default via $gateway dev $$if_ref{name}", 1, 0)) {
-                    &zenlog(
-                        "Gateway \"$gateway\" is already applied in $table routes in stack IPv$$if_ref{ip_v}",
-                        "info", "NETWORK"
-                    );
+                    &zenlog("Gateway \"$gateway\" is already applied in $table routes in stack IPv$$if_ref{ip_v}", "info", "NETWORK");
                 }
                 else {
-                    &zenlog(
-                        "Applying $table routes in stack IPv$$if_ref{ip_v} with gateway \"$gateway\"",
-                        "info", "NETWORK"
-                    );
-                    my $ip_cmd =
-                      "$ip_bin -$$if_ref{ip_v} route $action default via $gateway dev $$if_ref{name} $routeparams";
+                    &zenlog("Applying $table routes in stack IPv$$if_ref{ip_v} with gateway \"$gateway\"", "info", "NETWORK");
+                    my $ip_cmd = "$ip_bin -$$if_ref{ip_v} route $action default via $gateway dev $$if_ref{name} $routeparams";
                     $status = &logAndRun("$ip_cmd");
                 }
                 if ($$if_ref{ip_v} == 6) {
@@ -976,16 +885,13 @@ See Also:
 =cut
 
 sub delRoutes ($table, $if_ref) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     unless ($$if_ref{ip_v}) {
         croak("IP version stack required");
     }
 
     my $status = 0;
 
-    &zenlog("Deleting $table routes for IPv$$if_ref{ip_v} in interface $$if_ref{name}",
-        "info", "NETWORK");
+    &zenlog("Deleting $table routes for IPv$$if_ref{ip_v} in interface $$if_ref{name}", "info", "NETWORK");
 
     if (!defined $$if_ref{vini} || $$if_ref{vini} eq '') {
 
@@ -997,8 +903,7 @@ sub delRoutes ($table, $if_ref) {
 
             # exists if the tables does not exist
             if (!grep { /^table_$if_ref->{name}/ } &listRoutingTablesNames()) {
-                &zenlog("The table table_$if_ref->{name} was not flushed because it was not found",
-                    "debug2", "net");
+                &zenlog("The table table_$if_ref->{name} was not flushed because it was not found", "debug2", "net");
                 return 0;
             }
 
@@ -1076,8 +981,6 @@ See Also:
 
 # get default gw for interface
 sub getDefaultGW ($if_name = undef) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $gw;
     my @routes = ();
 
@@ -1129,8 +1032,6 @@ See Also:
 =cut
 
 sub getIPv6DefaultGW () {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my @routes = @{ &logAndGet("$ip_bin -6 route list", "array") };
     my ($default_line) = grep { /^default/ } @routes;
 
@@ -1163,8 +1064,6 @@ See Also:
 =cut
 
 sub getIPv6IfDefaultGW () {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my @routes = @{ &logAndGet("$ip_bin -6 route list", "array") };
     my ($default_line) = grep { /^default/ } @routes;
 
@@ -1198,8 +1097,6 @@ See Also:
 
 # get interface for default gw
 sub getIfDefaultGW () {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $if_name;
     my @routes = @{ &logAndGet("$ip_bin route list", "array") };
     if (my @defgw = grep { /^default/ } @routes) {
@@ -1231,8 +1128,6 @@ See Also:
 =cut
 
 sub configureDefaultGW () {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $defaultgw    = &getGlobalConfiguration('defaultgw');
     my $defaultgwif  = &getGlobalConfiguration('defaultgwif');
     my $defaultgw6   = &getGlobalConfiguration('defaultgw6');
@@ -1273,8 +1168,6 @@ Returns:
 =cut
 
 sub listRoutingTablesNames () {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $rttables   = &getGlobalConfiguration('rttables');
     my @list       = ();
     my @exceptions = ('local', 'default', 'unspec');
@@ -1314,8 +1207,6 @@ Returns:
 =cut
 
 sub listRoutingRulesSys ($filter = undef) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $filter_param;
     my @rules = ();
 
@@ -1382,8 +1273,6 @@ Returns:
 =cut
 
 sub listRoutingRules () {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my @rules_conf = ();
     if ($eload) {
         my $conf = &eload(
@@ -1408,37 +1297,11 @@ sub listRoutingRules () {
 
 =pod
 
-=head1 getRoutingTableExists
-
-It checks if a routing table exists in the system
-
-Parameters:
-
-    table - It is the table to check
-
-Returns:
-
-    Integer - It returns 1 if the table exists or 0 if it does not exist
-
-=cut
-
-sub getRoutingTableExists ($table) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
-    my $rc = 1;
-
-    if (grep { /^$table$/ } &listRoutingTablesNames()) {
-        $rc = &logAndRunCheck("$ip_bin route list table $table");
-    }
-
-    return ($rc) ? 0 : 1;
-}
-
-=pod
-
 =head1 getRoutingOutgoing
 
 It gets the output interface in the system
+
+Only used for floating interfaces in getFloatingSourceAddr()
 
 Parameters:
 
@@ -1463,8 +1326,6 @@ Variable: $route_ref
 =cut
 
 sub getRoutingOutgoing ($ip, $mark) {
-    &zenlog(__FILE__ . ":" . __LINE__ . ":" . (caller(0))[3] . "( @_ )", "debug", "PROFILING");
-
     my $outgoing_ref;
 
     $outgoing_ref->{in}->{ip}       = $ip;
@@ -1486,9 +1347,7 @@ sub getRoutingOutgoing ($ip, $mark) {
     require Relianoid::Validate;
     my $ip_re = &getValidFormat("ip_addr");
 
-    if ($data =~
-        /^.* \Q$ip\E (?:via .* )?dev (.*) table (.*) src ($ip_re)(?: $mark_option)? uid (.*)/)
-    {
+    if ($data =~ /^.* \Q$ip\E (?:via .* )?dev (.*) table (.*) src ($ip_re)(?: $mark_option)? uid (.*)/) {
         my $iface      = $1;
         my $table      = $2;
         my $sourceaddr = $3;
