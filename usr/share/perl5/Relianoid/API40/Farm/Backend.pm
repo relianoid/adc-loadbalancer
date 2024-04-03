@@ -548,7 +548,7 @@ sub modify_service_backends ($json_obj, $farmname, $service, $id_server) {
     $prio = $be->{priority} + 0 if (defined $be->{priority} && $be->{priority} !~ /^$/);
     if ($type =~ /http/ && &getGlobalConfiguration('proxy_ng') ne 'true' && $prio > 1) {
         my $priorities = &getHTTPFarmPriorities($farmname, $service);
-        if (scalar(@{$priorities}) >= 1) {
+        if (scalar(@{$priorities}) >= 1 && !grep { $_->{id} == $id_server } @{$priorities}) {
             my $msg = "Only one backend as second priority is allowed.";
             &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }

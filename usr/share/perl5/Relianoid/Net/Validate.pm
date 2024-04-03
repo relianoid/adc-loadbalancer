@@ -395,7 +395,10 @@ Parameters:
 
 Returns:
 
-    Integer - It returns '1' if the port and IP are valid to be used or '0' if the port and IP are already applied in the system
+    Integer
+
+    1 - if the port and IP are available to be used
+    0 - if the port and IP are already being used in the system
 
 See Also:
 
@@ -404,9 +407,10 @@ See Also:
 =cut
 
 sub validatePort ($ip, $port, $proto, $farmname = undef, $process = undef) {
+    if ($ip eq '*') {
+        $ip = '0.0.0.0';
+    }
 
-    # validate inputs
-    $ip = '0.0.0.0' if $ip eq '*';
     if (!defined $proto && !defined $farmname) {
         &zenlog("Check port needs the protocol to validate the ip '$ip' and the port '$port'", "error", "networking");
         return 0;
@@ -419,15 +423,12 @@ sub validatePort ($ip, $port, $proto, $farmname = undef, $process = undef) {
             $proto = &getL4FarmParam('proto', $farmname);
         }
     }
+
     $proto = &getProtoTransport($proto);
 
-    return 0
-      if (!&validatePortUserSpace($ip, $port, $proto, $farmname, $process));
-
-    return 0 if (!&validatePortKernelSpace($ip, $port, $proto, $farmname));
-
     # TODO: add check for avoiding collision with datalink VIPs
-
+    return 0 if (!&validatePortUserSpace($ip, $port, $proto, $farmname, $process));
+    return 0 if (!&validatePortKernelSpace($ip, $port, $proto, $farmname));
     return 1;
 }
 

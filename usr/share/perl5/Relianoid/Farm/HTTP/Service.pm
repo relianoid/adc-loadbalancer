@@ -704,6 +704,7 @@ sub getHTTPFarmVS ($farm_name, $service = "", $tag = "") {
 
     my $sw         = 0;
     my $be_section = 0;
+    my $se_section = 0;
     my $be_emerg   = 0;
     my $be         = -1;
     my $sw_ti      = 0;
@@ -721,8 +722,12 @@ sub getHTTPFarmVS ($farm_name, $service = "", $tag = "") {
     my @return;
 
     foreach my $line (@lines) {
-        if ($line =~ /^\s+Service \"$service\"/)                  { $sw = 1; }
-        if ($line =~ /^\s+End\s*$/ && !$be_section && !$be_emerg) { $sw = 0; }
+        if ($line =~ /^\s+Service \"$service\"/) { $sw         = 1; }
+        if ($line =~ /^\s+Session/ && $sw == 1)  { $se_section = 1; }
+        if ($line =~ /^\s+End\s*$/) {
+            if    ($se_section)                { $se_section = 0; }
+            elsif (!$be_section && !$be_emerg) { $sw         = 0; }
+        }
 
         # returns all services for this farm
         if ($tag eq "" && $service eq "") {
@@ -1253,6 +1258,9 @@ sub setHTTPFarmVS ($farm_name, $service, $tag, $string) {
     my $farm_filename  = &getFarmFile($farm_name);
     my $output         = 0;
     my $sw             = 0;
+    my $be_section     = 0;
+    my $se_section     = 0;
+    my $be_emerg       = 0;
     my $j              = -1;
     my $clean_sessions = 0;
 
@@ -1276,8 +1284,14 @@ sub setHTTPFarmVS ($farm_name, $service, $tag, $string) {
 
     foreach my $line (@fileconf) {
         $j++;
-        if ($line =~ /\s+Service \"$service\"/) { $sw = 1; }
-        if ($line =~ /^\s+End$/ && $sw == 1)    { last; }
+        if ($line =~ /^\s+Service \"$service\"/) { $sw = 1; }
+        if ($line =~ /^\s+#?Session/   && $sw == 1) { $se_section = 1; }
+        if ($line =~ /^\s+#?Backend/   && $sw == 1) { $be_section = 1; }
+        if ($line =~ /^\s+#?Emergency/ && $sw == 1) { $be_emerg   = 1; }
+        if ($line =~ /^\s+End\s*$/     && $sw && !$se_section && !$be_section && !$be_emerg) {
+            last;
+        }
+
         next if $sw == 0;
 
         #vs tag
@@ -1392,7 +1406,7 @@ sub setHTTPFarmVS ($farm_name, $service, $tag, $string) {
                 $line .= "\n\t\t\tHTTPS";
             }
 
-            #go out of curret Service
+            #go out of the current Service
             if (   $line =~ /\s+Service \"/
                 && $sw == 1
                 && $line !~ /\s+Service \"$service\"/)
@@ -1406,11 +1420,11 @@ sub setHTTPFarmVS ($farm_name, $service, $tag, $string) {
         #session type
         if ($tag eq "session") {
             require Relianoid::Farm::HTTP::Sessions;
-            if ($string ne "nothing" && $sw == 1) {
+            if ($string ne "nothing" && $se_section) {
                 if ($line =~ /^\s+#Session/) {
                     $line = "\t\tSession";
                 }
-                if ($line =~ /\s+#End/) {
+                if ($line =~ /^\s*#End/) {
                     $line = "\t\tEnd";
                 }
                 if ($line =~ /^\s+#?Type\s+(.*)\s*/) {
@@ -1433,11 +1447,11 @@ sub setHTTPFarmVS ($farm_name, $service, $tag, $string) {
                 }
             }
 
-            if ($string eq "nothing" && $sw == 1) {
+            if ($string eq "nothing" && $se_section) {
                 if ($line =~ /^\s+Session/) {
                     $line = "\t\t#Session";
                 }
-                if ($line =~ /^\s+End/) {
+                if ($line =~ /^\s*End/) {
                     $line = "\t\t#End";
                 }
                 if ($line =~ /^\s+TTL/) {
@@ -1451,7 +1465,7 @@ sub setHTTPFarmVS ($farm_name, $service, $tag, $string) {
                     $line = "\t\t\t#ID \"sessionname\"";
                 }
             }
-            if ($sw == 1 && $line =~ /End/) {
+            if ($se_section && $line =~ /^\s*End/) {
                 &deleteConfL7FarmAllSession($farm_name, $service)
                   if ($clean_sessions);
                 last;
@@ -1495,6 +1509,13 @@ sub setHTTPFarmVS ($farm_name, $service, $tag, $string) {
                 $line = "\t\tRewriteLocation $string\n" . $line;
                 last;
             }
+        }
+
+        if ($line =~ /^\s+#?End\s*$/) {
+            if    ($se_section) { $se_section = 0; }
+            elsif ($be_section) { $be_section = 0; }
+            elsif ($be_emerg)   { $be_emerg = 0; }
+            elsif ($sw)         { last; }
         }
     }
 
@@ -1637,7 +1658,7 @@ sub getHTTPFarmPriorities ($farmname, $service_name) {
     else {
         foreach my $backend (@{$backends}) {
             if (defined $backend->{priority} and $backend->{priority} > 1) {
-                push @priorities, $backend->{priority};
+                push @priorities, $backend;
             }
         }
     }
