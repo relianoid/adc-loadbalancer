@@ -86,13 +86,13 @@ sub getFarmServerIds ($farm_name, $service) {
     }
     elsif ($farm_type eq "gslb" && $eload) {
         my $backendsvs = &eload(
-            module => 'Relianoid::Farm::GSLB::Service',
+            module => 'Relianoid::EE::Farm::GSLB::Service',
             func   => 'getGSLBFarmVS',
             args   => [ $farm_name, $service, "backends" ],
         );
         my @be = split("\n", $backendsvs);
         my $id;
-        foreach my $b (@be) {
+        for my $b (@be) {
             $b =~ s/^\s+//;
             next if ($b =~ /^$/);
 
@@ -142,13 +142,16 @@ sub getFarmServers ($farm_name, $service = undef) {
         require Relianoid::Farm::L4xNAT::Backend;
         $servers = &getL4FarmServers($farm_name);
     }
-    elsif ($farm_type eq "datalink") {
-        require Relianoid::Farm::Datalink::Backend;
-        $servers = &getDatalinkFarmBackends($farm_name);
+    elsif ($farm_type eq "datalink" && $eload) {
+        $servers = &eload(
+            module => 'Relianoid::EE::Farm::Datalink::Backend',
+            func   => 'getDatalinkFarmBackends',
+            args   => [$farm_name],
+        );
     }
     elsif ($farm_type eq "gslb" && $eload) {
         $servers = &eload(
-            module => 'Relianoid::Farm::GSLB::Backend',
+            module => 'Relianoid::EE::Farm::GSLB::Backend',
             func   => 'getGSLBFarmBackends',
             args   => [ $farm_name, $service ],
         );
@@ -176,8 +179,7 @@ Returns:
 =cut
 
 sub getFarmServer ($bcks_ref, $value, $param = "id") {
-    foreach my $server (@{$bcks_ref}) {
-
+    for my $server (@{$bcks_ref}) {
         # preserve type param number
         if ($param eq "id") {
             return $server if ($server->{$param} == $value);
@@ -200,7 +202,7 @@ Add a new Backend
 Parameters:
 
     farm_name -  Farm name
-    service   -  service name. For HTTP farms
+    service   -  Optional. service name. For HTTP farms
     ids       -  Backend id, if this id doesn't exist, it will create a new backend
     bk        -  hash with backend configuration. 
                  Depend on the type of farms, the backend can have the following keys:
@@ -216,14 +218,24 @@ sub setFarmServer ($farm_name, $service, $ids, $bk) {
     my $farm_type = &getFarmType($farm_name);
     my $output    = -1;
 
-    &zenlog(
-        "setting 'Server $ids ip:$bk->{ip} port:$bk->{port} max:$bk->{max_conns} weight:$bk->{weight} prio:$bk->{priority} timeout:$bk->{timeout}' for $farm_name farm, $service service of type $farm_type",
-        "info", "FARMS"
+    my $attrs_msg = sprintf(
+        'Server %s ip:%s port:%u max:%u weight:%u prio:%u timeout:%u',
+        $ids             // '', $bk->{ip},
+        $bk->{port}      // 0,
+        $bk->{max_conns} // 0,
+        $bk->{weight}    // 0,
+        $bk->{priority}  // 0,
+        $bk->{timeout}   // 0
     );
+    my $msg = sprintf("setting '$attrs_msg' for %s farm, %s service of type %s", $farm_name, $service // 'no', $farm_type);
+    &zenlog($msg, "info", "FARMS");
 
-    if ($farm_type eq "datalink") {
-        require Relianoid::Farm::Datalink::Backend;
-        $output = &setDatalinkFarmServer($ids, $bk->{ip}, $bk->{interface}, $bk->{weight}, $bk->{priority}, $farm_name);
+    if ($farm_type eq "datalink" && $eload) {
+        $output = &eload(
+            module => 'Relianoid::EE::Farm::Datalink::Backend',
+            func   => 'setDatalinkFarmServer',
+            args   => [ $ids, $bk->{ip}, $bk->{interface}, $bk->{weight}, $bk->{priority}, $farm_name ],
+        );
     }
     elsif ($farm_type eq "l4xnat") {
         require Relianoid::Farm::L4xNAT::Backend;
@@ -238,8 +250,8 @@ sub setFarmServer ($farm_name, $service, $ids, $bk) {
     elsif ($farm_type eq "http" || $farm_type eq "https") {
         require Relianoid::Farm::HTTP::Backend;
         $output = &setHTTPFarmServer(
-            $ids,       $bk->{ip}, $bk->{port},     $bk->{weight}, $bk->{timeout},
-            $farm_name, $service,  $bk->{priority}, $bk->{connection_limit}
+            $ids,           $bk->{ip},  $bk->{port}, $bk->{weight},    #
+            $bk->{timeout}, $farm_name, $service,    $bk->{priority}
         );
     }
 
@@ -271,11 +283,7 @@ sub runFarmServerDelete ($ids, $farm_name, $service = undef) {
 
     &zenlog("running 'ServerDelete $ids' for $farm_name farm $farm_type", "info", "FARMS");
 
-    if ($farm_type eq "datalink") {
-        require Relianoid::Farm::Datalink::Backend;
-        $output = &runDatalinkFarmServerDelete($ids, $farm_name);
-    }
-    elsif ($farm_type eq "l4xnat") {
+    if ($farm_type eq "l4xnat") {
         require Relianoid::Farm::L4xNAT::Backend;
         $output = &runL4FarmServerDelete($ids, $farm_name);
     }
@@ -283,9 +291,16 @@ sub runFarmServerDelete ($ids, $farm_name, $service = undef) {
         require Relianoid::Farm::HTTP::Backend;
         $output = &runHTTPFarmServerDelete($ids, $farm_name, $service);
     }
+    elsif ($farm_type eq "datalink" && $eload) {
+        $output = &eload(
+            module => 'Relianoid::EE::Farm::Datalink::Backend',
+            func   => 'runDatalinkFarmServerDelete',
+            args   => [ $ids, $farm_name ],
+        );
+    }
     elsif ($farm_type eq "gslb" && $eload) {
         $output = &eload(
-            module => 'Relianoid::Farm::GSLB::Backend',
+            module => 'Relianoid::EE::Farm::GSLB::Backend',
             func   => 'runGSLBFarmServerDelete',
             args   => [ $ids, $farm_name, $service ],
         );
@@ -387,23 +402,23 @@ Parameters:
     $backends_ref - list of backend_ref
     $bk_index     - backend index if defined, only returns this index values. Optional. 
 
-    $backend_ref->{ status }   - Status of the backend. Possibles values:"up","down".
-    $backend_ref->{ priority } - Priority of the backend
-    
+    $backend_ref->{status}   - Status of the backend. Possibles values:"up","down".
+    $backend_ref->{priority} - Priority of the backend
+
 Returns:
 
     $availability_ref - Hash of algorithm values.
 
 Variable:
 
-    $availability_ref->{ priority } - algorithm priority.
-    $availability_ref->{ status }   - Array - list of backend availability.
+    $availability_ref->{priority} - algorithm priority.
+    $availability_ref->{status}   - Array - list of backend availability.
 
-    If defined parameter $backend_ref->{ status }:
+    If defined parameter $backend_ref->{status}:
     - "true" if the backend is used.
     - "false" if is available to be used.
 
-    If not defined parameter $backend_ref->{ status }:
+    If not defined parameter $backend_ref->{status}:
     - "true" if the backend is used or available to be used.
     - "false" if the backend will never be used.
 
@@ -413,8 +428,7 @@ sub getPriorityAlgorithmStatus ($backends_ref, $bk_index = undef) {
     my $alg_status_ref;
     my $sum_prio_ref;
 
-    foreach my $bk (@{$backends_ref}) {
-
+    for my $bk (@{$backends_ref}) {
         #determine number of backends down for each level of priority
         if (not defined $bk->{status} or $bk->{status} eq "down") {
             $sum_prio_ref->{ $bk->{priority} }++;
@@ -426,7 +440,6 @@ sub getPriorityAlgorithmStatus ($backends_ref, $bk_index = undef) {
     my $alg_prio         = 1;
 
     while ($current_alg_prio <= $alg_prio) {
-
         #when the level of priority matches the number of down backends, loop stops
         #and $alg_prio indicates the lowest level of prio being used.
         #else, keep increasing the level of priority checked in the next iteration.
@@ -449,7 +462,7 @@ sub getPriorityAlgorithmStatus ($backends_ref, $bk_index = undef) {
         }
     }
     else {
-        foreach my $bk (@{$backends_ref}) {
+        for my $bk (@{$backends_ref}) {
             if ($bk->{priority} <= $alg_prio) {
                 push @{ $alg_status_ref->{status} }, "true";
             }

@@ -51,20 +51,16 @@ Returns:
 
     For 'zapikey': Returns the current zapikey.
 
-See Also:
-
-    api/v4/system.cgi
-
 =cut
 
 sub getAPI ($name) {
-    use File::Grep 'fgrep';
+    require Relianoid::File;
 
     my $result = "false";
 
     #return if zapi user is enabled or not true = enable, false = disabled
     if ($name eq "status") {
-        if (fgrep { /^zapi/ } &getGlobalConfiguration('htpass')) {
+        if (grep { /^zapi/ } readFileAsArray(&getGlobalConfiguration('htpass'))) {
             $result = "true";
         }
     }
@@ -101,10 +97,6 @@ Bugs:
     -setGlobalConfig should be used to set the zapikey.
     -Randomkey is not used.
 
-See Also:
-
-    api/v4/system.cgi
-
 =cut
 
 sub setAPI ($name, $value = undef) {
@@ -125,7 +117,7 @@ sub setAPI ($name, $value = undef) {
         require Tie::File;
         tie my @contents, 'Tie::File', "$globalcfg";
 
-        foreach my $line (@contents) {
+        for my $line (@contents) {
             if ($line =~ /^\$zapikey/) {
                 $line =~ s/^\$zapikey.*/\$zapikey=""\;/g;
             }
@@ -143,7 +135,7 @@ sub setAPI ($name, $value = undef) {
         my $random = &getAPIRandomKey(64);
 
         tie my @contents, 'Tie::File', "$globalcfg";
-        foreach my $line (@contents) {
+        for my $line (@contents) {
             if ($line =~ /zapi/) {
                 $line =~ s/^\$zapikey.*/\$zapikey="$random"\;/g;
             }
@@ -155,7 +147,7 @@ sub setAPI ($name, $value = undef) {
     if ($name eq "key") {
         if ($eload) {
             $value = &eload(
-                module => 'Relianoid::Code',
+                module => 'Relianoid::EE::Code',
                 func   => 'setCryptString',
                 args   => [$value],
             );
@@ -164,7 +156,7 @@ sub setAPI ($name, $value = undef) {
         require Tie::File;
         tie my @contents, 'Tie::File', "$globalcfg";
 
-        foreach my $line (@contents) {
+        for my $line (@contents) {
             if ($line =~ /zapi/) {
                 $line =~ s/^\$zapikey.*/\$zapikey="$value"\;/g;
             }
@@ -228,17 +220,15 @@ sub isApiKeyValid () {
 
     require Relianoid::User;
     if (exists $ENV{$key}) {
-
         # zapi user is enabled and matches key
         if (&getAPI("status") eq "true" && &getAPI("zapikey") eq $ENV{$key}) {
             &setUser('root');
             $validKey = 1;
         }
         elsif ($eload) {
-
             # get a RBAC user
             my $user = &eload(
-                module => 'Relianoid::RBAC::User::Core',
+                module => 'Relianoid::EE::RBAC::User::Core',
                 func   => 'validateRBACUserZapi',
                 args   => [ $ENV{$key} ],
             );
@@ -288,7 +278,7 @@ Returns:
 =cut
 
 sub getApiVersion () {
-    return $ENV{ZAPI_VERSION} // "";
+    return $ENV{API_VERSION} // "";
 }
 
 1;

@@ -6,7 +6,7 @@ echo "Executing RELIANOID Cluster transtion to MASTER...\n"
 sleep 1
 
 # start RELIANOID service
-/etc/init.d/relianoid start
+systemctl start relianoid.service
 
 # update cluster status
 echo master > /etc/relianoid-ce-cluster.status

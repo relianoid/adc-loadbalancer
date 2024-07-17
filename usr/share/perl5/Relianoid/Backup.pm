@@ -50,10 +50,6 @@ Returns:
 
     scalar - Array reference.
 
-See Also:
-
-    <getExistsBackup>, api/v4/system.cgi
-
 =cut
 
 sub getBackup () {
@@ -65,7 +61,7 @@ sub getBackup () {
     my @files = grep { /^backup.*/ } readdir($directory);
     closedir($directory);
 
-    foreach my $line (@files) {
+    for my $line (@files) {
         my $filepath = "$backupdir/$line";
         chomp($filepath);
 
@@ -82,7 +78,6 @@ sub getBackup () {
             'date'    => $datetime_string,
             'version' => &getBackupVersion($line)
           };
-
     }
 
     return \@backups;
@@ -103,17 +98,13 @@ Returns:
     1     - if the backup exists.
     undef - if the backup does not exist.
 
-See Also:
-
-    api/v4/system.cgi
-
 =cut
 
 sub getExistsBackup ($name) {
     my $find;
 
-    foreach my $backup (@{ &getBackup() }) {
-        if ($backup->{'name'} =~ /^$name/,) {
+    for my $backup (@{ &getBackup() }) {
+        if ($backup->{name} =~ /^$name/,) {
             $find = 1;
             last;
         }
@@ -135,82 +126,34 @@ Returns:
 
     integer - ERRNO or return code of backup creation process.
 
-See Also:
-
-    api/v4/system.cgi
-
 =cut
 
 sub createBackup ($name) {
-    my $zenbackup = &getGlobalConfiguration('zenbackup');
-    my $error     = &logAndRun("$zenbackup $name -c");
-
-    return $error;
+    my $backup_cmd = &getGlobalConfiguration('backup_cmd');
+    return &logAndRun("$backup_cmd $name -c");
 }
 
 =pod
 
-=head1 downloadBackup
+=head1 getBackupFilename
 
-Get API client to download a backup file.
-
-This function finishes the process on success.
+Get a backup file name, not includin the directory.
 
 Parameters:
 
     backup - Backup name.
 
-Returns:
-
-    This function finishes the process on success.
-
-    Returns an error message on failure.
-
-See Also:
-
-    API40/System/Backup.pm::download_backup()
+Returns: string - Backup's absolute path.
 
 =cut
 
-sub downloadBackup ($backup) {
-    $backup = "backup-$backup.tar.gz";
-
-    my $backup_dir      = &getGlobalConfiguration('backupdir');
-    my $backup_filename = "${backup_dir}\/${backup}";
-
-    unless (-r $backup_filename) {
-        my $msg = "Backup file '$backup_filename' not readable.";
-        zenlog($msg, 'error');
-        return $msg;
-    }
-
-    my $cgi                         = &getCGI();
-    my $access_control_allow_origin = (exists $ENV{HTTP_ZAPI_KEY}) ? '*' : "https://$ENV{ HTTP_HOST }/";
-
-    print $cgi->header(
-        -type                              => 'application/x-download',
-        -attachment                        => $backup,
-        'Content-length'                   => -s "${backup_filename}",
-        'Access-Control-Allow-Origin'      => $access_control_allow_origin,
-        'Access-Control-Allow-Credentials' => 'true',
-    );
-
-    if (open(my $download_fh, '<', $backup_filename)) {
-        binmode $download_fh;
-        print while <$download_fh>;
-        close $download_fh;
-        exit;
-    }
-    else {
-        my $msg = "Could not open backup file '$backup_filename': $!";
-        zenlog($msg, 'error');
-        return $msg;
-    }
+sub getBackupFilename ($backup) {
+    return "backup-${backup}.tar.gz";
 }
 
 =pod
 
-=head1 uploadBackup
+=head1 uploadBackup 
 
 Store an uploaded backup.
 
@@ -224,10 +167,6 @@ Returns:
     2 - The file is not a .tar.gz
     1 - on failure.
     0 - on success.
-
-See Also:
-
-    api/v4/system.cgi
 
 =cut
 
@@ -285,10 +224,6 @@ Returns:
     1     - on failure.
     undef - on success.
 
-See Also:
-
-    api/v4/system.cgi
-
 =cut
 
 sub deleteBackup ($file) {
@@ -323,22 +258,20 @@ Returns:
 
     integer - 0 on success or another value on failure.
 
-See Also:
-
-    api/v4/system.cgi
-
 =cut
 
 sub applyBackup ($backup) {
     my $error;
-    my $tar  = &getGlobalConfiguration('tar');
-    my $file = &getGlobalConfiguration('backupdir') . "/backup-$backup.tar.gz";
+    my $tar               = &getGlobalConfiguration('tar');
+    my $file              = &getGlobalConfiguration('backupdir') . "/backup-$backup.tar.gz";
+    my $relianoid_service = &getGlobalConfiguration('relianoid_service');
+    my $systemctl         = &getGlobalConfiguration('systemctl');
 
     # get current version
     my $version = &getGlobalConfiguration('version');
 
     &zenlog("Stopping Relianoid service", "info", "SYSTEM");
-    $error = &logAndRun("/etc/init.d/relianoid stop");
+    $error = &logAndRun("$systemctl stop $relianoid_service");
     if ($error) {
         &zenlog("Problem stopping Relianoid Load Balancer service", "error", "SYSTEM");
         return $error;
@@ -367,7 +300,7 @@ sub applyBackup ($backup) {
     close($fh);
     &zenlog("Migration Flag enabled") if (-e $migration_flag);
 
-    $error = &logAndRun("/etc/init.d/relianoid start");
+    $error = &logAndRun("$systemctl start $relianoid_service");
 
     if (!$error) {
         &zenlog("Backup applied and Relianoid Load Balancer restarted...", "info", "SYSTEM");
@@ -403,11 +336,18 @@ sub getBackupVersion ($backup) {
     # remove the first slash
     $config_path =~ s/^\///;
 
-    my @out = @{ &logAndGet("$tar -xOf $file $config_path", 'array') };
+    my $cmd = "${tar} -xOf ${file} ${config_path}";
+    zenlog("Running: $cmd", "debug");
+
+    my @lines = `$cmd`;
+
+    if ($?) {
+        zenlog("errno: $?", "error");
+    }
 
     my $version = "";
 
-    foreach my $line (@out) {
+    for my $line (@lines) {
         if ($line =~ /^\s*\$version\s*=\s*(?:"(.*)"|\'(.*)\');(?:\s*#update)?\s*$/) {
             $version = $1;
             last;

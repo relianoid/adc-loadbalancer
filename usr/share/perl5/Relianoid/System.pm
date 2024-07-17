@@ -26,6 +26,7 @@ use warnings;
 use feature qw(signatures);
 
 use Relianoid::Log;
+use Relianoid::Config;
 
 my $eload = eval { require Relianoid::ELoad; };
 
@@ -50,10 +51,6 @@ Parameters:
 Returns:
 
     integer - The number of connections.
-
-See Also:
-
-    api/v4/system_stats.cgi
 
 =cut
 
@@ -105,7 +102,6 @@ sub indexOfElementInArray ($searched_element, $array_ref) {
 
     # if $index is greater than the last element index
     if ($index > $#arrayOfElements) {
-
         # return an invalid index
         $index = -1;
     }
@@ -130,8 +126,6 @@ Returns:
 =cut
 
 sub slurpFile ($path) {
-    require Relianoid::Log;
-
     my $file;
 
     if (open(my $fh, '<', $path)) {
@@ -377,7 +371,7 @@ Returns:
 sub setSshDefaultConfig () {
     my $output = 0;
     $output = &eload(
-        module => 'Relianoid::System::SSH',
+        module => 'Relianoid::EE::System::SSH',
         func   => 'setSshDefaultConfigPriv',
         soft   => 1
     ) if ($eload);
@@ -411,7 +405,7 @@ sub setSshFactoryReset () {
     }
 
     $output = &eload(
-        module => 'Relianoid::System::SSH',
+        module => 'Relianoid::EE::System::SSH',
         func   => 'setSshFactoryResetPriv',
         soft   => 1
     ) if ($eload);
@@ -460,7 +454,7 @@ sub initHttpServer () {
     }
 
     $output += &eload(
-        module => 'Relianoid::System::HTTP',
+        module => 'Relianoid::EE::System::HTTP',
         func   => 'setHttpDefaultConfigPriv',
         soft   => 1
     ) if ($eload);
@@ -487,7 +481,7 @@ Returns:
 sub setHttpDefaultConfig () {
     my $output = 0;
     $output = &eload(
-        module => 'Relianoid::System::HTTP',
+        module => 'Relianoid::EE::System::HTTP',
         func   => 'setHttpDefaultConfigPriv',
         soft   => 1
     ) if ($eload);
@@ -513,7 +507,7 @@ Returns:
 sub restartHttpServer () {
     my $output = 0;
     $output = &eload(
-        module => 'Relianoid::System::HTTP',
+        module => 'Relianoid::EE::System::HTTP',
         func   => 'restartHttpServerPriv',
         soft   => 1
     ) if ($eload);
@@ -555,7 +549,7 @@ sub setHttpFactoryReset () {
     $output += &logAndRun($cmd);
 
     $output += &eload(
-        module => 'Relianoid::System::HTTP',
+        module => 'Relianoid::EE::System::HTTP',
         func   => 'setHttpDefaultConfigPriv',
         soft   => 1
     ) if ($eload);

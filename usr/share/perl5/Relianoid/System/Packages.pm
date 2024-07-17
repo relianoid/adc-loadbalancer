@@ -57,7 +57,7 @@ Returns:
 sub setSystemPackagesRepo () {
     if ($eload) {
         return &eload(
-            module => 'Relianoid::Apt',
+            module => 'Relianoid::EE::Apt',
             func   => 'setAPTRepo',
         );
     }
@@ -72,9 +72,9 @@ sub setSystemPackagesRepo () {
     &zenlog("Configuring the APT repository", "info", "SYSTEM");
 
     # configuring repository
-    open(my $FH, '>', $file);
-    print $FH "deb http://$host/ce/$repo_version/ $distribution main\n";
-    close $FH;
+    open(my $fh, '>', $file);
+    print $fh "deb http://$host/ce/$repo_version/ $distribution main\n";
+    close $fh;
 
     # update repositories
     $error = &logAndRun("$aptget_bin update -o Dir::Etc::sourceparts=\"-\" -o Dir::Etc::sourcelist=$file");

@@ -45,15 +45,7 @@ Parameters:
 
 Returns:
 
-    string - Date string.
-
-    Example:
-
-        "Mon May 22 10:42:39 2017"
-
-See Also:
-
-    api/v4/system.cgi, api/v4/system_stats.cgi
+    string - Date string. Example: "Mon May 22 10:42:39 2017"
 
 =cut
 
@@ -74,18 +66,6 @@ Parameters:
 Returns:
 
     string - Hostname.
-
-See Also:
-
-    setConntrackdConfig
-
-    getZClusterLocalIp, setKeepalivedConfig, getZClusterRemoteHost, runSync, getZCusterStatusInfo
-
-    setNotifCreateConfFile, setNotifData, getNotifData
-
-    api/v4/cluster.cgi, api/v4/system_stats.cgi, api/v4/zapi.cgi
-
-    relianoid
 
 =cut
 
@@ -110,10 +90,6 @@ Parameters:
 Returns:
 
     string - Version string.
-
-See Also:
-
-    api/system.cgi, noid-bui, relianoid
 
 =cut
 
@@ -150,7 +126,6 @@ sub getApplianceVersion() {
             $version = "ZNA 3300";
         }
         else {
-
             # select appliance verison
             if    ($kernel =~ /3\.2\.0\-4/)      { $version = "3110"; }
             elsif ($kernel =~ /3\.16\.0\-4/)     { $version = "4000"; }
@@ -208,10 +183,6 @@ Returns:
 
     integer - Number of CPU cores.
 
-See Also:
-
-    api/v4/system_stats.cgi
-
 =cut
 
 sub getCpuCores() {
@@ -246,14 +217,17 @@ Returns:
 
 sub setEnv() {
     use Relianoid::Config;
+
     local $ENV{http_proxy}  = &getGlobalConfiguration('http_proxy')  // "";
     local $ENV{https_proxy} = &getGlobalConfiguration('https_proxy') // "";
 
     my $provider = &getGlobalConfiguration('cloud_provider');
-    if ($provider eq 'aws') {
+
+    if ($provider && $provider eq 'aws') {
         local $ENV{AWS_SHARED_CREDENTIALS_FILE} = &getGlobalConfiguration('aws_credentials') // "";
         local $ENV{AWS_CONFIG_FILE}             = &getGlobalConfiguration('aws_config')      // "";
     }
+
     return;
 }
 

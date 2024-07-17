@@ -60,11 +60,11 @@ sub getFarmCertificate ($farm_name) {
     my $output = -1;
 
     my $farm_filename = &getFarmFile($farm_name);
-    open my $fd, '<', "$configdir/$farm_filename";
-    my @content = <$fd>;
-    close $fd;
+    open my $fh, '<', "${configdir}/${farm_filename}";
+    my @content = <$fh>;
+    close $fh;
 
-    foreach my $line (@content) {
+    for my $line (@content) {
         if ($line =~ /Cert/ && $line !~ /\#.*Cert/) {
             my @partline = split('\"', $line);
             @partline = split("\/", $partline[1]);
@@ -84,7 +84,7 @@ Configure a certificate for a HTTP farm
 
 Parameters:
 
-    cfile - certificate file name
+    cert_file - certificate file name
     farm_name - Farm name
 
 Returns:
@@ -97,7 +97,7 @@ FIXME:
 
 =cut
 
-sub setFarmCertificate ($cfile, $farm_name) {
+sub setFarmCertificate ($cert_file, $farm_name) {
     require Tie::File;
     require Relianoid::Lock;
     require Relianoid::Farm::HTTP::Config;
@@ -107,23 +107,28 @@ sub setFarmCertificate ($cfile, $farm_name) {
     my $lock_fh       = &openlock($lock_file, 'w');
     my $output        = -1;
 
-    my $certdir = &getGlobalConfiguration('certdir');
+    my $cert_dir  = &getGlobalConfiguration('certdir');
+    my $cert_path = "${cert_dir}/${cert_file}";
 
-    &zenlog("Setting 'Certificate $cfile' for $farm_name farm https", "info", "LSLB");
+    &zenlog("Setting 'Certificate ${cert_file}' for ${farm_name} farm https", "info", "LSLB");
 
     require Relianoid::Certificate;
-    my $error = &checkCertPEMValid("$certdir/$cfile");
+    my $error = &checkCertPEMValid($cert_path);
+
     if ($error->{code}) {
-        &zenlog("'Certificate $cfile' for $farm_name farm https is not valid", "error", "LSLB");
+        &zenlog("'Certificate ${cert_file}' for ${farm_name} farm https is not valid", "error", "LSLB");
         return $output;
     }
-    tie my @array, 'Tie::File', "$configdir/$farm_filename";
-    for (@array) {
-        if ($_ =~ /Cert "/) {
-            s/.*Cert\ .*/\tCert\ \"$certdir\/$cfile\"/g;
-            $output = $?;
+
+    tie my @array, 'Tie::File', "${configdir}/${farm_filename}";
+
+    for my $line (@array) {
+        if ($line =~ /Cert "/) {
+            $line =~ s!.*Cert .*!\tCert "${cert_path}"!g;
+            $output = 0;
         }
     }
+
     untie @array;
     close $lock_fh;
 
@@ -163,7 +168,6 @@ sub setFarmCipherList ($farm_name, $ciphers, $cipherc) {
     tie my @array, 'Tie::File', "$configdir/$farm_filename";
 
     for my $line (@array) {
-
         # takes the first Ciphers line only
         next if ($line !~ /Ciphers/);
 
@@ -226,11 +230,11 @@ sub getFarmCipherList ($farm_name) {
 
     my $farm_filename = &getFarmFile($farm_name);
 
-    open my $fd, '<', "$configdir/$farm_filename";
-    my @content = <$fd>;
-    close $fd;
+    open my $fh, '<', "${configdir}/${farm_filename}";
+    my @content = <$fh>;
+    close $fh;
 
-    foreach my $line (@content) {
+    for my $line (@content) {
         next if ($line !~ /Ciphers/);
 
         $output = (split('\"', $line))[1];
@@ -308,12 +312,12 @@ sub getHTTPFarmDisableSSL ($farm_name, $protocol) {
     my $farm_filename = &getFarmFile($farm_name);
     my $output        = -1;
 
-    open my $fd, '<', "$configdir\/$farm_filename" or return $output;
+    open my $fh, '<', "${configdir}/${farm_filename}" or return $output;
     $output = 0;    # if the directive is not in config file, it is disabled
-    my @file = <$fd>;
-    close $fd;
+    my @file = <$fh>;
+    close $fh;
 
-    foreach my $line (@file) {
+    for my $line (@file) {
         if ($line =~ /^\tDisable $protocol$/) {
             $output = 1;
             last;
@@ -354,7 +358,7 @@ sub setHTTPFarmDisableSSL ($farm_name, $protocol, $action) {
     tie my @file, 'Tie::File', "$configdir/$farm_filename";
 
     if ($action == 1) {
-        foreach my $line (@file) {
+        for my $line (@file) {
             if ($line =~ /Ciphers\ .*/) {
                 $line = "$line\n\tDisable $protocol";
                 last;
@@ -364,7 +368,7 @@ sub setHTTPFarmDisableSSL ($farm_name, $protocol, $action) {
     }
     else {
         my $it = -1;
-        foreach my $line (@file) {
+        for my $line (@file) {
             $it = $it + 1;
             last if ($line =~ /Disable $protocol$/);
         }

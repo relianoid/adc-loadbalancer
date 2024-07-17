@@ -81,12 +81,12 @@ sub sendL4sdSignal () {
     &runL4sdDaemon();
 
     # read pid number
-    open my $file, "<", "$pidfile" or return -1;
-    my $pid = <$file>;
-    close $file;
+    open my $fh, "<", $pidfile or return -1;
+    my $pid = <$fh>;
+    close $fh;
 
-    kill USR1 => $pid;
-    $output = $?;
+    my $success = kill USR1 => $pid;
+    $output = 0 if $success;
 
     return $output;
 }
@@ -117,7 +117,7 @@ sub getL4sdType ($farm_name) {
     require Config::Tiny;
     my $config = Config::Tiny->read($l4sdfile);
     if (defined $config->{$farm_name} && exists $config->{$farm_name}) {
-        $output = $config->{$farm_name}->{type};
+        $output = $config->{$farm_name}{type};
     }
 
     return $output;
@@ -145,12 +145,13 @@ sub setL4sdType ($farm_name, $type) {
     my $l4sdfile = &getGlobalConfiguration('l4sdcfg');
 
     if (!-f "$l4sdfile") {
-        open my $fd, '>', $l4sdfile;
-        if (!$fd) {
+        if(open my $fh, '>', $l4sdfile) {
+            close $fh;
+        }
+        else {
             &zenlog("Could not create file $l4sdfile: $!", "error", "L4SD");
             return -1;
         }
-        close $fd;
     }
 
     require Config::Tiny;
@@ -160,7 +161,7 @@ sub setL4sdType ($farm_name, $type) {
         delete $config->{$farm_name};
     }
     elsif ($type eq "leastconn") {
-        $config->{$farm_name}->{type} = $type;
+        $config->{$farm_name}{type} = $type;
     }
     $config->write($l4sdfile);
 

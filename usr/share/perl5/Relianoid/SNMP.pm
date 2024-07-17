@@ -55,30 +55,17 @@ Returns:
 sub setSnmpdStatus ($snmpd_status) {
     my $return_code = -1;
     my $systemctl   = &getGlobalConfiguration('systemctl');
-    my $updatercd   = &getGlobalConfiguration('updatercd');
     my $snmpd_srv   = &getGlobalConfiguration('snmpd_service');
 
     if ($snmpd_status eq 'true') {
         &zenlog("Starting snmp service", "info", "SYSTEM");
-        &logAndRun("$updatercd snmpd enable");
-
-        if (-f $systemctl) {
-            $return_code = &logAndRun("$systemctl start snmpd");
-        }
-        else {
-            $return_code = &logAndRun("$snmpd_srv start");
-        }
+        &logAndRun("$systemctl enable $snmpd_srv");
+        $return_code = &logAndRun("$systemctl start $snmpd_srv");
     }
     elsif ($snmpd_status eq 'false') {
         &zenlog("Stopping snmp service", "info", "SYSTEM");
-        &logAndRun("$updatercd snmpd disable");
-
-        if (-f $systemctl) {
-            $return_code = &logAndRun("$systemctl stop snmpd");
-        }
-        else {
-            $return_code = &logAndRun("$snmpd_srv stop");
-        }
+        &logAndRun("$systemctl disable $snmpd_srv");
+        $return_code = &logAndRun("$systemctl stop $snmpd_srv");
     }
     else {
         &zenlog("SNMP requested state is invalid", "warning", "SYSTEM");
@@ -132,7 +119,7 @@ sub setSnmpdLaunchConfig ($snmp_conf) {
     my $changed = 0;
 
     require Tie::File;
-    foreach my $file (@config) {
+    for my $file (@config) {
         tie my @config_file, 'Tie::File', $file;
         if (   defined $snmp_conf->{trapsess}
             && $snmp_conf->{trapsess} eq "true"
@@ -155,7 +142,11 @@ sub setSnmpdLaunchConfig ($snmp_conf) {
         untie @config_file;
     }
 
-    return &logAndRun("systemctl daemon-reload") if ($changed);
+    if ($changed) {
+        my $systemctl = &getGlobalConfiguration('systemctl');
+        return &logAndRun("$systemctl daemon-reload");
+    }
+
     return 0;
 }
 
@@ -316,7 +307,7 @@ sub getSnmpdConfig () {
 
     tie my @config_file, 'Tie::File', $snmpdconfig_file;
 
-    foreach my $line (@config_file) {
+    for my $line (@config_file) {
         next if ($line =~ /^\s*$/);
         $snmpd_conf->{changed} = 0
           if ($line =~ /^(# EXAMPLE.conf|# An example configuration file)/);
@@ -427,8 +418,8 @@ sub getSnmpdConfig () {
         }
     }
 
-    $snmpd_conf->{'ip'}   = "*"   if (not defined $snmpd_conf->{'ip'});
-    $snmpd_conf->{'port'} = "161" if (not defined $snmpd_conf->{'port'});
+    $snmpd_conf->{ip}   = "*"   if (not defined $snmpd_conf->{ip});
+    $snmpd_conf->{port} = "161" if (not defined $snmpd_conf->{port});
 
     untie @config_file;
     return $snmpd_conf;
@@ -491,31 +482,27 @@ sub _setSnmpdConfig ($snmpd_conf) {
     my @contents;
     my $lock_file = &getLockFile("snmpd_conf");
     my $lock_fh   = &openlock($lock_file, 'w');
-    my $config_file;
 
-    if (open $config_file, '<', $snmpdconfig_file) {
+    if (open my $config_file, '<', $snmpdconfig_file) {
         @contents = <$config_file>;
         close $config_file;
         close $lock_fh;
 
         @contents = grep { !/^agentAddress/ } @contents;
-        @contents = grep { !/^..community/ } @contents   if (defined $snmpd_conf->{community_mode});
-        @contents = grep { !/^trapcommunity/ } @contents if (defined $snmpd_conf->{trapcommunity});
-        @contents = grep { !/^authtrapenable/ } @contents
-          if (defined $snmpd_conf->{authtrapenable});
-        @contents = grep { !/^createuser/ } @contents    if (defined $snmpd_conf->{createuser_user});
-        @contents = grep { !/^iquerysecname/ } @contents if (defined $snmpd_conf->{iquerysecname});
-        @contents = grep { !/^..user/ } @contents        if (defined $snmpd_conf->{user_mode});
-        @contents = grep { !/^trapsink/ } @contents      if (defined $snmpd_conf->{trapsink});
-        @contents = grep { !/^trap2sink/ } @contents     if (defined $snmpd_conf->{trap2sink});
-        @contents = grep { !/^trapsess/ } @contents      if (defined $snmpd_conf->{trapsess});
-        @contents = grep { !/^linkUpDownNotifications/ } @contents
-          if (defined $snmpd_conf->{notif_linkupdown});
-        @contents = grep { !/^defaultMonitors/ } @contents
-          if (defined $snmpd_conf->{notif_defmonitors});
-        @contents = grep { !/^load/ } @contents            if (defined $snmpd_conf->{load});
-        @contents = grep { !/^includeAllDisks/ } @contents if (defined $snmpd_conf->{disks});
-        @contents = grep { !/^monitor/ } @contents         if (defined $snmpd_conf->{monitors});
+        @contents = grep { !/^..community/ } @contents             if (defined $snmpd_conf->{community_mode});
+        @contents = grep { !/^trapcommunity/ } @contents           if (defined $snmpd_conf->{trapcommunity});
+        @contents = grep { !/^authtrapenable/ } @contents          if (defined $snmpd_conf->{authtrapenable});
+        @contents = grep { !/^createuser/ } @contents              if (defined $snmpd_conf->{createuser_user});
+        @contents = grep { !/^iquerysecname/ } @contents           if (defined $snmpd_conf->{iquerysecname});
+        @contents = grep { !/^..user/ } @contents                  if (defined $snmpd_conf->{user_mode});
+        @contents = grep { !/^trapsink/ } @contents                if (defined $snmpd_conf->{trapsink});
+        @contents = grep { !/^trap2sink/ } @contents               if (defined $snmpd_conf->{trap2sink});
+        @contents = grep { !/^trapsess/ } @contents                if (defined $snmpd_conf->{trapsess});
+        @contents = grep { !/^linkUpDownNotifications/ } @contents if (defined $snmpd_conf->{notif_linkupdown});
+        @contents = grep { !/^defaultMonitors/ } @contents         if (defined $snmpd_conf->{notif_defmonitors});
+        @contents = grep { !/^load/ } @contents                    if (defined $snmpd_conf->{load});
+        @contents = grep { !/^includeAllDisks/ } @contents         if (defined $snmpd_conf->{disks});
+        @contents = grep { !/^monitor/ } @contents                 if (defined $snmpd_conf->{monitors});
     }
     else {
         close $lock_fh;
@@ -614,7 +601,7 @@ sub _setSnmpdConfig ($snmpd_conf) {
     }
 
     if (defined $snmpd_conf->{monitors}) {
-        foreach my $monitor (@{ $snmpd_conf->{monitors} }) {
+        for my $monitor (@{ $snmpd_conf->{monitors} }) {
             splice @contents, $index, 0, "monitor $monitor\n";
             $index++;
         }
@@ -622,15 +609,16 @@ sub _setSnmpdConfig ($snmpd_conf) {
 
     $lock_fh = &openlock($lock_file, 'w');
 
-    if (!open $config_file, '>', $snmpdconfig_file) {
+    if (open my $config_file, '>', $snmpdconfig_file) {
+        print $config_file @contents;
+        close $config_file;
         close $lock_fh;
-        &zenlog("Could not open $snmpdconfig_file: $!", "warning", "SYSTEM");
+    }
+    else {
+        close $lock_fh;
+        &zenlog("Could not open ${snmpdconfig_file}: $!", "warning", "SYSTEM");
         return -1;
     }
-
-    print $config_file @contents;
-    close $config_file;
-    close $lock_fh;
 
     return 0;
 }
@@ -660,7 +648,7 @@ sub translateSNMPConfigToApi ($config_ref) {
         'status'    => 'status',
     );
 
-    foreach my $key (keys %{$config_ref}) {
+    for my $key (keys %{$config_ref}) {
         if (not defined $params{$key}) {
             delete $config_ref->{$key};
         }

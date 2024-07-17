@@ -26,9 +26,9 @@ use warnings;
 use feature qw(signatures);
 
 use File::stat;
-use Time::localtime;
 
 use Relianoid::Core;
+use Relianoid::Config;
 
 my $openssl = &getGlobalConfiguration('openssl');
 
@@ -37,6 +37,9 @@ my $openssl = &getGlobalConfiguration('openssl');
 =head1 Module
 
 Relianoid::Certificate
+
+- Privacy-Enhanced Mail (PEM)
+- Certificate Signing Request (CSR)
 
 =cut
 
@@ -53,10 +56,6 @@ Parameters:
 Returns:
 
     list - certificate files in config/ directory.
-
-See Also:
-
-    api/v4/certificates.cgi
 
 =cut
 
@@ -78,7 +77,7 @@ sub getCertFiles () {
 
 =pod
 
-=head1 getCertFiles
+=head1 getPemCertFiles
 
 Returns a list of only .pem certificate files in the config directory.
 
@@ -105,33 +104,6 @@ sub getPemCertFiles () {
 
 =pod
 
-=head1 getCleanBlanc
-
-Delete all blancs from the beginning and from the end of a variable.
-
-Parameters:
-
-    String - String possibly starting and/or ending with space characters.
-
-Returns:
-
-    String - String without space characters at the beginning or at the end.
-
-See Also:
-
-    <getCertCN>, <getCertIssuer>, api/v4/certificates.cgi
-
-=cut
-
-sub getCleanBlanc ($vartoclean) {
-    $vartoclean =~ s/^\s+//;
-    $vartoclean =~ s/\s+$//;
-
-    return $vartoclean;
-}
-
-=pod
-
 =head1 getCertType
 
 Return the type of a certificate filename.
@@ -150,10 +122,6 @@ Returns:
 
     String - Certificate type.
 
-See Also:
-
-    <getCertCN>, <getCertIssuer>, <getCertCreation>, <getCertExpiration>, <getCertData>, api/v4/certificates.cgi
-
 =cut
 
 sub getCertType ($certfile) {
@@ -171,124 +139,6 @@ sub getCertType ($certfile) {
 
 =pod
 
-=head1 getCertCN
-
-Return the Common Name of a certificate file
-
-Parameters:
-
-    String - Certificate filename.
-
-Returns:
-
-    String - Certificate's Common Name.
-
-See Also:
-
-    api/v4/certificates.cgi
-
-=cut
-
-sub getCertCN ($certfile) {
-    my $certcn = "";
-
-    my $type  = (&getCertType($certfile) eq "Certificate") ? "x509" : "req";
-    my @eject = @{ &logAndGet("$openssl $type -noout -in $certfile -text | grep Subject:", "array") };
-
-    my $string = $eject[0];
-    chomp $string;
-    $string =~ s/Subject://;
-
-    my @data = split(/,/, $string);
-
-    foreach my $param (@data) {
-        $certcn = $1 if ($param =~ /CN ?=(.+)/);
-    }
-    $certcn = &getCleanBlanc($certcn);
-
-    return $certcn;
-}
-
-=pod
-
-=head1 getCertIssuer
-
-Return the Issuer Common Name of a certificate file
-
-Parameters:
-
-    String - Certificate filename.
-
-Returns:
-
-    String - Certificate issuer.
-
-Bugs:
-
-See Also:
-
-    api/v4/certificates.cgi
-
-=cut
-
-sub getCertIssuer ($certfile) {
-    my $certissu = "";
-
-    if (&getCertType($certfile) eq "Certificate") {
-        my @eject = @{ &logAndGet("$openssl x509 -noout -in $certfile -text | grep Issuer:", "array") };
-        @eject    = split(/CN=/,             $eject[0]);
-        @eject    = split(/\/emailAddress=/, $eject[1]);
-        $certissu = $eject[0] // '';
-    }
-    else {
-        $certissu = "NA";
-    }
-
-    $certissu = &getCleanBlanc($certissu);
-
-    return $certissu;
-}
-
-=pod
-
-=head1 getCertCreation
-
-Return the creation date of a certificate file
-
-Parameters:
-
-    String - Certificate filename.
-
-Returns:
-
-    String - Creation date.
-
-See Also:
-
-    api/v4/certificates.cgi
-
-=cut
-
-sub getCertCreation ($certfile) {
-    my $datecreation = "";
-
-    if (&getCertType($certfile) eq "Certificate") {
-        my @eject    = @{ &logAndGet("$openssl x509 -noout -in $certfile -dates", "array") };
-        my @datefrom = split(/=/, $eject[0]);
-        $datecreation = $datefrom[1];
-    }
-    else {
-        my @eject = split(/ /, gmtime(stat($certfile)->mtime));
-        splice(@eject, 0, 1);
-        push(@eject, "GMT");
-        $datecreation = join(' ', @eject);
-    }
-
-    return $datecreation;
-}
-
-=pod
-
 =head1 getCertExpiration
 
 Return the expiration date of a certificate file
@@ -301,32 +151,28 @@ Returns:
 
     String - Expiration date.
 
-See Also:
-
-    api/v4/certificates.cgi
-
 =cut
 
 sub getCertExpiration ($certfile) {
-    my $dateexpiration = "";
+    my $expiration_date = "";
 
     if (&getCertType($certfile) eq "Certificate") {
-        my @eject  = @{ &logAndGet("$openssl x509 -noout -in $certfile -dates", "array") };
+        my @eject  = `$openssl x509 -noout -in $certfile -dates`;
         my @dateto = split(/=/, $eject[1]);
-        $dateexpiration = $dateto[1];
+        $expiration_date = $dateto[1];
     }
     else {
-        $dateexpiration = "NA";
+        $expiration_date = "NA";
     }
 
-    return $dateexpiration;
+    return $expiration_date;
 }
 
 =pod
 
 =head1 getFarmCertUsed
 
-Get is a certificate file is being used by an HTTP farm
+Get if a certificate file is being used by an HTTP farm
 
 Parameters:
 
@@ -336,13 +182,10 @@ Returns:
 
     Integer - 0 if the certificate is being used, or -1 if it is not.
 
-See Also:
-
-    api/v4/certificates.cgi
-
 =cut
 
 sub getFarmCertUsed ($cfile) {
+    require Relianoid::File;
     require Relianoid::Farm::Core;
 
     my $certdir   = &getGlobalConfiguration('certdir');
@@ -350,17 +193,10 @@ sub getFarmCertUsed ($cfile) {
     my @farms     = &getFarmsByType("https");
     my $output    = -1;
 
-    for (@farms) {
-        my $fname         = $_;
+    for my $fname (@farms) {
         my $farm_filename = &getFarmFile($fname);
 
-        use File::Grep qw( fgrep );
-
-        if (
-            fgrep { /Cert \"$certdir\/\Q$cfile\E\"/ }
-            "$configdir/$farm_filename"
-          )
-        {
+        if (grep { /Cert \"$certdir\/\Q$cfile\E\"/ } readFileAsArray("$configdir/$farm_filename")) {
             $output = 0;
         }
     }
@@ -370,7 +206,7 @@ sub getFarmCertUsed ($cfile) {
 
 =pod
 
-=head1 getFarmCertUsed
+=head1 getCertFarmsUsed
 
 Get HTTPS Farms list using the certificate file. 
 
@@ -385,6 +221,7 @@ Returns:
 =cut
 
 sub getCertFarmsUsed ($cfile) {
+    require Relianoid::File;
     require Relianoid::Farm::Core;
 
     my $certdir   = &getGlobalConfiguration('certdir');
@@ -392,16 +229,10 @@ sub getCertFarmsUsed ($cfile) {
     my @farms     = &getFarmsByType("https");
     my $farms_ref = [];
 
-    foreach my $farm_name (@farms) {
+    for my $farm_name (@farms) {
         my $farm_filename = &getFarmFile($farm_name);
 
-        use File::Grep qw( fgrep );
-
-        if (
-            fgrep { /Cert \"$certdir\/\Q$cfile\E\"/ }
-            "$configdir/$farm_filename"
-          )
-        {
+        if (grep { /Cert \"$certdir\/\Q$cfile\E\"/ } readFileAsArray("$configdir/$farm_filename")) {
             push @{$farms_ref}, $farm_name;
         }
     }
@@ -422,10 +253,6 @@ Parameters:
 Returns:
 
     String - Boolean 'true' or 'false'.
-
-See Also:
-
-    api/v4/certificates.cgi
 
 =cut
 
@@ -465,10 +292,6 @@ Returns:
 Bugs:
 
     Removes the _first_ file found _starting_ with the given certificate name.
-
-See Also:
-
-    api/v4/certificates.cgi
 
 =cut
 
@@ -531,16 +354,12 @@ Parameters:
     certorganization - Organization.
     certdivision - Division.
     certmail     - E-Mail.
-    certkey      - Key. ¿?
+    certkey      - Key. ?
     certpassword - Password. Optional.
 
 Returns:
 
     Integer - Return code of openssl generating the CSR file..
-
-See Also:
-
-    api/v4/certificates.cgi
 
 =cut
 
@@ -605,10 +424,6 @@ Parameters:
 Returns:
 
     string - It returns a string with the certificate content. It contains new line characters.
-
-See Also:
-
-    api/v4/certificates.cgi
 
 =cut
 
@@ -762,14 +577,15 @@ Returns:
 =cut
 
 sub getDateEpoc ($date_string) {
-
     # my @months      = qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
 
     my ($year, $month, $day, $hours, $min, $sec) = split /[ :-]+/, $date_string;
 
     # the range of the month is from 0 to 11
     $month--;
-    return timegm($sec, $min, $hours, $day, $month, $year);
+
+    require Time::Local;
+    return Time::Local::timegm($sec, $min, $hours, $day, $month, $year);
 }
 
 =pod
@@ -789,8 +605,6 @@ Returns:
 =cut
 
 sub getCertDaysToExpire ($cert_ends) {
-    use Time::Local;
-
     my $end       = &getDateEpoc($cert_ends);
     my $days_left = ($end - time()) / 86400;
 
@@ -836,8 +650,7 @@ sub getCertPEM ($cert_path) {
         my $certificate_boundary = 0;
         my $cert;
 
-        foreach (@cert_file) {
-
+        for (@cert_file) {
             if ($_ =~ /^-+BEGIN.*KEY-+/) {
                 $key_boundary = 1;
             }
@@ -924,16 +737,12 @@ Parameters:
 
     cert_path - path to the certificate
 
-Returns: 	
+Returns: hash reference
 
-    error_ref - error object. code = 0 if the PEM file is valid,
+Error object.
 
-Variable: $error_ref.
-
-    A hashref that maps error code and description
-
-    $error_ref->{ code } - Integer.Error code
-    $error_ref->{ desc } - String. Description of the error.
+    code - integer - Error code. 0 if the PEM file is valid.
+    desc - string - Description of the error.
 
 =cut
 
@@ -1018,8 +827,8 @@ sub checkCertPEMValid ($cert_path) {
             &zenlog("$error_msg in '$cert_path': " . $error_str, "debug", "LSLB");
             return $error_ref;
         }
-
     }
+
     unless (Net::SSLeay::CTX_check_private_key($ctx)) {
         my $error = Net::SSLeay::ERR_error_string(Net::SSLeay::ERR_get_error());
         Net::SSLeay::CTX_free($ctx);
@@ -1049,16 +858,12 @@ Parameters:
     ca       - String. CA Certificate or fullchain certificates.
     intermediates - CA Intermediates Certificates.
 
-Returns:
+Returns: hash reference
 
-    error_ref - error object. code = 0 if the PEM file is created,
+Error object.
 
-Variable: $error_ref.
-
-    A hashref that maps error code and description
-
-    $error_ref->{ code } - Integer.Error code
-    $error_ref->{ desc } - String. Description of the error.
+    code - integer - Error code. 0 if the PEM file is created.
+    desc - string - Description of the error.
 
 =cut
 

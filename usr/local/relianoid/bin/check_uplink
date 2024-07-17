@@ -33,7 +33,7 @@ my ($farmname, $count) = @ARGV;
 
 if (not $farmname) {
     my $msg = "Expecting at least a farm name. Ie: $0 FARM_NAME [COUNT]";
-    say {STDERR} $msg;
+    say STDERR $msg;
     zenlog($msg, 'warn');
     return 1;
 }
@@ -47,7 +47,7 @@ my $configdir = &getGlobalConfiguration('configdir');
 if (-e "$configdir/$filename" and $type eq "datalink") {
     my @backends = &getFarmServers($farmname);
 
-    foreach my $line (@backends) {
+    for my $line (@backends) {
         my @lines   = split(';', $line);
         my $index   = $lines[0];
         my $backend = $lines[1];

@@ -39,30 +39,21 @@ Relianoid::Debug
 
 Get debugging level.
 
-Parameters:
+Parameters: None
 
-    none - .
-
-Returns:
-
-    integer - Debugging level, from 0 to 5.
+Returns: integer - Debug level, a value from 0 to 5.
 
 Bugs:
 
-    The debugging level should be stored as a variable.
-
-See Also:
-
-    Widely used.
+The debugging level should be stored as a variable.
 
 =cut
 
 sub debug () {
-    require Relianoid::Config;
-
     state $debug;
 
     if (not defined $debug) {
+        use Relianoid::Config;
         $debug = &getGlobalConfiguration('debug') // 0;
         $debug += 0;
     }
@@ -76,25 +67,27 @@ sub debug () {
 
 Get the resident memory usage of the current perl process.
 
-Parameters:
+Parameters: None
 
-    none
-
-Returns:
-
-    scalar - String with the memory usage.
-
-See Also:
-
-    Used in zapi.cgi
+Returns: string - String with the memory usage.
 
 =cut
 
 sub getMemoryUsage () {
-    my $mem_string = `grep RSS /proc/$$/status`;
+    my $mem_string;
+    my $proc_pid_status_file = "/proc/$$/status";
 
-    chomp($mem_string);
-    $mem_string =~ s/:.\s+/: /;
+    if (open(my $fh, "<", $proc_pid_status_file)) {
+        my @lines = <$fh>;
+        close $fh;
+
+        ($mem_string) = grep { /RSS/ } @lines;
+        chomp($mem_string);
+        $mem_string =~ s/\s+/ /;
+    }
+    else {
+        warn "Could not open file ${proc_pid_status_file}: $!";
+    }
 
     return $mem_string;
 }

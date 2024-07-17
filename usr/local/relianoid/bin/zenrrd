@@ -57,7 +57,7 @@ opendir(my $dir, $rrdap_dir);
 my @rrd_scripts = grep { /-rrd.(?:pl|sh)$/ } readdir($dir);
 closedir($dir);
 
-foreach my $script_rrd (@rrd_scripts) {
+for my $script_rrd (@rrd_scripts) {
     print "Executing $script_rrd...\n";
 
     if (&debug() == 0) {

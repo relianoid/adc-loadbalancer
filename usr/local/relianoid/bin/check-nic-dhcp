@@ -34,7 +34,7 @@ require Relianoid::Farm::Config;
 
 # Get a list of all network interfaces detected in the system.
 my @interfaces = IO::Interface::Simple->interfaces;
-foreach my $iface (@interfaces) {
+for my $iface (@interfaces) {
     next if $iface eq 'lo';
     next if $iface eq 'cl_maintenance';
 
@@ -56,7 +56,6 @@ foreach my $iface (@interfaces) {
     $iface_hash_ref->{'mask'} = $netmask;
 
     if (not -f $cfg_file) {
-
         # Store a network interface configuration.
         &setInterfaceConfig($iface_hash_ref);
         next;
@@ -67,7 +66,6 @@ foreach my $iface (@interfaces) {
     my $ip     = $ip_ref->{'addr'};
 
     if ($ip ne $addr) {
-
         # Store a network interface configuration.
         &setInterfaceConfig($iface_hash_ref);
 

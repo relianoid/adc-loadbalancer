@@ -160,9 +160,9 @@ sub sigTERMHandler () {
     exit;
 }
 
-local $SIG{"USR1"} = \&sigUSR1Handler;
-local $SIG{"TERM"} = \&sigTERMHandler;
-local $SIG{"INT"}  = \&sigTERMHandler;
+local $SIG{USR1} = \&sigUSR1Handler;
+local $SIG{TERM} = \&sigTERMHandler;
+local $SIG{INT}  = \&sigTERMHandler;
 
 my $counter_g = $g_param;
 my $counter_n = $n_param;
@@ -201,10 +201,10 @@ while () {
         my @files = &getFarmsByType("l4xnat");
 
         if (scalar(@files) <= 0) {
-            &sigTERMHandler;
+            &sigTERMHandler();
         }
 
-        foreach my $file (@files) {
+        for my $file (@files) {
             my $fname  = &getFarmName($file);
             my $falg   = &getFarmAlgorithm($fname);
             my $fstate = &getFarmStatus($fname);
@@ -212,7 +212,7 @@ while () {
             if ($falg eq $algorithm and $fstate eq 'up') {
                 my $backends = &getFarmServers($fname);
 
-                foreach my $l_serv (@{$backends}) {
+                for my $l_serv (@{$backends}) {
                     my $server = $l_serv->{id};
                     my $mark   = $l_serv->{tag};
                     my $status = $l_serv->{status};
@@ -225,7 +225,7 @@ while () {
         }
 
         if (keys %farms <= 0) {
-            &sigTERMHandler;
+            &sigTERMHandler();
         }
 
         # Print
@@ -249,7 +249,7 @@ while () {
             for my $farm (keys %farms) {
                 $connsperfarm{$farm}{total} = 0;
 
-                foreach my $back (keys %{ $farms{$farm} }) {
+                for my $back (keys %{ $farms{$farm} }) {
                     next if (defined $connsperfarm{$farm}{$back});
 
                     # do not use 'logAndRun' function, it is managing the error output
@@ -284,10 +284,9 @@ while () {
         }
 
         if ($num_farms > 0) {
-
             # for every farm check the least connection backend
-            foreach my $fname (keys %farms) {
-                foreach my $bck (keys %{ $farms{$fname} }) {
+            for my $fname (keys %farms) {
+                for my $bck (keys %{ $farms{$fname} }) {
                     if ($connsperfarm{$fname}{total} > 0) {
                         my $newweight = int(
                             (10 - ($connsperfarm{$fname}{$bck} / $connsperfarm{$fname}{total}) * 10)

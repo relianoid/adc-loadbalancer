@@ -56,7 +56,7 @@ close $gconf;
 
 my @gc_tmp_ln;
 
-foreach my $tpl_line (@gc_tpl_ln) {
+for my $tpl_line (@gc_tpl_ln) {
     my $newline = $tpl_line;
 
     # for lines starting with $
@@ -67,7 +67,7 @@ foreach my $tpl_line (@gc_tpl_ln) {
         $var =~ s/\$//;
         $var =~ s/\s*$//;    # important
 
-        foreach my $gc_line (@gconf_ln) {
+        for my $gc_line (@gconf_ln) {
             next unless $gc_line =~ /^\$$var\s*=/;
 
             my (undef, $gc_value) = $gc_line =~ /(.+)\s*=\s*(.+)/;

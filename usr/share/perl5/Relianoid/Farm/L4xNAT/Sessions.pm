@@ -56,16 +56,16 @@ Returns:
     Hash ref - It is a hash with the following keys:
 
     'session' 
-    
+
         Returns the session token.
 
     'id'
-    
+
         Returns the backen linked with the session token.
         If any session was found the function will return 'undef'.
 
     'type'
-    
+
         Will have the value:
 
         - 'static' if the session is preloaded by the user.
@@ -86,7 +86,6 @@ Returns:
 =cut
 
 sub parseL4FarmSessions ($s) {
-
     # translate session
     my $session = $s->{client};
     $session =~ s/ \. /_/;
@@ -119,19 +118,19 @@ Returns:
     array ref - Returns a list of hash references with the following parameters:
 
     "client" 
-    
+
         is the client position entry in the session table
 
     "id"
-    
+
         is the backend id assigned to session
 
     "session"
-    
+
         is the key that identifies the session
 
     "type"
-    
+
         is the key that identifies the session
 
     [
@@ -180,16 +179,16 @@ sub listL4FarmSessions ($farmname) {
 
     my $client_id = 0;
     my $backend_info;
-    foreach my $bck (@{ $farm->{servers} }) {
-        $backend_info->{ $bck->{id} }->{ip}   = $bck->{ip};
-        $backend_info->{ $bck->{id} }->{port} = $bck->{port};
+    for my $bck (@{ $farm->{servers} }) {
+        $backend_info->{ $bck->{id} }{ip}   = $bck->{ip};
+        $backend_info->{ $bck->{id} }{port} = $bck->{port};
     }
 
-    foreach my $s (@{ $nftlb_resp->{sessions} }) {
+    for my $s (@{ $nftlb_resp->{sessions} }) {
         $it                 = &parseL4FarmSessions($s);
         $it->{client}       = $client_id++;
-        $it->{backend_ip}   = $backend_info->{ $it->{id} }->{ip};
-        $it->{backend_port} = $backend_info->{ $it->{id} }->{port};
+        $it->{backend_ip}   = $backend_info->{ $it->{id} }{ip};
+        $it->{backend_port} = $backend_info->{ $it->{id} }{port};
         push @sessions, $it;
     }
 

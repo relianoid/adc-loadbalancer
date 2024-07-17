@@ -6,7 +6,7 @@ echo "Executing RELIANOID Cluster transition to BACKUP...\n"
 kill -9 `pidof -x zeninotify.pl` 2>/dev/null
 
 # stop RELIANOID service
-/etc/init.d/relianoid stop
+systemctl stop relianoid.service
 
 # update cluster status
 echo backup > /etc/relianoid-ce-cluster.status

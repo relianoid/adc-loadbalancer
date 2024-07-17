@@ -75,13 +75,16 @@ sub getFarmVip ($info, $farm_name) {
         require Relianoid::Farm::L4xNAT::Config;
         $output = &getL4FarmParam($info, $farm_name);
     }
-    elsif ($farm_type eq "datalink") {
-        require Relianoid::Farm::Datalink::Config;
-        $output = &getDatalinkFarmVip($info, $farm_name);
+    elsif ($farm_type eq "datalink" && $eload) {
+        $output = &eload(
+            module => 'Relianoid::EE::Farm::Datalink::Config',
+            func   => 'getDatalinkFarmVip',
+            args   => [ $info, $farm_name ],
+        );
     }
     elsif ($farm_type eq "gslb" && $eload) {
         $output = &eload(
-            module => 'Relianoid::Farm::GSLB::Config',
+            module => 'Relianoid::EE::Farm::GSLB::Config',
             func   => 'getGSLBFarmVip',
             args   => [ $info, $farm_name ],
         );
@@ -120,17 +123,20 @@ sub getFarmStatus ($farm_name) {
         require Relianoid::Farm::L4xNAT::Config;
         return &getL4FarmStatus($farm_name);
     }
-    elsif ($farm_type eq "datalink") {
-        require Relianoid::Farm::Datalink::Config;
-        return &getDatalinkFarmStatus($farm_name);
-    }
     elsif ($farm_type =~ /http/) {
         require Relianoid::Farm::HTTP::Config;
         return &getHTTPFarmStatus($farm_name);
     }
+    elsif ($farm_type eq "datalink" && $eload) {
+        $output = &eload(
+            module => 'Relianoid::EE::Farm::Datalink::Config',
+            func   => 'getDatalinkFarmStatus',
+            args   => [$farm_name],
+        );
+    }
     elsif ($farm_type eq "gslb" && $eload) {
         $output = &eload(
-            module => 'Relianoid::Farm::GSLB::Config',
+            module => 'Relianoid::EE::Farm::GSLB::Config',
             func   => 'getGSLBFarmStatus',
             args   => [$farm_name],
         );
@@ -218,18 +224,19 @@ sub getFarmVipStatus ($farm_name) {
     if ($type =~ /http/) {
         require Relianoid::Farm::HTTP::Backend;
         my $status = &getHTTPFarmBackendsStatusInfo($farm_name);
-        foreach my $service (keys %{$status}) {
-            if (defined $status->{$service}->{backends}) {
-                foreach my $backend (@{ $status->{$service}->{backends} }) {
-                    push @{$backends}, $backend;
-                }
+
+        for my $service (keys %{$status}) {
+            next unless defined $status->{$service}{backends};
+
+            for my $backend (@{ $status->{$service}{backends} }) {
+                push @{$backends}, $backend;
             }
         }
     }
 
     elsif ($type eq "gslb" && $eload) {
         my $stats = &eload(
-            module => 'Relianoid::Farm::GSLB::Stats',
+            module => 'Relianoid::EE::Farm::GSLB::Stats',
             func   => 'getGSLBFarmBackendsStats',
             args   => [$farm_name],
         );
@@ -240,11 +247,10 @@ sub getFarmVipStatus ($farm_name) {
     }
 
     # checking status
-    foreach my $be (@{$backends}) {
-        $up_flag          = 1 if grep { $be->{'status'} eq $_ } qw(up undefined);
-        $maintenance_flag = 1 if $be->{'status'} eq "maintenance";
-        $down_flag        = 1
-          if ($be->{'status'} eq "down" || $be->{'status'} eq "fgDOWN");
+    for my $be (@{$backends}) {
+        $up_flag          = 1 if grep { $be->{status} eq $_ } qw(up undefined);
+        $maintenance_flag = 1 if grep { $be->{status} eq $_ } qw(maintenance);
+        $down_flag        = 1 if grep { $be->{status} eq $_ } qw(down fgDOWN);
 
         # if there is a backend up and another down, the status is 'problem'
         last if ($down_flag and $up_flag);
@@ -253,7 +259,7 @@ sub getFarmVipStatus ($farm_name) {
     # check if redirect exists when there are not backends
     if ($type =~ /http/) {
         require Relianoid::Farm::HTTP::Service;
-        foreach my $srv (&getHTTPFarmServices($farm_name)) {
+        for my $srv (&getHTTPFarmServices($farm_name)) {
             if (&getHTTPFarmVS($farm_name, $srv, 'redirect')) {
                 $up_flag = 1;
                 last;
@@ -299,20 +305,16 @@ sub getFarmPid ($farm_name) {
 
     if ($farm_type eq "http" || $farm_type eq "https") {
         require Relianoid::Farm::HTTP::Config;
-        if (&getGlobalConfiguration("proxy_ng") eq 'true') {
-            @output = &getHTTPFarmPid($farm_name);
-        }
-        else {
-            @output = &getHTTPFarmPidPound($farm_name);
-        }
+
+        @output = &getHTTPFarmPidPound($farm_name);
     }
     elsif ($farm_type eq "gslb" && $eload) {
         my $pid = &eload(
-            module => 'Relianoid::Farm::GSLB::Config',
+            module => 'Relianoid::EE::Farm::GSLB::Config',
             func   => 'getGSLBFarmPid',
             args   => [$farm_name],
         );
-        push @output, $pid;
+        push(@output, $pid) if $pid;
     }
 
     return @output;
@@ -342,17 +344,20 @@ sub getFarmBootStatus ($farm_name) {
         require Relianoid::Farm::HTTP::Config;
         $output = &getHTTPFarmBootStatus($farm_name);
     }
-    elsif ($farm_type eq "datalink") {
-        require Relianoid::Farm::Datalink::Config;
-        $output = &getDatalinkFarmBootStatus($farm_name);
-    }
     elsif ($farm_type eq "l4xnat") {
         require Relianoid::Farm::L4xNAT::Config;
         $output = &getL4FarmParam('bootstatus', $farm_name);
     }
+    elsif ($farm_type eq "datalink" && $eload) {
+        $output = &eload(
+            module => 'Relianoid::EE::Farm::Datalink::Config',
+            func   => 'getDatalinkFarmBootStatus',
+            args   => [$farm_name],
+        );
+    }
     elsif ($farm_type eq "gslb" && $eload) {
         $output = &eload(
-            module => 'Relianoid::Farm::GSLB::Config',
+            module => 'Relianoid::EE::Farm::GSLB::Config',
             func   => 'getGSLBFarmBootStatus',
             args   => [$farm_name],
         );
@@ -421,12 +426,14 @@ Returns:
 
 sub getNumberOfFarmTypeRunning ($type) {
     my $counter = 0;
-    foreach my $farm_name (&getFarmNameList()) {
 
+    for my $farm_name (&getFarmNameList()) {
         # count if requested farm type and running
         my $current_type = &getFarmType($farm_name);
+
         if ($current_type eq $type) {
             my $current_status = &getFarmStatus($farm_name);
+
             if ($current_status eq 'up') {
                 $counter++;
             }
@@ -458,11 +465,9 @@ sub getFarmListByVip ($ip, $port = undef) {
 
     my @out = ();
 
-    foreach my $farm (&getFarmNameList()) {
+    for my $farm (&getFarmNameList()) {
         if (&getFarmVip('vip', $farm) eq $ip) {
-            next
-              if (defined($port)
-                && !grep { /^$port$/ } @{ &getMultiporExpanded(&getFarmVip('vipp', $farm)) });
+            next if defined $port && !grep { $port eq $_ } @{ &getMultiporExpanded(&getFarmVip('vipp', $farm)) };
             push @out, $farm;
         }
     }
@@ -489,7 +494,7 @@ Returns:
 sub getFarmRunning() {
     my @out = ();
 
-    foreach my $farm (&getFarmNameList()) {
+    for my $farm (&getFarmNameList()) {
         if (&getFarmStatus($farm) eq 'up') {
             push @out, $farm;
         }

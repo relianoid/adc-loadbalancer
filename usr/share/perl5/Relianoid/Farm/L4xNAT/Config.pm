@@ -91,9 +91,9 @@ sub getL4FarmParam ($param, $farm_name) {
         return $l4sched if ($l4sched ne "");
     }
 
-    open my $fd, '<', "$configdir/$farm_filename";
-    chomp(my @content = <$fd>);
-    close $fd;
+    open my $fh, '<', "${configdir}/${farm_filename}";
+    chomp(my @content = <$fh>);
+    close $fh;
 
     $output = &_getL4ParseFarmConfig($param, undef, \@content);
 
@@ -171,15 +171,14 @@ sub setL4FarmParam ($param, $value, $farm_name) {
             &setL4sdType($farm_name, "none");
 
             if ($eload) {
-
                 # unassign DoS & RBL
                 &eload(
-                    module => 'Relianoid::IPDS::Base',
+                    module => 'Relianoid::EE::IPDS::Base',
                     func   => 'runIPDSStopByFarm',
                     args   => [ $farm_name, "dos" ],
                 );
                 &eload(
-                    module => 'Relianoid::IPDS::Base',
+                    module => 'Relianoid::EE::IPDS::Base',
                     func   => 'runIPDSStopByFarm',
                     args   => [ $farm_name, "rbl" ],
                 );
@@ -190,7 +189,7 @@ sub setL4FarmParam ($param, $value, $farm_name) {
         if ($value eq "snat" && $eload) {
             my $farm_ref = &getL4FarmStruct($farm_name);
             &eload(
-                module => 'Relianoid::Net::Floating',
+                module => 'Relianoid::EE::Net::Floating',
                 func   => 'setFloatingSourceAddr',
                 args   => [ $farm_ref, undef ],
             );
@@ -393,7 +392,7 @@ sub _getL4ParseFarmConfig ($param, $value, $config) {
     my $output = -1;
     my $exit   = 1;
 
-    foreach my $line (@{$config}) {
+    for my $line (@{$config}) {
         if ($line =~ /\"family\"/ && $param eq 'family') {
             my @l = split /"/, $line;
             $output = $l[3];
@@ -751,7 +750,7 @@ sub unloadL4Modules ($protocol) {
     if ($protocol =~ /sip|tftp|ftp|amanda|h323|irc|netbios-ns|pptp|sane|snmp/) {
         my $n_farms = 0;
         require Relianoid::Farm::Core;
-        foreach my $farm (&getFarmsByType("l4xnat")) {
+        for my $farm (&getFarmsByType("l4xnat")) {
             if (&getL4FarmParam('proto', $farm) eq $protocol) {
                 $n_farms++ if (&getL4FarmStatus($farm) ne "down");
             }
@@ -786,7 +785,7 @@ sub getFarmPortList ($fvipp) {
     my @retportlist = ();
 
     if (!grep { /\*/ } @portlist) {
-        foreach my $port (@portlist) {
+        for my $port (@portlist) {
             if ($port =~ /:/) {
                 my @intlimits = split(':', $port);
 
@@ -848,7 +847,7 @@ Returns:
 sub doL4FarmProbability ($farm) {
     $$farm{prob} = 0;
 
-    foreach my $server_ref (@{ $$farm{servers} }) {
+    for my $server_ref (@{ $$farm{servers} }) {
         if ($$server_ref{status} eq 'up') {
             $$farm{prob} += $$server_ref{weight};
         }
@@ -882,7 +881,7 @@ sub doL4FarmRules ($action, $farm_name, $prev_farm_ref = undef) {
 
     require Relianoid::Farm::Backend;
 
-    foreach my $server (@{ $farm_ref->{servers} }) {
+    for my $server (@{ $farm_ref->{servers} }) {
         if ($action eq "stop") {
             &setBackendRule("del", $farm_ref, $server->{tag});
         }
@@ -928,9 +927,9 @@ sub writeL4NlbConfigFile ($nftfile, $cfgfile) {
     my $fo = &openlock($cfgfile, 'w');
 
     my @lines = ();
-    if (open(my $fi, '<', "$nftfile")) {
-        @lines = <$fi>;
-        close $fi;
+    if (open(my $fh, '<', $nftfile)) {
+        @lines = <$fh>;
+        close $fh;
     }
 
     my $line  = shift @lines;
@@ -973,7 +972,7 @@ sub writeL4NlbConfigFile ($nftfile, $cfgfile) {
 
 =pod
 
-=head1 doL4FarmRules
+=head1 resetL4FarmConntrack
 
 Reset Connection tracking for a given farm
 
@@ -991,7 +990,7 @@ sub resetL4FarmConntrack ($farm_name) {
     my $error = 0;
 
     my $servers = &getL4FarmServers($farm_name);
-    foreach my $server (@{$servers}) {
+    for my $server (@{$servers}) {
         &resetL4FarmBackendConntrackMark($server);
     }
 

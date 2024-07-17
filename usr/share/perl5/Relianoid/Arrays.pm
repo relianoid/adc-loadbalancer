@@ -118,7 +118,7 @@ sub uniqueArray ($arr) {
     my %hold = ();
     my @hold;
 
-    foreach my $v (@{$arr}) {
+    for my $v (@{$arr}) {
         unless (exists $hold{$v}) {
             $hold{$v} = 1;
             push @hold, $v;
@@ -149,8 +149,8 @@ Returns:
 =cut
 
 sub getArrayCollision ($arr1, $arr2) {
-    foreach my $it (sort @{$arr1}) {
-        if (grep { /^$it$/ } @{$arr2}) {
+    for my $it (sort @{$arr1}) {
+        if (grep { $it eq $_ } @{$arr2}) {
             return $it;
         }
     }

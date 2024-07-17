@@ -70,7 +70,7 @@ sub getFarmEstConns ($farm_name, $netstat) {
         my @pid = &getFarmPid($farm_name);
         return $connections if (!@pid);
         $connections = &eload(
-            module => 'Relianoid::Farm::GSLB::Stats',
+            module => 'Relianoid::EE::Farm::GSLB::Stats',
             func   => 'getGSLBFarmEstConns',
             args   => [ $farm_name, $netstat ],
         ) if $eload;

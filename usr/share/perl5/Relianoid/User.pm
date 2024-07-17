@@ -50,12 +50,6 @@ Returns:
 =cut
 
 sub getUser () {
-
-    #~ if ( !exists $ENV{ REQ_USER } || !defined $ENV{ REQ_USER } )
-    #~ {
-    #~ &zenlog( 'User name not defined', 'Warning' );
-    #~ }
-
     return $ENV{REQ_USER} // '';
 }
 
@@ -76,7 +70,7 @@ Returns:
 =cut
 
 sub setUser ($user) {
-    $ENV{REQ_USER} = $user;
+    $ENV{REQ_USER} = $user;    ## no critic (Variables::RequireLocalizedPunctuationVars)
 
     return;
 }
@@ -98,6 +92,7 @@ Returns:
 =cut
 
 sub getSysGroupList () {
+    require Relianoid::Lock;
     my @groupSet   = ();
     my $group_file = &openlock("/etc/group", "r");
     while (my $group = <$group_file>) {
@@ -106,7 +101,6 @@ sub getSysGroupList () {
     close $group_file;
 
     return @groupSet;
-
 }
 
 =pod
@@ -126,6 +120,7 @@ Returns:
 =cut
 
 sub getSysUserList () {
+    require Relianoid::Lock;
     my @userSet   = ();
     my $user_file = &openlock("/etc/passwd", "r");
     while (my $user = <$user_file>) {
@@ -134,7 +129,6 @@ sub getSysUserList () {
     close $user_file;
 
     return @userSet;
-
 }
 
 =pod
@@ -155,7 +149,7 @@ Returns:
 
 sub getSysUserExists ($user) {
     my $out = 0;
-    $out = 1 if (grep { /^$user$/ } &getSysUserList());
+    $out = 1 if (grep { $user eq $_ } &getSysUserList());
 
     return $out;
 }
@@ -178,7 +172,7 @@ Returns:
 
 sub getSysGroupExists ($group) {
     my $out = 0;
-    $out = 1 if (grep { /^$group$/ } &getSysGroupList());
+    $out = 1 if (grep { $group eq $_ } &getSysGroupList());
 
     return $out;
 }

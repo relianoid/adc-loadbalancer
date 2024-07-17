@@ -151,9 +151,9 @@ Parameters:
     check:  if this parameter is defined is a flag to not print error if
             the request is used to check if a element exists.
 
-Returns:
+Returns: integer
 
-    Integer - return code of the request command
+return code of the request command
 
 =cut
 
@@ -167,41 +167,45 @@ sub httpNlbRequest ($self) {
     }
 
     chomp($curl_cmd);
-    return -1 if ($curl_cmd eq "");
 
-    $body = qq(-d'$self->{ body }')
-      if (defined $self->{body} && $self->{body} ne "");
+    return -1 if not $curl_cmd;
 
-    my $execmd =
-      qq($curl_cmd -w "%{http_code}" --noproxy "*" -s -H "Key: HoLa" -X "$self->{ method }" $body http://127.0.0.1:27$self->{ uri });
+    if (defined $self->{body} && $self->{body} ne "") {
+        $body = qq(-d'$self->{body}');
+    }
+
+    my $url    = qq(http://127.0.0.1:27$self->{uri});
+    my $execmd = qq($curl_cmd -w "%{http_code}" --noproxy "*" -s -H "Key: HoLa" -X "$self->{method}" $body $url);
 
     my $file_tmp = "/tmp/nft_$$";
     my $file     = $file_tmp;
-    $file = $self->{file}
-      if (
-        defined $self->{file}
-        && (   ($self->{file} =~ /(?:ipds)/)
-            or ($self->{file} =~ /(?:policy)/))
-      );
+
+    if ($self->{file} && $self->{file} =~ /ipds|policy/) {
+        $file = $self->{file};
+    }
 
     # Send output to a file to get only the http code by the standard output
     $execmd = $execmd . " -o $file";
 
     my $output = &logAndGet($execmd);
-    if ($output !~ /^2/)    # err
-    {
+
+    if ($output !~ /^2/) {    # err
         my $tag = (exists $self->{check}) ? 'debug' : 'error';
         &zenlog("cmd failed: $execmd", $tag, 'system') if (!&debug());
+
         if (open(my $fh, '<', $file)) {
             local $/ = undef;
             my $err = <$fh>;
-            &zenlog("(code: $output): $err", $tag, 'system');
             close $fh;
+
+            &zenlog("(code: $output): $err", $tag, 'system');
+
             unlink $file_tmp if (-f $file_tmp);
         }
         else {
             &zenlog("The file '$file' could not be opened", 'error', 'system');
         }
+
         return -1;
     }
 
@@ -261,7 +265,7 @@ sub execNft ($action, $table, $chain_def, $rule) {
         }
         else {
             my @rules = @{ &logAndGet("$nft -a list chain $table $chain", 'array') };
-            foreach my $r (@rules) {
+            for my $r (@rules) {
                 my ($handle) = $r =~ / $rule.* \# handle (\d)$/;
                 if ($handle ne "") {
                     $output = &logAndRun("$nft delete rule $table $chain handle $handle");
@@ -279,7 +283,7 @@ sub execNft ($action, $table, $chain_def, $rule) {
         }
         else {
             my @rules = @{ &logAndGet("$nft list chain $table $chain", 'array') };
-            foreach my $r (@rules) {
+            for my $r (@rules) {
                 if ($r =~ / $rule /) {
                     $output = 1;
                     last;

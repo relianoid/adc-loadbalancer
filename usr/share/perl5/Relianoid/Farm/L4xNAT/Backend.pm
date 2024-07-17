@@ -127,7 +127,6 @@ sub setL4FarmServer ($farm_name, $ids, $ip, $port = undef, $weight = undef, $pri
         }
 
         &setBackendRule("add", $f_ref, $mark) if ($f_ref->{status} eq "up");
-
     }
 
     if (
@@ -184,7 +183,7 @@ sub setL4FarmServer ($farm_name, $ids, $ip, $port = undef, $weight = undef, $pri
     if ($json =~ /ip-addr/ && $eload) {
         my $farm_ref = &getL4FarmStruct($farm_name);
         &eload(
-            module => 'Relianoid::Net::Floating',
+            module => 'Relianoid::EE::Net::Floating',
             func   => 'setFloatingSourceAddr',
             args   => [ $farm_ref, { ip => $ip, id => $ids, tag => $mark } ],
         );
@@ -230,7 +229,7 @@ sub runL4FarmServerDelete ($ids, $farm_name) {
     });
 
     my $backend;
-    foreach my $server (@{ $f_ref->{servers} }) {
+    for my $server (@{ $f_ref->{servers} }) {
         if ($server->{id} eq $ids) {
             $mark    = $server->{tag};
             $backend = $server;
@@ -278,7 +277,7 @@ sub setL4FarmBackendsSessionsRemove ($farm_name, $backend_ref = undef, $farm_mod
     if (defined $farm_mode and $farm_mode eq "dsr") {
         $table = "netdev";
         my $ip_bin    = &getGlobalConfiguration('ip_bin');
-        my $mac       = &logAndRun("$ip_bin neigh show $backend_ref->{ ip }");
+        my $mac       = &logAndRun("$ip_bin neigh show $backend_ref->{ip}");
         my @mac_split = split(' ', $mac);
         $value_check = $mac_split[4];
         $value_regex = qr/([a-fA-F0-9:]{1,})/;
@@ -300,8 +299,7 @@ sub setL4FarmBackendsSessionsRemove ($farm_name, $backend_ref = undef, $farm_mod
 
     my $sessions;
     my $n_sessions_deleted;
-    foreach my $line (@persistmap) {
-
+    for my $line (@persistmap) {
         $data = 1 if ($line =~ /elements = /);
         next      if (!$data);
 
@@ -318,18 +316,17 @@ sub setL4FarmBackendsSessionsRemove ($farm_name, $backend_ref = undef, $farm_mod
         chop $sessions;
         my $error = &logAndRun("$nft_bin delete element $table nftlb $map_name { $sessions }");
         if ($error) {
-            &zenlog("Error removing '$n_sessions_deleted' sessions for backend id '$backend_ref->{ id }' in farm '$farm_name'",
+            &zenlog("Error removing '$n_sessions_deleted' sessions for backend id '$backend_ref->{id}' in farm '$farm_name'",
                 "error", "lslb");
             $output = 1;
         }
         else {
-            &zenlog("Removing '$n_sessions_deleted' sessions for backend id '$backend_ref->{ id }' in farm '$farm_name'",
+            &zenlog("Removing '$n_sessions_deleted' sessions for backend id '$backend_ref->{id}' in farm '$farm_name'",
                 "info", "lslb");
             $output = 0;
         }
     }
     else {
-
         # no sessions found
         $output = 0;
     }
@@ -354,7 +351,7 @@ Returns:
 
     hash reference 
 
-    $error_ref->{ code }
+    $error_ref->{code}
 
         - 0 on success
         - 1 on failure changing status,
@@ -362,7 +359,7 @@ Returns:
         - 3 on failure removing connections,
         - 4 on failure removing sessions and connections.
 
-    $error_ref->{ desc } - error message.
+    $error_ref->{desc} - error message.
 
 =cut
 
@@ -386,7 +383,7 @@ sub setL4FarmBackendStatus ($farm_name, $backend, $status, $cutmode = undef) {
     if ($status eq 'up' and @{ $$farm{servers} } > 1) {
         my $i = 0;
         my $bk_index;
-        foreach my $server (@{ $$farm{servers} }) {
+        for my $server (@{ $$farm{servers} }) {
             my $bk;
             $bk_index = $i if $backend == $server->{id};
             if ($server->{status} ne "up") {
@@ -432,11 +429,10 @@ sub setL4FarmBackendStatus ($farm_name, $backend, $status, $cutmode = undef) {
     #compare priority status of all backends and delete sessions and connections of backends
     #that have had their priority status changed from true to false.
     my $i = 0;
-    foreach my $bk (@bks_updated_prio_status) {
+    for my $bk (@bks_updated_prio_status) {
         if ($bk ne $bks_prio_status[$i]) {
             if (@{ $farm->{servers} }[$i]->{status} eq 'up') {
                 if ($farm->{persist} ne '') {
-
                     # delete backend session
                     $output = &setL4FarmBackendsSessionsRemove($farm_name, @{ $farm->{servers} }[$i], $farm->{mode});
                     if ($output) {
@@ -454,7 +450,6 @@ sub setL4FarmBackendStatus ($farm_name, $backend, $status, $cutmode = undef) {
                 }
 
                 if ($farm->{persist} ne '') {
-
                     # delete backend session again in case new connections are created
                     $output = &setL4FarmBackendsSessionsRemove($farm_name, @{ $farm->{servers} }[$i], $farm->{mode});
                     if ($output) {
@@ -478,19 +473,17 @@ sub setL4FarmBackendStatus ($farm_name, $backend, $status, $cutmode = undef) {
         $i++;
     }
     if ($status ne "up" and $cutmode eq "cut") {
-
         my $server;
 
         # get backend with id $backend
-        foreach my $srv (@{ $$farm{servers} }) {
-            if ($srv->{'id'} == $backend) {
+        for my $srv (@{ $$farm{servers} }) {
+            if ($srv->{id} == $backend) {
                 $server = $srv;
                 last;
             }
         }
 
         if ($farm->{persist} ne '') {
-
             #delete backend session
             $output = &setL4FarmBackendsSessionsRemove($farm_name, $server, $farm->{mode});
             if ($output) {
@@ -501,23 +494,22 @@ sub setL4FarmBackendStatus ($farm_name, $backend, $status, $cutmode = undef) {
         # remove conntrack
         $output = &resetL4FarmBackendConntrackMark($server);
         if ($output) {
-            $msg               = "Connections for backend $server->{ ip }:$server->{ port } in farm '$farm_name' were not deleted";
+            $msg               = "Connections for backend $server->{ip}:$server->{port} in farm '$farm_name' were not deleted";
             $error_ref->{code} = 3;
             $error_ref->{desc} = $msg;
         }
 
         if ($farm->{persist} ne '') {
-
             # delete backend session again in case new connections are created
             $output = &setL4FarmBackendsSessionsRemove($farm_name, $server, $farm->{mode});
             if ($output) {
                 if ($error_ref->{code} == 3) {
-                    $msg = "Error deleting connections and sessions on backend $server->{ ip }:$server->{ port } in farm '$farm_name'";
+                    $msg = "Error deleting connections and sessions on backend $server->{ip}:$server->{port} in farm '$farm_name'";
                     $error_ref->{code} = 4;
                     $error_ref->{desc} = $msg;
                 }
                 else {
-                    $msg               = "Sessions for backend $server->{ ip }:$server->{ port } in farm '$farm_name' were not deleted";
+                    $msg               = "Sessions for backend $server->{ip}:$server->{port} in farm '$farm_name' were not deleted";
                     $error_ref->{code} = 2;
                     $error_ref->{desc} = $msg;
                 }
@@ -564,9 +556,9 @@ Returns:
 sub getL4FarmServers ($farm_name) {
     my $farm_filename = &getFarmFile($farm_name);
 
-    open my $fd, '<', "$configdir/$farm_filename";
-    chomp(my @content = <$fd>);
-    close $fd;
+    open my $fh, '<', "${configdir}/${farm_filename}";
+    chomp(my @content = <$fh>);
+    close $fh;
 
     return &_getL4FarmParseServers(\@content);
 }
@@ -612,7 +604,7 @@ sub _getL4FarmParseServers ($config) {
     require Relianoid::Farm::L4xNAT::Config;
     my $fproto = &_getL4ParseFarmConfig('proto', undef, $config);
 
-    foreach my $line (@{$config}) {
+    for my $line (@{$config}) {
         if ($line =~ /\"farms\"/) {
             $stage = 1;
         }
@@ -732,8 +724,7 @@ sub getL4BackendsWeightProbability ($farm) {
 
     &doL4FarmProbability($farm);
 
-    foreach my $server (@{ $$farm{servers} }) {
-
+    for my $server (@{ $$farm{servers} }) {
         # only calculate probability for the servers running
         if ($$server{status} eq 'up') {
             $weight_sum += $$server{weight};
@@ -765,7 +756,7 @@ Returns:
 
 sub resetL4FarmBackendConntrackMark ($server) {
     my $conntrack = &getGlobalConfiguration('conntrack');
-    my $cmd       = "$conntrack -D -m $server->{ tag }/0x7fffffff";
+    my $cmd       = "$conntrack -D -m $server->{tag}/0x7fffffff";
 
     &zenlog("running: $cmd") if &debug();
 
@@ -778,7 +769,7 @@ sub resetL4FarmBackendConntrackMark ($server) {
         require Relianoid::Net::ConnStats;
         my $params = {
             proto => 'tcp sctp',
-            mark  => "$server->{ tag }/0x7fffffff",
+            mark  => "$server->{tag}/0x7fffffff",
             state => "ESTABLISHED"
         };
         my $conntrack_params = &getConntrackParams($params);
@@ -849,15 +840,16 @@ Returns:
 sub getL4FarmPriorities ($farmname) {
     my @priorities;
     my $backends = &getL4FarmServers($farmname);
-    foreach my $backend (@{$backends}) {
+
+    for my $backend (@{$backends}) {
         if (defined $backend->{priority}) {
             push @priorities, $backend->{priority};
         }
         else {
             push @priorities, 1;
         }
-
     }
+
     return \@priorities;
 }
 

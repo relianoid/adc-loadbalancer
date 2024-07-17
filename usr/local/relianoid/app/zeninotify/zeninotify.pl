@@ -56,12 +56,11 @@ print "First replication finished.\n";
 
 my $inotify = Linux::Inotify2->new();
 
-foreach (@alert) {
+for (@alert) {
     $inotify->watch($_, IN_MODIFY | IN_CREATE | IN_DELETE);
 }
 
 while (1) {
-
     # By default this will block until some event is received
     my @events = $inotify->read();
     if (scalar(@events) == 0) {
@@ -69,7 +68,7 @@ while (1) {
         last;
     }
 
-    foreach (@events) {
+    for (@events) {
         unless ($_->name !~ /^\..*/ && $_->name !~ /.*\~$/) {
             next;
         }

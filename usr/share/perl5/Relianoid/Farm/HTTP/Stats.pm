@@ -204,184 +204,6 @@ sub getHTTPBackendSYNConns ($farm_name, $backend_ip, $backend_port, $mark = unde
 
 =head1 getHTTPFarmBackendsStats
 
-This function take data from pounctl or zproxy and it gives hash format
-
-Parameters:
-
-    farm_name    - Farm name
-    service_name - Service name
-
-Returns:
-
-    hash ref - hash with backend farm stats
-
-=cut
-
-sub getHTTPFarmBackendsStats ($farm_name, $service_name) {
-    if (&getGlobalConfiguration('proxy_ng') eq 'true') {
-        return &getZproxyHTTPFarmBackendsStats($farm_name, $service_name);
-    }
-    else {
-        return &getPoundHTTPFarmBackendsStats($farm_name, $service_name);
-    }
-}
-
-=pod
-
-=head1 getZproxyHTTPFarmBackendsStats
-
-This function take data from zproxy and gives it as hash format
-
-Parameters:
-
-    farm_name    - Farm name
-    service_name - Service name
-
-Returns:
-
-    hash ref - hash with backend farm stats
-
-    backends => [
-        {
-            "id"           = $backend_id        # it is the index in the backend array too
-            "ip"           = $backend_ip
-            "port"         = $backend_port
-            "status"       = $backend_status
-            "established"  = $established_connections
-            "pending"      = $pending_connections
-        }
-    ]
-
-    sessions => [
-        {
-            "client"       = $client_id         # it is the index in the session array too
-            "id"           = $backend id        # id associated to a backend, it can change depend of session type
-            "backend_ip"   = $backend ip        # it is the backend ip
-            "backend_port" = $backend port      # it is the backend port
-            "service"      = $service name
-            "session"      = $session identifier    # it depends on the persistence mode
-            "ttl"          = $ttl               # time remaining to delete session
-        }
-    ]
-
-    of -1 if error
-=cut
-
-sub getZproxyHTTPFarmBackendsStats ($farm_name, $service_name = undef) {
-    require JSON;
-    require Relianoid::Farm::HTTP::Config;
-    require Relianoid::Farm::HTTP::Service;
-    use POSIX 'floor';
-
-    my $stats = {
-        sessions => [],
-        backends => []
-    };
-
-    # curl --unix-socket /tmp/webfarm_proxy.socket  http://localhost/listener/0
-    my $curl_bin = &getGlobalConfiguration('curl_bin');
-    my $url      = "http://localhost/listener/0";
-    my $socket   = &getHTTPFarmSocket($farm_name);
-    my $cmd      = "$curl_bin --unix-socket $socket $url";
-    my $resp     = &logAndGet($cmd, 'string');
-
-    if ($resp) {
-        $resp = eval { &JSON::decode_json($resp) };
-        if ($@) {
-            &zenlog("Decoding json: $@", "error", "stats");
-            return -1;
-        }
-        my $services = $resp->{services};
-
-        my $alias;
-        $alias = &eload(
-            module => 'Relianoid::Alias',
-            func   => 'getAlias',
-            args   => ['backend']
-        ) if $eload;
-        foreach my $service (@$services) {
-            next
-              if (defined $service_name && $service_name ne $service->{name});
-            my $service_ref = &getHTTPServiceStruct($farm_name, $service->{name});
-            my $ttl         = $service_ref->{ttl};
-            my $index       = 0;
-            my $backend_info;
-            foreach my $bk (@{ $service->{backends} }) {
-
-                # skip redirect backend
-                next if ($bk->{type} eq "2");
-
-                my $mark = sprintf("0x%x", @{ $service_ref->{backends} }[ $bk->{id} ]->{tag});
-                my $backend_established =
-                  &getHTTPBackendEstConns($farm_name, $bk->{address}, $bk->{port}, $mark);
-                my $backend_pending =
-                  &getHTTPBackendSYNConns($farm_name, $bk->{address}, $bk->{port}, $mark);
-                my $backendHash = {
-                    id          => $bk->{id},
-                    ip          => $bk->{address},
-                    port        => $bk->{port} + 0,
-                    status      => $bk->{status},
-                    pending     => $backend_pending + 0,
-                    established => $backend_established + 0,
-                    service     => $service->{name}
-                };
-                $backendHash->{alias} = $alias->{ $bk->{address} } if $eload;
-                if ($backendHash->{"status"} eq "active") {
-                    $backendHash->{"status"} = "up";
-                }
-                if ($backendHash->{"status"} eq "disabled") {
-                    require Relianoid::Farm::HTTP::Backend;
-
-                    #Checkstatusfile
-                    $backendHash->{"status"} =
-                      &getHTTPBackendStatusFromFile($farm_name, $bk->{id}, $service->{name});
-
-                    # not show fgDOWN status
-                    $backendHash->{"status"} = "down"
-                      if ($backendHash->{"status"} ne "maintenance");
-                }
-                push(@{ $stats->{backends} }, $backendHash);
-                $backend_info->{ $bk->{id} }->{ip}   = $bk->{address};
-                $backend_info->{ $bk->{id} }->{port} = $bk->{port};
-            }
-
-            $index = 0;
-            my $time = time();
-            foreach my $ss (@{ $service->{sessions} }) {
-                my $min_rem =
-                  floor(($ttl - ($time - $ss->{'last-seen'})) / 60);
-                my $sec_rem =
-                  floor(($ttl - ($time - $ss->{'last-seen'})) % 60);
-
-                my $ttl =
-                  $ss->{'last-seen'} eq 0
-                  ? undef
-                  : $min_rem . 'm' . $sec_rem . 's' . '0ms';
-
-                my $sessionHash = {
-                    client       => $index,
-                    id           => $ss->{'backend-id'},
-                    backend_ip   => $backend_info->{ $ss->{'backend-id'} }->{ip},
-                    backend_port => $backend_info->{ $ss->{'backend-id'} }->{port},
-                    session      => $ss->{id},
-                    service      => $service->{name},
-                    ttl          => $ttl,
-                };
-                push(@{ $stats->{sessions} }, $sessionHash);
-                $index++;
-            }
-
-            last if (defined $service_name);
-        }
-    }
-
-    return $stats;
-}
-
-=pod
-
-=head1 getPoundHTTPFarmBackendsStats
-
 This function take data from pounctl and it gives hash format
 
 Parameters:
@@ -420,23 +242,23 @@ FIXME:
 
 =cut
 
-sub getPoundHTTPFarmBackendsStats ($farm_name, $service_name = undef) {
+sub getHTTPFarmBackendsStats ($farm_name, $service_name = undef) {
     require Relianoid::Farm::Base;
     require Relianoid::Farm::HTTP::Config;
     require Relianoid::Validate;
-    my $stats = {
-        sessions => [],
-        backends => []
-    };
 
     my $serviceName;
     my $service_re = &getValidFormat('service');
+    my $stats      = {
+        sessions => [],
+        backends => []
+    };
 
     unless ($eload) {
         require Relianoid::Net::ConnStats;
     }
 
-    # Get l7 proxy info
+    # Get L7 proxy info
     #i.e. of proxyctl:
 
     #Requests in queue: 0
@@ -450,7 +272,7 @@ sub getPoundHTTPFarmBackendsStats ($farm_name, $service_name = undef) {
 
     my $alias;
     $alias = &eload(
-        module => 'Relianoid::Alias',
+        module => 'Relianoid::EE::Alias',
         func   => 'getAlias',
         args   => ['backend']
     ) if $eload;
@@ -458,8 +280,7 @@ sub getPoundHTTPFarmBackendsStats ($farm_name, $service_name = undef) {
     my $backend_info;
 
     # Parse ly proxy info
-    foreach my $line (@proxyctl) {
-
+    for my $line (@proxyctl) {
         # i.e.
         #     0. Service "HTTP" active (10)
         if ($line =~ /(\d+)\. Service "($service_re)"/) {
@@ -482,44 +303,45 @@ sub getPoundHTTPFarmBackendsStats ($farm_name, $service_name = undef) {
                 service => $serviceName,
             };
 
-            $backendHash->{alias}                         = $alias->{$2} if $eload;
-            $backend_info->{ $backendHash->{id} }->{ip}   = $backendHash->{ip};
-            $backend_info->{ $backendHash->{id} }->{port} = $backendHash->{port};
+            $backendHash->{alias}                       = $alias->{$2} if $eload;
+            $backend_info->{ $backendHash->{id} }{ip}   = $backendHash->{ip};
+            $backend_info->{ $backendHash->{id} }{port} = $backendHash->{port};
 
             if (defined $6) {
                 $backendHash->{established} = $6 + 0;
             }
             else {
-                $backendHash->{established} =
-                  &getHTTPBackendEstConns($farm_name, $backendHash->{ip}, $backendHash->{port});
+                $backendHash->{established} = &getHTTPBackendEstConns($farm_name, $backendHash->{ip}, $backendHash->{port});
             }
 
             # Getting real status
             my $backend_disabled = $4;
+
             if ($backend_disabled eq "DISABLED") {
                 require Relianoid::Farm::HTTP::Backend;
 
                 #Checkstatusfile
-                $backendHash->{"status"} =
+                $backendHash->{status} =
                   &getHTTPBackendStatusFromFile($farm_name, $backendHash->{id}, $serviceName);
 
                 # not show fgDOWN status
-                $backendHash->{"status"} = "down"
-                  if ($backendHash->{"status"} ne "maintenance");
+                $backendHash->{status} = "down"
+                  if ($backendHash->{status} ne "maintenance");
             }
-            elsif ($backendHash->{"status"} eq "alive") {
-                $backendHash->{"status"} = "up";
+            elsif ($backendHash->{status} eq "alive") {
+                $backendHash->{status} = "up";
             }
-            elsif ($backendHash->{"status"} eq "DEAD") {
-                $backendHash->{"status"} = "down";
+            elsif ($backendHash->{status} eq "DEAD") {
+                $backendHash->{status} = "down";
             }
 
             # Getting pending connections
             require Relianoid::Net::ConnStats;
             require Relianoid::Farm::Stats;
 
-            $backendHash->{pending} =
-              &getBackendSYNConns($farm_name, $backendHash->{ip}, $backendHash->{port});
+            # The port passed to getBackendSYNConns will be converted to string,
+            # port + 0 will pass a copy of the port, so the original port will not be converted
+            $backendHash->{pending} = &getBackendSYNConns($farm_name, $backendHash->{ip}, $backendHash->{port} + 0);
 
             # Workaround: getBackendSYNConns changes the port to string
             $backendHash->{port} += 0;
@@ -536,8 +358,8 @@ sub getPoundHTTPFarmBackendsStats ($farm_name, $service_name = undef) {
                 client       => $1 + 0,
                 session      => $2,
                 id           => $3 + 0,
-                backend_ip   => $backend_info->{$3}->{ip},
-                backend_port => $backend_info->{$3}->{port},
+                backend_ip   => $backend_info->{$3}{ip},
+                backend_port => $backend_info->{$3}{port},
                 service      => $serviceName,
               };
         }

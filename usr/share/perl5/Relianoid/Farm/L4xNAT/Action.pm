@@ -59,13 +59,10 @@ Returns:
 sub startL4Farm ($farm_name, $writeconf = 0) {
     require Relianoid::Farm::L4xNAT::Config;
 
-    &zlog("Starting farm $farm_name") if &debug() == 2;
+    &zenlog("Starting L4xNAT farm $farm_name") if &debug();
 
     my $status = 0;
     my $farm   = &getL4FarmStruct($farm_name);
-
-    &zenlog("startL4Farm << farm_name:$farm_name")
-      if &debug();
 
     &loadL4Modules($$farm{vproto});
 
@@ -113,7 +110,7 @@ sub stopL4Farm ($farm_name, $writeconf) {
     require Relianoid::Farm::Core;
     require Relianoid::Farm::L4xNAT::Config;
 
-    &zlog("Stopping farm $farm_name") if &debug() > 2;
+    &zenlog("Stopping L4xNAT farm $farm_name") if &debug();
 
     my $farm = &getL4FarmStruct($farm_name);
 
@@ -207,7 +204,7 @@ sub copyL4Farm ($farm_name, $new_farm_name, $del = '') {
     require Relianoid::Netfilter;
     my $backend_block = 0;
 
-    foreach my $line (@lines) {
+    for my $line (@lines) {
         if ($line =~ /(^\s+"name": )"$farm_name(.*)",/) {
             $line = $1 . "\"$new_farm_name" . $2 . "\",";
         }
@@ -288,9 +285,9 @@ sub startL4FarmNlb ($farm_name, $writeconf) {
 
     my $pidfile = &getL4FarmPidFile($farm_name);
 
-    if (!-e "$pidfile") {
-        open my $fi, '>', "$pidfile";
-        close $fi;
+    if (!-e $pidfile) {
+        open my $fh, '>', $pidfile;
+        close $fh;
     }
 
     return $output;
@@ -381,7 +378,7 @@ sub sendL4NlbCmd ($self) {
     # avoid farm configuration file destruction by asking nftlb only for modifications
     # or deletion of attributes of the farm
     if ($self->{method} =~ /PUT/
-        || ($self->{method} =~ /DELETE/ && $self->{uri} =~ /farms\/.*\/.*/))
+        || ($self->{method} =~ /DELETE/ && defined $self->{uri} && $self->{uri} =~ /farms\/.*\/.*/))
     {
         my $file  = "/tmp/get_farm_$$";
         my $match = 0;
@@ -389,13 +386,13 @@ sub sendL4NlbCmd ($self) {
         $output = &httpNlbRequest({
             method => "GET",
             uri    => "/farms/" . $self->{farm},
-            file   => "$file",
+            file   => $file,
         });
 
-        if (-e "$file") {
+        if (-e $file) {
             open my $fh, "<", $file;
             while (my $line = <$fh>) {
-                if ($line =~ /\"name\"\: \"$$self{ farm }\"/) {
+                if ($line =~ /\"name\"\: \"$$self{farm}\"/) {
                     $match = 1;
                     last;
                 }
@@ -416,13 +413,11 @@ sub sendL4NlbCmd ($self) {
     }
 
     if (defined $self->{backend} && $self->{backend} ne "") {
-        $self->{uri} =
-          "/farms/" . $self->{farm} . "/backends/" . $self->{backend};
+        $self->{uri} = "/farms/$self->{farm}/backends/$self->{backend}";
     }
     elsif (!defined $self->{uri}) {
         $self->{uri} = "/farms";
-        $self->{uri} = "/farms/" . $self->{farm}
-          if ($self->{method} eq "DELETE");
+        $self->{uri} = "/farms/$self->{farm}" if $self->{method} eq "DELETE";
     }
 
     # use the new name

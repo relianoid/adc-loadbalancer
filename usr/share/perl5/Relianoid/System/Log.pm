@@ -54,10 +54,6 @@ Returns:
         'date' => $datetime_string
     }
 
-See Also:
-
-    api/v4/system.cgi
-
 =cut
 
 sub getLogs () {
@@ -70,8 +66,7 @@ sub getLogs () {
     my @files = readdir($directory);
     closedir($directory);
 
-    foreach my $line (@files) {
-
+    for my $line (@files) {
         # not list if it is a directory
         next if -d "$logdir/$line";
 
@@ -98,10 +93,6 @@ Parameters:
 Returns:
 
     array - last lines of log file
-
-See Also:
-
-    api/v4/system.cgi
 
 =cut
 

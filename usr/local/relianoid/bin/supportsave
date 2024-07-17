@@ -86,7 +86,7 @@ echo "- Partitions"
 /bin/df -h                              &>> $backup_dir/partitions.txt
 
 echo "- Time"
-${zbindir}/zenntp                    	&>> $backup_dir/ntp_test.txt
+${zbindir}/noid-ntp                    	&>> $backup_dir/ntp_test.txt
 
 if [[ ! -z $ssyncdctl_bin ]]; then
 	echo "- Sessions Table"
@@ -181,17 +181,6 @@ do
 	echo "# $proxyctl -c $i"                                  >> $fstatus
 	$proxyctl -c $i                                           >> $fstatus
 	echo ""                                                   >> $fstatus
-	if [ "$proxy_ng" == "true" ]
-	then
-		echo "# curl --connect-timeout 10 --unix-socket $i http://localhost/listener" >> $backup_dir/proxy_status.txt
-		$CURL --connect-timeout 10 --unix-socket $i http://localhost/listener         >> $backup_dir/proxy_status.txt
-		echo ""                                                                       >> $fstatus
-		echo ""                                                                       >> $fstatus
-		echo "# curl --connect-timeout 10 --unix-socket $i http://localhost/debug"    >> $backup_dir/proxy_status.txt
-		$CURL --connect-timeout 10 --unix-socket $i http://localhost/debug            >> $fstatus
-		echo ""                                                                       >> $fstatus
-	fi
-	echo ""                                                                           >> $fstatus
 done
 
 

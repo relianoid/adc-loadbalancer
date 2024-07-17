@@ -24,9 +24,6 @@
 set -e
 trap 'echo Failed at ${LINENO}: $BASH_COMMAND' ERR
 
-GLOBALCF="/usr/local/relianoid/config/global.conf"
-GLOBALCFT="/usr/local/relianoid/share/global.conf.template"
-
 [ ! "$1" == "configure" ] && echo "Installation aborted $1 $2" && exit 1
 [   "$1" == "configure" ] && echo "Completing the RELIANOID installation..."
 
@@ -41,11 +38,12 @@ load_global_conf
 
 # Enable root access through SSH
 SSHDCONFIG="/etc/ssh/sshd_config"
-if [[ `grep -c "^PermitRootLogin.*yes" $SSHDCONFIG` == '0' ]]; then
-	sed -i -e 's/^PermitRootLogin.*/PermitRootLogin yes/' $SSHDCONFIG
-	if [[ "$(/etc/init.d/ssh status | grep -c 'sshd is not running')" == '0' ]]; then
-		/etc/init.d/ssh reload 2> /dev/null
-	fi
+
+if ! grep "^PermitRootLogin.*yes" $SSHDCONFIG &>/dev/null; then
+    sed -i -e 's/^PermitRootLogin.*/PermitRootLogin yes/' $SSHDCONFIG
+    if [[ "$(systemctl status sshd.service | grep -c 'sshd is not running')" == '0' ]]; then
+        systemctl reload sshd.service 2> /dev/null
+    fi
 fi
 
 # Start ssh server after relianoid service
@@ -57,51 +55,56 @@ perl -MRelianoid::SNMP -E "&setSnmpdDefaultConfig();"
 
 # Grub disk configuration
 GRUB_CONF='/tmp/grub-pc.debconf'
-GRUB_DISK=`fdisk -l | grep 'Disk /dev/' | head -1 | awk '{ printf $2}' | tr -d ':'`
-DEBCONF_DEVICES=`debconf-show grub-pc | grep grub-pc/install_devices: | cut -d: -f2 | cut -d\  -f2-`
-if [ -e "$GRUB_DISK" -a "$GRUB_DISK" != "$DEBCONF_DEVICES" ]; then
-	echo "grub-pc grub-pc/install_devices multiselect $GRUB_DISK" > $GRUB_CONF
-	debconf-set-selections $GRUB_CONF
-	rm $GRUB_CONF
+GRUB_DISK=$(fdisk -l | grep 'Disk /dev/' | head -1 | awk '{ printf $2}' | tr -d ':')
+DEBCONF_DEVICES=$(debconf-show grub-pc | grep grub-pc/install_devices: | cut -d: -f2 | cut -d\  -f2-)
+
+if [ -e "$GRUB_DISK" ] && [ "$GRUB_DISK" != "$DEBCONF_DEVICES" ]; then
+    echo "grub-pc grub-pc/install_devices multiselect $GRUB_DISK" > $GRUB_CONF
+    debconf-set-selections $GRUB_CONF
+    rm $GRUB_CONF
 fi
 
 ## Create configuration files
 
 # Move zlb-stop & zlb-start
 if [ ! -f $zlb_start_script ]; then
-	cp $zlb_start_tpl $zlb_start_script
+    cp $zlb_start_tpl $zlb_start_script
 fi
 if [ ! -f $zlb_stop_script ]; then
-	cp $zlb_stop_tpl $zlb_stop_script
+    cp $zlb_stop_tpl $zlb_stop_script
 fi
 
 # create Web server
 if [ ! -f "$http_server_cert" ]; then
-	cp -rf $http_server_cert_tpl $http_server_cert
+    cp -rf $http_server_cert_tpl $http_server_cert
 fi
 if [ ! -f "$http_server_key" ]; then
-	cp -rf $http_server_key_tpl $http_server_key
+    cp -rf $http_server_key_tpl $http_server_key
 fi
 
 # Install check_uplink
 BIN_PATH="/usr/local/relianoid/bin"
 LIBEXEC_PATH="/usr/lib/nagios/plugins"
 if [ ! -L ${LIBEXEC_PATH}/check_uplink ]; then
-	ln -s ${BIN_PATH}/check_uplink ${LIBEXEC_PATH}/check_uplink
+    ln -s ${BIN_PATH}/check_uplink ${LIBEXEC_PATH}/check_uplink
 fi
 
 # Apply all migrating scripts to RELIANOID
-MIGRATIONS_DIR="/usr/local/relianoid/migrating"
-for SCRIPT in `ls $MIGRATIONS_DIR`; do ${MIGRATIONS_DIR}/$SCRIPT; done
+MIGRATIONS_DIR="/usr/local/relianoid/migrations"
+for SCRIPT in "$MIGRATIONS_DIR"/*; do $SCRIPT; done
 
 # Restarting RELIANOID service
 echo "RELIANOID will be unavailable while the service is restarting."
-/etc/init.d/relianoid stop
-/etc/init.d/relianoid start
+systemctl daemon-reload
+systemctl stop relianoid.service
+systemctl start relianoid.service
 
 # Add RELIANOID Load Balancer service to boot process
-update-rc.d relianoid defaults
-update-rc.d zevenet remove    # Deprecate Zevenet
+systemctl enable relianoid
+
+if systemctl list-unit-files zevenet.service >/dev/null; then
+    systemctl disable zevenet
+fi
 
 cat > /etc/motd << 'EOF'
 
@@ -119,14 +122,13 @@ www.relianoid.com
 
 EOF
 
-if [ "`grep Debian /etc/issue`" != "" -o "`grep -i Zevenet /etc/issue`" != "" ]; then
- sed -i "s/.*Debian.*/RELIANOID Community Edition \\\n \\\l/g" /etc/issue
+if grep 'Debian|Zevenet' /etc/issue &>/dev/null; then
+    sed -i "s/.*Debian.*/RELIANOID Community Edition \\\n \\\l/g" /etc/issue
 fi
 
 # Set the cron service
 cp /usr/local/relianoid/share/relianoid.cron /etc/cron.d/relianoid
-rm -f /etc/cron.d/zevenet    # Deprecate Zevenet
-/etc/init.d/cron reload
+rm -f /etc/cron.d/zevenet
 
 # Change prompt color
 sed -i "s/1;30m/0;37m/g" /etc/bash.bashrc 2> /dev/null
@@ -134,11 +136,13 @@ sed -i "s/1;30m/0;37m/g" /etc/bash.bashrc 2> /dev/null
 # Cluster
 sed -i '/changed-by-relianoid/d' /root/.bashrc &>/dev/null || true
 sed -i '/^export PROMPT_COMMAND=.*zevenet-ce-cluster.status/d' /root/.bashrc &>/dev/null || true # Deprecate Zevenet
-FOUND_CE_CLUSTER=`grep -c relianoid-ce-cluster.status /root/.bashrc 2>/dev/null` || true
-if [ $FOUND_CE_CLUSTER -eq 0 ]; then
-	echo "if [ -f /etc/relianoid-ce-cluster.status ]; then #changed-by-relianoid" >> /root/.bashrc
-	echo "export PROMPT_COMMAND=\"echo -n \[\\\$(cat /etc/relianoid-ce-cluster.status 2>/dev/null)\]\ \" #changed-by-relianoid" >> /root/.bashrc
-	echo "fi #changed-by-relianoid" >> /root/.bashrc
+
+if ! grep relianoid-ce-cluster.status /root/.bashrc &>/dev/null; then
+    {
+        echo "if [ -f /etc/relianoid-ce-cluster.status ]; then #changed-by-relianoid"
+        echo "export PROMPT_COMMAND=\"echo -n \[\\\$(cat /etc/relianoid-ce-cluster.status 2>/dev/null)\]\ \" #changed-by-relianoid"
+        echo "fi #changed-by-relianoid"
+    } >> /root/.bashrc
 fi
 # Cluster
 

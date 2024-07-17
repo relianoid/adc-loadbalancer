@@ -46,6 +46,8 @@ print_usage() {
     echo "Options:"
     echo "    --force-version         Force a version number interactively"
     echo "    --help                  Show this message"
+    echo ""
+    echo "By default the version in DEBIAN/control is used."
     exit
 }
 
@@ -77,6 +79,8 @@ while [ "$#" -gt 0 ]; do
     ;;
     *)
         echo "Error: Unknown parameter: $1"
+        shift
+        die "Panic: Unknown parameter: $1"
     ;;
     esac
 done
@@ -117,7 +121,7 @@ cd ${WORK_DIR}
 msg "Removing warnings..."
 find -L usr/local/relianoid \
     usr/share/perl5/Relianoid \
-    usr/local/relianoid/www/zapi/v4.0 \
+    usr/local/relianoid/www/api/v4.0 \
     -type f \
     -exec sed --follow-symlinks -i 's/^use warnings.*//' {} \;
 

@@ -207,7 +207,7 @@ my %format_re = (
     'weekdays'             => qr{$weekdays},
     'blacklists_name'      => qr{\w+},
     'blacklists_source'    => qr{$blacklists_source},
-    'blacklists_source_id' => qr{(?:\d+|$blacklists_source(,$blacklists_source)*)},
+    'blacklists_source_id' => qr{(?:\d+|$blacklists_source(?:,$blacklists_source)*)},
 
     'blacklists_url'            => qr{.+},
     'blacklists_hour'           => $hours,
@@ -315,7 +315,7 @@ my %format_re = (
 sub getAPIModel ($file) {
     require Relianoid::API;
     my $api_version = &getApiVersion();
-    my $dir         = &getGlobalConfiguration("zapi_model_path") . "/v$api_version/json";
+    my $dir         = &getGlobalConfiguration("api_model_path") . "/v$api_version/json";
 
     require JSON;
     my $content;
@@ -372,14 +372,12 @@ See also:
 =cut
 
 sub getValidFormat ($format_name, $value = undef, %new_format_re) {
-
     # Checks if it should use the formats passed by parameters.
     %format_re = %new_format_re if (%new_format_re);
 
     #~ print "getValidFormat type:$format_name value:$value\n"; # DEBUG
     if (exists $format_re{$format_name}) {
         if (defined $value) {
-
             #~ print "$format_re{ $format_name }\n"; # DEBUG
             if (ref($value) eq "ARRAY") {
                 return !grep { !/^$format_re{ $format_name }$/ } @{$value} > 0;
@@ -389,7 +387,6 @@ sub getValidFormat ($format_name, $value = undef, %new_format_re) {
             }
         }
         else {
-
             #~ print "$format_re{ $format_name }\n"; # DEBUG
             return $format_re{$format_name};
         }
@@ -416,10 +413,6 @@ Returns:
 
     Boolean - TRUE for a valid port number, FALSE otherwise.
 
-See Also:
-
-    api/v4/post.cgi
-
 =cut
 
 sub getValidPort ($port, $profile = undef) {
@@ -430,7 +423,7 @@ sub getValidPort ($port, $profile = undef) {
         return &getValidFormat('multiport', $port);
     }
     elsif ($profile =~ /^(?:DATALINK)$/i) {
-        return $port eq undef;
+        return ! defined $port;
     }
     elsif (!defined $profile) {
         return &getValidFormat('port', $port);
@@ -502,11 +495,11 @@ sub checkApiParams ($json_obj, $param_obj, $description) {
     my $err_msg;
 
     ## Remove parameters do not according to the edition
-    foreach my $p (keys %$param_obj) {
+    for my $p (keys %$param_obj) {
         if (
-            exists $param_obj->{$p}->{edition}
-            && (   ($param_obj->{$p}->{edition} eq 'ee' && !$eload)
-                || ($param_obj->{$p}->{edition} eq 'ce' && $eload))
+            exists $param_obj->{$p}{edition}
+            && (   ($param_obj->{$p}{edition} eq 'ee' && !$eload)
+                || ($param_obj->{$p}{edition} eq 'ce' && $eload))
           )
         {
             delete $param_obj->{$p};
@@ -531,7 +524,7 @@ sub checkApiParams ($json_obj, $param_obj, $description) {
     return $err_msg if ($err_msg);
 
     # check for each parameter
-    foreach my $param (@rec_keys) {
+    for my $param (@rec_keys) {
         my $custom_msg = "The parameter '$param' has not a valid value.";
 
         # Store the input value to keep the data type,
@@ -540,8 +533,8 @@ sub checkApiParams ($json_obj, $param_obj, $description) {
         # when used in a string context, like in a regex.
         my $current_param_value = $json_obj->{$param};
 
-        if (exists $param_obj->{$param}->{format_msg}) {
-            $custom_msg = "$param $param_obj->{ $param }->{ format_msg }";
+        if (exists $param_obj->{$param}{format_msg}) {
+            $custom_msg = "$param $param_obj->{$param}{format_msg}";
         }
 
         if (
@@ -553,8 +546,8 @@ sub checkApiParams ($json_obj, $param_obj, $description) {
           )
         {
             # if blank value is allowed
-            if (    $param_obj->{$param}->{'non_blank'}
-                and $param_obj->{$param}->{'non_blank'} eq 'true')
+            if (    $param_obj->{$param}{non_blank}
+                and $param_obj->{$param}{non_blank} eq 'true')
             {
                 return "The parameter '$param' can't be in blank.";
             }
@@ -564,107 +557,105 @@ sub checkApiParams ($json_obj, $param_obj, $description) {
 
         # the input has to be a ref
         my $r = ref $json_obj->{$param} // '';
-        if (exists $param_obj->{$param}->{'ref'}) {
+        if (exists $param_obj->{$param}{ref}) {
             if ($r eq '') {
-                if ('none' !~ /$param_obj->{ $param }->{ 'ref' }/) {
-                    return "The parameter '$param' expects a '$param_obj->{ $param }->{ref}' reference as input";
+                if ('none' !~ /$param_obj->{ $param }{ 'ref' }/) {
+                    return "The parameter '$param' expects a '$param_obj->{ $param }{ref}' reference as input";
                 }
             }
-            elsif ($r !~ /^$param_obj->{ $param }->{ 'ref' }$/i) {
-                return "The parameter '$param' expects a '$param_obj->{ $param }->{ref}' reference as input";
+            elsif ($r !~ /^$param_obj->{ $param }{ 'ref' }$/i) {
+                return "The parameter '$param' expects a '$param_obj->{ $param }{ref}' reference as input";
             }
         }
         elsif ($r eq 'ARRAY' or $r eq 'HASH') {
             return "The parameter '$param' does not expect a $r as input";
         }
 
-        if ((exists $param_obj->{$param}->{'values'})) {
+        if ((exists $param_obj->{$param}{values})) {
             if ($r eq 'ARRAY') {
-                foreach my $value (@{ $json_obj->{$param} }) {
-                    if (!grep { /^$value$/ } @{ $param_obj->{$param}->{'values'} }) {
+                for my $value (@{ $json_obj->{$param} }) {
+                    if (!grep { /^$value$/ } @{ $param_obj->{$param}{values} }) {
                         return
                           "The parameter '$param' expects some of the following values: '"
-                          . join("', '", @{ $param_obj->{$param}->{'values'} }) . "'";
+                          . join("', '", @{ $param_obj->{$param}{values} }) . "'";
                     }
                 }
             }
             else {
-                if (!grep { $json_obj->{$param} eq $_ } @{ $param_obj->{$param}->{'values'} }) {
+                if (!grep { $json_obj->{$param} eq $_ } @{ $param_obj->{$param}{values} }) {
                     return
                       "The parameter '$param' expects one of the following values: '"
-                      . join("', '", @{ $param_obj->{$param}->{'values'} }) . "'";
+                      . join("', '", @{ $param_obj->{$param}{values} }) . "'";
                 }
             }
         }
 
         # getValidFormat funcion:
-        if (    (exists $param_obj->{$param}->{'valid_format'})
-            and (!&getValidFormat($param_obj->{$param}->{'valid_format'}, $json_obj->{$param})))
+        if (    (exists $param_obj->{$param}{valid_format})
+            and (!&getValidFormat($param_obj->{$param}{valid_format}, $json_obj->{$param})))
         {
             return $custom_msg;
         }
 
         # length
-        if (exists $param_obj->{$param}->{'length'}) {
+        if (exists $param_obj->{$param}{length}) {
             my $data_length = length($json_obj->{$param});
-            if ($data_length > $param_obj->{$param}->{'length'}) {
-                return "The maximum length for '$param' is '$param_obj->{ $param }->{ 'length' }'";
+            if ($data_length > $param_obj->{$param}{length}) {
+                return "The maximum length for '$param' is '$param_obj->{ $param }{ 'length' }'";
             }
         }
 
         # intervals
-        if (exists $param_obj->{$param}->{'interval'}) {
+        if (exists $param_obj->{$param}{interval}) {
             $err_msg =
-              &checkParamsInterval($param_obj->{$param}->{'interval'}, $param, $json_obj->{$param});
+              &checkParamsInterval($param_obj->{$param}{interval}, $param, $json_obj->{$param});
             return $err_msg if $err_msg;
         }
 
         # exceptions
-        if (    (exists $param_obj->{$param}->{'exceptions'})
-            and (grep { /^$json_obj->{ $param }$/ } @{ $param_obj->{$param}->{'exceptions'} }))
+        if (    (exists $param_obj->{$param}{exceptions})
+            and (grep { /^$json_obj->{ $param }$/ } @{ $param_obj->{$param}{exceptions} }))
         {
             return "The value '$json_obj->{ $param }' is a reserved word of the parameter '$param'.";
         }
 
         # regex
-        if ((exists $param_obj->{$param}->{'regex'})) {
+        if ((exists $param_obj->{$param}{regex})) {
             if (defined $json_obj->{$param}) {
-
                 # If ARRAY, evaluate all in values.
                 if (ref($json_obj->{$param}) eq "ARRAY") {
-                    foreach my $value (@{ $json_obj->{$param} }) {
+                    for my $value (@{ $json_obj->{$param} }) {
                         return "The value '$value' is not valid for the parameter '$param'."
-                          if (grep { !/^$param_obj->{ $param }->{ 'regex' }$/ } $value);
+                          if (grep { !/^$param_obj->{ $param }{ 'regex' }$/ } $value);
                     }
                 }
                 else {
                     return "The value '$json_obj->{ $param }' is not valid for the parameter '$param'."
-                      if ($json_obj->{$param} !~ /^$param_obj->{ $param }->{ 'regex' }$/);
+                      if ($json_obj->{$param} !~ /^$param_obj->{ $param }{ 'regex' }$/);
                 }
             }
         }
 
         # negated_regex
-        if ((exists $param_obj->{$param}->{'negated_regex'})) {
+        if ((exists $param_obj->{$param}{negated_regex})) {
             if (defined $json_obj->{$param}) {
-
                 # If ARRAY, evaluate all in values.
                 if (ref($json_obj->{$param}) eq "ARRAY") {
-                    foreach my $value (@{ $json_obj->{$param} }) {
+                    for my $value (@{ $json_obj->{$param} }) {
                         return "The value '$value' is not valid for the parameter '$param'."
-                          if (grep { /^$param_obj->{ $param }->{ 'regex' }$/ } $value);
+                          if (grep { /^$param_obj->{ $param }{ 'regex' }$/ } $value);
                     }
                 }
                 else {
                     return "The value '$json_obj->{ $param }' is not valid for the parameter '$param'."
-                      if ($json_obj->{$param} =~ /$param_obj->{ $param }->{ 'negated_regex' }/);
+                      if ($json_obj->{$param} =~ /$param_obj->{ $param }{ 'negated_regex' }/);
                 }
             }
         }
 
         # is_regex
-        if (defined $param_obj->{$param}->{'is_regex'}
-            and $param_obj->{$param}->{'is_regex'} eq 'true')
+        if (defined $param_obj->{$param}{is_regex}
+            and $param_obj->{$param}{is_regex} eq 'true')
         {
             if (defined $json_obj->{$param}) {
                 my $regex = eval { qr/$json_obj->{ $param }/ };
@@ -672,9 +663,9 @@ sub checkApiParams ($json_obj, $param_obj, $description) {
             }
         }
 
-        if (exists $param_obj->{$param}->{'function'}) {
+        if (exists $param_obj->{$param}{function}) {
             my $result =
-              &{ $param_obj->{$param}->{'function'} }($json_obj->{$param});
+              &{ $param_obj->{$param}{function} }($json_obj->{$param});
 
             return $custom_msg if (!$result || $result eq 'false');
         }
@@ -755,7 +746,7 @@ sub checkParamsInvalid ($rec_keys, $expect_params) {
     my $err_msg;
     my @non_valid;
 
-    foreach my $param (@{$rec_keys}) {
+    for my $param (@{$rec_keys}) {
         push @non_valid, "'$param'" if (!grep { /^$param$/ } @{$expect_params});
     }
 
@@ -791,10 +782,10 @@ sub checkParamsRequired ($rec_keys, $expect_params, $param_obj) {
     my @miss_params;
     my $err_msg;
 
-    foreach my $param (@{$expect_params}) {
-        next if (!exists $param_obj->{$param}->{'required'});
+    for my $param (@{$expect_params}) {
+        next if (!exists $param_obj->{$param}{required});
 
-        if ($param_obj->{$param}->{'required'} eq 'true') {
+        if ($param_obj->{$param}{required} eq 'true') {
             push @miss_params, "'$param'"
               if (!grep { /^$param$/ } @{$rec_keys});
         }
@@ -829,35 +820,35 @@ sub httpResponseHelp ($param_obj, $desc) {
     my $resp_param = [];
 
     # build the output
-    foreach my $p (keys %{$param_obj}) {
+    for my $p (keys %{$param_obj}) {
         my $param->{name} = $p;
-        if (exists $param_obj->{$p}->{valid_format}) {
-            $param->{format} = $param_obj->{$p}->{valid_format};
+        if (exists $param_obj->{$p}{valid_format}) {
+            $param->{format} = $param_obj->{$p}{valid_format};
         }
-        if (exists $param_obj->{$p}->{values}) {
-            $param->{possible_values} = $param_obj->{$p}->{values};
+        if (exists $param_obj->{$p}{values}) {
+            $param->{possible_values} = $param_obj->{$p}{values};
         }
-        if (exists $param_obj->{$p}->{interval}) {
-            my ($ll, $hl) = split(',', $param_obj->{$p}->{interval});
+        if (exists $param_obj->{$p}{interval}) {
+            my ($ll, $hl) = split(',', $param_obj->{$p}{interval});
             $ll                = '-' if (!defined $ll);
             $hl                = '-' if (!defined $hl);
             $param->{interval} = "Expects a value between '$ll' and '$hl'.";
         }
-        if (exists $param_obj->{$p}->{non_blank}
-            and $param_obj->{$p}->{non_blank} eq 'true')
+        if (exists $param_obj->{$p}{non_blank}
+            and $param_obj->{$p}{non_blank} eq 'true')
         {
             push @{ $param->{options} }, "non_blank";
         }
-        if (exists $param_obj->{$p}->{required}
-            and $param_obj->{$p}->{required} eq 'true')
+        if (exists $param_obj->{$p}{required}
+            and $param_obj->{$p}{required} eq 'true')
         {
             push @{ $param->{options} }, "required";
         }
-        if (exists $param_obj->{$p}->{format_msg}) {
-            $param->{description} = $param_obj->{$p}->{format_msg};
+        if (exists $param_obj->{$p}{format_msg}) {
+            $param->{description} = $param_obj->{$p}{format_msg};
         }
-        if (exists $param_obj->{$p}->{ref}) {
-            $param->{ref} = $param_obj->{$p}->{ref};
+        if (exists $param_obj->{$p}{ref}) {
+            $param->{ref} = $param_obj->{$p}{ref};
         }
 
         push @{$resp_param}, $param;
@@ -865,7 +856,6 @@ sub httpResponseHelp ($param_obj, $desc) {
 
     my $msg  = "No parameter has been sent. Please, try with:";
     my $body = {
-
         message => $msg,
         params  => $resp_param,
     };
@@ -911,7 +901,6 @@ sub putArrayAsText ($array_ref, $msg) {
 
     # one element
     if (scalar @array == 1) {
-
         # save single tags
         $msg =~ s/<\/?ss>//g;
 
@@ -929,7 +918,6 @@ sub putArrayAsText ($array_ref, $msg) {
 
     # more than one element
     else {
-
         # save plual tags
         $msg =~ s/<\/?sp>//g;
 

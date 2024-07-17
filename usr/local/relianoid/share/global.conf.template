@@ -13,7 +13,7 @@ $nftlb_debug="5";
 #ZAPI Versions
 $zapi_versions="4.0.3";#update
 # API model path
-$zapi_model_path="/usr/local/relianoid/zapi-model";#update
+$api_model_path="/usr/local/relianoid/api-model";#update
 #ZAPI KEY
 $zapikey="";
 #proxy
@@ -43,8 +43,10 @@ $configdir="$zdir/config";#update
 $certdir="$zdir/config/certificates";#update
 # directory for local configurations, it is not sync by the cluster
 $localconfig="$configdir/local";#update
-#Directory where is check script. In this directory you can save your own check scripts.
+# Directory with monitoring commands. In this directory you can save your own check scripts.
 $libexec_dir="/usr/lib/nagios/plugins";
+# Directory with monitoring commands.
+$nagios_plugins_dir="/usr/lib/nagios/plugins";#update
 #Relianoid bin directory
 $templatedir="$zdir/share";#update
 #Save backups on
@@ -54,19 +56,16 @@ $logdir="/var/log";#update
 #piddir
 $piddir="/var/run";
 #relianoid activation certificate path
-$zlbcertfile_path="$basedir/zlbcertfile.pem";#update
-# directory of the zapi binaries
-$zapi_directory="$basedir/zapi";
 #first boot flag
 $first_boot_flag="/etc/firstzlbboot";
 #zna migration flag
 $migration_flag="/etc/zlbmigration";
 #relianoid service
-$relianoid_service="/etc/init.d/relianoid";#update
+$relianoid_service="relianoid.service";#update
 #relianoid no restart service flag
-$relianoid_service_norestart_flag="/etc/zlbnorestart";#update
+$relianoid_service_norestart_flag="/etc/noidnorestart";#update
 # directory of the migration scripts
-$mig_dir="$zdir/migrating";
+$mig_dir="$zdir/migrations";#update
 
 # System files
 #rt tables file
@@ -94,11 +93,11 @@ $gpg_key_relianoid="relianoid.gpg";#update
 $bios_version="/sys/devices/virtual/dmi/id/bios_version";
 
 # networking service
-$networking_service="/etc/init.d/networking";
+$networking_service="networking.service";#update
 
 #SNMP Service
 $snmpdconfig_file="/etc/snmp/snmpd.conf";
-$snmpd_service="/etc/init.d/snmpd";
+$snmpd_service="snmpd.service";#update
 $snmptrap_cmd="/usr/bin/snmptrap";#update
 
 # start / stop scripts
@@ -142,13 +141,13 @@ $le_renewal_timeout="120";
 
 #File configuration GUI
 $http_server_dir="$zdir/app/cherokee";
-$http_server_service="/etc/init.d/cherokee";
+$http_server_service="cherokee.service";#update
 $confhttp="$http_server_dir/etc/cherokee/cherokee.conf";#update
 $confhttp_tpl="$templatedir/cherokee.conf.template";#update
-$http_server_cert="$certdir/zencert.pem";#update
-$http_server_key="$certdir/zencert-c.key";#update
-$http_server_cert_tpl="$templatedir/zencert.pem";
-$http_server_key_tpl="$templatedir/zencert-c.key";
+$http_server_cert="$certdir/noid_ssl_cert.pem";#update
+$http_server_key="$certdir/noid_ssl_cert.key";#update
+$http_server_cert_tpl="$templatedir/noid_ssl_cert.pem";#update
+$http_server_key_tpl="$templatedir/noid_ssl_cert.key";#update
 $http_bin="$http_server_dir/sbin/cherokee";
 
 #Where is temperature file?
@@ -224,8 +223,6 @@ $ping_bin="/bin/ping";
 $apt_bin="/usr/bin/apt";
 #Where is apt-get?
 $aptget_bin="/usr/bin/apt-get";
-#Where is apt-key?
-$aptkey_bin="/usr/bin/apt-key";
 #Where is apt-cache?
 $aptcache_bin="/usr/bin/apt-cache";
 #Where is checkupgrades?
@@ -292,8 +289,6 @@ $wget="/usr/bin/wget";
 $conntrack="/usr/sbin/conntrack";
 #systemctl
 $systemctl="/bin/systemctl";
-#Where is update-rc.d?
-$updatercd="/usr/sbin/update-rc.d";
 #Where is packetbl?
 #Where is adduser?
 $adduser_bin="/usr/sbin/adduser";
@@ -348,12 +343,6 @@ $expect_bin="/usr/bin/expect";
 $dig_bin="/usr/bin/dig";
 #Where is lshw?
 
-# zproxy
-#where is zproxy dir?
-#where is zproxy binary?
-#where is zproxy ctl?
-#where is zproxy configuration template?
-
 # Pound
 #where is pound binary?
 $base_pound="$zdir/app/pound";#update
@@ -363,10 +352,6 @@ $pound="$base_pound/sbin/pound";#update
 $poundctl="$base_pound/sbin/poundctl";#update
 #where is pound configuration template?
 $poundtpl="$templatedir/poundtpl.cfg";#update
-
-# l7 proxy
-# Set the l7 binary: NG = true => zproxy, NG = false => pound
-$proxy_ng="false";
 
 #where is l7 proxy dir?
 $base_proxy="$base_pound";
@@ -405,8 +390,6 @@ $defaultgwif6="";
 $pingc="1";
 #routing options
 $routeparams="";
-# HTTP marked traffic routing
-$mark_routing_L7="true";
 # HTTP floating ip
 #IPv6
 $ipv6_enabled="false";
@@ -438,9 +421,9 @@ $rrd_dir="rrd";#update
 
 
 #Service to configure RELIANOID replication directory 
-$zenino="$zbindir/enterprise.bin zeninotify";#update
-#RELIANOID Inotify pid file
-$zeninopid="/var/run/zeninotify.pid";
+$cluster_notify="$zbindir/enterprise.bin noid-cluster-notify";#update
+#RELIANOID inotify pid file
+$cluster_notify_pid="/var/run/noid-cluster-notify.pid";#update
 #Rsync replication parameters
 $zenrsync="-azvr --delete";#update
 #ARP unsolicited
@@ -455,12 +438,8 @@ $arp_announce_cron_path="/etc/cron.d/arp_announce";
 #Network duplicated net. It is used to include the route of a virtual interface in all of interfaces where this networking segment is defined
 $duplicated_net="false";
 
-
-
-
-
 # Cron service
-$cron_service="/etc/init.d/cron";
+$cron_service="cron.service";#update
 $cron_conf="/etc/cron.d/relianoid";#update
 $cron_tpl="$templatedir/relianoid.cron";#update
 
@@ -469,12 +448,10 @@ $netplug_init_tpl="$templatedir/netplug.template";
 $netplugd_conf_tpl="$templatedir/netplugd.conf.template";
 $netplug_init="/etc/netplug/netplug";
 $netplugd_conf="/etc/netplug/netplugd.conf";
-$netplugd_srv="/etc/init.d/netplug";
-
+$netplugd_srv="netplug.service";#update
 
 #syslog service
 #File rsyslog configuration file
-
 
 # keepalived configuration file
 # conntrackd configuration file
@@ -484,7 +461,8 @@ $curl_bin="/usr/bin/curl";
 # cluster floating interfaces configuration file path
 # node_status file path
 
-# zcluster-manager command path
+# noid-cluster-manager command path
+$cluster_manager="$zbindir/noid-cluster-manager";#update
 # ssh-copy-id file path
 # primary-backup conntrackd script
 $primary_backup="$zbindir/primary-backup.sh";#update
@@ -492,7 +470,7 @@ $primary_backup="$zbindir/primary-backup.sh";#update
 # sshd file
 $sshConf="/etc/ssh/sshd_config";
 # ssh service
-$sshService="/etc/init.d/ssh";
+$sshService="sshd.service";#update
 # sshkey file path
 $key_path="/root/.ssh";
 # sshkey file path
@@ -501,10 +479,10 @@ $key_id="id_rsa";
 $keygen_cmd="ssh-keygen -t rsa -f $key_path/$key_id -N '' -q";#update
 
 #RELIANOID backup
-$zenbackup="$zbindir/zenbackup.pl";#update
+$backup_cmd="$zbindir/noid-backup";#update
 
 #Do backup to
-$backupfor="$configdir $basedir/*.pem $confhttp $rttables $sshConf $snmpdconfig_file /etc/hostname $filedns /etc/cron.d/relianoid $applianceVersionFile";#update
+$backupfor="$configdir $confhttp $rttables $sshConf $snmpdconfig_file /etc/hostname $filedns /etc/cron.d/relianoid $applianceVersionFile";#update
 
 #Bonding interfaces
 $bonding_hwaddr_filename="bonding_slave/perm_hwaddr";
@@ -514,8 +492,14 @@ $bonding_hwaddr_filename="bonding_slave/perm_hwaddr";
 $notifSnmpOIDs="$configdir/notifications/snmp_oids.status";#update
 
 #IPDS Module
-
-#WAF Assistant
+$mfaPath="$configdir/ipds/mfa";#update
+$mfaSrvConf="$mfaPath/srv.conf";#update
+$mfaAuthConf="$mfaPath/auth.conf";#update
+$mfaFarmsConf="$mfaPath/farms.conf";#update
+$mfaPortalTpl="$templatedir/mfa/mfa-cgi";#update
+$mfaPortalStaticRoot="$templatedir/mfa/mfa-portal";#update
+$mfaPortalCgiRoot="$mfaPath/portals";#update
+$mfaWebSrvConf="$mfaPath/nginx_server.conf";#update
 
 # IPDS stats
 # How time wait to execute the stats rotate
@@ -538,11 +522,6 @@ $notifSnmpOIDs="$configdir/notifications/snmp_oids.status";#update
 #where is pound ssyncd base?
 #where is pound ssyncd binary?
 #where is pound ssyncd ctl?
-
-# Ssyncd for zproxy
-#where is zproxy ssyncd base?
-#where is zproxy ssyncd binary?
-#where is zproxy ssyncd ctl?
 
 #Ssyncd
 #where is ssyncd dir?
@@ -572,7 +551,7 @@ $routingRoutePrio="5";
 
 # time period to get the interface throughput stats
 
-$doc_v4_0="https://www.relianoid.com/apidoc/v4.0/";
+$doc_v4_0="https://www.relianoid.com/apidoc/v4.0/";#update
 
 # language used for the webgui
 $lang="";

@@ -21,35 +21,45 @@
 #
 ###############################################################################
 
+=pod
+
+=head1 Module
+
+Relianoid API 4.0
+
+=cut
+
 use strict;
 use warnings;
 use feature qw(signatures);
 
 use Relianoid::Log;
-use Relianoid::Debug;
-use Relianoid::CGI;
-use Relianoid::API40::HTTP;
-use Relianoid::API;
+use Relianoid::HTTP;
 
-local $ENV{ZAPI_VERSION} = "4.0";
-
-my $q = &getCGI();
+local $ENV{API_VERSION} = "4.0";
 
 ##### Debugging messages #############################################
 &zenlog("REQUEST: $ENV{REQUEST_METHOD} $ENV{SCRIPT_URL}") if &debug();
 
-##### Load more basic modules ########################################
-require Relianoid::Config;
-require Relianoid::Validate;
+##### No authentication required #####################################
+if ($ENV{REQUEST_METHOD} eq 'OPTIONS') {
+    OPTIONS qr{^/.*$} => sub { return &httpResponse({ code => 200 }); };
+}
 
-#### OPTIONS requests ################################################
-require Relianoid::API40::Options if ($ENV{REQUEST_METHOD} eq 'OPTIONS');
+if ($ENV{PATH_INFO} eq '/system/language' && $ENV{REQUEST_METHOD} eq 'GET') {
+    require Relianoid::HTTP::Controllers::API::System::Info;
+    GET qr{^/system/language$}, \&get_language_controller;
+}
+
+if ($ENV{PATH_INFO} eq '/session') {
+    require Relianoid::HTTP::Controllers::API::Session;
+    POST qr{^/session$} => \&session_login_controller;
+    DELETE qr{^/session$} => \&session_logout_controller;
+}
 
 ##### Authentication #################################################
-require Relianoid::API40::Auth;
-
-# Session request
-require Relianoid::API40::Session if ($q->path_info eq '/session');
+require Relianoid::API;
+require Relianoid::HTTP::Auth;
 
 # Verify authentication
 unless ((exists $ENV{HTTP_ZAPI_KEY} && &isApiKeyValid())
@@ -59,10 +69,7 @@ unless ((exists $ENV{HTTP_ZAPI_KEY} && &isApiKeyValid())
 }
 
 ##### Load API routes ################################################
-#~ require Relianoid::SystemInfo;
 require Relianoid::API40::Routes;
 
 my $desc = 'Request not found';
-my $req  = $ENV{PATH_INFO};
-
-&httpErrorResponse({ code => 404, desc => $desc, msg => "$desc: $req" });
+&httpErrorResponse({ code => 404, desc => $desc, msg => "${desc}: $ENV{PATH_INFO}" });

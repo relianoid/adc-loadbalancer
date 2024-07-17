@@ -39,7 +39,7 @@ use Relianoid::Config;
 use Relianoid::Log;
 use Relianoid::LetsencryptZ;
 
-$SIG{ALRM} = sub { die "timeout" };
+local $SIG{ALRM} = sub { die "timeout" };
 
 my $eload = eval { require Relianoid::ELoad };
 
@@ -67,30 +67,47 @@ GetOptions(
 &zenlog("Executing Letsencrypt certificate '$cert_name' renewal with timeout '$timeout'.",
     "info", "Letsencryptz-renewal");
 
-# check params
+sub getLocalNodeClusterStatus() {
+    my $cl_status = "";
 
+    if ($eload) {
+        $cl_status = &eload(
+            module => 'Relianoid::EE::Cluster',
+            func   => 'getZClusterNodeStatus',
+            args   => [],
+        );
+    }
+    if (!(!defined $cl_status or $cl_status eq "master")) {
+        print "Error: This node is not the Master in the cluster\n";
+        exit 1;
+    }
+}
+
+# Only run renewals in the master node
+&getLocalNodeClusterStatus();
+
+# check params
 if ((!defined $vip && !defined $farm_name)) {
     $msg = "No 'vip' or 'farm' param found.";
     &zenlog($msg, "ERROR", "Letsencryptz-renewal");
     exit 2;
-
     #&help;
 }
 
-if (not defined $cert_name) {
+if ((not defined $cert_name) || ($cert_name eq "")) {
     $msg = "No 'cert' param found.";
     &zenlog($msg, "ERROR", "Letsencryptz-renewal");
     exit 2;
-
     #&help;
 }
 
 # checks
-my $le_cert = &getLetsencryptCertificates($cert_name);
-if (not @{$le_cert}) {
-    $msg = "Let's Encrypt certificate $cert_name not found!";
+# check Email config
+my $le_conf = &getLetsencryptConfig();
+if (not $le_conf->{email}) {
+    my $msg = "LetsencryptZ email is not configured.";
     &zenlog($msg, "ERROR", "Letsencryptz-renewal");
-    exit 2;
+    exit 1;
 }
 
 if (defined $farm_name) {
@@ -103,7 +120,6 @@ if (defined $farm_name) {
         $msg = "There is no HTTP Farms in the system, use 'vip' param instead.";
     }
     else {
-
         # check farm has to be listening on port 80 and up
         require Relianoid::Farm::Base;
         if (&getFarmVip('vipp', $farm_name) ne 80) {
@@ -120,15 +136,13 @@ if (defined $farm_name) {
 }
 
 if (defined $vip) {
-
     # check any farm listening on vip and port 80 and up
     my $le_farm_port = 80;
     require Relianoid::Net::Validate;
     if (&validatePort($vip, $le_farm_port, "tcp") == 0) {
-
         #vip:port is in use
         require Relianoid::Farm::Base;
-        foreach my $farm (&getFarmListByVip($vip)) {
+        for my $farm (&getFarmListByVip($vip)) {
             if (    &getHTTPFarmVip("vipp", $farm) eq "$le_farm_port"
                 and &getHTTPFarmStatus($farm) eq "up")
             {
@@ -144,22 +158,25 @@ if (defined $vip) {
     }
 }
 
-# check Email config
-my $le_conf = &getLetsencryptConfig();
-if (not $le_conf->{email}) {
-    my $msg = "LetsencryptZ email is not configured.";
-    &zenlog($msg, "ERROR", "Letsencryptz-renewal");
-    exit 1;
-}
-
 $force = $force ? "true" : "false";
 
+require Relianoid::Lock;
 my $lock_le_renew = "/tmp/letsencryptz-renew.lock";
 if (not -f $lock_le_renew) {
     my $touch = &getGlobalConfiguration('touch');
     &logAndRun("$touch $lock_le_renew");
 }
 my $lock_le_renew_fh = &openlock($lock_le_renew, "w");
+
+&runLetsencryptCertConfigProtection($cert_name);
+
+my $le_cert = &getLetsencryptCertificates($cert_name);
+if (not @{$le_cert}) {
+    $msg = "Let's Encrypt certificate $cert_name not found!";
+    &zenlog($msg, "ERROR", "Letsencryptz-renewal");
+    exit 2;
+}
+
 my $error_ref;
 eval {
     alarm($timeout);
@@ -169,13 +186,14 @@ eval {
 
 if ($@) {
     if ($@ =~ /timeout/) {
-        $msg =
-          "Error: Timeout '$timeout' reached while renewal Letsencrypt certificate '$cert_name'!.";
+        $msg = "Error: Timeout '$timeout' reached while renewal Letsencrypt certificate '$cert_name'!.";
     }
     else {
         $msg = "Unexpected error found : $@";
     }
 }
+
+&runLetsencryptCertConfigProtection($cert_name);
 
 if (not defined $error_ref) {
     &zenlog($msg, "ERROR", "Letsencryptz-renewal");
@@ -221,16 +239,13 @@ if (defined $restart) {
     require Relianoid::Farm::Base;
     require Relianoid::Certificate;
 
-    foreach my $farm (@{ &getCertFarmsUsed($cert) }) {
-
+    for my $farm (@{ &getCertFarmsUsed($cert) }) {
         # restart farm used and up
         if (&getFarmStatus($farm) ne 'down') {
-            &zenlog("Restarting farm '$farm' using certificate '$cert_name'.",
-                "info", "Letsencryptz-renewal");
+            &zenlog("Restarting farm '$farm' using certificate '$cert_name'.", "info", "Letsencryptz-renewal");
             $error = &runFarmStop($farm, "");
             if ($error) {
-                &zenlog("Error Stopping farm '$farm', trying again",
-                    "info", "Letsencryptz-renewal");
+                &zenlog("Error Stopping farm '$farm', trying again", "info", "Letsencryptz-renewal");
                 sleep $retry_to;
                 $error = &runFarmStop($farm, "");
                 if ($error) {
@@ -240,8 +255,7 @@ if (defined $restart) {
             }
             $error = &runFarmStart($farm, "");
             if ($error) {
-                &zenlog("Error Starting farm '$farm', trying again",
-                    "info", "Letsencryptz-renewal");
+                &zenlog("Error Starting farm '$farm', trying again", "info", "Letsencryptz-renewal");
                 sleep $retry_to;
                 $error = &runFarmStart($farm, "");
                 if ($error) {
@@ -256,7 +270,7 @@ if (defined $restart) {
     if ($eload) {
         if (@farms_restarted) {
             &eload(
-                module => 'Relianoid::Cluster',
+                module => 'Relianoid::EE::Cluster',
                 func   => 'runZClusterRemoteManager',
                 args   => [ 'farm', 'restart_farms', @farms_restarted ],
             );
@@ -268,16 +282,13 @@ if (defined $restart) {
         $info_msg = "The following farms were been restarted: " . join(", ", @farms_restarted);
     }
     if (@farms_restarted_error) {
-        $info_msg .=
-          "The following farms could not been restarted: " . join(", ", @farms_restarted_error);
+        $info_msg .= "The following farms could not been restarted: " . join(", ", @farms_restarted_error);
     }
 
     &zenlog("$info_msg.", "info", "Letsencryptz-renewal") if defined $info_msg;
-
 }
-&zenlog(
-    "The Letsencrypt certificate '$cert_name' renewal with timeout '$timeout' has been executed succesfully.",
-    "info", "Letsencryptz-renewal"
-);
+
+&zenlog("The Letsencrypt certificate '$cert_name' renewal with timeout '$timeout' has been executed succesfully.",
+    "info", "Letsencryptz-renewal");
 
 exit 0;

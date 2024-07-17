@@ -57,7 +57,6 @@ Returns:
 =cut
 
 sub _runFarmStart ($farm_name, $writeconf = 0) {
-
     # The parameter expect "undef" to not write it
     $writeconf = 0 if ($writeconf eq 'false');
 
@@ -74,14 +73,18 @@ sub _runFarmStart ($farm_name, $writeconf = 0) {
 
     # check if the ip exists in any interface
     my $ip = &getFarmVip("vip", $farm_name);
+
     require Relianoid::Net::Interface;
+
     if (!&getIpAddressExists($ip)) {
         &zenlog("The virtual interface $ip is not defined in any interface.");
         return $status;
     }
 
     require Relianoid::Net::Interface;
+
     my $farm_type = &getFarmType($farm_name);
+
     if ($farm_type ne "datalink") {
         my $port = &getFarmVip("vipp", $farm_name);
         if (!&validatePort($ip, $port, undef, $farm_name)) {
@@ -96,17 +99,20 @@ sub _runFarmStart ($farm_name, $writeconf = 0) {
         require Relianoid::Farm::HTTP::Action;
         $status = &_runHTTPFarmStart($farm_name, $writeconf);
     }
-    elsif ($farm_type eq "datalink") {
-        require Relianoid::Farm::Datalink::Action;
-        $status = &_runDatalinkFarmStart($farm_name, $writeconf);
-    }
     elsif ($farm_type eq "l4xnat") {
         require Relianoid::Farm::L4xNAT::Action;
         $status = &startL4Farm($farm_name, $writeconf);
     }
+    elsif ($farm_type eq "datalink") {
+        $status = &eload(
+            module => 'Relianoid::EE::Farm::Datalink::Action',
+            func   => '_runDatalinkFarmStart',
+            args   => [ $farm_name, $writeconf ],
+        );
+    }
     elsif ($farm_type eq "gslb" && $eload) {
         $status = &eload(
-            module => 'Relianoid::Farm::GSLB::Action',
+            module => 'Relianoid::EE::Farm::GSLB::Action',
             func   => '_runGSLBFarmStart',
             args   => [ $farm_name, $writeconf ],
         );
@@ -150,7 +156,7 @@ sub runFarmStart ($farm_name, $writeconf = 0) {
 
     if ($eload) {
         &eload(
-            module => 'Relianoid::IPDS::Base',
+            module => 'Relianoid::EE::IPDS::Base',
             func   => 'runIPDSStartByFarm',
             args   => [$farm_name],
         );
@@ -158,7 +164,7 @@ sub runFarmStart ($farm_name, $writeconf = 0) {
         require Relianoid::Farm::Config;
         if (&getPersistence($farm_name) == 0) {
             &eload(
-                module => 'Relianoid::Ssyncd',
+                module => 'Relianoid::EE::Ssyncd',
                 func   => 'setSsyncdFarmUp',
                 args   => [$farm_name],
             );
@@ -191,16 +197,15 @@ NOTE:
 sub runFarmStop ($farm_name, $writeconf = 0) {
     if ($eload) {
         &eload(
-            module => 'Relianoid::IPDS::Base',
+            module => 'Relianoid::EE::IPDS::Base',
             func   => 'runIPDSStopByFarm',
             args   => [$farm_name],
         );
         &eload(
-            module => 'Relianoid::Ssyncd',
+            module => 'Relianoid::EE::Ssyncd',
             func   => 'setSsyncdFarmDown',
             args   => [$farm_name],
         );
-
     }
 
     require Relianoid::FarmGuardian;
@@ -247,17 +252,20 @@ sub _runFarmStop ($farm_name, $writeconf = 0) {
         require Relianoid::Farm::HTTP::Action;
         $status = &_runHTTPFarmStop($farm_name, $writeconf);
     }
-    elsif ($farm_type eq "datalink") {
-        require Relianoid::Farm::Datalink::Action;
-        $status = &_runDatalinkFarmStop($farm_name, $writeconf);
-    }
     elsif ($farm_type eq "l4xnat") {
         require Relianoid::Farm::L4xNAT::Action;
         $status = &stopL4Farm($farm_name, $writeconf);
     }
+    elsif ($farm_type eq "datalink") {
+        $status = &eload(
+            module => 'Relianoid::EE::Farm::Datalink::Action',
+            func   => '_runDatalinkFarmStop',
+            args   => [ $farm_name, $writeconf ],
+        );
+    }
     elsif ($farm_type eq "gslb" && $eload) {
         $status = &eload(
-            module => 'Relianoid::Farm::GSLB::Action',
+            module => 'Relianoid::EE::Farm::GSLB::Action',
             func   => '_runGSLBFarmStop',
             args   => [ $farm_name, $writeconf ],
         );
@@ -294,15 +302,14 @@ sub runFarmDelete ($farm_name) {
     my $configdir = &getGlobalConfiguration('configdir');
 
     if ($eload) {
-
         &eload(
-            module => 'Relianoid::IPDS::Base',
+            module => 'Relianoid::EE::IPDS::Base',
             func   => 'runIPDSDeleteByFarm',
             args   => [$farm_name],
         );
 
         &eload(
-            module => 'Relianoid::RBAC::Group::Config',
+            module => 'Relianoid::EE::RBAC::Group::Config',
             func   => 'delRBACResource',
             args   => [ $farm_name, 'farms' ],
         );
@@ -324,46 +331,47 @@ sub runFarmDelete ($farm_name) {
         $status = 0
           if rmtree(["$configdir/$farm_name\_gslb.cfg"]);
     }
-    else {
-        if ($farm_type eq "http" || $farm_type eq "https") {
-            unlink glob("$configdir/$farm_name\_*\.html");
+    elsif ($farm_type eq "http" || $farm_type eq "https") {
+        unlink glob("$configdir/$farm_name\_*\.html");
 
-            # For HTTPS farms only
-            my $dhfile = "$configdir\/$farm_name\_dh2048.pem";
-            unlink("$dhfile") if -e "$dhfile";
-            &delMarks($farm_name, "");
+        # For HTTPS farms only
+        my $dhfile = "$configdir\/$farm_name\_dh2048.pem";
+        unlink("$dhfile") if -e "$dhfile";
+        &delMarks($farm_name, "");
 
-            # Check if local farm exists and delete it
-            require Relianoid::Nft;
-            my $output = &httpNlbRequest({
-                method => "GET",
-                uri    => "/farms/" . $farm_name,
-                check  => 1,
-            });
+        # Check if local farm exists and delete it
+        require Relianoid::Nft;
+        my $output = &httpNlbRequest({
+            method => "GET",
+            uri    => "/farms/" . $farm_name,
+            check  => 1,
+        });
+
+        if (!$output) {
             $output = &httpNlbRequest({
                 farm   => $farm_name,
                 method => "DELETE",
                 uri    => "/farms/" . $farm_name,
-            })
-              if (!$output);
+            });
         }
-        elsif ($farm_type eq "datalink") {
-
-            # delete cron task to check backends
-            require Tie::File;
-            tie my @filelines, 'Tie::File', "/etc/cron.d/relianoid";
-            @filelines = grep { !/\# \_\_$farm_name\_\_/ } @filelines;
-            untie @filelines;
-        }
-        elsif ($farm_type eq "l4xnat") {
-            require Relianoid::Farm::L4xNAT::Factory;
-            &runL4FarmDelete($farm_name);
-        }
+    }
+    elsif ($farm_type eq "datalink") {
+        # delete cron task to check backends
+        require Tie::File;
+        tie my @filelines, 'Tie::File', "/etc/cron.d/relianoid";
+        @filelines = grep { !/\# \_\_$farm_name\_\_/ } @filelines;
+        untie @filelines;
+    }
+    elsif ($farm_type eq "l4xnat") {
+        require Relianoid::Farm::L4xNAT::Factory;
+        &runL4FarmDelete($farm_name);
     }
 
     unlink glob("$configdir/$farm_name\_*\.cfg");
-    $status = 0
-      if (!-f "$configdir/$farm_name\_*\.cfg");
+
+    if (!-f "$configdir/$farm_name\_*\.cfg") {
+        $status = 0;
+    }
 
     require Relianoid::RRD;
 
@@ -512,7 +520,6 @@ NOTE:
 =cut
 
 sub setFarmRestart ($farm_name) {
-
     # do nothing if the farm is not running
     require Relianoid::Farm::Base;
     return if &getFarmStatus($farm_name) ne 'up';
@@ -591,17 +598,20 @@ sub setNewFarmName ($farm_name, $new_farm_name) {
         require Relianoid::Farm::HTTP::Action;
         $output = &copyHTTPFarm($farm_name, $new_farm_name, 'del');
     }
-    elsif ($farm_type eq "datalink") {
-        require Relianoid::Farm::Datalink::Action;
-        $output = &copyDatalinkFarm($farm_name, $new_farm_name, 'del');
-    }
     elsif ($farm_type eq "l4xnat") {
         require Relianoid::Farm::L4xNAT::Action;
         $output = &setL4NewFarmName($farm_name, $new_farm_name);
     }
+    elsif ($farm_type eq "datalink" && $eload) {
+        $output = &eload(
+            module => 'Relianoid::EE::Farm::Datalink::Action',
+            func   => 'copyDatalinkFarm',
+            args   => [ $farm_name, $new_farm_name, 'del' ],
+        );
+    }
     elsif ($farm_type eq "gslb" && $eload) {
         $output = &eload(
-            module => 'Relianoid::Farm::GSLB::Action',
+            module => 'Relianoid::EE::Farm::GSLB::Action',
             func   => 'copyGSLBFarm',
             args   => [ $farm_name, $new_farm_name, 'del' ],
         );
@@ -623,13 +633,13 @@ sub setNewFarmName ($farm_name, $new_farm_name) {
 
     if ($eload) {
         &eload(
-            module => 'Relianoid::IPDS::Base',
+            module => 'Relianoid::EE::IPDS::Base',
             func   => 'runIPDSRenameByFarm',
             args   => [ $farm_name, $new_farm_name ],
         );
 
         &eload(
-            module => 'Relianoid::RBAC::Group::Config',
+            module => 'Relianoid::EE::RBAC::Group::Config',
             func   => 'setRBACRenameByFarm',
             args   => [ $farm_name, $new_farm_name ],
         );
@@ -666,17 +676,20 @@ sub copyFarm ($farm_name, $new_farm_name) {
         require Relianoid::Farm::HTTP::Action;
         $output = &copyHTTPFarm($farm_name, $new_farm_name);
     }
-    elsif ($farm_type eq "datalink") {
-        require Relianoid::Farm::Datalink::Action;
-        $output = &copyDatalinkFarm($farm_name, $new_farm_name);
-    }
     elsif ($farm_type eq "l4xnat") {
         require Relianoid::Farm::L4xNAT::Action;
         $output = &copyL4Farm($farm_name, $new_farm_name);
     }
+    elsif ($farm_type eq "datalink" && $eload) {
+        $output = &eload(
+            module => 'Relianoid::EE::Farm::Datalink::Action',
+            func   => 'copyDatalinkFarm',
+            args   => [ $farm_name, $new_farm_name ],
+        );
+    }
     elsif ($farm_type eq "gslb" && $eload) {
         $output = &eload(
-            module => 'Relianoid::Farm::GSLB::Action',
+            module => 'Relianoid::EE::Farm::GSLB::Action',
             func   => 'copyGSLBFarm',
             args   => [ $farm_name, $new_farm_name ],
         );

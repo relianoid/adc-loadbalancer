@@ -51,7 +51,7 @@ foreach my $farmfile (&getFarmList()) {
     if ($ftype eq 'gslb') {
         my $stats;
         $stats = &eload(
-            module => 'Relianoid::Farm::GSLB::Stats',
+            module => 'Relianoid::EE::Farm::GSLB::Stats',
             func   => 'getGSLBFarmStats',
             args   => [$farm],
         ) if $eload;

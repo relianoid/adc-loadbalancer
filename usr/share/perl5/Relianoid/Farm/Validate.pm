@@ -55,7 +55,7 @@ sub priorityAlgorithmIsOK ($priority_ref) {
     my @backendstmp;
 
     my $prio_last = 0;
-    foreach my $prio_cur (@backends) {
+    for my $prio_cur (@backends) {
         if ($prio_cur != $prio_last) {
             my $n_backendstmp = @backendstmp;
             return $prio_cur if ($prio_cur > ($n_backendstmp + 1));

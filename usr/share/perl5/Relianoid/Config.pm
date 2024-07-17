@@ -59,20 +59,22 @@ See Also:
 
 sub getGlobalConfiguration ($parameter, $force_reload = 0) {
     state $global_conf = &parseGlobalConfiguration();
-    $global_conf = &parseGlobalConfiguration() if ($force_reload);
+
+    if ($force_reload) {
+        $global_conf = &parseGlobalConfiguration();
+    }
 
     if ($parameter) {
         if (defined $global_conf->{$parameter}) {
             return $global_conf->{$parameter};
         }
-
-        # bugfix: it is not returned any message when the 'debug' parameter is not defined in global.conf.
         elsif ($parameter eq 'debug') {
+            # workaround: no message is logged when the 'debug' parameter is not defined in global.conf.
             return;
         }
         else {
-            &zenlog("The global configuration parameter '$parameter' has not been found", 'warning', 'Configuration')
-              if ($parameter ne "debug");
+            &zenlog("The global configuration parameter '$parameter' has not been found", 'warn', 'Configuration');
+
             return;
         }
     }
@@ -110,7 +112,6 @@ sub parseGlobalConfiguration () {
 
         # build globalconf struct
         for my $conf_line (@lines) {
-
             # extract variable name and value
             if ($conf_line =~ /^\s*\$(\w+)\s*=\s*(?:"(.*)"|\'(.*)\');(?:\s*#update)?\s*$/) {
                 $global_conf->{$1} = $2;
@@ -124,7 +125,7 @@ sub parseGlobalConfiguration () {
     }
 
     # expand the variables, by replacing every variable used in the $var_value by its content
-    foreach my $param (keys %{$global_conf}) {
+    for my $param (keys %{$global_conf}) {
         while ($global_conf->{$param} =~ /\$(\w+)/) {
             my $var   = $1;
             my $value = $global_conf->{$var} // '';
@@ -150,9 +151,10 @@ Returns:
 
     scalar - 0 on success, or -1 if the variable was not found.
 
-Bugs:
+FIXME:
 
-    Control file handling errors.
+- Receive a hash, to be able to set a list of settings
+- Control file handling errors.
 
 See Also:
 
@@ -164,16 +166,28 @@ sub setGlobalConfiguration ($param, $value) {
     my $global_conf_file = &getGlobalConfiguration('globalcfg');
     my $output           = -1;
 
-    require Tie::File;
-    tie my @global_hf, 'Tie::File', $global_conf_file;
+    use Fcntl qw(:flock);
 
-    foreach my $line (@global_hf) {
-        if ($line =~ /^\$$param\s*=/) {
-            $line   = "\$$param = \"$value\";";
-            $output = 0;
+    if (open(my $fh, '+<', $global_conf_file)) {    ## no critic (InputOutput::RequireBriefOpen)
+        flock($fh, LOCK_EX) or die "Cannot lock file ${global_conf_file}: $!\n";
+        my @lines = <$fh>;
+
+        for my $line (@lines) {
+            if ($line =~ /^\$$param\s*=/) {
+                $line   = "\$${param}=\"${value}\";\n";
+                $output = 0;
+                last;
+            }
         }
+
+        seek $fh, 0, 0;
+        truncate $fh, 0;    # reduce file size to 0
+        print {$fh} join("", @lines);
+        close $fh;
     }
-    untie @global_hf;
+    else {
+        zenlog("Could not open file ${global_conf_file}: $!", "error");
+    }
 
     # reload global.conf struct
     &getGlobalConfiguration(undef, 1);
@@ -199,7 +213,7 @@ Returns:
 =cut
 
 sub setConfigStr2Arr ($obj, $param_list) {
-    foreach my $param_name (@{$param_list}) {
+    for my $param_name (@{$param_list}) {
         my @list = ();
 
         # split parameter if it is not a blank string
@@ -221,30 +235,29 @@ Parameters:
 
     file_path - Path to file.
 
-Returns:
+Returns: 
 
-    scalar - reference to Config::Tiny object, or undef on failure.
-
-See Also:
+- On success: L<Config::Tiny> object
+- On error: undef
 
 =cut
 
 sub getTiny ($file_path) {
+    require Relianoid::Debug;
+
     if (!-f $file_path) {
-        open my $fi, '>', $file_path;
-        if ($fi) {
-            &zenlog("The file was created $file_path", "info");
+        if (open my $fi, '>', $file_path) {
+            close $fi;
+            &zenlog("The file was created $file_path", "debug") if debug();
         }
         else {
             &zenlog("Cannot create file $file_path: $!", "error");
             return;
         }
-        close $fi;
     }
 
     require Config::Tiny;
 
-    # returns object on success or undef on error.
     return Config::Tiny->read($file_path);
 }
 
@@ -297,7 +310,7 @@ sub getTinyObj ($filepath, $section = undef, $key_ref = undef, $key_action = "er
 
     my $filtered_conf = {};
     $conf = $conf->{$section};
-    foreach my $param (@{$key_ref}) {
+    for my $param (@{$key_ref}) {
         if (defined $conf->{$param}) {
             $filtered_conf->{$param} = $conf->{$param};
         }
@@ -357,7 +370,7 @@ sub setTinyObj ($path, $object = undef, $key = undef, $value = undef, $action = 
     my $fileHandle = &getTiny($path);
 
     unless ($fileHandle) {
-        &zenlog("Could not open file $path: $Config::Tiny::errstr");
+        &zenlog("Could not open file $path: " . Config::Tiny::errstr());
         return -1;
     }
 
@@ -366,31 +379,31 @@ sub setTinyObj ($path, $object = undef, $key = undef, $value = undef, $action = 
         if ((defined $value) and ($value eq "new")) {
             $fileHandle->{$object} = {};
         }
-        foreach my $param (keys %{$key}) {
+        for my $param (keys %{$key}) {
             if (ref $key->{$param} eq 'ARRAY') {
                 $key->{$param} = join(' ', @{ $key->{$param} });
             }
             next
-              if (  (!exists $fileHandle->{$object}->{$param})
+              if (  (!exists $fileHandle->{$object}{$param})
                 and ((defined $value) and ($value eq "update")));
 
-            $fileHandle->{$object}->{$param} = $key->{$param};
+            $fileHandle->{$object}{$param} = $key->{$param};
         }
     }
 
     # save a parameter
     else {
         if ($action and 'add' eq $action) {
-            $fileHandle->{$object}->{$key} .= " $value";
+            $fileHandle->{$object}{$key} .= " $value";
         }
         elsif ($action and 'del' eq $action) {
-            $fileHandle->{$object}->{$key} =~ s/(^| )$value( |$)/ /;
+            $fileHandle->{$object}{$key} =~ s/(^| )$value( |$)/ /;
         }
         elsif ($action and 'remove' eq $action) {
-            delete $fileHandle->{$object}->{$key};
+            delete $fileHandle->{$object}{$key};
         }
         else {
-            $fileHandle->{$object}->{$key} = $value;
+            $fileHandle->{$object}{$key} = $value;
         }
     }
 
@@ -453,11 +466,22 @@ Returns:
 =cut
 
 sub migrateConfigFiles () {
-    my $MIG_DIR = &getGlobalConfiguration('mig_dir');
-    my @listing = `ls $MIG_DIR`;
+    require Relianoid::Debug;
 
-    foreach my $file (@listing) {
-        my @run = `${MIG_DIR}/${file}`;
+    my $mig_dir = &getGlobalConfiguration('mig_dir');
+
+    opendir(my $dh, $mig_dir);
+    my @files = grep { -f "${mig_dir}/$_" } sort readdir($dh);
+    closedir $dh;
+
+    for my $file (@files) {
+        my $errno = system("${mig_dir}/${file} >/dev/null");
+
+        if (debug()) {
+            my $msg = "Running migration ${mig_dir}/${file} got $errno\n";
+            print STDERR $msg;
+            zenlog($msg, "debug");
+        }
     }
 
     return;

@@ -129,7 +129,7 @@ sub insertFileWithPattern ($file, $array, $pattern, $opt = 'after') {
     my $found = 0;
     tie my @fileconf, 'Tie::File', $file;
 
-    foreach my $line (@fileconf) {
+    for my $line (@fileconf) {
         if ($line =~ /$pattern/) {
             $found = 1;
             last;
@@ -250,10 +250,10 @@ sub getFileChecksumMD5 ($filepath) {
         opendir(my $directory, $filepath);
         my @files = readdir($directory);
         closedir($directory);
-        foreach my $file (@files) {
+
+        for my $file (@files) {
             next if ($file eq "." or $file eq "..");
-            $md5 =
-              { %{$md5}, %{ &getFileChecksumMD5($filepath . "/" . $file) } };
+            $md5 = { %{$md5}, %{ &getFileChecksumMD5($filepath . "/" . $file) } };
         }
     }
     elsif (-f $filepath) {
@@ -287,7 +287,7 @@ Returns:
 sub getFileChecksumAction ($checksum_filepath1, $checksum_filepath2) {
     my $files_changed;
 
-    foreach my $file (keys %{$checksum_filepath1}) {
+    for my $file (keys %{$checksum_filepath1}) {
         if (!defined $checksum_filepath2->{$file}) {
             $files_changed->{$file} = "del";
         }
@@ -299,7 +299,7 @@ sub getFileChecksumAction ($checksum_filepath1, $checksum_filepath2) {
             delete $checksum_filepath2->{$file};
         }
     }
-    foreach my $file (keys %{$checksum_filepath2}) {
+    for my $file (keys %{$checksum_filepath2}) {
         $files_changed->{$file} = "add";
     }
     return $files_changed;

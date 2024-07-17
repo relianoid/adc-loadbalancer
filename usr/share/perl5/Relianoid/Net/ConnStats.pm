@@ -64,7 +64,6 @@ Returns:
 =cut
 
 sub getConntrack ($orig_src, $orig_dst, $reply_src, $reply_dst, $protocol) {
-
     # remove newlines in every argument
     chomp($orig_src, $orig_dst, $reply_src, $reply_dst, $protocol);
 
@@ -280,7 +279,7 @@ sub getConntrackParams ($filter) {
 
     if (my @protocols = split(/\s/, $filter->{proto})) {
         my @found_protocols = ();
-        foreach my $protocol (@protocols) {
+        for my $protocol (@protocols) {
             my $proto_code = $conntrack_proto{$protocol};
             if (defined $proto_code) {
                 push(@found_protocols, $proto_code);
@@ -294,7 +293,7 @@ sub getConntrackParams ($filter) {
         }
     }
 
-    foreach my $filter_key (keys %$filter) {
+    for my $filter_key (keys %$filter) {
         next if $filter_key eq 'proto';
 
         my $param = $filter_key;

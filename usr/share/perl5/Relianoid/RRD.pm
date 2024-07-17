@@ -73,7 +73,6 @@ sub translateRRDTime ($time) {
         return "-1$1";
     }
     elsif ($time =~ /^(\d\d-\d\d-(?:\d\d)?\d\d)-(\d\d:\d\d)$/) {
-
         # in (api): "11-09-2020-14:05"
         # out(rrd): "11/09/2020 14:05"
         my $date = $1;
@@ -102,10 +101,11 @@ Returns:
 =cut
 
 sub logRRDError ($graph) {
-    my $rrdError = RRDs::error;
-    if ($rrdError || !-s $graph) {
-        $rrdError //= 'The graph was not generated';
-        &zenlog("$0: unable to generate $graph: $rrdError", "error");
+    my $error = RRDs::error;
+
+    if ($error || !-s $graph) {
+        $error //= 'The graph was not generated';
+        &zenlog("$0: unable to generate $graph: $error", "error");
         return 1;
     }
 
@@ -133,16 +133,15 @@ Returns:
 sub getRRDAxisXLimits ($start, $last) {
     my $format = "%m-%d-%Y-%H:%M";
 
-    use Time::localtime;
     use POSIX qw(strftime);
 
     ($start, $last) = RRDs::times($start, $last);
 
     #     0    1    2     3     4    5     6     7     8
     # my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
-    my @t = @{ localtime($last) };
+    my @t = localtime($last);
     $last  = strftime($format, @t);
-    @t     = @{ localtime($start) };
+    @t     = localtime($start);
     $start = strftime($format, @t);
 
     return ($start, $last);
@@ -218,7 +217,7 @@ sub delGraph ($name, $type) {
         unlink glob("$rrdap_dir/$rrd_dir/$name-farm.rrd");
 
         &eload(
-            module => 'Relianoid::IPDS::Stats',
+            module => 'Relianoid::EE::IPDS::Stats',
             func   => 'delIPDSRRDFile',
             args   => [$name],
         ) if $eload;
@@ -240,7 +239,7 @@ Get a graph 'type' of a period of time base64 encoded.
 
 Parameters:
 
-    type - Name of the graph.
+    type - Filter or name of the graph.
     time/start - This parameter can have one of the following values: *
         * Period of time shown in the image (Possible values: daily, d, weekly, w, monthly, m, yearly, y).
         * time which the graph starts. Format: MM-DD-YYYY-HH:mm (ie: 11-09-2020-14:05)
@@ -261,55 +260,55 @@ See Also:
 =cut
 
 sub printGraph ($type, $time, $end = "now") {
-    my $img_dir = &getGlobalConfiguration('img_dir');
-    my $graph   = $img_dir . "/" . $type . "_" . $time . ".png";
+    my $graph_fn = sprintf "%s/${type}_${time}.png", &getGlobalConfiguration('img_dir');
 
     $time = &translateRRDTime($time);
     $end  = &translateRRDTime($end);
 
     if ($type eq "cpu") {
-        &genCpuGraph($type, $graph, $time, $end);
+        &genCpuGraph($type, $graph_fn, $time, $end);
     }
     elsif ($type =~ /^dev-*/) {
-        &genDiskGraph($type, $graph, $time, $end);
+        &genDiskGraph($type, $graph_fn, $time, $end);
     }
     elsif ($type eq "load") {
-        &genLoadGraph($type, $graph, $time, $end);
+        &genLoadGraph($type, $graph_fn, $time, $end);
     }
     elsif ($type eq "mem") {
-        &genMemGraph($type, $graph, $time, $end);
+        &genMemGraph($type, $graph_fn, $time, $end);
     }
     elsif ($type eq "memsw") {
-        &genMemSwGraph($type, $graph, $time, $end);
+        &genMemSwGraph($type, $graph_fn, $time, $end);
     }
     elsif ($type =~ /iface$/) {
-        &genNetGraph($type, $graph, $time, $end);
+        &genNetGraph($type, $graph_fn, $time, $end);
     }
     elsif ($type =~ /-farm$/) {
-        &genFarmGraph($type, $graph, $time, $end);
+        &genFarmGraph($type, $graph_fn, $time, $end);
     }
     elsif ($eload and $type =~ /ipds$/) {
         &eload(
-            module => 'Relianoid::IPDS::Stats',
+            module => 'Relianoid::EE::IPDS::Stats',
             func   => 'genIPDSGraph',
-            args   => [ $type, $graph, $time, $end ],
+            args   => [ $type, $graph_fn, $time, $end ],
         );
+    }
+    elsif ($eload && $type =~ /-vpn$/) {
+        &genVPNGraph($type, $graph_fn, $time);
     }
     else {
         &zenlog("The requested graph '$type' is unknown", "error");
         return {};
     }
 
-    if ($type =~ /-vpn$/) {
-        &genVPNGraph($type, $graph, $time);
+    if (&logRRDError($graph_fn)) {
+        return {};
     }
-
-    return {} if (&logRRDError($graph));
 
     ($time, $end) = &getRRDAxisXLimits($time, $end);
 
     return {
-        img   => &printImgFile($graph),
+        img   => &printImgFile($graph_fn),
         start => $time,
         last  => $end
     };
@@ -782,20 +781,34 @@ sub genVPNGraph ($type, $graph, $time) {
 
     if (-e "$rrdap_dir/$rrd_dir/$db_vpn") {
         RRDs::graph(
-            "$graph",                                          "--imgformat=$imagetype",
-            "--start=-1$time",                                 "--height=$height",
-            "--width=$width",                                  "--lazy",
-            "-l 0",                                            "--alt-autoscale-max",
-            "--title=TRAFFIC ON $vpn_name",                    "--vertical-label=BANDWIDTH",
-            "DEF:in=$rrdap_dir/$rrd_dir/$db_vpn:in:AVERAGE",   "DEF:out=$rrdap_dir/$rrd_dir/$db_vpn:out:AVERAGE",
-            "CDEF:in_bytes=in,1024,*",                         "CDEF:out_bytes=out,1024,*",
-            "CDEF:out_bytes_neg=out_bytes,-1,*",               "AREA:in_bytes#46b971:In ",
-            "LINE1:in_bytes#000000",                           "GPRINT:in_bytes:LAST:Last\\:%5.1lf %sByte/sec",
-            "GPRINT:in_bytes:MIN:Min\\:%5.1lf %sByte/sec",     "GPRINT:in_bytes:AVERAGE:Avg\\:%5.1lf %sByte/sec",
-            "GPRINT:in_bytes:MAX:Max\\:%5.1lf %sByte/sec\\n",  "AREA:out_bytes_neg#595959:Out",
-            "LINE1:out_bytes_neg#000000",                      "GPRINT:out_bytes:LAST:Last\\:%5.1lf %sByte/sec",
-            "GPRINT:out_bytes:MIN:Min\\:%5.1lf %sByte/sec",    "GPRINT:out_bytes:AVERAGE:Avg\\:%5.1lf %sByte/sec",
-            "GPRINT:out_bytes:MAX:Max\\:%5.1lf %sByte/sec\\n", "HRULE:0#000000"
+            "$graph",                                              #
+            "--imgformat=$imagetype",                              #
+            "--start=-1$time",                                     #
+            "--height=$height",                                    #
+            "--width=$width",                                      #
+            "--lazy",                                              #
+            "-l 0",                                                #
+            "--alt-autoscale-max",                                 #
+            "--title=TRAFFIC ON $vpn_name",                        #
+            "--vertical-label=BANDWIDTH",                          #
+            "DEF:in=$rrdap_dir/$rrd_dir/$db_vpn:in:AVERAGE",       #
+            "DEF:out=$rrdap_dir/$rrd_dir/$db_vpn:out:AVERAGE",     #
+            "CDEF:in_bytes=in,1024,*",                             #
+            "CDEF:out_bytes=out,1024,*",                           #
+            "CDEF:out_bytes_neg=out_bytes,-1,*",                   #
+            "AREA:in_bytes#46b971:In ",                            #
+            "LINE1:in_bytes#000000",                               #
+            "GPRINT:in_bytes:LAST:Last\\:%5.1lf %sByte/sec",       #
+            "GPRINT:in_bytes:MIN:Min\\:%5.1lf %sByte/sec",         #
+            "GPRINT:in_bytes:AVERAGE:Avg\\:%5.1lf %sByte/sec",     #
+            "GPRINT:in_bytes:MAX:Max\\:%5.1lf %sByte/sec\\n",      #
+            "AREA:out_bytes_neg#595959:Out",                       #
+            "LINE1:out_bytes_neg#000000",                          #
+            "GPRINT:out_bytes:LAST:Last\\:%5.1lf %sByte/sec",      #
+            "GPRINT:out_bytes:MIN:Min\\:%5.1lf %sByte/sec",        #
+            "GPRINT:out_bytes:AVERAGE:Avg\\:%5.1lf %sByte/sec",    #
+            "GPRINT:out_bytes:MAX:Max\\:%5.1lf %sByte/sec\\n",     #
+            "HRULE:0#000000"                                       #
         );
 
         my $rrdError = RRDs::error;
@@ -818,10 +831,6 @@ Parameters:
 Returns:
 
     list - List of graph names or -1!!!.
-
-See Also:
-
-    api/v4/system_stats.cgi
 
 =cut
 

@@ -51,21 +51,21 @@ sub getInterfaceConfigFile ($if_name) {
 Reference to a hash representation of a network interface.
 It can be found dereferenced and used as a (%iface or %interface) hash.
 
-    $if_ref->{ name }     - Interface name.
-    $if_ref->{ addr }     - IP address. Empty if not configured.
-    $if_ref->{ mask }     - Network mask. Empty if not configured.
-    $if_ref->{ gateway }  - Interface gateway. Empty if not configured.
-    $if_ref->{ status }   - 'up' for enabled, or 'down' for disabled.
-    $if_ref->{ ip_v }     - IP version, 4 or 6.
-    $if_ref->{ dev }      - Name without VLAN or Virtual part (same as NIC or Bonding)
-    $if_ref->{ vini }     - Part of the name corresponding to a Virtual interface. Can be empty.
-    $if_ref->{ vlan }     - Part of the name corresponding to a VLAN interface. Can be empty.
-    $if_ref->{ mac }      - Interface hardware address.
-    $if_ref->{ type }     - Interface type: nic, bond, vlan, virtual.
-    $if_ref->{ parent }   - Interface which this interface is based/depends on.
-    $if_ref->{ float }    - Floating interface selected for this interface. For routing interfaces only.
-    $if_ref->{ is_slave } - Whether the NIC interface is a member of a Bonding interface. For NIC interfaces only.
-    $if_ref->{ dhcp }     - The DHCP service is enabled or not for the current interface.
+    name     - Interface name.
+    addr     - IP address. Empty if not configured.
+    mask     - Network mask. Empty if not configured.
+    gateway  - Interface gateway. Empty if not configured.
+    status   - 'up' for enabled, or 'down' for disabled.
+    ip_v     - IP version, 4 or 6.
+    dev      - Name without VLAN or Virtual part (same as NIC or Bonding)
+    vini     - Part of the name corresponding to a Virtual interface. Can be empty.
+    vlan     - Part of the name corresponding to a VLAN interface. Can be empty.
+    mac      - Interface hardware address.
+    type     - Interface type: nic, bond, vlan, virtual.
+    parent   - Interface which this interface is based/depends on.
+    float    - Floating interface selected for this interface. For routing interfaces only.
+    is_slave - Whether the NIC interface is a member of a Bonding interface. For NIC interfaces only.
+    dhcp     - The DHCP service is enabled or not for the current interface.
 
 See also:
 
@@ -90,12 +90,6 @@ Returns:
 Bugs:
 
     The configuration file exists but there isn't the requested stack.
-
-See Also:
-
-    <$if_ref>
-
-    zcluster-manager, noid-bui, api/v?/interface.cgi, cluster_functions.cgi, networking_functions_ext
 
 =cut
 
@@ -133,15 +127,15 @@ sub getInterfaceConfig ($if_name, $ip_v = '') {
         gateway => undef,
     };
 
-    $iface->{name}    = $fileHandler->{$if_name}->{name} // $if_name;
-    $iface->{addr}    = $fileHandler->{$if_name}->{addr}    if (length $fileHandler->{$if_name}->{addr});
-    $iface->{mask}    = $fileHandler->{$if_name}->{mask}    if (length $fileHandler->{$if_name}->{mask});
-    $iface->{gateway} = $fileHandler->{$if_name}->{gateway} if (length $fileHandler->{$if_name}->{gateway});
-    $iface->{status}  = $fileHandler->{$if_name}->{status} // '';
+    $iface->{name}    = $fileHandler->{$if_name}{name} // $if_name;
+    $iface->{addr}    = $fileHandler->{$if_name}{addr}    if (length $fileHandler->{$if_name}{addr});
+    $iface->{mask}    = $fileHandler->{$if_name}{mask}    if (length $fileHandler->{$if_name}{mask});
+    $iface->{gateway} = $fileHandler->{$if_name}{gateway} if (length $fileHandler->{$if_name}{gateway});
+    $iface->{status}  = $fileHandler->{$if_name}{status} // '';
     $iface->{dev}     = $if_name;
     $iface->{vini}    = undef;
     $iface->{vlan}    = undef;
-    $iface->{mac}     = $fileHandler->{$if_name}->{mac} // undef;
+    $iface->{mac}     = $fileHandler->{$if_name}{mac} // undef;
     $iface->{type}    = &getInterfaceType($iface->{name});
     $iface->{parent}  = &getParentInterfaceName($iface->{name});
 
@@ -156,8 +150,8 @@ sub getInterfaceConfig ($if_name, $ip_v = '') {
 
     $iface->{ip_v}    = $ip_v;
     $iface->{net}     = &getAddressNetwork($iface->{addr}, $iface->{mask}, $iface->{ip_v}) if $iface->{addr};
-    $iface->{dhcp}    = $fileHandler->{$if_name}->{dhcp}    // 'false' if ($eload);
-    $iface->{isolate} = $fileHandler->{$if_name}->{isolate} // 'false' if ($eload);
+    $iface->{dhcp}    = $fileHandler->{$if_name}{dhcp} || 'false'                          if ($eload);
+    $iface->{isolate} = $fileHandler->{$if_name}{isolate} // 'false'                       if ($eload);
 
     if ($iface->{dev} =~ /:/) {
         ($iface->{dev}, $iface->{vini}) = split(':', $iface->{dev});
@@ -187,7 +181,7 @@ sub getInterfaceConfig ($if_name, $ip_v = '') {
         if ((!exists($iface->{vini}) || !defined($iface->{vini}) || $iface->{vini} eq '') && $iface->{addr}) {
             require Config::Tiny;
             my $float = Config::Tiny->read(&getGlobalConfiguration('floatfile'));
-            $iface->{float} = $float->{_}->{ $iface->{name} } // '';
+            $iface->{float} = $float->{_}{ $iface->{name} } // '';
         }
     }
 
@@ -198,7 +192,7 @@ sub getInterfaceConfig ($if_name, $ip_v = '') {
         eval {
             unless ($saved_bond_slaves) {
                 @TMP::bond_slaves = &eload(
-                    module => 'Relianoid::Net::Bonding',
+                    module => 'Relianoid::EE::Net::Bonding',
                     func   => 'getAllBondsSlaves',
                 );
 
@@ -254,9 +248,9 @@ sub getInterfaceConfigParam ($if_name, $params_ref) {
     require Relianoid::Config;
     my $if_config = &getTiny($config_filename);
 
-    foreach my $param (@{$params_ref}) {
-        if (defined $if_config->{$if_name}->{$param}) {
-            $config_ref->{$param} = $if_config->{$if_name}->{$param};
+    for my $param (@{$params_ref}) {
+        if (defined $if_config->{$if_name}{$param}) {
+            $config_ref->{$param} = $if_config->{$if_name}{$param};
         }
         else {
             $config_ref->{$param} = undef;
@@ -280,10 +274,6 @@ Returns:
 
     boolean - 1 on success, or 0 on failure.
 
-See Also:
-
-    <getInterfaceConfig>, <setInterfaceUp>, relianoid, noid-bui, api/v?/interface.cgi
-
 =cut
 
 sub setInterfaceConfig ($if_ref) {
@@ -302,7 +292,7 @@ sub setInterfaceConfig ($if_ref) {
 
     my @if_params       = ('status', 'name', 'addr', 'mask', 'gateway', 'mac', 'dhcp', 'isolate');
     my $configdir       = &getGlobalConfiguration('configdir');
-    my $config_filename = "$configdir/if_$$if_ref{ name }_conf";
+    my $config_filename = "$configdir/if_$$if_ref{name}_conf";
 
     if (!-f $config_filename) {
         require Relianoid::File;
@@ -311,16 +301,15 @@ sub setInterfaceConfig ($if_ref) {
 
     $fileHandle = Config::Tiny->read($config_filename);
 
-    foreach my $field (@if_params) {
-        $fileHandle->{ $if_ref->{name} }->{$field} = $if_ref->{$field};
+    for my $field (@if_params) {
+        $fileHandle->{ $if_ref->{name} }{$field} = $if_ref->{$field};
     }
 
     if (!exists $fileHandle->{status}) {
-        $fileHandle->{ $if_ref->{name} }->{status} = $if_ref->{status} // "up";
+        $fileHandle->{ $if_ref->{name} }{status} = $if_ref->{status} // "up";
     }
 
-    return 0
-      unless ($fileHandle->write($config_filename));
+    return 0 if not $fileHandle->write($config_filename);
 
     return 1;
 }
@@ -356,7 +345,7 @@ sub cleanInterfaceConfig ($if_ref) {
     $fileHandler = Config::Tiny->read($file);
     $fileHandler->{ $if_ref->{name} } = {
         mask    => "",
-        status  => $fileHandler->{ $if_ref->{name} }->{status},
+        status  => $fileHandler->{ $if_ref->{name} }{status},
         addr    => "",
         mac     => $if_ref->{mac},
         gateway => "",
@@ -389,10 +378,6 @@ Returns:
     vlan - VLAN part of the interface name.
     vini - Virtual interface part of the interface name.
 
-See Also:
-
-    <getParentInterfaceName>, <getSystemInterfaceList>, <getSystemInterface>, zapi/v2/interface.cgi
-
 =cut
 
 sub getDevVlanVini ($if_name) {
@@ -423,11 +408,6 @@ Parameters:
 Returns:
 
     scalar - reference to array of configured interfaces.
-
-See Also:
-
-    zenloadbalanacer, zcluster-manager, <getIfacesFromIf>,
-    <getActiveInterfaceList>, <getSystemInterfaceList>, <getFloatInterfaceForAddress>
 
 =cut
 
@@ -481,10 +461,6 @@ Returns:
 
     scalar - 'up' or 'down'.
 
-See Also:
-
-    <getActiveInterfaceList>, <getSystemInterfaceList>, <getInterfaceTypeList>, zapi/v?/interface.cgi,
-
 =cut
 
 sub getInterfaceSystemStatus ($if_ref) {
@@ -507,7 +483,7 @@ sub getInterfaceSystemStatus ($if_ref) {
 
         my $flag_up   = 0;
         my $flag_down = 0;
-        foreach my $flag (@flags) {
+        for my $flag (@flags) {
             $flag_up++   if ($flag eq "UP");
             $flag_down++ if ($flag eq "NO-CARRIER");
         }
@@ -522,7 +498,7 @@ sub getInterfaceSystemStatus ($if_ref) {
     # Set as down vinis not available
     if (defined $if_ref->{vini} and length $if_ref->{vini}) {
         $ip_output = &logAndGet("$ip_bin addr show $status_if_name");
-        if ($ip_output !~ /$if_ref->{ addr }/) {
+        if ($ip_output !~ /$if_ref->{addr}/) {
             return "down";
         }
     }
@@ -565,7 +541,7 @@ sub getInterfaceSystemStatusAll () {
     my $ip_output = &logAndGet("$ip_bin -o link", "array");
     my $links_ref;
 
-    foreach my $link (@{$ip_output}) {
+    for my $link (@{$ip_output}) {
         if ($link =~ /^\d+: ([a-zA-Z0-9\-]+(?:\.\d{1,4})?)(?:@[a-zA-Z0-9\-]+)?: <(.+)> .+ state (\w+) /) {
             my $interface = $1;
             my $flag      = $2;
@@ -575,7 +551,7 @@ sub getInterfaceSystemStatusAll () {
                 my @flags     = split(',', $flag);
                 my $flag_up   = 0;
                 my $flag_down = 0;
-                foreach my $flag (@flags) {
+                for my $flag (@flags) {
                     $flag_up++   if ($flag eq "UP");
                     $flag_down++ if ($flag eq "NO-CARRIER");
                 }
@@ -592,7 +568,7 @@ sub getInterfaceSystemStatusAll () {
 
     $ip_output = &logAndGet("$ip_bin -o addr", "array");
     my $addr_ref;
-    foreach my $addr (@{$ip_output}) {
+    for my $addr (@{$ip_output}) {
         if ($addr =~
             /^\d+: ([a-zA-Z0-9\-]+)(?:\.\d{1,4})?\s+(inet(?:\d)? (.*) (?:brd .*)?) scope .+ ([a-zA-Z0-9\-]+(?:\.\d{1,4})?:[a-zA-Z0-9\-]+)\\ /
           )
@@ -601,7 +577,6 @@ sub getInterfaceSystemStatusAll () {
             my $virtual = $4;
             $addr_ref->{$virtual} = $links_ref->{$parent};
         }
-
     }
     $links_ref = { %{$links_ref}, %{$addr_ref} } if $addr_ref;
     return $links_ref;
@@ -621,9 +596,6 @@ Returns:
 
     string - Parent interface name or undef if there is no parent interface (NIC and Bonding).
 
-See Also:
-
-    <getInterfaceConfig>, <getSystemInterface>, relianoid, zapi/v?/interface.cgi
 =cut
 
 sub getParentInterfaceName ($if_name) {
@@ -669,10 +641,6 @@ Returns:
 
     scalar - reference to an array of network interface hashrefs.
 
-See Also:
-
-    API v4: post.cgi, put.cgi, system.cgi
-
 =cut
 
 sub getActiveInterfaceList () {
@@ -695,6 +663,7 @@ sub getActiveInterfaceList () {
 
     for my $iface (@configured_interfaces) {
         if ($iface->{status} eq 'up') {
+            next unless $iface->{addr};
             my $dev_length = length $iface->{name};
             $max_dev_length = $dev_length if $dev_length > $max_dev_length;
 
@@ -705,8 +674,8 @@ sub getActiveInterfaceList () {
 
     # make padding
     for my $iface (@configured_interfaces) {
-        my $dev_ip_padded =
-          sprintf("%-${max_dev_length}s -> %-${max_ip_length}s", $$iface{name}, $$iface{addr});
+        next unless $iface->{addr};
+        my $dev_ip_padded = sprintf("%-${max_dev_length}s -> %-${max_ip_length}s", $$iface{name}, $$iface{addr});
         $dev_ip_padded =~ s/ +$//;
         $dev_ip_padded =~ s/ /&nbsp;/g;
 
@@ -730,10 +699,6 @@ Returns:
 
     scalar - reference to an array with configured and system network interfaces.
 
-See Also:
-
-    api/v4/interface.cgi, api/v4/cluster.cgi
-
 =cut
 
 sub getSystemInterfaceList () {
@@ -743,12 +708,12 @@ sub getSystemInterfaceList () {
 
     my @configured_interfaces;
     my $interface_ref = &getInterfaceNameStruct("vlan");
-    foreach my $vlan (@{$interface_ref}) {
+    for my $vlan (@{$interface_ref}) {
         my $if_ref = &getInterfaceConfig($vlan);
         push @configured_interfaces, $if_ref if $if_ref;
     }
     $interface_ref = &getInterfaceNameStruct("virtual");
-    foreach my $virtual (@{$interface_ref}) {
+    for my $virtual (@{$interface_ref}) {
         my $if_ref = &getInterfaceConfig($virtual);
         push @configured_interfaces, $if_ref if $if_ref;
     }
@@ -760,7 +725,6 @@ sub getSystemInterfaceList () {
 
     ## Build system device "tree"
     for my $if_name (@system_interfaces) {
-
         # ignore vlans and vinis
         next if $if_name =~ /\./;
         next if $if_name =~ /:/;
@@ -791,7 +755,6 @@ sub getSystemInterfaceList () {
         $if_ref = &getInterfaceConfig($if_name);
 
         if (!$$if_ref{addr}) {
-
             # populate not configured interface
             $$if_ref{status} = ($if_flags & IFF_UP) ? "up" : "down";
             $$if_ref{mac}    = $socket->if_hwaddr($if_name);
@@ -871,12 +834,11 @@ sub getSystemInterface ($if_name) {
     state $saved_bond_slaves = 0;
 
     if ($eload && $$if_ref{type} eq 'nic') {
-
         # not die if the appliance has not a certificate
         eval {
             unless ($saved_bond_slaves) {
                 @TMP::bond_slaves = &eload(
-                    module => 'Relianoid::Net::Bonding',
+                    module => 'Relianoid::EE::Net::Bonding',
                     func   => 'getAllBondsSlaves',
                 );
 
@@ -970,10 +932,9 @@ sub getInterfaceType ($if_name) {
     {
         my $if_type_filename = "/sys/class/net/$if_name/type";
 
-        open(my $type_file, '<', $if_type_filename)
-          or die "Could not open file $if_type_filename: $!";
-        chomp($code = <$type_file>);
-        close $type_file;
+        open(my $fh, '<', $if_type_filename) or die "Could not open file ${if_type_filename}: $!";
+        chomp($code = <$fh>);
+        close $fh;
     }
 
     if ($code == 1) {
@@ -1101,6 +1062,7 @@ sub getInterfaceTypeList ($list_type, $iface_name = undef) {
         for my $if_name (@system_interfaces) {
             if ($list_type eq &getInterfaceType($if_name)) {
                 my $output_if = &getInterfaceConfig($if_name);
+
                 if (   !$output_if
                     || !$output_if->{mac}
                     || (defined $output_if->{is_slave} && $output_if->{is_slave} eq 'true'))
@@ -1125,16 +1087,16 @@ sub getInterfaceTypeList ($list_type, $iface_name = undef) {
                 next if ($iface_name and ($iface_name ne $if_name));
                 my $iface = &getInterfaceConfig($if_name);
 
-                #$iface->{ status } = &getInterfaceSystemStatus( $iface );
+                #$iface->{status} = &getInterfaceSystemStatus( $iface );
 
                 # put the mac, gateway and netmask of the parent interface
                 if (not defined $parents_list->{ $iface->{parent} }) {
                     $parents_list->{ $iface->{parent} } =
                       &getInterfaceConfig($iface->{parent});
                 }
-                $iface->{mask}    = $parents_list->{ $iface->{parent} }->{mask};
-                $iface->{mac}     = $parents_list->{ $iface->{parent} }->{mac};
-                $iface->{gateway} = $parents_list->{ $iface->{parent} }->{gateway};
+                $iface->{mask}    = $parents_list->{ $iface->{parent} }{mask};
+                $iface->{mac}     = $parents_list->{ $iface->{parent} }{mac};
+                $iface->{gateway} = $parents_list->{ $iface->{parent} }{gateway};
                 push(@interfaces, $iface);
             }
         }
@@ -1174,7 +1136,7 @@ sub getAppendInterfaces ($if_parent, $type) {
     my $vlan_tag    = &getValidFormat('vlan_tag');
     my $virtual_tag = &getValidFormat('virtual_tag');
 
-    foreach my $if (@list) {
+    for my $if (@list) {
         if ($type eq 'vlan') {
             push @output, $if if ($if =~ /^$if_parent\.$vlan_tag$/);
         }
@@ -1239,7 +1201,7 @@ sub getVirtualInterfaceNameList () {
     my $virt_if_re = &getValidFormat('virt_interface');
     my @interfaces;
 
-    foreach my $filename (readdir($conf_dir)) {
+    for my $filename (readdir($conf_dir)) {
         push @interfaces, $1 if ($filename =~ /^if_($virt_if_re)_conf$/);
     }
 
@@ -1298,25 +1260,25 @@ sub getInterfaceNameStruct ($if_type = undef) {
     if ($eload) {
         my $params = ["name"];
         $bonding_struct = &eload(
-            module => 'Relianoid::Net::Bonding',
+            module => 'Relianoid::EE::Net::Bonding',
             func   => 'getBondListStruct',
             args   => [$params]
         );
     }
 
     opendir(my $conf_dir, &getGlobalConfiguration('configdir'));
-    foreach my $filename (readdir($conf_dir)) {
+    for my $filename (readdir($conf_dir)) {
         if ($filename =~ /^if_([a-zA-Z0-9\-]+)(?:\.(\d{1,4}))?(?:\:([a-zA-Z0-9\-]+))?_conf$/) {
             my $interface = $1;
             my $tag       = $2;
             my $virtual   = $3;
 
             my $type = "nic";
-            #### EE Begin
+
             if ($eload) {
                 $type = "bond" if (exists $bonding_struct->{$interface});
             }
-            #### EE End
+
             if (defined $virtual) {
                 if (defined $if_type) {
                     $interface .= ".$tag" if (defined $tag);
@@ -1324,12 +1286,12 @@ sub getInterfaceNameStruct ($if_type = undef) {
                       if ($if_type eq "virtual");
                 }
                 elsif (defined $tag) {
-                    $interfaces_ref->{$type}->{$interface}->{vlan}->{$tag}->{virtual}->{$virtual} =
+                    $interfaces_ref->{$type}{$interface}{vlan}{$tag}{virtual}{$virtual} =
                       undef;
                 }
                 else {
-                    if (not exists $interfaces_ref->{$type}->{$interface}->{virtual}->{$virtual}) {
-                        $interfaces_ref->{$type}->{$interface}->{virtual}->{$virtual} = undef;
+                    if (not exists $interfaces_ref->{$type}{$interface}{virtual}{$virtual}) {
+                        $interfaces_ref->{$type}{$interface}{virtual}{$virtual} = undef;
                     }
                 }
             }
@@ -1340,8 +1302,8 @@ sub getInterfaceNameStruct ($if_type = undef) {
                           if ($if_type eq "vlan");
                         next;
                     }
-                    elsif (not exists $interfaces_ref->{$type}->{$interface}->{vlan}->{$tag}) {
-                        $interfaces_ref->{$type}->{$interface}->{vlan}->{$tag} = undef;
+                    elsif (not exists $interfaces_ref->{$type}{$interface}{vlan}{$tag}) {
+                        $interfaces_ref->{$type}{$interface}{vlan}{$tag} = undef;
                     }
                 }
                 else {
@@ -1350,8 +1312,8 @@ sub getInterfaceNameStruct ($if_type = undef) {
                           if ($if_type eq $type);
                         next;
                     }
-                    elsif (not exists $interfaces_ref->{$type}->{$interface}) {
-                        $interfaces_ref->{$type}->{$interface} = undef;
+                    elsif (not exists $interfaces_ref->{$type}{$interface}) {
+                        $interfaces_ref->{$type}{$interface} = undef;
                     }
                 }
             }
@@ -1388,7 +1350,7 @@ sub getInterfaceByIp ($ip) {
     my $interface_list = &getConfigInterfaceList($params);
 
     if ($ip_ver == 4) {
-        foreach my $if_ref (@{$interface_list}) {
+        for my $if_ref (@{$interface_list}) {
             if (    $if_ref->{addr}
                 and $if_ref->{addr} eq $ip
                 and &ipversion($if_ref->{addr}) eq $ip_ver)
@@ -1399,7 +1361,7 @@ sub getInterfaceByIp ($ip) {
         }
     }
     elsif ($ip_ver == 6) {
-        foreach my $if_ref (@{$interface_list}) {
+        for my $if_ref (@{$interface_list}) {
             if (NetAddr::IP->new($if_ref->{addr}) eq $addr_ref) {
                 $output = $if_ref->{name};
                 last;
@@ -1435,7 +1397,7 @@ sub getIpAddressExists ($ip) {
     my $interface_list = &getConfigInterfaceList($params);
 
     if ($ip_ver == 4) {
-        foreach my $if_ref (@{$interface_list}) {
+        for my $if_ref (@{$interface_list}) {
             if (    $if_ref->{addr}
                 and $if_ref->{addr} eq $ip
                 and &ipversion($if_ref->{addr}) eq $ip_ver)
@@ -1447,7 +1409,7 @@ sub getIpAddressExists ($ip) {
     }
     elsif ($ip_ver == 6) {
         my $addr_ref = NetAddr::IP->new($ip);
-        foreach my $if_ref (@{$interface_list}) {
+        for my $if_ref (@{$interface_list}) {
             if (NetAddr::IP->new($if_ref->{addr}) eq $addr_ref) {
                 $output = 1;
                 last;
@@ -1477,7 +1439,7 @@ Returns:
 sub getIpAddressList () {
     my @out    = ();
     my $params = ["addr"];
-    foreach my $if_ref (@{ &getConfigInterfaceList($params) }) {
+    for my $if_ref (@{ &getConfigInterfaceList($params) }) {
         if (defined $if_ref->{addr}) {
             push @out, $if_ref->{addr};
         }
@@ -1524,8 +1486,8 @@ sub getInterfaceChild ($if_name) {
             require Config::Tiny;
             my $float = Config::Tiny->read(&getGlobalConfiguration('floatfile'));
 
-            foreach my $iface (keys %{ $float->{_} }) {
-                push @output, $iface if ($float->{_}->{$iface} eq $if_name);
+            for my $iface (keys %{ $float->{_} }) {
+                push @output, $iface if ($float->{_}{$iface} eq $if_name);
             }
         }
     }
@@ -1533,7 +1495,7 @@ sub getInterfaceChild ($if_name) {
     # the other type of interfaces can have virtual interfaces as child
     # vlan, bond and nic
     else {
-        push @output, grep { /^$if_name:$virtual_tag$/ } &getVirtualInterfaceNameList();
+        push @output, grep { "${if_name}:${virtual_tag}" eq $_ } &getVirtualInterfaceNameList();
     }
 
     return @output;
@@ -1605,7 +1567,7 @@ sub get_interface_list_struct () {
 
     if ($eload) {
         $cluster_if = &eload(
-            module => 'Relianoid::Cluster',
+            module => 'Relianoid::EE::Cluster',
             func   => 'getZClusterInterfaces',    # 100
         );
     }
@@ -1617,7 +1579,7 @@ sub get_interface_list_struct () {
     if ($eload && ($user ne 'root')) {
         $rbac_mod     = 1;
         $rbac_if_list = &eload(
-            module => 'Relianoid::RBAC::Group::Core',    # 100
+            module => 'Relianoid::EE::RBAC::Group::Core',    # 100
             func   => 'getRBACUsersResources',
             args   => [ $user, 'interfaces' ],
         );
@@ -1628,14 +1590,12 @@ sub get_interface_list_struct () {
 
     my $all_status = &getInterfaceSystemStatusAll();
     for my $if_ref (@interfaces) {
-
         # Exclude cluster maintenance interface
         next if $if_ref->{type} eq 'dummy';
 
         # Exclude no user's virtual interfaces
-        next
-          if ( $rbac_mod
-            && !grep { /^$if_ref->{ name }$/ } @{$rbac_if_list}
+        next if ($rbac_mod
+            && !grep { $if_ref->{name} eq $_ } @{$rbac_if_list}
             && ($if_ref->{type} eq 'virtual'));
 
         $if_ref->{status} = $all_status->{ $if_ref->{name} };
@@ -1656,25 +1616,24 @@ sub get_interface_list_struct () {
             status  => $if_ref->{status},
             mac     => $if_ref->{mac},
             type    => $if_ref->{type},
-
-            #~ ipv     => $if_ref->{ ip_v },
+            # ipv     => $if_ref->{ip_v},
         };
 
-        $if_conf->{dhcp} = $if_ref->{dhcp}
-          if ($eload and $if_ref->{type} ne 'virtual');
+        if ($eload and $if_ref->{type} ne 'virtual') {
+            $if_conf->{dhcp} = $if_ref->{dhcp};
+        }
 
         if ($if_ref->{type} eq 'nic') {
             my @bond_slaves = ();
 
             @bond_slaves = &eload(
-                module => 'Relianoid::Net::Bonding',
+                module => 'Relianoid::EE::Net::Bonding',
                 func   => 'getAllBondsSlaves',
             ) if ($eload);
 
-            $if_conf->{is_slave} =
-              (grep { $$if_ref{name} eq $_ } @bond_slaves) ? 'true' : 'false';
+            $if_conf->{is_slave} = (grep { $$if_ref{name} eq $_ } @bond_slaves) ? 'true' : 'false';
 
-            if (exists $interfaces_ref->{ $if_ref->{type} }->{ $if_ref->{name} }->{vlan}) {
+            if (exists $interfaces_ref->{ $if_ref->{type} }{ $if_ref->{name} }{vlan}) {
                 $if_conf->{has_vlan} = 'true';
             }
             $if_conf->{has_vlan} = 'false' unless $if_conf->{has_vlan};
@@ -1690,7 +1649,7 @@ sub get_interface_list_struct () {
     if ($eload) {
         my $out = \@output_list;
         $out = &eload(
-            module => 'Relianoid::Alias',
+            module => 'Relianoid::EE::Alias',
             func   => 'addAliasInterfaceStruct',
             args   => [$out],
         );
@@ -1740,7 +1699,7 @@ sub get_nic_struct ($nic) {
     $interface->{dhcp}     = $if_ref->{dhcp}     if $eload;
     if ($eload) {
         $interface = &eload(
-            module => 'Relianoid::Alias',
+            module => 'Relianoid::EE::Alias',
             func   => 'addAliasInterfaceStruct',
             args   => [$interface],
         );
@@ -1764,19 +1723,15 @@ Returns:
 =cut
 
 sub get_nic_list_struct () {
-    my @output_list;
     my $interface_ref = &getInterfaceNameStruct();
-
-    # get cluster interfaces
+    my $all_status    = &getInterfaceSystemStatusAll();
     my $cluster_if;
+    my @output_list;
+
     if ($eload) {
-        $cluster_if = &eload(
-            module => 'Relianoid::Cluster',
-            func   => 'getZClusterInterfaces'
-        );
+        $cluster_if = &eload(module => 'Relianoid::EE::Cluster', func => 'getZClusterInterfaces');
     }
 
-    my $all_status = &getInterfaceSystemStatusAll();
     for my $if_ref (&getInterfaceTypeList('nic')) {
         $if_ref->{status} = $all_status->{ $if_ref->{name} };
 
@@ -1799,7 +1754,7 @@ sub get_nic_list_struct () {
 
         if ($eload) {
             $if_conf = &eload(
-                module => 'Relianoid::Alias',
+                module => 'Relianoid::EE::Alias',
                 func   => 'addAliasInterfaceStruct',
                 args   => [$if_conf],
             );
@@ -1815,7 +1770,7 @@ sub get_nic_list_struct () {
             $if_conf->{is_cluster} = 'true';
         }
 
-        if (exists $interface_ref->{nic}->{ $if_ref->{name} }->{vlan}) {
+        if (exists $interface_ref->{nic}{ $if_ref->{name} }{vlan}) {
             $if_conf->{has_vlan} = 'true';
         }
 
@@ -1868,7 +1823,7 @@ sub get_vlan_struct ($vlan) {
 
     if ($eload) {
         $output = &eload(
-            module => 'Relianoid::Alias',
+            module => 'Relianoid::EE::Alias',
             func   => 'addAliasInterfaceStruct',
             args   => [$output],
         );
@@ -1897,10 +1852,9 @@ sub get_vlan_list_struct () {
     my $cluster_if;
 
     if ($eload) {
-
         # get cluster interfaces
         $cluster_if = &eload(
-            module => 'Relianoid::Cluster',
+            module => 'Relianoid::EE::Cluster',
             func   => 'getZClusterInterfaces',
         );
     }
@@ -1929,7 +1883,7 @@ sub get_vlan_list_struct () {
 
         if ($eload) {
             $if_conf = &eload(
-                module => 'Relianoid::Alias',
+                module => 'Relianoid::EE::Alias',
                 func   => 'addAliasInterfaceStruct',
                 args   => [$if_conf],
             );
@@ -1987,7 +1941,7 @@ sub get_virtual_struct ($virtual) {
 
     if ($eload) {
         $output = &eload(
-            module => 'Relianoid::Alias',
+            module => 'Relianoid::EE::Alias',
             func   => 'addAliasInterfaceStruct',
             args   => [$output],
         );
@@ -2039,7 +1993,7 @@ sub get_virtual_list_struct () {
     if ($eload) {
         my $out = \@output_list;
         $out = &eload(
-            module => 'Relianoid::Alias',
+            module => 'Relianoid::EE::Alias',
             func   => 'addAliasInterfaceStruct',
             args   => [$out],
         );
@@ -2050,9 +2004,9 @@ sub get_virtual_list_struct () {
 
 =pod
 
-=head1 setInterfaceConfig
+=head1 setVlan
 
-Store a network interface configuration.
+Store a VLAN network interface configuration.
 
 Parameters:
 
@@ -2090,7 +2044,7 @@ sub setVlan ($if_ref, $params) {
     # Creating a new interface
     if (!defined $oldIf_ref) {
         $err = &createVlan($if_ref);
-        return 1 if ($err);
+        return 1 if $err;
     }
 
     # Modifying
@@ -2110,7 +2064,7 @@ sub setVlan ($if_ref, $params) {
         $state = &upIf($if_ref, 1);
     }
 
-    return 1 if (!&setInterfaceConfig($if_ref));
+    return 1 if not &setInterfaceConfig($if_ref);
 
     if ($state == 0) {
         $if_ref->{status} = "up";
@@ -2121,17 +2075,14 @@ sub setVlan ($if_ref, $params) {
     }
 
     if ($eload && exists $params->{mac}) {
-        return 1
-          if (&eload(
-            module => 'Relianoid::Net::Mac',
-            func   => 'addMAC',
-            args   => [ $if_ref->{name}, $if_ref->{mac} ]
-          ));
+        if (&eload(module => 'Relianoid::EE::Net::Mac', func => 'addMAC', args => [ $if_ref->{name}, $if_ref->{mac} ])) {
+            return 1;
+        }
     }
 
     # if the GW is changed, change it in all appending virtual interfaces
-    if (exists $if_ref->{gateway} and length $if_ref->{gateway} > 0) {
-        foreach my $appending (&getInterfaceChild($if_ref->{name})) {
+    if ($if_ref->{gateway}) {
+        for my $appending (&getInterfaceChild($if_ref->{name})) {
             my $app_config = &getInterfaceConfig($appending);
             $app_config->{gateway} = $params->{gateway};
             &setInterfaceConfig($app_config);
@@ -2140,7 +2091,7 @@ sub setVlan ($if_ref, $params) {
 
     # if the netmask is changed, change it in all appending virtual interfaces
     if (exists $params->{netmask}) {
-        foreach my $appending (&getInterfaceChild($if_ref->{name})) {
+        for my $appending (&getInterfaceChild($if_ref->{name})) {
             my $app_config = &getInterfaceConfig($appending);
             &delRoutes("local", $app_config);
             &downIf($app_config);
@@ -2177,10 +2128,8 @@ Parameters:
 
     $if_ref - VLAN interface reference 
 
-Returns:
+Returns: integer
 
-    Integer
-    
     0        - On success
     Non-zero - If there was an error
 

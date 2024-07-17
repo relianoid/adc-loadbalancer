@@ -91,52 +91,6 @@ sub _runHTTPFarmStart ($farm_name, $writeconf = undef) {
     &setHTTPFarmBackendStatusFromFile($farm_name);
     &setHTTPFarmBootStatus($farm_name, "up") if ($writeconf);
 
-    if (&getGlobalConfiguration("proxy_ng") eq 'true') {
-        if (&getGlobalConfiguration("mark_routing_L7") eq 'true') {
-
-            # load backend routing rules
-            &doL7FarmRules("start", $farm_name);
-
-            # create L4 farm type local
-            my $farm_vip   = &getFarmVip("vip",  $farm_name);
-            my $farm_vport = &getFarmVip("vipp", $farm_name);
-            require Relianoid::Net::Validate;
-            my $vip_family;
-            if (&ipversion($farm_vip) == 6) {
-                $vip_family = "ipv6";
-            }
-            else {
-                $vip_family = "ipv4";
-            }
-
-            my $body =
-              qq({"farms" : [ { "name" : "$farm_name", "virtual-addr" : "$farm_vip", "virtual-ports" : "$farm_vport", "mode" : "local", "state": "up", "family" : "$vip_family" }]});
-
-            require Relianoid::Nft;
-            my $error = &httpNlbRequest({
-                farm   => $farm_name,
-                method => "PUT",
-                uri    => "/farms",
-                body   => $body
-            });
-            if ($error) {
-                &zenlog("L4xnat Farm Type local for '$farm_name' can not be created.", "warning", "LSLB");
-            }
-        }
-
-        if ($eload) {
-            &eload(
-                module => 'Relianoid::Farm::HTTP::Sessions::Ext',
-                func   => 'reloadL7FarmSessions',
-                args   => [$farm_name],
-            );
-
-            if (&getGlobalConfiguration("floating_L7") eq 'true') {
-                &reloadFarmsSourceAddressByFarm($farm_name);
-            }
-        }
-    }
-
     return $status;
 }
 
@@ -167,11 +121,13 @@ sub _runHTTPFarmStop ($farm_name, $writeconf = undef) {
     &setHTTPFarmBootStatus($farm_name, "down") if ($writeconf);
 
     require Relianoid::Farm::HTTP::Config;
-    return 0 if (&getHTTPFarmStatus($farm_name) eq "down");
+    return 0 if &getHTTPFarmStatus($farm_name) eq "down";
 
     my $piddir = &getGlobalConfiguration('piddir');
+
     if (&getHTTPFarmConfigIsOK($farm_name) == 0) {
         my @pids = &getFarmPid($farm_name);
+
         if (!@pids) {
             &zenlog("Not found pid", "warning", "LSLB");
         }
@@ -182,27 +138,12 @@ sub _runHTTPFarmStop ($farm_name, $writeconf = undef) {
             sleep($time);
         }
 
-        if (&getGlobalConfiguration("proxy_ng") eq 'true') {
-            if (&getGlobalConfiguration("mark_routing_L7") eq 'true') {
-                require Relianoid::Nft;
-                &httpNlbRequest({
-                    farm   => $farm_name,
-                    method => "DELETE",
-                    uri    => "/farms/" . $farm_name,
-                });
-                &doL7FarmRules("stop", $farm_name);
-            }
-        }
-
-        unlink("$piddir\/$farm_name\_proxy.pid")
-          if -e "$piddir\/$farm_name\_proxy.pid";
-        unlink("\/tmp\/$farm_name\_proxy.socket")
-          if -e "\/tmp\/$farm_name\_proxy.socket";
+        unlink("${piddir}/${farm_name}_proxy.pid") if -e "${piddir}/${farm_name}_proxy.pid";
+        unlink("/tmp/${farm_name}_proxy.socket")   if -e "/tmp/${farm_name}_proxy.socket";
 
         require Relianoid::Lock;
         my $lf = &getLockFile($farm_name);
-        unlink($lf) if -e $lf;
-
+        unlink $lf if -e $lf;
     }
     else {
         &zenlog("Farm $farm_name can't be stopped, check the logs and modify the configuration", "info", "LSLB");
@@ -232,7 +173,7 @@ Returns:
 
 =cut
 
-sub copyHTTPFarm ($farm_name, $new_farm_name, $del = undef) {
+sub copyHTTPFarm ($farm_name, $new_farm_name, $del = "") {
     use File::Copy qw(copy);
     require Relianoid::File;
 
@@ -254,7 +195,7 @@ sub copyHTTPFarm ($farm_name, $new_farm_name, $del = undef) {
     my $oFN = $farm_name;        # old farm name
     my $nFN = $new_farm_name;    # new farm name
 
-    foreach my $farm_file (@farm_configfiles) {
+    for my $farm_file (@farm_configfiles) {
         my $new_farm_filename = shift @new_farm_configfiles;
 
         next unless (-e $farm_file);
@@ -286,27 +227,14 @@ sub copyHTTPFarm ($farm_name, $new_farm_name, $del = undef) {
             $l =~ s/\t#Service "${oFN}"/\t#Service "${nFN}"/;
         }
 
-        if (&getGlobalConfiguration("proxy_ng") eq 'true') {
+        my $match   = qq(Control \t"\/tmp\/${oFN}_proxy.socket");
+        my $replace = qq(Control \t"\/tmp\/${nFN}_proxy.socket");
 
-            # Remove old Marks
-            @lines = grep { not(/\t\t\tNfMark\s*(.*)/) } @lines;
-        }
-        else {
-            my $match   = qq(Control \t"\/tmp\/${oFN}_proxy.socket");
-            my $replace = qq(Control \t"\/tmp\/${nFN}_proxy.socket");
-            for my $l (@lines) {
-                $l =~ s/${match}/${replace}/;
-            }
+        for my $l (@lines) {
+            $l =~ s/${match}/${replace}/;
         }
 
         writeFileFromArray($new_farm_filename, \@lines);
-
-        if (&getGlobalConfiguration("proxy_ng") eq 'true') {
-
-            # Add new Marks
-            require Relianoid::Farm::HTTP::Backend;
-            &setHTTPFarmBackendsMarks($new_farm_name);
-        }
 
         &zenlog("Configuration saved in $new_farm_filename file", "info", "LSLB");
     }
@@ -315,74 +243,7 @@ sub copyHTTPFarm ($farm_name, $new_farm_name, $del = undef) {
         unlink("\/tmp\/$farm_name\_pound.socket");
     }
 
-    if (&getGlobalConfiguration("proxy_ng") eq 'true' and $del eq 'del') {
-        &delMarks($farm_name, "");
-    }
-
     return $output;
-}
-
-=pod
-
-=head1 sendL7ZproxyCmd
-
-Send request to Zproxy
-
-Parameters:
-
-    self - hash that includes hash_keys:
-
-    farmname: it is the farm that is going to be modified
-    method:   HTTP verb for zproxy request
-    uri
-    body:     body to use in POST and PUT requests
-
-Returns:
-
-    HASH Object - return result of the request command
-     or
-    Integer 1 on error
-
-=cut
-
-sub sendL7ZproxyCmd ($self) {
-    if (&getGlobalConfiguration('proxy_ng') ne 'true') {
-        &zenlog("Property only available for zproxy", "error", "LSLB");
-        return 1;
-    }
-    if (!defined $self->{farm}) {
-        &zenlog("Missing mandatory param farm", "error", "LSLB");
-        return 1;
-    }
-    if (!defined $self->{uri}) {
-        &zenlog("Missing mandatory param uri", "error", "LSLB");
-        return 1;
-    }
-
-    require JSON;
-    require Relianoid::Farm::HTTP::Config;
-
-    my $method = defined $self->{method} ? "-X $self->{ method } " : "";
-    my $url    = "http://localhost/$self->{ uri }";
-    my $body   = defined $self->{body} ? "--data-ascii '" . $self->{body} . "' " : "";
-
-    # i.e: curl --unix-socket /tmp/webfarm_proxy.socket  http://localhost/listener/0
-    my $curl_bin = &getGlobalConfiguration('curl_bin');
-    my $socket   = &getHTTPFarmSocket($self->{farm});
-    my $cmd      = "$curl_bin " . $method . $body . "--unix-socket $socket $url";
-
-    my $resp = &logAndGet($cmd, 'string');
-
-    return 1 unless (defined $resp && $resp ne '');
-
-    $resp = eval { &JSON::decode_json($resp) };
-
-    if ($@) {
-        &zenlog("Decoding json: $@", "error", "LSLB");
-        return 1;
-    }
-
-    return $resp;
 }
 
 =pod

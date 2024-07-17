@@ -21,6 +21,14 @@
 #
 ###############################################################################
 
+=pod
+
+=head1 Module
+
+Relianoid::CGI
+
+=cut
+
 use strict;
 use warnings;
 use feature qw(signatures state);
@@ -31,35 +39,18 @@ $CGI::Simple::POST_MAX        = 1_048_576_000;    # allow 1000MB uploads
 
 =pod
 
-=head1 Module
-
-Relianoid::CGI
-
-=cut
-
-=pod
-
 =head1 getCGI
 
-Get a cgi object only once per http request and reuse the same object if the function is used more than once.
+Get a L<CGI::Simple> object. The object is reused if called more than once in the request.
 
-Parameters:
+Parameters: None
 
-    none - .
-
-Returns:
-
-    CGI Object - CGI Object reference.
-
-See Also:
-
-    api/v4/zapi.cgi, api/v4/certificates.cgi, api/v4/system.cgi, <downloadBackup>
+Returns: L<CGI::Simple> object
 
 =cut
 
 sub getCGI () {
     state $cgi = CGI::Simple->new();
-
     return $cgi;
 }
 
@@ -67,39 +58,42 @@ sub getCGI () {
 
 =head1 getCgiParam
 
-Get CGI variables.
+Get CGI variables. This functions can be used in two diferent ways:
 
-This functions can be used in two diferent ways:
+1. When a variable name is passed as an argument, the variable value is returned:
 
-1- When a variable name is passed as an argument, the variable value is returned:
+    &getCgiParam(variableName);
 
-    $var = &getCgiParam( 'variableName' );
-
-2- When no arguments are passed, a hash reference with all the variables is returned:
+2. When no arguments are passed, a hash reference with all the variables is returned:
 
     $hash_ref = &getCgiParam();
-    print $hash_ref->{ 'variableName' };
+    $hash_ref->{variableName};
 
 Parameters:
 
-    String - CGI variable name. Optional.
+    param - string - Optional. CGI variable name.
 
 Returns:
 
-    Scalar - Variable value. When a variable name has been passed as an argument.
-    Scalar - Reference to a hash with all the CGI variables. When the function is run without arguments.
+- When a variable name has been passed as an argument:
 
-See Also:
+    &getCgiParam( 'variableName' );
 
-    api/v4/zapi.cgi
+  - If the variable is found: string - Variable value.
+  - If the variable is not found: undefined
+
+- When the function is run without arguments:
+
+    &getCgiParam();
+
+    hash reference - With all the CGI variables.
 
 =cut
 
-sub getCgiParam ($variable) {
+sub getCgiParam ($param = undef) {
     my $cgi = getCGI();
 
-    return eval { $cgi->param($variable) } if $variable;
-
+    return eval { $cgi->param($param) } if $param;
     return $cgi->Vars;
 }
 

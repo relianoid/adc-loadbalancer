@@ -1,0 +1,162 @@
+#!/usr/bin/perl
+###############################################################################
+#
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
+#
+#    Copyright (C) 2014-today RELIANOID
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Affero General Public License as
+#    published by the Free Software Foundation, either version 3 of the
+#    License, or any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU Affero General Public License for more details.
+#
+#    You should have received a copy of the GNU Affero General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+use strict;
+use warnings;
+use feature qw(signatures);
+
+=pod
+
+=head1 Module
+
+Relianoid::HTTP::Controllers::API::Interface::Gateway
+
+=cut
+
+sub get_gateway_controller ($ip_ver) {
+    require Relianoid::Net::Route;
+
+    my $desc = "Default gateway";
+    my $ip_v = ($ip_ver == 6) ? 6 : 4;
+
+    my $addr    = ($ip_v == 6) ? &getIPv6DefaultGW()   : &getDefaultGW();
+    my $if_name = ($ip_v == 6) ? &getIPv6IfDefaultGW() : &getIfDefaultGW();
+
+    my $body = {
+        description => $desc,
+        params      => {
+            address   => $addr,
+            interface => $if_name,
+        },
+    };
+
+    return &httpResponse({ code => 200, body => $body });
+}
+
+sub modify_gateway_controller ($json_obj, $ip_ver) {
+    require Relianoid::Net::Route;
+
+    my $desc       = "Modify default gateway";
+    my $ip_v       = ($ip_ver == 6) ? 6                   : 4;
+    my $default_gw = ($ip_v == 6)   ? &getIPv6DefaultGW() : &getDefaultGW();
+    my $ip_format  = ($ip_v == 6)   ? 'IPv6_addr'         : 'IPv4_addr';
+
+    my $params = &getAPIModel("gateway-modify.json");
+
+    # if default gateway is not configured requires address and interface
+    if (!$default_gw) {
+        $params->{interface}{required} = "true";
+        $params->{address}{required}   = "true";
+    }
+    $params->{address}{valid_format} = $ip_format;
+
+    # Check allowed parameters
+    if (my $error_msg = &checkApiParams($json_obj, $params, $desc)) {
+        return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg });
+    }
+
+    # validate INTERFACE
+    if (exists $json_obj->{interface}) {
+        require Relianoid::Net::Interface;
+
+        my @system_interfaces = &getInterfaceList();
+
+        unless (grep ({ $json_obj->{interface} eq $_ } @system_interfaces)) {
+            my $msg = "Gateway interface not found.";
+            return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
+        }
+    }
+
+    my $interface = $json_obj->{interface};
+    my $address   = $json_obj->{address} // $default_gw;
+
+    unless ($interface) {
+        $interface = ($ip_ver == 6) ? &getIPv6IfDefaultGW() : &getIfDefaultGW();
+    }
+
+    require Relianoid::Net::Interface;
+    my $if_ref = &getInterfaceConfig($interface);
+
+    # check if network is correct
+    require Relianoid::Net::Validate;
+
+    unless (&validateGateway($if_ref->{addr}, $if_ref->{mask}, $address)) {
+        my $msg = "The gateway is not valid for the network.";
+        return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+    }
+
+    &zenlog("applyRoutes interface:$interface address:$address if_ref:$if_ref", "debug", "NETWORK")
+      if &debug();
+
+    my $error = &applyRoutes("global", $if_ref, $address);
+
+    if ($error) {
+        my $msg = "The default gateway hasn't been changed";
+        return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+    }
+
+    my $msg  = "The default gateway has been changed successfully";
+    my $body = {
+        description => $desc,
+        success     => "true",
+        message     => $msg,
+    };
+
+    return &httpResponse({ code => 200, body => $body });
+}
+
+sub delete_gateway_controller ($ip_ver) {
+    require Relianoid::Net::Route;
+    require Relianoid::Net::Interface;
+
+    my $desc = "Remove default gateway";
+    my $ip_v = ($ip_ver == 6) ? 6 : 4;
+
+    my $defaultgwif = ($ip_v == 6) ? &getIPv6IfDefaultGW() : &getIfDefaultGW();
+    my $if_ref      = &getInterfaceConfig($defaultgwif, $ip_v);
+    $$if_ref{ip_v} //= $ip_v;
+
+    my $error = &delRoutes("global", $if_ref);
+
+    if ($error) {
+        my $msg = "The default gateway hasn't been deleted";
+        return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+    }
+
+    my $addr    = ($ip_v == 6) ? &getIPv6DefaultGW()   : &getDefaultGW();
+    my $if_name = ($ip_v == 6) ? &getIPv6IfDefaultGW() : &getIfDefaultGW();
+
+    my $msg  = "The default gateway has been deleted successfully";
+    my $body = {
+        description => $desc,
+        message     => $msg,
+        params      => {
+            address   => $addr,
+            interface => $if_name,
+        },
+    };
+
+    return &httpResponse({ code => 200, body => $body });
+}
+
+1;

@@ -44,7 +44,6 @@ sub warning_signal {    ## no critic Subroutines::RequireArgUnpacking
 }
 
 # Get the program name for zenlog
-my $TAG = "[Log.pm]";
 my $program_name =
     ($0 ne '-e')                                     ? $0
   : (exists $ENV{_} && $ENV{_} !~ /enterprise.bin$/) ? $ENV{_}
@@ -94,25 +93,29 @@ Returns:
 sub zenlog ($message, $type = 'info', $tag = '') {
     if ($tag eq 'PROFILING') {
         $type = "debug5";
-        return 0 if (&debug() < 5);
+        return if &debug() < 5;
     }
 
-    if ($type =~ /^(debug)(\d*)?$/) {
-        my $debug_level = $2 // '1';
-        if (&debug() lt $debug_level) {
+    if ($type =~ /^debug(\d)?$/i) {
+        my $log_debug_level = $1 // 1;
+
+        # skip logs messages not included in the log level
+        if (&debug() lt $log_debug_level) {
             return;
         }
-        $type = "${1}${debug_level}";
+
+        $type = "DEBUG";
+        $type .= $log_debug_level if $log_debug_level > 1;
+    }
+    else {
+        $type = uc($type);
     }
 
     if ($tag) {
         $tag = lc "${tag} :: ";
     }
 
-    my $program = $basename;
-    $type = uc($type);
-
-    openlog($program, LOG_PID, LOG_LOCAL0);
+    openlog($basename, LOG_PID, LOG_LOCAL0);
     syslog(LOG_INFO, "(${type}) ${tag}${message}");
     closelog();
 
@@ -187,45 +190,6 @@ sub notlog ($message, $type = 'info', $tag = "") {
 
 =pod
 
-=head1 zlog
-
-Log some call stack information with an optional message.
-
-This function is only used for debugging pourposes.
-
-Parameters:
-
-    message - Optional message to be printed with the stack information.
-
-Returns:
-
-    none
-
-=cut
-
-sub zlog (@message) {
-
-    #my ($package,   # 0
-    #$filename,      # 1
-    #$line,          # 2
-    #$subroutine,    # 3
-    #$hasargs,       # 4
-    #$wantarray,     # 5
-    #$evaltext,      # 6
-    #$is_require,    # 7
-    #$hints,         # 8
-    #$bitmask,       # 9
-    #$hinthash       # 10
-    #) = caller (1);	 # arg = number of suroutines back in the stack trace
-
-    #~ use Data::Dumper;
-    &zenlog('>>> ' . (caller(3))[3] . ' >>> ' . (caller(2))[3] . ' >>> ' . (caller(1))[3] . " => @message");
-
-    return;
-}
-
-=pod
-
 =head1 logAndRun
 
 Log and run the command string input parameter returning execution error code.
@@ -236,7 +200,7 @@ Parameters:
 
 Returns:
 
-    integer - ERRNO or return code returned by the command.
+    integer - Return code.
 
 See Also:
 
@@ -281,6 +245,7 @@ Returns:
 sub logAndRunBG ($command) {
     my $program = $basename;
 
+    # system("command &") always returns 0
     my $return_code = system("$command >/dev/null 2>&1 &");
 
     if ($return_code) {
@@ -291,18 +256,7 @@ sub logAndRunBG ($command) {
         &zenlog($program . " running: $command", "debug", "SYSTEM");
     }
 
-    # return_code is -1 on error.
-
-    # returns true on error launching the program, false on error launching the program
-    return $return_code == -1;
-}
-
-# Only used in API 3.1, 3.2 and 4.0
-sub zdie ($message) {
-    &zenlog($message);
-    carp($message);
-
-    return;
+    return $return_code;
 }
 
 =pod
@@ -360,7 +314,7 @@ Returns:
 
 See Also:
 
-    <_runGSLBFarmStart>, <_runGSLBFarmStop>, <runGSLBFarmReload>, <runGSLBFarmCreate>
+    C<_runGSLBFarmStart>, C<runGSLBFarmCreate>
 
 =cut
 
@@ -413,18 +367,15 @@ TODO:
 =cut
 
 sub logAndGet ($cmd, $type = 'string', $add_stderr = 0) {
-    my $tmp_err = ($add_stderr) ? '&1' : "/tmp/err.log";
-    my @print_err;
-
-    my $out      = `$cmd 2>$tmp_err`;
-    my $err_code = $?;
+    my $tmp_err  = ($add_stderr) ? '&1' : "/tmp/err.log";
+    my $out      = `$cmd 2>$tmp_err` // '';
+    my $err_code = $? >> 8;
 
     if (&debug() >= 2) {
         &zenlog("Executed (out: $err_code): $cmd", "debug2", "system");
     }
 
     if ($err_code and not $add_stderr) {
-
         # execute again, removing stdout and getting stderr
         if (open(my $fh, '<', $tmp_err)) {
             local $/ = undef;
@@ -440,9 +391,7 @@ sub logAndGet ($cmd, $type = 'string', $add_stderr = 0) {
     chomp($out);
 
     # logging if there is not any error
-    if (!@print_err) {
-        &zenlog("out: $out", "debug3", "SYSTEM");
-    }
+    &zenlog("out: $out", "debug3", "SYSTEM");
 
     if ($type eq 'array') {
         my @out = split("\n", $out);
@@ -479,7 +428,7 @@ sub logAndRunCheck ($command) {
     my $program = $basename;
 
     my @cmd_output  = `$command 2>&1`;
-    my $return_code = $?;
+    my $return_code = $? >> 8;
 
     if (&debug() >= 2) {
         &zenlog($program . " err_code '$return_code' checking: $command", "debug2", "SYSTEM");
@@ -525,7 +474,7 @@ sub logRunAndGet ($command, $format = 'string', $outflush = 0) {
     $exit->{stdout} = $get[0];
     $exit->{stderr} = $get[1];
 
-    &zenlog("Executed (out: $exit->{ stderr }): $command", "debug", "system");
+    &zenlog("Executed (out: $exit->{stderr}): $command", "debug", "system");
 
     if ($format eq 'array') {
         my @out = split("\n", $get[0]);

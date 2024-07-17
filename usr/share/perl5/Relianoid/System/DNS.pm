@@ -54,10 +54,6 @@ Returns:
         secundary => "value",
     };
 
-See Also:
-
-    api/v4/system.cgi
-
 =cut
 
 sub getDns () {
@@ -68,15 +64,15 @@ sub getDns () {
         return;
     }
 
-    open(my $fd, '<', $dnsFile);
-    my @file = <$fd>;
-    close $fd;
+    open(my $fh, '<', $dnsFile);
+    my @file = <$fh>;
+    close $fh;
 
     my $index = 1;
-    foreach my $line (@file) {
+    for my $line (@file) {
         if ($line =~ /nameserver\s+([^\s]+)/) {
-            $dns->{'primary'}   = $1 if ($index == 1);
-            $dns->{'secondary'} = $1 if ($index == 2);
+            $dns->{primary}   = $1 if ($index == 1);
+            $dns->{secondary} = $1 if ($index == 2);
 
             $index++;
             last if ($index > 2);
@@ -105,10 +101,6 @@ Bugs:
 
     Returned value.
 
-See Also:
-
-    zapi/v4/system.cgi
-
 =cut
 
 sub setDns ($dns, $value) {
@@ -124,7 +116,7 @@ sub setDns ($dns, $value) {
 
     my $index      = 1;
     my $line_index = 0;
-    foreach my $line (@dnsArr) {
+    for my $line (@dnsArr) {
         $line_index++;
         if ($line =~ /\s*nameserver/) {
             $line = "nameserver $value"

@@ -64,9 +64,9 @@ sub writeRoutes ($if_name) {
 
     &zenlog("Creating table 'table_$if_name'", "debug");
 
-    open my $rt_fd, '<', $rttables;
-    my @contents = <$rt_fd>;
-    close $rt_fd;
+    open my $fh, '<', $rttables;
+    my @contents = <$fh>;
+    close $fh;
 
     # the table is already in the file, nothig to do
     if (grep { /^...\ttable_$if_name$/ } @contents) {
@@ -84,9 +84,9 @@ sub writeRoutes ($if_name) {
     }
 
     if ($found eq "true") {
-        open(my $rt_fd, ">>", "$rttables");
-        print $rt_fd "$rtnumber\ttable_$if_name\n";
-        close $rt_fd;
+        open(my $fh, ">>", $rttables);
+        print $fh "$rtnumber\ttable_$if_name\n";
+        close $fh;
 
         &zenlog("Created the table ID 'table_$if_name'", "info", "network");
     }
@@ -120,7 +120,7 @@ sub deleteRoutesTable ($if_name) {
     @contents = grep { !/\ttable_$if_name\n/ } @contents;
 
     open my $route_table_out, '>', $rttables;
-    foreach my $table (@contents) {
+    for my $table (@contents) {
         print $route_table_out $table;
     }
     close $route_table_out;
@@ -188,7 +188,7 @@ See Also:
 =cut
 
 sub addlocalnet ($if_ref) {
-    &zenlog("addlocalnet( name: $$if_ref{ name }, addr: $$if_ref{ addr }, mask: $$if_ref{ mask } )", "debug", "NETWORK")
+    &zenlog("addlocalnet( name: $$if_ref{name}, addr: $$if_ref{addr}, mask: $$if_ref{mask} )", "debug", "NETWORK")
       if &debug();
 
     # Get network
@@ -202,14 +202,14 @@ sub addlocalnet ($if_ref) {
     my @isolates = ();
     if ($eload) {
         @isolates = &eload(
-            module => 'Relianoid::Net::Routing',
+            module => 'Relianoid::EE::Net::Routing',
             func   => 'getRoutingIsolate',
             args   => [ $$if_ref{name} ],
         );
     }
 
     # filling the other tables
-    foreach my $link (@links) {
+    for my $link (@links) {
         my $skip_route = 0;
         next if $link eq 'lo';
         next if $link eq 'cl_maintenance';
@@ -245,7 +245,7 @@ sub addlocalnet ($if_ref) {
 
         if ($eload) {
             &eload(
-                module => 'Relianoid::Net::Routing',
+                module => 'Relianoid::EE::Net::Routing',
                 func   => 'applyRoutingTableByIface',
                 args   => [ $table, $$if_ref{name} ],
             );
@@ -254,7 +254,7 @@ sub addlocalnet ($if_ref) {
 
     # filling the own table
     my @ifaces = @{ &getConfigInterfaceList() };
-    foreach my $iface (@ifaces) {
+    for my $iface (@ifaces) {
         next if $iface->{name} eq $if_ref->{name};
         my $iface_sys = &getSystemInterface($iface->{name});
         use Relianoid::Net::Core;
@@ -269,7 +269,7 @@ sub addlocalnet ($if_ref) {
         my @isolates = ();
         if ($eload) {
             @isolates = &eload(
-                module => 'Relianoid::Net::Routing',
+                module => 'Relianoid::EE::Net::Routing',
                 func   => 'getRoutingIsolate',
                 args   => [ $$iface{name} ],
             );
@@ -281,7 +281,7 @@ sub addlocalnet ($if_ref) {
         #if duplicated network, next
         my $ip    = NetAddr::IP->new($$iface{addr}, $$iface{mask});
         my $net   = $ip->network();
-        my $table = "table_$$if_ref{ name }";
+        my $table = "table_$$if_ref{name}";
 
         if ($net eq $net_local && $$iface{name} ne $$if_ref{name}) {
             &zenlog(
@@ -296,7 +296,7 @@ sub addlocalnet ($if_ref) {
 
     if ($eload) {
         &eload(
-            module => 'Relianoid::Net::Routing',
+            module => 'Relianoid::EE::Net::Routing',
             func   => 'applyRoutingCustom',
             args   => [ 'add', "table_$$if_ref{name}" ],
         );
@@ -330,27 +330,28 @@ Returns:
 
 sub isRoute ($route, $ipv = undef) {
     $ipv = $ipv ? "-$ipv" : '';
-    my $exist  = 1;
+
+    my $exists = 1;
     my $ip_cmd = "$ip_bin $ipv route list $route";
     my $out    = &logAndGet("$ip_cmd");
 
     if ($out eq '') {
-        $exist = 0;
+        $exists = 0;
     }
     else {
         require Relianoid::Validate;
         my $ip_re = &getValidFormat('ipv4v6');
-        $exist = 0
-          if ($exist && $route !~ /src $ip_re/ && $out =~ /src $ip_re/);
+        $exists = 0
+          if ($exists && $route !~ /src $ip_re/ && $out =~ /src $ip_re/);
     }
 
     if (&debug() > 1) {
-        my $msg = ($exist) ? "(Already exist)" : "(Not found)";
+        my $msg = ($exists) ? "(Already exists)" : "(Not found)";
         $msg .= " $ip_cmd";
         &zenlog($msg, "debug", "net");
     }
 
-    return $exist;
+    return $exists;
 }
 
 =pod
@@ -374,13 +375,16 @@ Returns:
 
 sub existRoute ($route, $via, $src) {
     require Relianoid::Validate;
+
     my $ip_re = &getValidFormat('ipv4v6');
-    $route =~ s/via ($ip_re)// unless $via;
-    $route =~ s/src ($ip_re)// unless $src;
+
+    $route =~ s/via ($ip_re)// if not $via;
+    $route =~ s/src ($ip_re)// if not $src;
 
     my $ip_cmd = "$ip_bin route list $route";
     my $out    = &logAndGet("$ip_cmd");
-    my $exist  = ($out eq '') ? 0 : 1;
+
+    my $exist = ($out eq '') ? 0 : 1;
 
     return $exist;
 }
@@ -480,7 +484,7 @@ sub isRule ($conf) {
     my $exist = (grep { /^\d+:\s*$rule\s*$/ } @out) ? 1 : 0;
 
     if (&debug() > 1) {
-        my $msg = ($exist) ? "(Already exist)" : "(Not found)";
+        my $msg = ($exist) ? "(Already existed)" : "(Not found)";
         $msg .= " $cmd";
         &zenlog($msg, "debug", "net");
     }
@@ -546,7 +550,6 @@ Returns:
 =cut
 
 sub genRoutingRulesPrio ($type) {
-
     # The maximun priority value in the system is '32766'
     my $farmL4       = &getGlobalConfiguration('routingRulePrioFarmL4');
     my $farmDatalink = &getGlobalConfiguration('routingRulePrioFarmDatalink');
@@ -581,7 +584,6 @@ sub genRoutingRulesPrio ($type) {
     }
 
     if ($eload) {
-
         # vpn rules
         my $vpn = &getGlobalConfiguration('routingRulePrioVPN');
         if ($type eq 'vpn') {
@@ -593,7 +595,7 @@ sub genRoutingRulesPrio ($type) {
     my $prio;
     my $prioList = &listRoutingRulesPrio();
     for ($prio = $max - 1 ; $prio >= $min ; $prio--) {
-        last if (!grep { /^$prio$/ } @{$prioList});
+        last if (!grep { $prio eq $_ } @{$prioList});
     }
 
     return $prio;
@@ -619,7 +621,7 @@ sub listRoutingRulesPrio () {
     my $rules = &listRoutingRules();
     my @list;
 
-    foreach my $r (@{$rules}) {
+    for my $r (@{$rules}) {
         push @list, $r->{priority};
     }
 
@@ -654,7 +656,7 @@ sub getRuleFromIface ($if_ref) {
     if (defined($if_ref->{net}) && $if_ref->{net} ne '') {
         $from =
           ($if_ref->{mask} =~ /^\d$/)
-          ? "$if_ref->{ net }/$if_ref->{ mask }"
+          ? "$if_ref->{net}/$if_ref->{mask}"
           : NetAddr::IP->new($if_ref->{net}, $if_ref->{mask})->cidr();
     }
 
@@ -783,7 +785,6 @@ sub applyRoutes ($table, $if_ref, $gateway = undef) {
             $status = &setRule("add", $rule);
         }
         else {
-
             # Apply routes on the global table
             if ($gateway) {
                 my $routeparams = &getGlobalConfiguration('routeparams');
@@ -836,12 +837,12 @@ sub applyRoutes ($table, $if_ref, $gateway = undef) {
     eval {
         if ($eload) {
             my $cl_status = &eload(
-                module => 'Relianoid::Cluster',
+                module => 'Relianoid::EE::Cluster',
                 func   => 'getZClusterNodeStatus',
                 args   => [],
             );
             my $cl_maintenance = &eload(
-                module => 'Relianoid::Cluster',
+                module => 'Relianoid::EE::Cluster',
                 func   => 'getClMaintenanceManual',
                 args   => [],
             );
@@ -851,9 +852,7 @@ sub applyRoutes ($table, $if_ref, $gateway = undef) {
                 &zenlog("Announcing garp $if_announce and $$if_ref{addr} ");
                 &sendGArp($if_announce, $$if_ref{addr});
             }
-
         }
-
     };
 
     return $status;
@@ -894,13 +893,11 @@ sub delRoutes ($table, $if_ref) {
     &zenlog("Deleting $table routes for IPv$$if_ref{ip_v} in interface $$if_ref{name}", "info", "NETWORK");
 
     if (!defined $$if_ref{vini} || $$if_ref{vini} eq '') {
-
         #an interface is going to be deleted, delete the rule of the IP first
         require Relianoid::Net::Core;
         &setRuleIPtoTable($$if_ref{name}, $$if_ref{addr}, "del");
 
         if ($table eq "local") {
-
             # exists if the tables does not exist
             if (!grep { /^table_$if_ref->{name}/ } &listRoutingTablesNames()) {
                 &zenlog("The table table_$if_ref->{name} was not flushed because it was not found", "debug2", "net");
@@ -936,7 +933,6 @@ sub delRoutes ($table, $if_ref) {
             return $status;
         }
         else {
-
             # Delete routes on the global table
             my $ip_cmd = "$ip_bin -$$if_ref{ip_v} route del default";
             $status = &logAndRun("$ip_cmd");
@@ -991,13 +987,13 @@ sub getDefaultGW ($if_name = undef) {
             $routed_if = $iface[0];
         }
 
-        open(my $rt_fd, '<', &getGlobalConfiguration('rttables'));
+        open(my $fh, '<', &getGlobalConfiguration('rttables'));
 
-        if (grep { /^...\ttable_${routed_if}$/ } <$rt_fd>) {
+        if (grep { /^...\ttable_${routed_if}$/ } <$fh>) {
             @routes = @{ &logAndGet("${ip_bin} route list table table_${routed_if}", "array") };
         }
 
-        close $rt_fd;
+        close $fh;
     }
     else {
         @routes = @{ &logAndGet("$ip_bin route list", "array") };
@@ -1177,12 +1173,12 @@ sub listRoutingTablesNames () {
     chomp(my @rttables_lines = <$fh>);
     close $fh;
 
-    foreach my $line (@rttables_lines) {
+    for my $line (@rttables_lines) {
         next if ($line =~ /^\s*#/);
 
         if ($line =~ /\d+\s+([\w\-\.]+)/) {
             my $name = $1;
-            next if grep { /^$name$/ } @exceptions;
+            next if grep { $name eq $_ } @exceptions;
             push @list, $name;
         }
     }
@@ -1228,20 +1224,20 @@ sub listRoutingRulesSys ($filter = undef) {
     }
 
     # filter data
-    foreach my $r (@{$dec_data}) {
+    for my $r (@{$dec_data}) {
         if (   (not defined $filter)
             or ($filter->{$filter_param} eq $r->{$filter_param}))
         {
             my $type = (exists $r->{fwmask}) ? 'farm' : 'system';
 
             $r->{from} = $r->{src};
-            $r->{from} .= "/$r->{ srclen }" if exists($r->{srclen});
+            $r->{from} .= "/$r->{srclen}" if exists($r->{srclen});
 
             delete $r->{src};
             delete $r->{srclen};
 
-            $r->{to} = $r->{dst}          if exists($r->{dst});
-            $r->{to} .= "/$r->{ dstlen }" if exists($r->{dstlen});
+            $r->{to} = $r->{dst}        if exists($r->{dst});
+            $r->{to} .= "/$r->{dstlen}" if exists($r->{dstlen});
 
             delete $r->{dst};
             delete $r->{dstlen};
@@ -1274,22 +1270,21 @@ Returns:
 
 sub listRoutingRules () {
     my @rules_conf = ();
+
     if ($eload) {
-        my $conf = &eload(
-            module => 'Relianoid::Net::Routing',
-            func   => 'listRoutingRulesConf',
-            args   => [],
-        );
-        @rules_conf = @{$conf};
+        @rules_conf = @{ &eload(module => 'Relianoid::EE::Net::Routing', func => 'listRoutingRulesConf', args => [],) };
     }
 
     my @priorities = ();
-    foreach my $r (@rules_conf) {
+
+    for my $r (@rules_conf) {
         push @priorities, $r->{priority};
     }
 
-    foreach my $sys (@{ &listRoutingRulesSys() }) {
-        push @rules_conf, $sys if (!grep { /^$sys->{priority}$/ } @priorities);
+    for my $sys (@{ &listRoutingRulesSys() }) {
+        if (!grep { $sys->{priority} eq $_ } @priorities) {
+            push @rules_conf, $sys;
+        }
     }
 
     return \@rules_conf;
@@ -1305,8 +1300,8 @@ Only used for floating interfaces in getFloatingSourceAddr()
 
 Parameters:
 
-    ip - Ip address.
-    mark - mark.
+    ip - IP address
+    mark - Optional mark. For example: '0xX'
 
 Returns:
 
@@ -1316,28 +1311,27 @@ Variable: $route_ref
 
     Hash ref that maps the route info
 
-    $ref->{ in }->{ ip }       - dest ip address
-    $ref->{ in }->{ mark }     - mark.
-    $ref->{ out }->{ ifname }  - Interface name for output.
-    $ref->{ out }->{ srcaddr } - IP address for output.
-    $ref->{ out }->{ table }   - Route Table name used
-    $ref->{ out }->{ custom }  - Custom route
+    $ref->{in}{ip}       - dest ip address
+    $ref->{in}{mark}     - mark.
+    $ref->{out}{ifname}  - Interface name for output.
+    $ref->{out}{srcaddr} - IP address for output.
+    $ref->{out}{table}   - Route Table name used
+    $ref->{out}{custom}  - Custom route
 
 =cut
 
-sub getRoutingOutgoing ($ip, $mark) {
+sub getRoutingOutgoing ($ip, $mark = undef) {
     my $outgoing_ref;
+    $outgoing_ref->{in}{ip}       = $ip;
+    $outgoing_ref->{in}{mark}     = "";
+    $outgoing_ref->{out}{ifname}  = "";
+    $outgoing_ref->{out}{srcaddr} = "";
+    $outgoing_ref->{out}{table}   = "";
+    $outgoing_ref->{out}{custom}  = "";
 
-    $outgoing_ref->{in}->{ip}       = $ip;
-    $outgoing_ref->{in}->{mark}     = "";
-    $outgoing_ref->{out}->{ifname}  = "";
-    $outgoing_ref->{out}->{srcaddr} = "";
-    $outgoing_ref->{out}->{table}   = "";
-    $outgoing_ref->{out}->{custom}  = "";
-
-    my $mark_option;
+    my $mark_option = "";
     if ($mark) {
-        $outgoing_ref->{in}->{mark} = $mark;
+        $outgoing_ref->{in}{mark} = $mark;
         $mark_option = "mark $mark";
     }
 
@@ -1356,27 +1350,27 @@ sub getRoutingOutgoing ($ip, $mark) {
         if ($iface eq "lo") {
             my $cmd  = "$ip_bin -o -d route list table $table type local";
             my $data = &logAndGet($cmd, "array");
-            foreach my $route_local (@{$data}) {
+            for my $route_local (@{$data}) {
                 if ($route_local =~ /^local \Q$ip\E dev (.*) proto .* src .*/) {
                     $iface = $1;
                     last;
                 }
             }
-            $outgoing_ref->{out}->{custom} = "false";
+            $outgoing_ref->{out}{custom} = "false";
         }
         else {
             my $route_params = &getGlobalConfiguration('routeparams');
             if ($custom =~ $route_params) {
-                $outgoing_ref->{out}->{custom} = "false";
+                $outgoing_ref->{out}{custom} = "false";
             }
             else {
-                $outgoing_ref->{out}->{custom} = "true";
+                $outgoing_ref->{out}{custom} = "true";
             }
         }
 
-        $outgoing_ref->{out}->{ifname}  = $iface;
-        $outgoing_ref->{out}->{table}   = $table;
-        $outgoing_ref->{out}->{srcaddr} = $sourceaddr;
+        $outgoing_ref->{out}{ifname}  = $iface;
+        $outgoing_ref->{out}{table}   = $table;
+        $outgoing_ref->{out}{srcaddr} = $sourceaddr;
     }
 
     return $outgoing_ref;

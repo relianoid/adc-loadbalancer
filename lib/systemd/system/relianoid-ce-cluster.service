@@ -1,0 +1,12 @@
+[Unit]
+Description=RELIANOID CE Cluster Services
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/etc/init.d/relianoid-ce-cluster start
+ExecStop=/etc/init.d/relianoid-ce-cluster stop
+RemainAfterExit=true
+StandardOutput=journal

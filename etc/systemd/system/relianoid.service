@@ -1,0 +1,12 @@
+[Unit]
+Description=RELIANOID Load Balancer
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/etc/init.d/relianoid start
+ExecStop=/etc/init.d/relianoid stop
+RemainAfterExit=true
+StandardOutput=journal

@@ -51,9 +51,7 @@ Returns:
 
     String - "http", "https", "datalink", "l4xnat", "gslb" or 1 on failure
 
-NOTE:
-
-    Generic function
+FIXME: Return undefined, or "", or throw an exception on failure.
 
 =cut
 
@@ -61,9 +59,9 @@ sub getFarmType ($farm_name) {
     my $farm_filename = &getFarmFile($farm_name);
 
     if ($farm_filename =~ /^$farm_name\_proxy.cfg/) {
-        use File::Grep qw( fgrep );
+        require Relianoid::File;
 
-        if (fgrep { /ListenHTTPS/ } "$configdir/$farm_filename") {
+        if (grep { /ListenHTTPS/ } readFileAsArray("$configdir/$farm_filename")) {
             return "https";
         }
         else {
@@ -97,20 +95,18 @@ Returns:
 
     String - file name or -1 on failure
 
-NOTE:
-
-    Generic function
-
 =cut
 
 sub getFarmFile ($farm_name) {
     opendir(my $dir, "$configdir") || return -1;
+
     my @farm_files =
       grep {
              /^$farm_name\_(?:gslb|proxy|datalink|l4xnat)\.cfg$/
           && !/^$farm_name\_.*guardian\.conf$/
           && !/^$farm_name\_status.cfg$/
       } readdir($dir);
+
     closedir $dir;
 
     if (@farm_files) {
@@ -135,10 +131,6 @@ Returns:
 
     String - farm name
 
-NOTE:
-
-    Generic function
-
 =cut
 
 sub getFarmName ($farm_filename) {
@@ -152,17 +144,11 @@ sub getFarmName ($farm_filename) {
 
 Returns farms configuration filename list
 
-Parameters:
-
-    none
+Parameters: None
 
 Returns:
 
     Array - List of configuration files
-
-NOTE:
-
-    Generic function
 
 =cut
 
@@ -194,10 +180,6 @@ Returns:
 
     Array - List of farm name of a type
 
-NOTE:
-
-    Generic function
-
 =cut
 
 sub getFarmsByType ($farm_type) {
@@ -210,7 +192,7 @@ sub getFarmsByType ($farm_type) {
     my @farm_files = grep { /^.*\_.*\.cfg$/ } readdir($dir);
     closedir $dir;
 
-    foreach my $farm_filename (@farm_files) {
+    for my $farm_filename (@farm_files) {
         next if $farm_filename =~ /.*status.cfg/;
         next if $farm_filename =~ /.*sessions.cfg/;
         my $farm_name = &getFarmName($farm_filename);
@@ -229,9 +211,7 @@ sub getFarmsByType ($farm_type) {
 
 Returns a list with the farm names.
 
-Parameters:
-
-    none
+Parameters: None
 
 Returns:
 
@@ -242,7 +222,7 @@ Returns:
 sub getFarmNameList () {
     my @farm_names = ();
 
-    foreach my $farm_filename (&getFarmList()) {
+    for my $farm_filename (&getFarmList()) {
         push(@farm_names, &getFarmName($farm_filename));
     }
 
@@ -267,7 +247,7 @@ Returns:
 
 sub getFarmExists ($farmname) {
     my $out = 0;
-    $out = 1 if (grep { /^$farmname$/ } &getFarmNameList());
+    $out = 1 if (grep { $farmname eq $_ } &getFarmNameList());
     return $out;
 }
 

@@ -53,10 +53,6 @@ Returns:
 
     integer - ip command return code.
 
-See Also:
-
-    relianoid, <setInterfaceUp>, zapi/v?/interface.cgi
-
 =cut
 
 # create network interface
@@ -147,13 +143,13 @@ sub upIf ($if_ref, $writeconf = 0) {
         my $fileHandler = Config::Tiny->new();
         $fileHandler = Config::Tiny->read($file) if (-f $file);
 
-        $fileHandler->{ $if_ref->{name} }->{status} = "up";
+        $fileHandler->{ $if_ref->{name} }{status} = "up";
         $fileHandler->write($file);
     }
 
     if (not $status and $eload and $if_ref->{dhcp} eq 'true') {
         $status = &eload(
-            'module' => 'Relianoid::Net::DHCP',
+            'module' => 'Relianoid::EE::Net::DHCP',
             'func'   => 'startDHCP',
             'args'   => [ $if_ref->{name} ],
         );
@@ -181,10 +177,6 @@ Returns:
     integer - return code of ip command.
     writeconf - true value to apply change in interface configuration file. Optional.
 
-See Also:
-
-    <upIf>, <stopIf>, zapi/v?/interface.cgi
-
 =cut
 
 # down network interface in system and configuration file
@@ -196,9 +188,9 @@ sub downIf ($if_ref, $writeconf = 0) {
         return -1;
     }
 
-    if ($eload and $if_ref->{dhcp} eq 'true') {
+    if ($eload and $if_ref->{dhcp} and $if_ref->{dhcp} eq 'true') {
         $status = &eload(
-            'module' => 'Relianoid::Net::DHCP',
+            'module' => 'Relianoid::EE::Net::DHCP',
             'func'   => 'stopDHCP',
             'args'   => [ $if_ref->{name} ],
         );
@@ -218,7 +210,7 @@ sub downIf ($if_ref, $writeconf = 0) {
         $ip_cmd = "$ip_bin addr del $$if_ref{addr}/$$if_ref{mask} dev $routed_iface";
 
         &eload(
-            module => 'Relianoid::Net::Routing',
+            module => 'Relianoid::EE::Net::Routing',
             func   => 'applyRoutingDependIfaceVirt',
             args   => [ 'del', $if_ref ]
         ) if $eload;
@@ -236,7 +228,7 @@ sub downIf ($if_ref, $writeconf = 0) {
         my $fileHandler = Config::Tiny->new();
         $fileHandler = Config::Tiny->read($file) if (-f $file);
 
-        $fileHandler->{ $if_ref->{name} }->{status} = "down";
+        $fileHandler->{ $if_ref->{name} }{status} = "down";
         $fileHandler->write($file);
     }
 
@@ -279,14 +271,13 @@ See Also:
 
 # stop network interface
 sub stopIf ($if_ref) {
-    &zenlog("Stopping interface $$if_ref{ name }", "info", "NETWORK");
+    &zenlog("Stopping interface $$if_ref{name}", "info", "NETWORK");
 
     my $status = 0;
     my $if     = $$if_ref{name};
 
     # If $if is Vini do nothing
     if (!$$if_ref{vini}) {
-
         # If $if is a Interface, delete that IP
         my $ip_cmd = "$ip_bin address flush dev $$if_ref{name}";
         $status = &logAndRun($ip_cmd);
@@ -306,15 +297,15 @@ sub stopIf ($if_ref) {
         my $rttables = &getGlobalConfiguration('rttables');
 
         # Delete routes table
-        open my $rt_fd, '<', $rttables;
-        my @contents = <$rt_fd>;
-        close $rt_fd;
+        open my $fh, '<', $rttables;
+        my @contents = <$fh>;
+        close $fh;
 
         @contents = grep { !/^...\ttable_$if$/ } @contents;
 
-        open $rt_fd, '>', $rttables;
-        print $rt_fd @contents;
-        close $rt_fd;
+        open $fh, '>', $rttables;
+        print $fh @contents;
+        close $fh;
     }
     else {
         my @ifphysic = split(/:/, $if);
@@ -328,7 +319,7 @@ sub stopIf ($if_ref) {
             &logAndRun("$cmd");
 
             &eload(
-                module => 'Relianoid::Net::Routing',
+                module => 'Relianoid::EE::Net::Routing',
                 func   => 'applyRoutingDependIfaceVirt',
                 args   => [ 'del', $if_ref ]
             ) if $eload;
@@ -360,7 +351,7 @@ sub delIf ($if_ref) {
     # remove dhcp configuration
     if (exists $if_ref->{dhcp} and $if_ref->{dhcp} eq 'true') {
         &eload(
-            module => 'Relianoid::Net::DHCP',
+            module => 'Relianoid::EE::Net::DHCP',
             func   => 'disableDHCP',
             args   => [$if_ref],
         );
@@ -385,7 +376,6 @@ sub delIf ($if_ref) {
         }
         else {
             if (not defined $if_ref->{dhcp} or $if_ref->{dhcp} ne 'true') {
-
                 # If $if is a Interface, delete that IP
                 $ip_cmd = "$ip_bin addr del $$if_ref{addr}/$$if_ref{mask} dev $$if_ref{name}";
                 $status = &logAndRun($ip_cmd)
@@ -401,7 +391,7 @@ sub delIf ($if_ref) {
 
         #delete custom routes
         &eload(
-            module => 'Relianoid::Net::Routing',
+            module => 'Relianoid::EE::Net::Routing',
             func   => 'delRoutingDependIface',
             args   => [ $$if_ref{name} ],
         ) if ($eload);
@@ -422,17 +412,16 @@ sub delIf ($if_ref) {
     &delGraph($$if_ref{name}, "iface");
 
     if ($eload) {
-
         # delete alias
         &eload(
-            module => 'Relianoid::Alias',
+            module => 'Relianoid::EE::Alias',
             func   => 'delAlias',
             args   => [ 'interface', $$if_ref{name} ]
         );
 
         #delete from RBAC
         &eload(
-            module => 'Relianoid::RBAC::Group::Config',
+            module => 'Relianoid::EE::RBAC::Group::Config',
             func   => 'delRBACResource',
             args   => [ $$if_ref{name}, 'interfaces' ],
         );
@@ -440,11 +429,10 @@ sub delIf ($if_ref) {
         #reload netplug
         if (!defined($$if_ref{vini}) || $$if_ref{vini} eq '') {
             &eload(
-                module => 'Relianoid::Net::Ext',
+                module => 'Relianoid::EE::Net::Ext',
                 func   => 'reloadNetplug',
             );
         }
-
     }
 
     return $status;
@@ -513,7 +501,6 @@ See Also:
 =cut
 
 sub isIp ($if_ref) {
-
     # finish if the address is already assigned
     my $routed_iface = $$if_ref{dev};
     $routed_iface .= ".$$if_ref{vlan}" if defined $$if_ref{vlan} && $$if_ref{vlan} ne '';
@@ -601,7 +588,7 @@ sub addIp ($if_ref) {
     eval {
         if ($eload) {
             my $cl_status = &eload(
-                module => 'Relianoid::Cluster',
+                module => 'Relianoid::EE::Cluster',
                 func   => 'getZClusterNodeStatus',
                 args   => [],
             );
@@ -649,7 +636,6 @@ sub setRuleIPtoTable ($iface, $ip, $action) {
     my $prio = &getGlobalConfiguration('routingRulePrioIfacesDuplicated');
 
     if (&getGlobalConfiguration('duplicated_net') ne "true") {
-
         #this feature is not in use
         return 0;
     }
@@ -678,7 +664,6 @@ Returns:
 =cut
 
 sub execIpCmd ($command) {
-
     # do not use the logAndGet function, this function is managing the error output and error code
     my @cmd_output  = `$command 2>&1`;
     my $return_code = $?;

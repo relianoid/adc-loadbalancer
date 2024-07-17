@@ -42,7 +42,7 @@ Relianoid::Farm::Service
 =head1 getFarmServices
 
 Get a list of services name for a farm
-    
+
 Parameters:
 
     farm_name - Farm name
@@ -50,7 +50,7 @@ Parameters:
 Returns:
 
     Array - list of service names 
-    
+
 =cut
 
 sub getFarmServices ($farm_name) {
@@ -64,7 +64,7 @@ sub getFarmServices ($farm_name) {
 
     if ($farm_type eq "gslb") {
         @output = &eload(
-            module => 'Relianoid::Farm::GSLB::Service',
+            module => 'Relianoid::EE::Farm::GSLB::Service',
             func   => 'getGSLBFarmServices',
             args   => [$farm_name],
         ) if $eload;

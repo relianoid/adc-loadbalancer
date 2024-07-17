@@ -48,9 +48,9 @@ Parameters:
     ip - String with the ipv6
     bin - It is the binary for the format
 
-Returns:
+Returns: string
 
-    String - It is the IPv6 with the format of the binary parameter.
+IPv6 with the format of the binary parameter.
 
 =cut
 
@@ -76,15 +76,18 @@ It returns the protocols of layer 4 that use a profile or another protocol.
 
 Parameters:
 
-    profile or protocol - This parameter accepts a load balancer profile (for l4
-    it returns the default one when the farm is created): "http", "https", "l4xnat", "gslb";
-    or another protocol: "tcp", "udp", "sctp", "amanda", "tftp", "netbios-ns",
-    "snmp", "ftp", "irc", "pptp", "sane", "all", "sip" or "h323"
+    profile - This parameter accepts a load balancer profile 
+              (for Layer 4 it returns the default one when the farm is created): 
+                "http", "https", "l4xnat", "gslb"
+              or another protocol:
+                "tcp", "udp", "sctp", "amanda", "tftp", "netbios-ns",
+                "snmp", "ftp", "irc", "pptp", "sane", "all", "sip" or "h323"
 
-Returns:
+Returns: array reference
 
-    Array ref - It the list of transport protocols that use the passed protocol. The
-        possible values are "udp", "tcp" or "sctp"
+List of transport protocols that use the passed protocol.
+The possible values are "udp", "tcp" or "sctp".
+
 =cut
 
 sub getProtoTransport ($profile) {
@@ -98,24 +101,16 @@ sub getProtoTransport ($profile) {
     elsif ($profile eq "l4xnat") {
         $proto = ["tcp"];    # default protocol when a l4xnat farm is created
     }
-
-    # protocols
-    elsif ($profile =~ /^(?:tcp|udp|sctp)$/) {
+    elsif ($profile =~ /^(?:tcp|udp|sctp)$/) {    # protocols
         $proto = [$profile];
     }
-
-    # udp
-    elsif ($profile =~ /^(?:amanda|tftp|netbios-ns|snmp)$/) {
+    elsif ($profile =~ /^(?:amanda|tftp|netbios-ns|snmp)$/) {    # udp
         $proto = ["udp"];
     }
-
-    # tcp
-    elsif ($profile =~ /^(?:ftp|irc|pptp|sane|https?)$/) {
+    elsif ($profile =~ /^(?:ftp|irc|pptp|sane|https?)$/) {       # tcp
         $proto = ["tcp"];
     }
-
-    # mix
-    elsif ($profile eq "all") {
+    elsif ($profile eq "all") {                                  # mix
         $proto = $all;
     }
     elsif ($profile eq "sip") {
@@ -155,14 +150,14 @@ Parameters:
                 the configuration of this farm is ignored to avoid checking with itself. 
                 This parameter is optional
 
-Returns:
+Returns: integer
 
-    Integer - It returns 1 if the incoming info is valid, or 0 if there is another farm with that networking information
+- 1: the incoming info is valid
+- 0: there is a(nother) farm with that networking information
 
 =cut
 
 sub validatePortKernelSpace ($ip, $port, $proto, $farmname = undef) {
-
     # get l4 farms
     require Relianoid::Farm::Base;
     require Relianoid::Arrays;
@@ -178,7 +173,7 @@ sub validatePortKernelSpace ($ip, $port, $proto, $farmname = undef) {
     # check intervals
     my $port_list = &getMultiporExpanded($port);
 
-    foreach my $farm (@farm_list) {
+    for my $farm (@farm_list) {
         next if (&getFarmType($farm) ne 'l4xnat');
         next if (&getFarmStatus($farm) ne 'up');
 
@@ -197,6 +192,7 @@ sub validatePortKernelSpace ($ip, $port, $proto, $farmname = undef) {
         # check port collision
         my $f_port_list = &getMultiporExpanded($f_port);
         my $col         = &getArrayCollision($f_port_list, $port_list);
+
         if (defined $col) {
             &zenlog("Port collision ($col) with farm '$farm'", "warning", "net");
             return 0;
@@ -216,25 +212,24 @@ Parameters:
 
     port - multiport port
 
-Returns:
+Returns: array reference
 
-    Array ref - It is the list of ports used by the farm
+List of ports used by the farm
 
 =cut
 
 sub getMultiporExpanded ($port) {
     my @total_port = ();
+
     if ($port ne '*') {
-        foreach my $p (split(',', $port)) {
+        for my $p (split(',', $port)) {
             my ($init, $end) = split(':', $p);
-            if (defined $end) {
-                push @total_port, ($init .. $end);
-            }
-            else {
-                push @total_port, $init;
-            }
+
+            if   (defined $end) { push @total_port, ($init .. $end); }
+            else                { push @total_port, $init; }
         }
     }
+
     return \@total_port;
 }
 
@@ -249,9 +244,7 @@ Parameters:
 
     port - port or multiport
 
-Returns:
-
-    String - Regular expression
+Returns: string - Regular expression
 
 =cut
 
@@ -282,11 +275,12 @@ Parameters:
     protocol - It is an array reference with the protocols to check ("udp", "tcp" and "sctp"), if some of them is used, the function returns 0.
     farmname - If the configuration is set in this farm, the check is ignored and true. This parameters is optional.
     process  - It is the process name to ignore. It is used when a process wants to be modified with all IPs parameter. 
-                The services to ignore are: "cherokee", "sshd" and "snmp"
+               The services to ignore are: "cherokee", "sshd" and "snmp"
 
-Returns:
+Returns: integer
 
-    Integer - It returns '1' if the port and IP are valid to be used or '0' if the port and IP are already applied in the system
+- 1: if the port and IP are valid to be used
+- 0: if the port and IP are already applied in the system
 
 =cut
 
@@ -323,8 +317,7 @@ sub validatePortUserSpace ($ip, $port, $proto, $farmname, $process = undef) {
     my $f       = "lpnW";
     my $f_proto = "";
 
-    foreach my $p (@{$proto}) {
-
+    for my $p (@{$proto}) {
         # it is not supported in the system
         if   ($p eq 'sctp') { next; }
         else                { $f_proto .= "--$p "; }
@@ -347,12 +340,10 @@ sub validatePortUserSpace ($ip, $port, $proto, $farmname, $process = undef) {
 
     my $ip_reg;
     if (defined $override and $override) {
-
         # L4xnat overrides the user space daemons that are listening on all interfaces
         $ip_reg = ($ip eq '0.0.0.0') ? '[^\s]+' : "(?:$ip)";
     }
     else {
-
         # L4xnat farms does not override the user space daemons
         $ip_reg = ($ip eq '0.0.0.0') ? '[^\s]+' : "(?:0.0.0.0|::1|$ip)";
     }
@@ -361,6 +352,7 @@ sub validatePortUserSpace ($ip, $port, $proto, $farmname, $process = undef) {
 
     my $filter = '^\s*(?:[^\s]+\s+){3,3}' . $ip_reg . ':' . $port_reg . '\s';
     @out = grep { /$filter/ } @out;
+
     if (@out) {
         &zenlog("The ip '$ip' and the port '$port' are being used for some process", "warning", "networking");
         return 0;
@@ -393,16 +385,10 @@ Parameters:
     process  - It is the process name to ignore. It is used when a process wants to be modified with all IPs parameter. 
                 The services to ignore are: "cherokee", "sshd" and "snmp"
 
-Returns:
-
-    Integer
+Returns: integer
 
     1 - if the port and IP are available to be used
     0 - if the port and IP are already being used in the system
-
-See Also:
-
-    <getFarmProto> <getProfileProto>
 
 =cut
 
@@ -441,33 +427,25 @@ Check if a string has a valid IP address format.
 Parameters:
 
     checkip - IP address string.
-    version - 4 or 6 to validate IPv4 or IPv6 only. Optional.
+    version - Optional. 4 or 6 to validate IPv4 or IPv6 only.
 
-Returns:
-
-    boolean - string "true" or "false".
+Returns: string - "true" or "false".
 
 =cut
 
 sub ipisok ($checkip, $version = undef) {
-    my $return = "false";
-
     require Data::Validate::IP;
     Data::Validate::IP->import();
 
-    if (!$version || $version != 6) {
-        if (is_ipv4($checkip)) {
-            $return = "true";
-        }
+    if (!$version || $version == 4) {
+        return "true" if is_ipv4($checkip)
     }
 
-    if (!$version || $version != 4) {
-        if (is_ipv6($checkip)) {
-            $return = "true";
-        }
+    if (!$version || $version == 6) {
+        return "true" if is_ipv6($checkip)
     }
 
-    return $return;
+    return "false";
 }
 
 =pod
@@ -480,9 +458,10 @@ Parameters:
 
     ip - IP address or IP network segment. ipv4 or ipv6
 
-Returns:
+Returns: integer
 
-    integer - 1 if the input is a valid IP or 0 if it is not valid
+- 1: The IP address is valid
+- 0: The IP address is not valid
 
 =cut
 
@@ -490,7 +469,7 @@ sub validIpAndNet ($ip) {
     use NetAddr::IP;
     my $out = NetAddr::IP->new($ip);
 
-    return (defined $out) ? 1 : 0;
+    return int(defined $out);
 }
 
 =pod
@@ -501,31 +480,23 @@ IP version number of an input IP address
 
 Parameters:
 
-    ip - ip to get the version
+    ip - string - IP address
 
-Returns:
+Returns: integer
 
-    scalar - 4 for ipv4, 6 for ipv6, 0 if unknown
+- 4: ipv4
+- 6: ipv6
+- 0: unknown
 
 =cut
 
 sub ipversion ($ip) {
-    my $output = "-";
-
     require Data::Validate::IP;
     Data::Validate::IP->import();
 
-    if (is_ipv4($ip)) {
-        $output = 4;
-    }
-    elsif (is_ipv6($ip)) {
-        $output = 6;
-    }
-    else {
-        $output = 0;
-    }
-
-    return $output;
+    return 4 if is_ipv4($ip);
+    return 6 if is_ipv6($ip);
+    return 0;
 }
 
 =pod
@@ -539,13 +510,14 @@ for a interface
 
 Parameters:
 
-    ip - IP from net segment
+    ip      - IP from net segment
     netmask - Net segment
-    new_ip - IP to check if it is from net segment
+    new_ip  - IP to check if it is from net segment
 
-Returns:
+Returns: integer
 
-    Integer - 1 if the configuration is correct or 0 on incorrect
+    1 - the configuration is correct
+    0 - the configuration is not correct
 
 =cut
 
@@ -576,13 +548,7 @@ Parameters:
 
     nif - network interface name.
 
-Returns:
-
-    string - "true", "false" or "created".
-
-Bugs:
-
-    "created"
+Returns: string - "true", "false" or "created".
 
 =cut
 
@@ -623,29 +589,27 @@ Check if a network exists in other interface
 
 Parameters:
 
-    ip - A ip in the network segment
-    mask - mask of the network segment
-    exception - This parameter is optional, if it is sent, that interface will not be checked.
-                It is used to exclude the interface that is been changed
-    duplicateNetwork - This parameter is optional, if it is sent, defines duplicated network is enabled or disabled.
+    ip         - string - IP address
+    mask       - string - Netmask
+    exception  - string - Optional. Interface name to be excluded.
+                          It is used to exclude the interface that is been changed
+    duplicated - string - Optional. Overrides the "check duplicated network" option.
+                                    Expects "true" or "false" when defined.
 
-Returns:
+Returns: string
 
-    String - interface name where the checked network exists
-
-    v4/interface/vlan, v4/interface/nic, v4/interface/bonding
+- interface name - if the network is found
+- empty string   - if the network is not found
 
 =cut
 
 sub checkNetworkExists ($net, $mask, $exception = undef, $duplicated = undef) {
-
-    #if duplicated network is allowed then don't check if network exists.
+    # $duplicated will override the configured default
     if (defined $duplicated) {
         return "" if $duplicated eq "true";
     }
     else {
-        require Relianoid::Config;
-        return "" if (&getGlobalConfiguration("duplicated_net") eq "true");
+        return "" if &getGlobalConfiguration("duplicated_net") eq "true";
     }
 
     require Relianoid::Net::Interface;
@@ -656,17 +620,17 @@ sub checkNetworkExists ($net, $mask, $exception = undef, $duplicated = undef) {
 
     my @system_interfaces = &getInterfaceList();
     my $params            = [ "name", "addr", "mask" ];
-    foreach my $if_name (@system_interfaces) {
+
+    for my $if_name (@system_interfaces) {
         next if (&getInterfaceType($if_name) !~ /^(?:nic|bond|vlan|gre)$/);
-        my $output_if = &getInterfaceConfigParam($if_name, $params);
-        $output_if = &getSystemInterface($if_name) if (!$output_if);
+
+        my $output_if = &getInterfaceConfigParam($if_name, $params) || &getSystemInterface($if_name);
         push(@interfaces, $output_if);
     }
 
     my $found = 0;
-    foreach my $if_ref (@interfaces) {
 
-        # if it is the same net pass
+    for my $if_ref (@interfaces) {
         next if defined $exception and $if_ref->{name} eq $exception;
         next if !$if_ref->{addr};
 
@@ -678,7 +642,8 @@ sub checkNetworkExists ($net, $mask, $exception = undef, $duplicated = undef) {
                 $found = 1;
             }
         };
-        return $if_ref->{name} if ($found);
+
+        return $if_ref->{name} if $found;
     }
 
     return "";
@@ -690,34 +655,29 @@ sub checkNetworkExists ($net, $mask, $exception = undef, $duplicated = undef) {
 
 Check if duplicate network exists in the interfaces
 
-Parameters:
+Parameters: None
 
-    none
+Returns: string
 
-Returns:
-
-    String - interface name where the checked network exists
-
-    v4/interface/vlan, v4/interface/nic, v4/interface/bonding
+- interface name - if the network is found
+- empty string   - if the network is not found
 
 =cut
 
 sub checkDuplicateNetworkExists () {
-
     #if duplicated network is not allowed then don't check if network exists.
     require Relianoid::Config;
-    return "" if (&getGlobalConfiguration("duplicated_net") eq "false");
+
+    return "" if &getGlobalConfiguration("duplicated_net") eq "false";
 
     require Relianoid::Net::Interface;
     require NetAddr::IP;
 
-    my @interfaces = &getInterfaceTypeList('nic');
-    push @interfaces, &getInterfaceTypeList('bond');
-    push @interfaces, &getInterfaceTypeList('vlan');
+    my @interfaces = map { &getInterfaceTypeList($_) } qw(nic bond vlan);
 
-    foreach my $if_ref (@interfaces) {
+    for my $if_ref (@interfaces) {
         my $iface = &checkNetworkExists($if_ref->{addr}, $if_ref->{mask}, $if_ref->{name}, "false");
-        return $iface if ($iface ne "");
+        return $iface if $iface;
     }
 
     return "";
@@ -727,16 +687,17 @@ sub checkDuplicateNetworkExists () {
 
 =head1 validBackendStack
 
-Check if an IP is in the same networking segment that a list of backend
+Check if a list of backends have their IP address in the same stack (IP version) as an IP address of reference
 
 Parameters:
 
-    backend_array - It is an array with the backend configuration
-    ip - A ip is going to be compared with the backends IPs
+    be_aref - array reference - Array of backend hashes
+    ip      - string - IP address
 
-Returns:
+Returns: integer
 
-    Integer - Returns 1 if the ip is valid or 0 if it is not in the same networking segment
+    1 - the ip is valid
+    0 - the IP address is not in the same network segment
 
 =cut
 
@@ -745,7 +706,7 @@ sub validBackendStack ($be_aref, $ip) {
     my $ipv_mismatch = 0;
 
     # check every backend ip version
-    foreach my $be (@{$be_aref}) {
+    for my $be (@{$be_aref}) {
         my $current_stack = &ipversion($be->{ip});
         $ipv_mismatch = $current_stack ne $ip_stack;
         last if $ipv_mismatch;
@@ -762,13 +723,14 @@ It validates if a netmask is valid for IPv4 or IPv6
 
 Parameters:
 
-    netmask - Netmask to check
-    ip_version - it is optionally, it accepts '4' or '6' for the ip versions.
-        If no value is passed, it checks if the netmask is valid in some of the ip version
+    netmask    - string - Netmask
+    ip_version - integer - Optional. 4 or 6 are the expected values.
+                           If no value is passed, it checks if the netmask is valid for any IP version
 
-Returns:
+Returns: integer
 
-    Integer - Returns 1 on success or 0 on failure
+    1 - success
+    0 - error
 
 =cut
 
@@ -791,7 +753,7 @@ sub validateNetmask ($mask, $ipversion = undef) {
         else {
             require Net::Netmask;
             my $block = Net::Netmask->new($ip, $mask);
-            $success = (!exists $block->{'ERROR'});
+            $success = (!exists $block->{ERROR});
         }
     }
 

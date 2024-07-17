@@ -117,17 +117,15 @@ sub openlock ($path, $mode = '') {
         }
     }
     else {
-        &zenlog("Error openning the file $path: $!");
+        &zenlog("Error opening the file $path: $!");
         return;
     }
 
     if ($mode =~ />/) {
-
         # exclusive lock for writing
         flock $fh, LOCK_EX;
     }
     else {
-
         # shared lock for reading
         flock $fh, LOCK_SH;
     }
@@ -209,7 +207,6 @@ Bugs:
 =cut
 
 sub lockResource ($resource, $oper) {
-
     # TODO: Define here the available resources
     # bonding
     # crl

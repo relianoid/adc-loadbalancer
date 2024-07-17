@@ -85,6 +85,27 @@ case "$1" in
 
 ;;
 
+'-E') # Upgrade to Enterprise
+	systemctl stop relianoid-ce-cluster  2> /dev/null
+	systemctl disable relianoid-ce-cluster  2> /dev/null
+	sed -i "s/^deb/#deb/g" /etc/apt/sources.list
+	if [ ! -f "/etc/apt/apt.conf" ]; then
+		echo "APT configuration not detected. Please upload the file '/etc/apt/apt.conf' provided, or contact with support@relianoid.com"
+		exit 1
+	fi
+	echo "deb [arch=amd64 signed-by=/usr/share/keyrings/relianoid.gpg] https://repo.relianoid.com/ee/v8 bookworm main" > /etc/apt/sources.list.d/relianoid.list
+	$aptget_bin update
+	KNOIDVERSION=`apt-cache show linux-image-amd64 | grep "Version.*noid" | awk -F' ' '{ printf $2 }'`
+	if [ "$KNOIDVERSION" == "" ]; then
+		echo "RELIANOID Enterprise not detected. Please contact with support@relianoid.com"
+		exit 1
+	fi
+	DEBIAN_FRONTEND=noninteractive $aptget_bin -y install linux-image-amd64=$KNOIDVERSION --allow-downgrades
+	$aptget_bin -y full-upgrade
+	echo "RELIANOID Packages are up-to-date." > $apt_msg
+	echo "Please REBOOT the system."
+;;
+
 '-h')
 	echo "Usage:	checkupdates"
 	echo "	checkupdates name-pkg"
@@ -97,6 +118,7 @@ case "$1" in
 	echo -e "  -n \t\t\t Displays the number non-updated packages"
 	echo -e "  -l \t\t\t Displays a list of non-updated packages"
 	echo -e "  -i \t\t\t Installs the non-updated packages"
+	echo -e "  -E \t\t\t Upgrade to Enterprise"
 	echo -e "  -h \t\t\t Displays this help"
 	echo ""
 ;;

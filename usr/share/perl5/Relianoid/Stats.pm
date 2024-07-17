@@ -50,33 +50,33 @@ Returns:
     list - Two dimensional array.
 
     @data = (
-        [$mname,     $mvalue],
-        [$mfname,    $mfvalue],
-        ['MemUsed',  $mused],
-        [$mbname,    $mbvalue],
-        [$mcname,    $mcvalue],
-        [$swtname,   $swtvalue],
-        [$swfname,   $swfvalue],
-        ['SwapUsed', $swused],
-        [$swcname,   $swcvalue],
+        [$ram_total_label,     $ram_total],
+        [$ram_free_label,    $ram_free],
+        ['MemUsed',  $ram_used],
+        [$ram_buffers_label,    $ram_buffers],
+        [$ram_cached_label,    $ram_cached],
+        [$swap_total_label,   $swap_total],
+        [$swap_free_label,   $swap_free],
+        ['SwapUsed', $swap_used],
+        [$swap_cached_label,   $swap_cached],
     );
-
-See Also:
-
-    memory-rrd.pl, api/v4/system_stats.cgi
 
 =cut
 
 sub getMemStats ($format = "mb") {
     my $meminfo_filename = '/proc/meminfo';
-    my @data;
-    my ($mvalue, $mfvalue, $mused, $mbvalue, $mcvalue, $swtvalue, $swfvalue, $swused, $swcvalue);
-    my ($mname, $mfname, $mbname, $mcname, $swtname, $swfname, $swcname);
+
+    my ($ram_total, $ram_free, $ram_used, $ram_buffers, $ram_cached, $swap_total, $swap_free, $swap_used, $swap_cached);
+    my (
+        $ram_total_label,  $ram_free_label,  $ram_cached_label, $ram_buffers_label,
+        $swap_total_label, $swap_free_label, $swap_cached_label
+    );
 
     unless (-f $meminfo_filename) {
         print "$0: Error: File $meminfo_filename not exist ...\n";
         exit 1;
     }
+
     my @lines = ();
 
     if (open my $file, '<', $meminfo_filename) {
@@ -84,91 +84,64 @@ sub getMemStats ($format = "mb") {
         close $file;
     }
 
-    foreach my $line (@lines) {
-        if ($line =~ /memtotal/i) {
-            my @memtotal = split /[:\ ]+/, $line;
-            $mvalue = $memtotal[1];
-            $mvalue = $mvalue / 1024 if $format eq "mb";
-            $mvalue = $mvalue * 1024 if $format eq "b";
-            $mname  = $memtotal[0];
+    for my $line (@lines) {
+        if ($line =~ /^MemTotal:/) {
+            ($ram_total_label, $ram_total) = split /[: ]+/, $line;
+            $ram_total = $ram_total / 1024 if $format eq "mb";
+            $ram_total = $ram_total * 1024 if $format eq "b";
         }
-        if ($line =~ /memfree/i) {
-            my @memfree = split(": ", $line);
-
-            # capture first number found
-            $memfree[1] =~ /^\s+(\d+)\ /;
-            $mfvalue = $1;
-
-            $mfvalue = $mfvalue / 1024 if $format eq "mb";
-            $mfvalue = $mfvalue * 1024 if $format eq "b";
-            $mfname  = $memfree[0];
+        elsif ($line =~ /^MemFree:/) {
+            ($ram_free_label, $ram_free) = split(": ", $line);
+            $ram_free =~ /^\s+(\d+)\ /;
+            $ram_free = $1;
+            $ram_free = $ram_free / 1024 if $format eq "mb";
+            $ram_free = $ram_free * 1024 if $format eq "b";
         }
-        if ($mname && $mfname) {
-            $mused = $mvalue - $mfvalue;
+        elsif ($line =~ /^MemAvailable:/) {
+            my (undef, $ram_available) = split(/ +/, $line);
+            $ram_available = $ram_available / 1024 if $format eq "mb";
+            $ram_available = $ram_available * 1024 if $format eq "b";
+            $ram_used      = $ram_total - $ram_available;
         }
-        if ($line =~ /buffers/i) {
-            my @membuf = split /[:\ ]+/, $line;
-            $mbvalue = $membuf[1];
-            $mbvalue = $mbvalue / 1024 if $format eq "mb";
-            $mbvalue = $mbvalue * 1024 if $format eq "b";
-            $mbname  = $membuf[0];
+        elsif ($line =~ /^Buffers:/) {
+            ($ram_buffers_label, $ram_buffers) = split /[: ]+/, $line;
+            $ram_buffers = $ram_buffers / 1024 if $format eq "mb";
+            $ram_buffers = $ram_buffers * 1024 if $format eq "b";
         }
-        if ($line =~ /^cached/i) {
-            my @memcached = split /[:\ ]+/, $line;
-            $mcvalue = $memcached[1];
-            $mcvalue = $mcvalue / 1024 if $format eq "mb";
-            $mcvalue = $mcvalue * 1024 if $format eq "b";
-            $mcname  = $memcached[0];
+        elsif ($line =~ /^Cached:/) {
+            ($ram_cached_label, $ram_cached) = split /[: ]+/, $line;
+            $ram_cached = $ram_cached / 1024 if $format eq "mb";
+            $ram_cached = $ram_cached * 1024 if $format eq "b";
         }
-        if ($line =~ /swaptotal/i) {
-            my @swtotal = split /[:\ ]+/, $line;
-            $swtvalue = $swtotal[1];
-            $swtvalue = $swtvalue / 1024 if $format eq "mb";
-            $swtvalue = $swtvalue * 1024 if $format eq "b";
-            $swtname  = $swtotal[0];
+        elsif ($line =~ /swaptotal/i) {
+            ($swap_total_label, $swap_total) = split /[: ]+/, $line;
+            $swap_total = $swap_total / 1024 if $format eq "mb";
+            $swap_total = $swap_total * 1024 if $format eq "b";
         }
-        if ($line =~ /swapfree/i) {
-            my @swfree = split /[:\ ]+/, $line;
-            $swfvalue = $swfree[1];
-            $swfvalue = $swfvalue / 1024 if $format eq "mb";
-            $swfvalue = $swfvalue * 1024 if $format eq "b";
-            $swfname  = $swfree[0];
+        elsif ($line =~ /swapfree/i) {
+            ($swap_free_label, $swap_free) = split /[: ]+/, $line;
+            $swap_free = $swap_free / 1024 if $format eq "mb";
+            $swap_free = $swap_free * 1024 if $format eq "b";
+            $swap_used = $swap_total - $swap_free;
         }
-        if ($swtname && $swfname) {
-            $swused = $swtvalue - $swfvalue;
-        }
-        if ($line =~ /swapcached/i) {
-            my @swcached = split /[:\ ]+/, $line;
-            $swcvalue = $swcached[1];
-            $swcvalue = $swcvalue / 1024 if $format eq "mb";
-            $swcvalue = $swcvalue * 1024 if $format eq "b";
-            $swcname  = $swcached[0];
+        elsif ($line =~ /swapcached/i) {
+            ($swap_cached_label, $swap_cached) = split /[: ]+/, $line;
+            $swap_cached = $swap_cached / 1024 if $format eq "mb";
+            $swap_cached = $swap_cached * 1024 if $format eq "b";
         }
     }
 
-    $mvalue   = sprintf('%.2f', $mvalue);
-    $mfvalue  = sprintf('%.2f', $mfvalue);
-    $mused    = sprintf('%.2f', $mused);
-    $mbvalue  = sprintf('%.2f', $mbvalue);
-    $mcvalue  = sprintf('%.2f', $mcvalue);
-    $swtvalue = sprintf('%.2f', $swtvalue);
-    $swfvalue = sprintf('%.2f', $swfvalue);
-    $swused   = sprintf('%.2f', $swused);
-    $swcvalue = sprintf('%.2f', $swcvalue);
-
-    @data = (
-        [ $mname,     $mvalue ],
-        [ $mfname,    $mfvalue ],
-        [ 'MemUsed',  $mused ],
-        [ $mbname,    $mbvalue ],
-        [ $mcname,    $mcvalue ],
-        [ $swtname,   $swtvalue ],
-        [ $swfname,   $swfvalue ],
-        [ 'SwapUsed', $swused ],
-        [ $swcname,   $swcvalue ],
+    return (
+        [ $ram_total_label,   sprintf('%.2f', $ram_total) ],
+        [ $ram_free_label,    sprintf('%.2f', $ram_free) ],
+        [ 'MemUsed',          sprintf('%.2f', $ram_used) ],
+        [ $ram_buffers_label, sprintf('%.2f', $ram_buffers) ],
+        [ $ram_cached_label,  sprintf('%.2f', $ram_cached) ],
+        [ $swap_total_label,  sprintf('%.2f', $swap_total) ],
+        [ $swap_free_label,   sprintf('%.2f', $swap_free) ],
+        [ 'SwapUsed',         sprintf('%.2f', $swap_used) ],
+        [ $swap_cached_label, sprintf('%.2f', $swap_cached) ],
     );
-
-    return @data;
 }
 
 =pod
@@ -190,10 +163,6 @@ Returns:
         ['Last 5', $last5],
         ['Last 15', $last15]
     );
-
-See Also:
-
-    load-rrd.pl, api/v4/system_stats.cgi
 
 =cut
 
@@ -273,10 +242,6 @@ Returns:
         ...
     );
 
-See Also:
-
-    iface-rrd.pl, api/v4/system_stats.cgi
-
 =cut
 
 sub getNetworkStats ($format = "") {
@@ -308,7 +273,7 @@ sub getNetworkStats ($format = "") {
 
     my $alias;
     $alias = &eload(
-        module => 'Relianoid::Alias',
+        module => 'Relianoid::EE::Alias',
         func   => 'getAlias',
         args   => ['interface']
     ) if $eload;
@@ -339,10 +304,10 @@ sub getNetworkStats ($format = "") {
         ($i-- && next) if $if =~ /^sit0$/;
 
         if ($line =~ /:\ /) {
-            ($in, $out) = (split)[ 1, 9 ];
+            ($in, $out) = (split /\s+/, $iface[1])[ 1, 9 ];
         }
         else {
-            ($in, $out) = (split)[ 0, 8 ];
+            ($in, $out) = (split /\s+/, $line)[ 0, 8 ];
             $in = (split /:/, $in)[1];
         }
 
@@ -399,10 +364,6 @@ Returns:
               ['CPUusage',   $cpu_usage],
     );
 
-See Also:
-
-    api/v4/system_stats.cgi, cpu-rrd.pl
-
 =cut
 
 sub getCPU () {
@@ -439,7 +400,7 @@ sub getCPU () {
         my @lines = <$file>;
         close $file;
 
-        foreach my $line (@lines) {
+        for my $line (@lines) {
             if ($line =~ /^cpu\ /) {
                 @line_s       = split("\ ", $line);
                 $cpu_user1    = $line_s[1];
@@ -460,7 +421,7 @@ sub getCPU () {
         my @lines = <$file>;
         close $file;
 
-        foreach my $line (@lines) {
+        for my $line (@lines) {
             if ($line =~ /^cpu\ /) {
                 @line_s       = split("\ ", $line);
                 $cpu_user2    = $line_s[1];
@@ -530,7 +491,7 @@ sub getCPUUsageStats () {
 
     my @data_cpu = &getCPU();
 
-    foreach my $x (0 .. @data_cpu - 1) {
+    for my $x (0 .. @data_cpu - 1) {
         my $name  = $data_cpu[$x][0];
         my $value = $data_cpu[$x][1] + 0;
 
@@ -586,7 +547,7 @@ sub getDiskSpace () {
     chomp(@system);
     my @df_system = @system;
 
-    foreach my $line (@system) {
+    for my $line (@system) {
         next if $line !~ /^\/dev/;
 
         my @dd_name = split(' ', $line);
@@ -644,10 +605,6 @@ Returns:
         }
     };
 
-See Also:
-
-    api/v4/system_stats.cgi
-
 =cut
 
 sub getDiskPartitionsInfo () {
@@ -659,7 +616,7 @@ sub getDiskPartitionsInfo () {
     my @df_lines = grep { /^\/dev/ } @out;
     chomp(@df_lines);
 
-    foreach my $line (@df_lines) {
+    for my $line (@df_lines) {
         my @df_line = split(/\s+/, $line);
 
         my $mount_point = $df_line[5];

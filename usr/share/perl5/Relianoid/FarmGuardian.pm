@@ -229,8 +229,8 @@ sub getFGList() {
     my @list = &getFGConfigList();
 
     # get from template file
-    foreach my $fg (&getFGTemplateList()) {
-        next if grep { /^$fg$/ } @list;
+    for my $fg (&getFGTemplateList()) {
+        next if grep { $fg eq $_ } @list;
         push @list, $fg;
     }
 
@@ -280,7 +280,7 @@ sub getFGObject ($fg_name, $use_template = '') {
     }
 
     # using farmguardian config file by default
-    elsif (grep { /^$fg_name$/ } &getFGConfigList()) {
+    elsif (grep { $fg_name eq $_ } &getFGConfigList()) {
         $file = $fg_conf;
     }
 
@@ -316,8 +316,8 @@ sub getFGFarm ($farm, $srv = undef) {
     my $farm_tag = ($srv) ? "${farm}_$srv" : "$farm";
     my $fg_list  = &getTiny($fg_conf);
 
-    foreach my $fg_name (keys %{$fg_list}) {
-        if (grep { /(^| )$farm_tag( |$)/ } $fg_list->{$fg_name}->{farms}) {
+    for my $fg_name (keys %{$fg_list}) {
+        if (grep { /(^| )$farm_tag( |$)/ } $fg_list->{$fg_name}{farms}) {
             $fg = $fg_name;
             last;
         }
@@ -368,7 +368,7 @@ Returns:
 
 sub createFGTemplate ($name, $template) {
     my $values = &getFGObject($template, 'template');
-    $values->{'template'} = "false";
+    $values->{template} = "false";
 
     &setFGObject($name, $values);
 
@@ -477,7 +477,7 @@ sub setFGObject ($fg_name, $key = undef, $value = undef) {
 
     if ($eload) {
         $out += &eload(
-            module => 'Relianoid::Farm::GSLB::FarmGuardian',
+            module => 'Relianoid::EE::Farm::GSLB::FarmGuardian',
             func   => 'updateGSLBFg',
             args   => [$fg_name],
         );
@@ -511,8 +511,8 @@ sub setFGFarmRename ($farm, $new_farm) {
     my $out;
 
     # foreach farm check, remove and add farm
-    foreach my $fg (keys %{$fh}) {
-        if ($fh->{$fg}->{farms} =~ /(?:^| )${farm}_?([\w-]+)?(?:$| )/) {
+    for my $fg (keys %{$fh}) {
+        if ($fh->{$fg}{farms} =~ /(?:^| )${farm}_?([\w-]+)?(?:$| )/) {
             $srv          = $1;
             $farm_tag     = ($srv) ? "${farm}_$srv"     : $farm;
             $new_farm_tag = ($srv) ? "${new_farm}_$srv" : $new_farm;
@@ -550,12 +550,8 @@ Returns:
 =cut
 
 sub linkFGFarm ($fg_name, $farm, $srv = undef) {
-    unless ($fg_name) {
-        croak("Farmguardian name required");
-    }
-    unless ($farm) {
-        croak("Farm name required");
-    }
+    croak("Farmguardian name required") unless ($fg_name);
+    croak("Farm name required")         unless ($farm);
 
     my $out;
 
@@ -574,7 +570,7 @@ sub linkFGFarm ($fg_name, $farm, $srv = undef) {
 
     if (&getFarmType($farm) eq 'gslb' and $eload) {
         $out = &eload(
-            module => 'Relianoid::Farm::GSLB::FarmGuardian',
+            module => 'Relianoid::EE::Farm::GSLB::FarmGuardian',
             func   => 'linkGSLBFg',
             args   => [ $fg_name, $farm, $srv ],
         );
@@ -618,7 +614,7 @@ sub unlinkFGFarm ($fg_name, $farm, $srv = undef) {
 
     if (($type eq 'gslb') and $eload) {
         $out = &eload(
-            module => 'Relianoid::Farm::GSLB::FarmGuardian',
+            module => 'Relianoid::EE::Farm::GSLB::FarmGuardian',
             func   => 'unlinkGSLBFg',
             args   => [ $farm, $srv ],
         );
@@ -656,7 +652,7 @@ sub delFGFarm ($farm, $service = undef) {
 
     if ($type =~ /http/ or $type eq 'gslb') {
         if (not $service) {
-            foreach my $srv (&getFarmServices($farm)) {
+            for my $srv (&getFarmServices($farm)) {
                 $fg = &getFGFarm($farm, $srv);
                 next if not $fg;
                 $err |= &setTinyObj($fg_conf, $fg, 'farms', "${farm}_$srv", 'del');
@@ -700,12 +696,10 @@ sub getFGPidFile ($fname, $svice = undef) {
     my $file;
 
     if (defined $svice and length $svice) {
-
         # return a regexp for a farm the request service
         $file = "$piddir/${fname}_${svice}_guardian.pid";
     }
     else {
-
         # return a regexp for a farm and all its services
         $file = "$piddir/${fname}_guardian.pid";
     }
@@ -781,7 +775,7 @@ sub runFGStop ($fgname) {
     my $out;
     my $obj = &getFGObject($fgname);
 
-    foreach my $farm (@{ $obj->{farms} }) {
+    for my $farm (@{ $obj->{farms} }) {
         my $srv;
         if ($farm =~ /([^_]+)_(.+)/) {
             $farm = $1;
@@ -816,7 +810,7 @@ sub runFGStart ($fgname) {
     my $out;
     my $obj = &getFGObject($fgname);
 
-    foreach my $farm (@{ $obj->{farms} }) {
+    for my $farm (@{ $obj->{farms} }) {
         my $srv;
         if ($farm =~ /([^_]+)_(.+)/) {
             $farm = $1;
@@ -871,7 +865,6 @@ Returns:
 =cut
 
 sub runFGFarmStop ($farm, $service = undef) {
-
     # optional, if the farm is http and the service is not sent to
     # the function, all services will be restarted
     $service = undef if (defined $service and not length $service);
@@ -884,7 +877,7 @@ sub runFGFarmStop ($farm, $service = undef) {
     # Stop Farmguardian for every service
     if ($type =~ /http/ and not defined $service) {
         require Relianoid::Farm::Service;
-        foreach my $srv (&getFarmServices($farm)) {
+        for my $srv (&getFarmServices($farm)) {
             $out |= &runFGFarmStop($farm, $srv);
         }
         return $out;
@@ -950,7 +943,7 @@ sub runFGFarmStop ($farm, $service = undef) {
 
             my $be = &getFarmServers($farm);
 
-            foreach my $l_serv (@{$be}) {
+            for my $l_serv (@{$be}) {
                 unless ($l_serv->{status} eq "fgDOWN") {
                     next;
                 }
@@ -1010,7 +1003,7 @@ sub runFGFarmStart ($farm, $svice = undef) {
     if ($eload) {
         my $node = "";
         $node = &eload(
-            module => 'Relianoid::Cluster',
+            module => 'Relianoid::EE::Cluster',
             func   => 'getZClusterNodeStatus',
             args   => [],
         );
@@ -1027,7 +1020,7 @@ sub runFGFarmStart ($farm, $svice = undef) {
         my $services = &getFarmVS($farm, "", "");
         my @servs    = split(" ", $services);
 
-        foreach my $service (@servs) {
+        for my $service (@servs) {
             $status |= &runFGFarmStart($farm, $service);
         }
     }
@@ -1077,7 +1070,6 @@ sub runFGFarmStart ($farm, $svice = undef) {
         }
     }
     elsif ($ftype ne 'gslb') {
-
         # WARNING: farm types not supported by farmguardian return 0.
         $status = 1;
     }
@@ -1131,7 +1123,7 @@ sub getFGRunningFarms ($fg) {
     require Relianoid::Farm::Base;
 
     my @runfarm;
-    foreach my $farm (@{ &getFGObject($fg)->{'farms'} }) {
+    for my $farm (@{ &getFGObject($fg)->{farms} }) {
         my $srv;
         if ($farm =~ /([^_]+)_(.+)/) {
             $farm = $1;
@@ -1243,18 +1235,10 @@ Parameters:
     fname - Farm name.
     svice - Service name. Only apply if the farm profile has services. Leave undefined for farms without services.
 
-Returns:
+Returns: integer
 
-    -1 - If farmguardian file was not found or if farmguardian is not running.
-    0  - If farm profile is not supported by farmguardian, or farmguardian was executed.
-
-Bugs:
-
-    Returning $? after running a command in the background & gives the illusion of capturing the ERRNO of the ran program. That is not possible since the program may not have finished.
-
-See Also:
-
-    zcluster-manager, relianoid, <runFarmStart>, <setNewFarmName>, api/v4/farm_guardian.cgi
+- -1 - If farmguardian file was not found or if farmguardian is not running.
+- 0  - If farm profile is not supported by farmguardian, or farmguardian was executed.
 
 =cut
 
@@ -1276,10 +1260,6 @@ Parameters:
 Returns:
 
     Integer - 0 on success, or greater than 0 on failure.
-
-See Also:
-
-    relianoid, <runFarmStop>, <setNewFarmName>, api/v4/farm_guardian.cgi, <runFarmGuardianRemove>
 
 =cut
 
@@ -1304,18 +1284,10 @@ Parameters:
     fglog - 'true' to enable farmguardian verbosity in logs, or 'false' to disable it.
     svice - Service name.
 
-Returns:
+Returns: integer
 
-    -1 - If ttcheck or script is not defined or empty and farmguardian is enabled.
-     0 - If farmguardian configuration was created.
-
-Bugs:
-
-    The function 'print' does not write the variable $?.
-
-See Also:
-
-    api/v4/farm_guardian.cgi
+- -1 - If ttcheck or script is not defined or empty and farmguardian is enabled.
+-  0 - If farmguardian configuration was created.
 
 =cut
 
@@ -1359,10 +1331,6 @@ Parameters:
 Returns:
 
     none - Nothing is returned explicitly.
-
-See Also:
-
-    api/v4/farm_guardian.cgi
 
 =cut
 

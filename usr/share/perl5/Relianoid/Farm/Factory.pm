@@ -64,7 +64,6 @@ sub runFarmCreate ($farm_type, $vip, $vip_port, $farm_name, $fdev) {
     my $farm_filename = &getFarmFile($farm_name);
 
     if ($farm_filename != -1) {
-
         # the farm name already exists
         $output = -2;
         return $output;
@@ -73,8 +72,10 @@ sub runFarmCreate ($farm_type, $vip, $vip_port, $farm_name, $fdev) {
     my $status = 'up';
     if ($farm_type ne 'datalink') {
         require Relianoid::Net::Interface;
-        $status = 'down'
-          if (!&validatePort($vip, $vip_port, $farm_type, $farm_name));
+
+        if (!&validatePort($vip, $vip_port, $farm_type, $farm_name)) {
+            $status = 'down';
+        }
     }
 
     &zenlog("running 'Create' for $farm_name farm $farm_type", "info", "LSLB");
@@ -83,24 +84,27 @@ sub runFarmCreate ($farm_type, $vip, $vip_port, $farm_name, $fdev) {
         require Relianoid::Farm::HTTP::Factory;
         $output = &runHTTPFarmCreate($vip, $vip_port, $farm_name, $farm_type, $status);
     }
-    elsif ($farm_type =~ /^DATALINK$/i) {
-        require Relianoid::Farm::Datalink::Factory;
-        $output = &runDatalinkFarmCreate($farm_name, $vip, $fdev);
-    }
     elsif ($farm_type =~ /^L4xNAT$/i) {
         require Relianoid::Farm::L4xNAT::Factory;
         $output = &runL4FarmCreate($vip, $farm_name, $vip_port, $status);
     }
-    elsif ($farm_type =~ /^GSLB$/i) {
+    elsif ($farm_type =~ /^DATALINK$/i && $eload) {
         $output = &eload(
-            module => 'Relianoid::Farm::GSLB::Factory',
+            module => 'Relianoid::EE::Farm::Datalink::Factory',
+            func   => 'runDatalinkFarmCreate',
+            args   => [ $farm_name, $vip, $fdev ],
+        );
+    }
+    elsif ($farm_type =~ /^GSLB$/i && $eload) {
+        $output = &eload(
+            module => 'Relianoid::EE::Farm::GSLB::Factory',
             func   => 'runGSLBFarmCreate',
             args   => [ $vip, $vip_port, $farm_name, $status ],
-        ) if $eload;
+        );
     }
 
     &eload(
-        module => 'Relianoid::RBAC::Group::Config',
+        module => 'Relianoid::EE::RBAC::Group::Config',
         func   => 'addRBACUserResource',
         args   => [ $farm_name, 'farms' ],
     ) if $eload;
@@ -145,7 +149,7 @@ sub runFarmCreateFrom ($params) {
     my $ipds;
     if ($eload) {
         $ipds = &eload(
-            module => 'Relianoid::IPDS::Core',
+            module => 'Relianoid::EE::IPDS::Core',
             func   => 'getIPDSfarmsRules',
             args   => [ $params->{copy_from} ],
         );
@@ -168,7 +172,7 @@ sub runFarmCreateFrom ($params) {
     elsif ($params->{profile} ne 'datalink') {
         my $fg;
         require Relianoid::Farm::Service;
-        foreach my $s (&getFarmServices($params->{farmname})) {
+        for my $s (&getFarmServices($params->{farmname})) {
             if (my $fg = &getFGFarm($params->{copy_from}, $s)) {
                 &linkFGFarm($fg, $params->{farmname}, $s);
             }
@@ -184,14 +188,16 @@ sub runFarmCreateFrom ($params) {
         $err = &setFarmVirtualConf($params->{vip}, $params->{vport}, $params->{farmname});
     }
     else {
-        require Relianoid::Farm::Datalink::Config;
-        $err =
-          &setDatalinkFarmVirtualConf($params->{vip}, $params->{interface}, $params->{farmname});
+        $err = &eload(
+            module => 'Relianoid::EE::Farm::Datalink::Config',
+            func   => 'setDatalinkFarmVirtualConf',
+            args   => [ $params->{vip}, $params->{interface}, $params->{farmname} ],
+        ) if $eload;
     }
 
     if ($eload and not $err) {
         $err = &eload(
-            module => 'Relianoid::IPDS::Core',
+            module => 'Relianoid::EE::IPDS::Core',
             func   => 'addIPDSFarms',
             args   => [ $params->{farmname}, $ipds ],
         );

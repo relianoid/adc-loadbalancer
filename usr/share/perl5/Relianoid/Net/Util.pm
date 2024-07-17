@@ -98,10 +98,6 @@ Bugs:
 
     Set VLANs up.
 
-See Also:
-
-    api/v4/interfaces.cgi
-
 =cut
 
 # Check if there are some Virtual Interfaces or Vlan with IPv6 and previous UP status to get it up.
@@ -247,9 +243,6 @@ sub setArpAnnounce () {
     print $fh "* * * * *	root	$script &>/dev/null\n";
     close $fh;
 
-    my $cron_service = &getGlobalConfiguration('cron_service');
-    $err = &logAndRun("$cron_service reload");
-
     if (!$err) {
         $err = &setGlobalConfiguration('arp_announce', "true");
     }
@@ -275,8 +268,6 @@ Returns:
 
 sub unsetArpAnnounce () {
     my $path         = &getGlobalConfiguration("arp_announce_cron_path");
-    my $cron_service = &getGlobalConfiguration('cron_service');
-    my $err          = 0;
 
     if (-f $path) {
         my $rem = unlink $path;
@@ -286,13 +277,7 @@ sub unsetArpAnnounce () {
         }
     }
 
-    $err = &logAndRun("$cron_service reload");
-
-    if (!$err) {
-        $err = &setGlobalConfiguration('arp_announce', "false");
-    }
-
-    return $err;
+    return &setGlobalConfiguration('arp_announce', "false");
 }
 
 =pod
@@ -301,7 +286,7 @@ sub unsetArpAnnounce () {
 
 Get the (primary) ip address on a network interface.
 
-A copy of this function is in zeninotify.
+A copy of this function is in noid-cluster-notify.
 
 Parameters:
 
@@ -313,7 +298,7 @@ Returns:
 
 See Also:
 
-    <getInterfaceOfIp>, <_runDatalinkFarmStart>, <_runDatalinkFarmStop>, <zeninotify>
+    <getInterfaceOfIp>, <_runDatalinkFarmStart>, <_runDatalinkFarmStop>, <noid-cluster-notify>
 
 =cut
 
@@ -382,11 +367,6 @@ Bugs:
 
     $ip !~ /127.0.0.1/
     $ip !~ /0.0.0.0/
-
-See Also:
-
-    api/v4/interface.cgi <new_vini>, <new_vlan>,
-    api/v4/post.cgi <new_farm>,
 
 =cut
 
@@ -464,8 +444,7 @@ sub getInterfaceOfIp ($ip) {
 
     my $ref_addr = NetAddr::IP->new($ip);
 
-    foreach my $iface (&getInterfaceList()) {
-
+    for my $iface (&getInterfaceList()) {
         # return interface if found in the listç
         my $if_ip = &iponif($iface);
         next if (!$if_ip);

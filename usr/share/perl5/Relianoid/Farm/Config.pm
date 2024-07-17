@@ -50,10 +50,6 @@ Returns:
 
     Integer - Error code: 0 on success, or -1 on failure.
 
-See Also:
-
-    api/v4/put_http.cgi
-
 =cut
 
 sub setFarmBlacklistTime ($blacklist_time, $farm_name) {
@@ -83,10 +79,6 @@ Returns:
 
     Integer - Error code: 0 on success, or -1 on failure.
 
-See Also:
-
-    api/v4/put_l4.cgi
-
 =cut
 
 sub setFarmSessionType ($session, $farm_name) {
@@ -105,23 +97,20 @@ sub setFarmSessionType ($session, $farm_name) {
     #if persistence is enabled
     require Relianoid::Farm::Config;
     if (&getPersistence($farm_name) == 0) {
-
         #register farm in ssyncd
         if ($eload) {
             &eload(
-                module => 'Relianoid::Ssyncd',
+                module => 'Relianoid::EE::Ssyncd',
                 func   => 'setSsyncdFarmUp',
                 args   => [$farm_name],
             );
         }
-
     }
     else {
-
         #unregister farm in ssyncd
         if ($eload) {
             &eload(
-                module => 'Relianoid::Ssyncd',
+                module => 'Relianoid::EE::Ssyncd',
                 func   => 'setSsyncdFarmDown',
                 args   => [$farm_name],
             );
@@ -144,10 +133,6 @@ Parameters:
 Returns:
 
     Integer - Error code: 0 on success, or -1 on failure.
-
-See Also:
-
-    api/v4/put_http.cgi
 
 =cut
 
@@ -186,11 +171,6 @@ FIXME:
 
     set a return value, and do error control
 
-See Also:
-
-    api/v4/put_l4.cgi
-    api/v4/put_datalink.cgi
-
 =cut
 
 sub setFarmAlgorithm ($algorithm, $farm_name) {
@@ -199,9 +179,12 @@ sub setFarmAlgorithm ($algorithm, $farm_name) {
 
     &zenlog("setting 'Algorithm $algorithm' for $farm_name farm $farm_type", "info", "FARMS");
 
-    if ($farm_type eq "datalink") {
-        require Relianoid::Farm::Datalink::Config;
-        $output = &setDatalinkFarmAlgorithm($algorithm, $farm_name);
+    if ($farm_type eq "datalink" && $eload) {
+        $output = &eload(
+            module => 'Relianoid::EE::Farm::Datalink::Config',
+            func   => 'setDatalinkFarmAlgorithm',
+            args   => [ $algorithm, $farm_name ],
+        );
     }
     elsif ($farm_type eq "l4xnat") {
         require Relianoid::Farm::L4xNAT::Config;
@@ -227,22 +210,18 @@ Returns:
 
     scalar - return a string with type of balancing algorithm or -1 on failure
 
-See Also:
-
-    <_runDatalinkFarmStart>
-
-    api/v4/get_l4.cgi
-    api/v4/get_datalink.cgi
-
 =cut
 
 sub getFarmAlgorithm ($farm_name) {
     my $farm_type = &getFarmType($farm_name);
     my $algorithm = -1;
 
-    if ($farm_type eq "datalink") {
-        require Relianoid::Farm::Datalink::Config;
-        $algorithm = &getDatalinkFarmAlgorithm($farm_name);
+    if ($farm_type eq "datalink" && $eload) {
+        $algorithm = &eload(
+            module => 'Relianoid::EE::Farm::Datalink::Config',
+            func   => 'getDatalinkFarmAlgorithm',
+            args   => [$farm_name],
+        );
     }
     elsif ($farm_type eq "l4xnat") {
         require Relianoid::Farm::L4xNAT::Config;
@@ -315,6 +294,7 @@ See Also:
 sub setFarmVirtualConf ($vip, $vip_port, $farm_name) {
     my $farm_type = &getFarmType($farm_name);
     my $stat      = -1;
+    $vip_port //= '';
 
     &zenlog("setting 'VirtualConf $vip $vip_port' for $farm_name farm $farm_type", "info", "FARMS");
 
@@ -322,24 +302,30 @@ sub setFarmVirtualConf ($vip, $vip_port, $farm_name) {
         require Relianoid::Farm::HTTP::Config;
         $stat = &setHTTPFarmVirtualConf($vip, $vip_port, $farm_name);
     }
-    elsif ($farm_type eq "datalink") {
-        require Relianoid::Farm::Datalink::Config;
-        $stat = &setDatalinkFarmVirtualConf($vip, $vip_port, $farm_name);
-    }
     elsif ($farm_type eq "l4xnat") {
-        $stat = 0;
         require Relianoid::Farm::L4xNAT::Config;
+        $stat = 0;
+
         if ($vip ne "") {
             $stat = &setL4FarmParam('vip', $vip, $farm_name);
         }
-        return $stat if ($stat != 0);
+
+        return $stat if $stat;
+
         if ($vip_port ne "") {
             $stat = &setL4FarmParam('vipp', $vip_port, $farm_name);
         }
     }
+    elsif ($farm_type eq "datalink" && $eload) {
+        $stat = &eload(
+            module => 'Relianoid::EE::Farm::Datalink::Config',
+            func   => 'setDatalinkFarmVirtualConf',
+            args   => [ $vip, $vip_port, $farm_name ],
+        );
+    }
     elsif ($farm_type eq "gslb" && $eload) {
         $stat = &eload(
-            module => 'Relianoid::Farm::GSLB::Config',
+            module => 'Relianoid::EE::Farm::GSLB::Config',
             func   => 'setGSLBFarmVirtualConf',
             args   => [ $vip, $vip_port, $farm_name ],
         );
@@ -369,8 +355,7 @@ Returns:
 sub setAllFarmByVip ($vip, $farmList) {
     require Relianoid::Farm::Action;
 
-    foreach my $farm (@{$farmList}) {
-
+    for my $farm (@{$farmList}) {
         # get status
         my $status = &getFarmStatus($farm);
 
@@ -416,7 +401,7 @@ sub getFarmVS ($farm_name, $service, $tag) {
     }
     elsif ($farm_type eq "gslb" && $eload) {
         $output = &eload(
-            module => 'Relianoid::Farm::GSLB::Service',
+            module => 'Relianoid::EE::Farm::GSLB::Service',
             func   => 'getGSLBFarmVS',
             args   => [ $farm_name, $service, $tag ],
         );
@@ -454,7 +439,7 @@ sub setFarmVS ($farm_name, $service, $tag, $string) {
     }
     elsif ($farm_type eq "gslb") {
         $output = &eload(
-            module => 'Relianoid::Farm::GSLB::Service',
+            module => 'Relianoid::EE::Farm::GSLB::Service',
             func   => 'setGSLBFarmVS',
             args   => [ $farm_name, $service, $tag, $string ],
         ) if $eload;
@@ -495,16 +480,19 @@ sub getFarmStruct ($farmName) {
     }
     elsif ($farmType =~ /gslb/) {
         $farm = &eload(
-            module => 'Relianoid::Farm::GSLB::Config',
+            module => 'Relianoid::EE::Farm::GSLB::Config',
             func   => 'getGSLBFarmStruct',
             args   => [$farmName],
         );
     }
 
-    # elsif ( $farmType =~ /datalink/ )
+    # elsif ( $farmType =~ /datalink/ && $eload)
     # {
-    # 	require Relianoid::Farm::Datalink::Config;
-    # 	$farm = &getDatalinkFarmStruct ( $farmName );
+    #     $farm = &eload(
+    #         module => 'Relianoid::EE::Farm::Datalink::Config',
+    #         func   => 'getDatalinkFarmStruct',
+    #         args   => [$farmName],
+    #     );
     # }
     return $farm;    # return a hash reference
 }
@@ -637,90 +625,30 @@ sub reloadFarmsSourceAddressByFarm ($farm_name) {
     return if &getFarmStatus($farm_name) ne 'up';
 
     my $farm_type = &getFarmType($farm_name);
+
     if ($farm_type eq 'l4xnat') {
         my $farm_ref = &getL4FarmStruct($farm_name);
+
         return if $farm_ref->{nattype} ne 'nat';
 
         if ($eload) {
             &eload(
-                module => 'Relianoid::Net::Floating',
+                module => 'Relianoid::EE::Net::Floating',
                 func   => 'setFloatingSourceAddr',
                 args   => [ $farm_ref, undef ],
             );
 
             # reload the backend source address
-            foreach my $bk (@{ $farm_ref->{servers} }) {
+            for my $bk (@{ $farm_ref->{servers} }) {
                 &eload(
-                    module => 'Relianoid::Net::Floating',
+                    module => 'Relianoid::EE::Net::Floating',
                     func   => 'setFloatingSourceAddr',
                     args   => [ $farm_ref, $bk ],
                 );
             }
         }
     }
-    elsif ($farm_type eq 'http' || $farm_type eq 'https') {
-        if ($eload && &getGlobalConfiguration("proxy_ng") eq 'true') {
-            return if &getGlobalConfiguration('floating_L7') ne 'true';
 
-            my $farm_ref;
-            $farm_ref->{name}  = $farm_name;
-            $farm_ref->{vip}   = &getHTTPFarmVip("vip",  $farm_name);
-            $farm_ref->{vport} = &getHTTPFarmVip("vipp", $farm_name);
-            my $farm_floating_ref = &checkLocalFarmSourceAddress($farm_name);
-
-            if (    not defined $farm_floating_ref->{farm}
-                and not defined $farm_floating_ref->{backends})
-            {
-
-                # no floating needed
-                &eload(
-                    module => 'Relianoid::Net::Floating',
-                    func   => 'removeL7FloatingSourceAddr',
-                    args   => [$farm_name],
-                );
-            }
-            else {
-                if (defined $farm_floating_ref->{farm}) {
-
-                    # farm needs floating
-                    $farm_ref->{float} =
-                      $farm_floating_ref->{farm}->{out}->{floating_ip};
-                    &eload(
-                        module => 'Relianoid::Net::Floating',
-                        func   => 'setL7FloatingSourceAddr',
-                        args   => [ $farm_ref, undef, $farm_floating_ref ],
-                    );
-                }
-                if (defined $farm_floating_ref->{backends}) {
-                    foreach my $backend_floating_ref (@{ $farm_floating_ref->{backends} }) {
-                        my $bk_ref->{tag} = $backend_floating_ref->{in}->{mark};
-
-                        if ($backend_floating_ref->{out}->{floating_ip}) {
-
-                            # backend needs floating
-                            $bk_ref->{ip} = $backend_floating_ref->{in}->{ip};
-                            $bk_ref->{float} =
-                              $backend_floating_ref->{out}->{floating_ip};
-                            &eload(
-                                module => 'Relianoid::Net::Floating',
-                                func   => 'setL7FloatingSourceAddr',
-                                args   => [ $farm_ref, $bk_ref, $farm_floating_ref ],
-                            );
-                        }
-                        else {
-
-                            # backend does not need floating
-                            &eload(
-                                module => 'Relianoid::Net::Floating',
-                                func   => 'removeL7FloatingSourceAddr',
-                                args   => [ $farm_name, $bk_ref ],
-                            );
-                        }
-                    }
-                }
-            }
-        }
-    }
     return;
 }
 
@@ -758,30 +686,33 @@ sub checkLocalFarmSourceAddress ($farm_name, $floating_ref) {
 
     if ($farm_type eq 'http' || $farm_type eq 'https') {
         my $floating = 0;
-        if ($eload) {
-            $floating = 1 if (&getGlobalConfiguration('floating_L7') eq 'true');
+
+        if ($eload && &getGlobalConfiguration('floating_L7') eq 'true') {
+            $floating = 1;
         }
         return $farm_srcaddr_ref if not $floating;
 
         # check system floating
         my $floating_config = &eload(
-            module => 'Relianoid::Net::Floating',
+            module => 'Relianoid::EE::Net::Floating',
             func   => 'getFloatingConfig',
         );
-        return $farm_srcaddr_ref if not $floating_config;
+
+        if (not $floating_config) {
+            return $farm_srcaddr_ref;
+        }
 
         # check farm vip has floating
-
         require Relianoid::Farm::HTTP::Config;
         my $farm_vip = &getHTTPFarmVip("vip", $farm_name);
-
         my $floating_system_ref;
+
         if ($floating_ref) {
             $floating_system_ref = $floating_ref;
         }
         else {
             $floating_system_ref = &eload(
-                module => 'Relianoid::Net::Floating',
+                module => 'Relianoid::EE::Net::Floating',
                 func   => 'get_floating_struct',
             );
         }
@@ -790,13 +721,13 @@ sub checkLocalFarmSourceAddress ($farm_name, $floating_ref) {
         my $if_system_status = &getInterfaceSystemStatusAll();
 
         my $farm_floating = &eload(
-            module => 'Relianoid::Net::Floating',
+            module => 'Relianoid::EE::Net::Floating',
             func   => 'getFloatingSourceAddr',
             args   => [ $farm_vip, undef, $floating_system_ref, $if_system_status ]
         );
 
         # if iface with floating, needs snat
-        if ($farm_floating->{out}->{floating_ip}) {
+        if ($farm_floating->{out}{floating_ip}) {
             $farm_srcaddr_ref->{farm} = $farm_floating;
         }
 
@@ -809,15 +740,15 @@ sub checkLocalFarmSourceAddress ($farm_name, $floating_ref) {
         my $bk_floating;
         my $exists_floating_backend = 0;
 
-        foreach my $serv_name (@services) {
+        for my $serv_name (@services) {
             my $backends_ref = &getHTTPFarmBackends($farm_name, $serv_name, "false");
-            foreach my $bk (@{$backends_ref}) {
-                if (not $ip_floating_ref->{ $bk->{ip} }) {
 
+            for my $bk (@{$backends_ref}) {
+                if (not $ip_floating_ref->{ $bk->{ip} }) {
                     # get sourceaddress
                     my $mark = sprintf("0x%x", $bk->{tag});
                     $bk_floating = &eload(
-                        module => 'Relianoid::Net::Floating',
+                        module => 'Relianoid::EE::Net::Floating',
                         func   => 'getFloatingSourceAddr',
                         args   => [ $bk->{ip}, $mark, $floating_system_ref, $if_system_status ]
                     );
@@ -825,22 +756,25 @@ sub checkLocalFarmSourceAddress ($farm_name, $floating_ref) {
                     $ip_floating_ref->{ $bk->{ip} } = $bk_floating;
                 }
                 else {
-                    %{ $bk_floating->{in} } =
-                      %{ $ip_floating_ref->{ $bk->{ip} }->{in} };
-                    %{ $bk_floating->{out} } =
-                      %{ $ip_floating_ref->{ $bk->{ip} }->{out} };
+                    %{ $bk_floating->{in} }  = %{ $ip_floating_ref->{ $bk->{ip} }{in} };
+                    %{ $bk_floating->{out} } = %{ $ip_floating_ref->{ $bk->{ip} }{out} };
                 }
-                $bk_floating->{in}->{mark} = $bk->{tag};
+
+                $bk_floating->{in}{mark} = $bk->{tag};
 
                 # check if backend uses floating
-                if ($bk_floating->{out}->{floating_ip}) {
+                if ($bk_floating->{out}{floating_ip}) {
                     $exists_floating_backend = 1;
                 }
+
                 push @{ $farm_srcaddr_ref->{backends} }, $bk_floating;
                 $bk_floating = undef;
             }
         }
-        delete $farm_srcaddr_ref->{backends} if not $exists_floating_backend;
+
+        if (not $exists_floating_backend) {
+            delete $farm_srcaddr_ref->{backends};
+        }
     }
 
     return $farm_srcaddr_ref;
@@ -866,22 +800,12 @@ sub reloadBackendsSourceAddressByIface ($iface_name) {
     require Relianoid::Farm::Core;
     require Relianoid::Farm::Base;
 
-    foreach my $farm_name (&getFarmNameList()) {
+    for my $farm_name (&getFarmNameList()) {
         my $farm_type = &getFarmType($farm_name);
 
         next if &getFarmStatus($farm_name) ne 'up';
 
-        if ($farm_type eq 'http' || $farm_type eq 'https') {
-            next if (&getGlobalConfiguration("proxy_ng") ne 'true');
-            my $floating = 0;
-            if ($eload) {
-                $floating = 1
-                  if (&getGlobalConfiguration('floating_L7') eq 'true');
-            }
-            next if !$floating;
-            &reloadFarmsSourceAddressByFarm($farm_name);
-        }
-        elsif ($farm_type eq 'l4xnat') {
+        if ($farm_type eq 'l4xnat') {
             my $farm_ref = &getL4FarmStruct($farm_name);
             next if $farm_ref->{nattype} ne 'nat';
             &reloadFarmsSourceAddressByFarm($farm_name);
@@ -901,14 +825,14 @@ Parameters:
 
     farm_name - name of the farm where check persistence
 
-Returns:
+Returns: integer
 
-    int - 0 = "true" or 1 = "false"
+    0 - true
+    1 - false
 
 =cut
 
 sub getPersistence ($farm_name) {
-
     my $farm_type  = &getFarmType($farm_name);
     my $nodestatus = "";
 
@@ -916,13 +840,15 @@ sub getPersistence ($farm_name) {
 
     if ($eload) {
         $nodestatus = &eload(
-            module => 'Relianoid::Cluster',
+            module => 'Relianoid::EE::Cluster',
             func   => 'getZClusterNodeStatus',
             args   => [],
         );
     }
 
-    return 1 if ($nodestatus ne "master");
+    if ($nodestatus ne "master") {
+        return 1;
+    }
 
     if ($farm_type eq 'l4xnat') {
         require Relianoid::Farm::L4xNAT::Config;
@@ -951,7 +877,6 @@ sub getPersistence ($farm_name) {
             }
         }
         close $lock_fh;
-
     }
 
     return 1;

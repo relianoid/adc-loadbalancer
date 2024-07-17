@@ -29,7 +29,6 @@ require Relianoid::Netfilter;
 require Relianoid::Farm::Config;
 
 my $configdir = &getGlobalConfiguration('configdir');
-my $proxy_ng  = &getGlobalConfiguration('proxy_ng');
 
 my $eload = eval { require Relianoid::ELoad };
 
@@ -49,130 +48,124 @@ Add a new backend to a HTTP service or modify if it exists
 
 Parameters:
 
-    ids - backend id
-    rip - backend ip
-    port - backend port
-    weight - The weight of this backend (between 1 and 9). Higher weight backends will be used more often than lower weight ones.
-    timeout - Override the global time out for this backend
-    farm_name - Farm name
-    service - service name
-    prio - The priority of this backend (greater than 1). Lower value indicates higher priority
-    connlimit
+    ids       - integer - backend id
+    rip       - string  - backend ip
+    port      - integer - backend port
+    weight    - integer - The weight of this backend (between 1 and 9). Higher weight backends will be used more often than lower weight ones.
+    timeout   - integer - Override the global time out for this backend
+    farm_name - string  - Farm name
+    service   - string  - service name
+    priority  - integer - Optional. The priority of this backend (greater than 1). Lower value indicates higher priority
 
-Returns:
-
-    Integer - return 0 on success or -1 on failure
+Returns: integer - Error code - non-zero when there is an error.
 
 =cut
 
-sub setHTTPFarmServer ($ids, $rip, $port, $weight, $timeout, $farm_name, $service, $prio = undef, $connlimit = undef) {
-    if ($proxy_ng eq 'true') {
-        return &setHTTPNGFarmServer($ids, $rip, $port, $weight, $timeout, $farm_name, $service, $prio, $connlimit);
-    }
-
+sub setHTTPFarmServer ($ids, $rip, $port, $weight, $timeout, $farm_name, $service, $priority = 1) {
     my $farm_filename = &getFarmFile($farm_name);
     my $output        = -1;
-    my $priority      = 1;
-    $priority = $prio + 0 if (defined $prio && $prio !~ /^$/);
-    $priority = 2         if ($priority > 1);
 
-    &zenlog("BACKEND setHTTPFarmServer priority $priority");
+    $priority = 1 if (not defined $priority) or $priority eq '';
+    $priority = 1 unless ($priority == 1 || $priority == 2);
 
     require Relianoid::Lock;
     my $lock_file = &getLockFile($farm_name);
     my $lock_fh   = &openlock($lock_file, 'w');
 
     require Tie::File;
-    tie my @contents, 'Tie::File', "$configdir\/$farm_filename";
+    tie my @contents, 'Tie::File', "${configdir}/${farm_filename}";
 
-    if ($ids !~ /^$/) {
+    if ($ids ne "") {
         my $index_count = -1;
         my $i           = -1;
         my $sw          = 0;
 
-        foreach my $line (@contents) {
+        for my $line (@contents) {
             $i++;
 
             #search the service to modify
-            if ($line =~ /Service \"$service\"/) {
+            if ($line =~ /^\s*Service "$service"/) {
                 $sw = 1;
             }
-            if ($line =~ /BackEnd|Emergency/ && $line !~ /#/ && $sw eq 1) {
-                $index_count++;
-                if ($index_count == $ids) {
 
+            if ($line =~ /^\s*(BackEnd|Emergency)/ && $sw) {
+                $index_count++;
+
+                if ($index_count == $ids) {
                     #server for modify $ids;
                     #HTTPS
-                    my $httpsbe = &getHTTPFarmVS($farm_name, $service, "httpsbackend");
-                    if ($httpsbe eq "true") {
+                    if ($line =~ /^\s*BackEnd/ && $priority == 2) {
+                        $contents[$i] = "\t\tEmergency";
+                    }
+                    elsif ($line =~ /^\s*Emergency/ && $priority == 1) {
+                        $contents[$i] = "\t\tBackEnd";
+                    }
 
+                    my $httpsbe = &getHTTPFarmVS($farm_name, $service, "httpsbackend");
+
+                    if ($httpsbe eq "true") {
                         #add item
                         $i++;
                     }
-                    $output = $?;
-                    if ($line =~ /BackEnd/ && $priority == 2) {
-                        $contents[$i] = "\t\tEmergency";
-                    }
-                    elsif ($line =~ /Emergency/ && $priority == 1) {
-                        $contents[$i] = "\t\tBackEnd";
-                    }
+
+                    $output             = 0;
                     $contents[ $i + 1 ] = "\t\t\tAddress $rip";
                     $contents[ $i + 2 ] = "\t\t\tPort $port";
+
                     my $p_m = 0;
-                    if ($contents[ $i + 3 ] =~ /TimeOut/) {
+
+                    if ($contents[ $i + 3 ] =~ /^\s*TimeOut/) {
                         $contents[ $i + 3 ] = "\t\t\tTimeOut $timeout";
                         &zenlog("Modified current timeout", "info", "LSLB");
                     }
-                    if ($contents[ $i + 4 ] =~ /Priority/) {
+
+                    if ($contents[ $i + 4 ] =~ /^\s*Priority/) {
                         $contents[ $i + 4 ] = "\t\t\tPriority $weight";
                         splice @contents, $i + 4, 1, if ($priority == 2);
                         &zenlog("Modified current priority", "info", "LSLB");
                         $p_m = 1;
                     }
-                    if ($contents[ $i + 3 ] =~ /Priority/) {
+
+                    if ($contents[ $i + 3 ] =~ /^\s*Priority/) {
                         $contents[ $i + 3 ] = "\t\t\tPriority $weight";
                         splice @contents, $i + 3, 1, if ($priority == 2);
                         $p_m = 1;
                     }
 
                     #delete item
-                    if ($timeout =~ /^$/) {
-                        if ($contents[ $i + 3 ] =~ /TimeOut/) {
+                    if (!defined $timeout || $timeout =~ /^$/) {
+                        if ($contents[ $i + 3 ] =~ /^\s*TimeOut/) {
                             splice @contents, $i + 3, 1,;
                         }
                     }
-                    if ($weight =~ /^$/) {
-                        if ($contents[ $i + 3 ] =~ /Priority/) {
+
+                    if (!defined $weight || $weight =~ /^$/) {
+                        if ($contents[ $i + 3 ] =~ /^\s*Priority/) {
                             splice @contents, $i + 3, 1,;
                         }
-                        if ($contents[ $i + 4 ] =~ /Priority/) {
+                        if ($contents[ $i + 4 ] =~ /^\s*Priority/) {
                             splice @contents, $i + 4, 1,;
                         }
                     }
 
                     #new item
-                    if (
-                        $timeout !~ /^$/
-                        && (   $contents[ $i + 3 ] =~ /End/
-                            || $contents[ $i + 3 ] =~ /Priority/)
-                      )
+                    if (   defined $timeout
+                        && $timeout !~ /^$/
+                        && ($contents[ $i + 3 ] =~ /^\s*End/ || $contents[ $i + 3 ] =~ /^\s*Priority/))
                     {
                         splice @contents, $i + 3, 0, "\t\t\tTimeOut $timeout";
                     }
-                    if (
-                           $p_m eq 0
+
+                    if (   defined $weight
+                        && $p_m eq 0
                         && $weight !~ /^$/
-                        && (   $contents[ $i + 3 ] =~ /End/
-                            || $contents[ $i + 4 ] =~ /End/)
-                      )
+                        && ($contents[ $i + 3 ] =~ /^\s*End/ || $contents[ $i + 4 ] =~ /^\s*End/))
                     {
-                        if ($contents[ $i + 3 ] =~ /TimeOut/) {
-                            splice @contents, $i + 4, 0, "\t\t\tPriority $weight"
-                              if ($priority == 1);
+                        if ($contents[ $i + 3 ] =~ /^\s*TimeOut/) {
+                            splice @contents, $i + 4, 0, "\t\t\tPriority $weight" if ($priority == 1);
                         }
                         else {
-                            splice @contents, $i + 3, 0, "\t\t\tPriority $weight"
-                              if ($priority == 1);
+                            splice @contents, $i + 3, 0, "\t\t\tPriority $weight" if ($priority == 1);
                         }
                     }
                 }
@@ -180,41 +173,47 @@ sub setHTTPFarmServer ($ids, $rip, $port, $weight, $timeout, $farm_name, $servic
         }
     }
     else {
-
         #add new server
         my $nsflag     = "true";
         my $index      = -1;
         my $backend    = 0;
         my $be_section = -1;
 
-        foreach my $line (@contents) {
+        for my $line (@contents) {
             $index++;
-            if ($be_section == 1 && $line =~ /Address/) {
+
+            if ($be_section == 1 && $line =~ /^\s*Address/) {
                 $backend++;
             }
-            if ($line =~ /Service \"$service\"/ && $be_section == -1) {
+
+            if ($line =~ /^\s*Service \"$service\"/ && $be_section == -1) {
                 $be_section++;
             }
-            if ($line =~ /#BackEnd/ && $be_section == 0) {
+
+            if ($line =~ /^\s*#BackEnd/ && $be_section == 0) {
                 $be_section++;
             }
-            if ($be_section == 1 && $line =~ /#End/) {
+
+            if ($be_section == 1 && $line =~ /^\s*#End/) {
                 if ($priority == 1) {
                     splice @contents, $index, 0, "\t\tBackEnd";
                 }
                 else {
                     splice @contents, $index, 0, "\t\tEmergency";
                 }
-                $output = $?;
+
+                $output = 0;
                 $index++;
+
                 splice @contents, $index, 0, "\t\t\tAddress $rip";
                 my $httpsbe = &getHTTPFarmVS($farm_name, $service, "httpsbackend");
-                if ($httpsbe eq "true") {
 
+                if ($httpsbe eq "true") {
                     #add item
                     splice @contents, $index, 0, "\t\t\tHTTPS";
                     $index++;
                 }
+
                 $index++;
                 splice @contents, $index, 0, "\t\t\tPort $port";
                 $index++;
@@ -230,249 +229,9 @@ sub setHTTPFarmServer ($ids, $rip, $port, $weight, $timeout, $farm_name, $servic
                     splice @contents, $index, 0, "\t\t\tPriority $weight";
                     $index++;
                 }
-                splice @contents, $index, 0, "\t\tEnd";
-                $be_section++;    # Backend Added
-            }
-
-            # if backend added then go out of form
-        }
-
-        if ($nsflag eq "true") {
-            my $idservice = &getFarmVSI($farm_name, $service);
-            if ($idservice ne "") {
-                &setHTTPFarmBackendStatusFile($farm_name, $backend, "active", $idservice);
-            }
-        }
-    }
-    untie @contents;
-    close $lock_fh;
-
-    return $output;
-}
-
-=pod
-
-=head1 setHTTPNGFarmServer
-
-Add a new backend to a HTTP service or modify if it exists
-
-Parameters:
-
-    ids - backend id
-    rip - backend ip
-    port - backend port
-    weight - The weight of this backend (between 1 and 9). Higher weight backends will be used more often than lower weight ones.
-    timeout - Override the global time out for this backend
-    farm_name - Farm name
-    service - service name
-    priority - The priority of this backend (greater than 1). Lower value indicates higher priority
-    connlimit
-
-Returns:
-
-    Integer - return 0 on success or -1 on failure
-
-=cut
-
-sub setHTTPNGFarmServer ($ids, $rip, $port, $weight, $timeout, $farm_name, $service, $priority, $connlimit) {
-    my $farm_filename = &getFarmFile($farm_name);
-    my $output        = -1;
-
-    require Relianoid::Lock;
-    my $lock_file = &getLockFile($farm_name);
-    my $lock_fh   = &openlock($lock_file, 'w');
-
-    require Tie::File;
-    tie my @contents, 'Tie::File', "$configdir\/$farm_filename";
-
-    if ($ids !~ /^$/) {
-        my $index_count = -1;
-        my $i           = -1;
-        my $sw          = 0;
-        my $bw          = 0;
-        my %data        = (
-            'TimeOut',   $timeout,   'Priority', $priority, 'Weight', $weight,
-            'ConnLimit', $connlimit, 'Address',  $rip,      'Port',   $port
-        );
-        my %setted = ('TimeOut', 0, 'Priority', 0, 'Weight', 0, 'ConnLimit', 0, 'Address', 0, 'Port', 0);
-        my $value;
-        my $dec_mark;
-
-        my $line;
-        for ($i = 0 ; $i < $#contents ; $i++) {
-            $line = $contents[$i];
-
-            #search the service to modify
-            if ($line =~ /Service \"$service\"/) {
-                $sw = 1;
-                next;
-            }
-            if ($line =~ /BackEnd/ && $line !~ /#/ && $sw eq 1) {
-                $index_count++;
-                if ($index_count == $ids) {
-                    $output = $?;
-                    $bw     = 1;
-                }
-                next;
-            }
-            if ($bw == 1) {
-                if ($line =~ /(TimeOut|Priority|Weight|ConnLimit|Address|Port)/) {
-                    $value = $data{$1};
-                    $setted{"$1"} = 1;
-                    if ($value =~ /^$/) {
-                        splice @contents, $i, 1,;
-                        $i--;
-                        next;
-                    }
-                    else {
-                        $contents[$i] = "\t\t\t$1 $value";
-                        next;
-                    }
-                }
-                if ($line =~ /\s*NfMark\s*(.*)/) {
-                    $dec_mark = $1;
-                    next;
-                }
-                if ($line =~ /^\s+End/) {
-                    my @keys = keys %data;
-                    foreach my $key (@keys) {
-                        $value = $data{$key};
-                        if (!$setted{$key} && $value !~ /^$/) {
-                            splice @contents, $i, 0, "\t\t\t$key $data{\"$key\"}";
-                            $data{"$key"} = 1;
-                        }
-                    }
-                    last;
-                }
-            }
-        }
-        if ($rip ne "" && $dec_mark && $eload) {
-            if (&getGlobalConfiguration('floating_L7') eq 'true') {
-                my $mark         = sprintf("0x%x", $dec_mark);
-                my $back_srcaddr = &eload(
-                    module => 'Relianoid::Net::Floating',
-                    func   => 'getFloatingSourceAddr',
-                    args   => [ $rip, $mark ],
-                );
-
-                if ($back_srcaddr->{out}->{floating_ip}) {
-                    my $farm_ref->{name} = $farm_name;
-                    $farm_ref->{vip}   = &getFarmVip('vip',  $farm_name);
-                    $farm_ref->{vport} = &getFarmVip('vipp', $farm_name);
-                    &eload(
-                        module => 'Relianoid::Net::Floating',
-                        func   => 'setL7FloatingSourceAddr',
-                        args   => [ $farm_ref, { ip => $rip, tag => $dec_mark, id => $ids } ],
-                    );
-                }
-                else {
-                    &eload(
-                        module => 'Relianoid::Net::Floating',
-                        func   => 'removeL7FloatingSourceAddr',
-                        args   => [ $farm_name, { tag => $dec_mark } ],
-                    );
-                }
-                my $exist = &checkLocalFarmSourceAddress($farm_name);
-                &eload(
-                    module => 'Relianoid::Net::Floating',
-                    func   => 'removeL7FloatingSourceAddr',
-                    args   => [$farm_name],
-                ) if (!$exist);
-            }
-        }
-    }
-    else {
-
-        #add new server
-        my $nsflag           = "true";
-        my $index            = -1;
-        my $backend          = 0;
-        my $be_section       = -1;
-        my $farm_ref->{name} = $farm_name;
-        $ids = 0;
-
-        foreach my $line (@contents) {
-            $index++;
-            if ($be_section == 1 && $line =~ /Address/) {
-                $ids++;
-                $backend++;
-            }
-            if ($line =~ /Service \"$service\"/ && $be_section == -1) {
-                $be_section++;
-            }
-            if ($line =~ /#BackEnd/ && $be_section == 0) {
-                $be_section++;
-            }
-            if ($be_section == 1 && $line =~ /#End/) {
-                splice @contents, $index, 0, "\t\tBackEnd";
-                $output = $?;
-                $index++;
-                splice @contents, $index, 0, "\t\t\tAddress $rip";
-                my $httpsbe = &getHTTPFarmVS($farm_name, $service, "httpsbackend");
-                if ($httpsbe eq "true") {
-
-                    #add item
-                    splice @contents, $index, 0, "\t\t\tHTTPS";
-                    $index++;
-                }
-                $index++;
-                splice @contents, $index, 0, "\t\t\tPort $port";
-                $index++;
-
-                #Timeout?
-                if ($timeout) {
-                    splice @contents, $index, 0, "\t\t\tTimeOut $timeout";
-                    $index++;
-                }
-
-                #Priority?
-                if ($priority) {
-                    splice @contents, $index, 0, "\t\t\tPriority $priority";
-                    $index++;
-                }
-
-                #Weight?
-                if ($weight) {
-                    splice @contents, $index, 0, "\t\t\tWeight $weight";
-                    $index++;
-                }
-
-                #ConnLimit?
-                if ($connlimit) {
-                    splice @contents, $index, 0, "\t\t\tConnLimit $connlimit";
-                    $index++;
-                }
-
-                #NfMark
-                my $hex_mark = &getNewMark($farm_name);
-                my $dec_mark = sprintf("%D", hex($hex_mark));
-                splice @contents, $index, 0, "\t\t\tNfMark $dec_mark";
-                if (&getGlobalConfiguration('mark_routing_L7') eq 'true') {
-                    my $fstate = &getFarmStatus($farm_name);
-                    $farm_ref->{vip} = &getFarmVip('vip', $farm_name);
-                    require Relianoid::Farm::Backend;
-                    &setBackendRule("add", $farm_ref, $hex_mark)
-                      if ($fstate eq 'up');
-                }
-                $index++;
 
                 splice @contents, $index, 0, "\t\tEnd";
                 $be_section++;    # Backend Added
-
-                if ($eload) {
-
-                    # take care of floating interfaces without masquerading
-                    if (&getGlobalConfiguration('floating_L7') eq 'true') {
-                        $farm_ref->{vip} = &getFarmVip('vip', $farm_name)
-                          if not defined $farm_ref->{vip};
-                        $farm_ref->{vport} = &getFarmVip('vipp', $farm_name);
-                        &eload(
-                            module => 'Relianoid::Net::Floating',
-                            func   => 'setL7FloatingSourceAddr',
-                            args   => [ $farm_ref, { ip => $rip, tag => $dec_mark, id => $ids } ],
-                        );
-                    }
-                }
             }
 
             # if backend added then go out of form
@@ -486,6 +245,7 @@ sub setHTTPNGFarmServer ($ids, $rip, $port, $weight, $timeout, $farm_name, $serv
             }
         }
     }
+
     untie @contents;
     close $lock_fh;
 
@@ -525,28 +285,25 @@ sub runHTTPFarmServerDelete ($ids, $farm_name, $service) {
 
     require Tie::File;
     tie my @contents, 'Tie::File', "$configdir\/$farm_filename";
-    foreach my $line (@contents) {
+
+    for my $line (@contents) {
         $i++;
-        if ($line =~ /Service \"$service\"/) {
+
+        if ($line =~ /^\s*Service \"$service\"/) {
             $sw = 1;
         }
-        if ($line =~ /BackEnd|Emergency/ && $line !~ /#/ && $sw == 1) {
+
+        if ($line =~ /^\s*(BackEnd|Emergency)/ && $sw) {
             $j++;
+
             if ($j == $ids) {
                 splice @contents, $i, 1,;
-                $output = $?;
-                while ($contents[$i] !~ /End/) {
-                    if ($contents[$i] =~ /\s*NfMark\s*(.*)/) {
-                        $dec_mark = $1;
-                        my $mark = sprintf("0x%x", $1);
-                        &delMarks("", $mark);
-                        if (&getGlobalConfiguration('mark_routing_L7') eq 'true') {
-                            require Relianoid::Farm::Backend;
-                            &setBackendRule("del", $farm_ref, $mark);
-                        }
-                    }
+                $output = 0;
+
+                while ($contents[$i] !~ /^\s*End/) {
                     splice @contents, $i, 1,;
                 }
+
                 splice @contents, $i, 1,;
             }
         }
@@ -555,168 +312,11 @@ sub runHTTPFarmServerDelete ($ids, $farm_name, $service) {
 
     close $lock_fh;
 
-    if (&getGlobalConfiguration('proxy_ng') eq 'true') {
-        require Relianoid::Farm::HTTP::Sessions;
-        &deleteConfL7FarmAllSession($farm_name, $service, $ids);
-
-        if ($eload) {
-            if ((&getGlobalConfiguration('floating_L7') eq 'true')
-                and $dec_mark)
-            {
-                &eload(
-                    module => 'Relianoid::Net::Floating',
-                    func   => 'removeL7FloatingSourceAddr',
-                    args   => [ $farm_name, { tag => $dec_mark } ],
-                );
-
-                my $exist = &checkLocalFarmSourceAddress($farm_name);
-
-                &eload(
-                    module => 'Relianoid::Net::Floating',
-                    func   => 'removeL7FloatingSourceAddr',
-                    args   => [$farm_name],
-                ) if (!$exist);
-            }
-        }
-    }
-
     if ($output != -1) {
         &runRemoveHTTPBackendStatus($farm_name, $ids, $service);
     }
 
     return $output;
-}
-
-=pod
-
-=head1 setHTTPFarmBackendsMarks
-
-Set marks in the backends of an HTTP farm
-
-Parameters:
-
-    farm_name - Farm name
-
-Returns:
-
-    $error_ref: $error_ref->{ code } - 0 on success, 1 on failure.
-                $error_ref->{ desc } - error message.
-
-=cut
-
-sub setHTTPFarmBackendsMarks ($farm_name) {
-    my $error_ref->{code} = -1;
-
-    require Relianoid::Farm::Core;
-
-    my $farm_filename = &getFarmFile($farm_name);
-
-    if ($farm_filename == -1) {
-        my $msg = "Backend Marks for farm $farm_name could not be set, config file does not exist";
-        $error_ref->{code} = 1;
-        $error_ref->{desc} = $msg;
-        &zenlog($error_ref->{desc}, "warning", "HTTP");
-        return $error_ref;
-    }
-    else {
-        $error_ref->{code} = 0;
-    }
-
-    my $i        = -1;
-    my $farm_ref = getFarmStruct($farm_name);
-    my $sw       = 0;
-    my $bw       = 0;
-    my $ms       = 0;
-
-    require Tie::File;
-    tie my @contents, 'Tie::File', "$configdir\/$farm_filename";
-    foreach my $line (@contents) {
-        $i++;
-        if ($line =~ /^\s+Service\s*\".*\"/) {
-            $sw = 1;
-        }
-        if ($line =~ /^\s+BackEnd/ && $sw == 1) {
-            $bw = 1;
-            $ms = 0;
-        }
-        if ($line =~ /^\s+NfMark\s*(.*)/ && $bw == 1) {
-            $ms = 1;
-        }
-        if ($line =~ /^\s+End/ && $bw == 1) {
-            $bw = 0;
-            if ($ms == 0) {
-                my $hex_mark = &getNewMark($farm_name);
-                my $dec_mark = sprintf("%D", hex($hex_mark));
-                splice @contents, $i, 0, "\t\t\tNfMark $dec_mark";
-                if (&getGlobalConfiguration('mark_routing_L7') eq 'true') {
-                    my $fstate = &getFarmStatus($farm_name);
-                    &setBackendRule("add", $farm_ref, $hex_mark)
-                      if ($fstate eq 'up');
-                }
-                $ms = 1;
-            }
-        }
-    }
-    untie @contents;
-    return $error_ref;
-}
-
-=pod
-
-=head1 removeHTTPFarmBackendsMarks
-
-Remove marks from the backends of an HTTP farm
-
-Parameters:
-
-    farm_name - Farm name
-
-Returns:
-
-    None
-
-=cut
-
-sub removeHTTPFarmBackendsMarks ($farm_name) {
-    require Relianoid::Farm::Core;
-    my $farm_filename = &getFarmFile($farm_name);
-
-    my $i        = -1;
-    my $farm_ref = getFarmStruct($farm_name);
-    my $sw       = 0;
-    my $bw       = 0;
-
-    require Tie::File;
-    tie my @contents, 'Tie::File', "$configdir\/$farm_filename";
-
-    foreach my $line (@contents) {
-        $i++;
-        if ($line =~ /^\s+Service\s*\".*\"/) {
-            $sw = 1;
-        }
-        if ($line =~ /^\s+End/ && $sw == 1 && $bw == 0) {
-            $sw = 0;
-        }
-        if ($line =~ /^\s+BackEnd/ && $sw == 1) {
-            $bw = 1;
-        }
-        if ($line =~ /^\s+NfMark\s*(.*)/ && $bw == 1) {
-            my $mark = sprintf("0x%x", $1);
-            &delMarks("", $mark);
-            if (&getGlobalConfiguration('mark_routing_L7') eq 'true') {
-                require Relianoid::Farm::Backend;
-                &setBackendRule("del", $farm_ref, $mark);
-            }
-            splice @contents, $i, 1,;
-        }
-        if ($line =~ /^\s+End/ && $bw == 1) {
-            $bw = 0;
-        }
-    }
-
-    untie @contents;
-
-    return;
 }
 
 =pod
@@ -768,7 +368,6 @@ Returns:
 sub getHTTPFarmBackends ($farmname, $service, $param_status = undef) {
     require Relianoid::Farm::HTTP::Service;
 
-    my $proxy_ng   = &getGlobalConfiguration('proxy_ng');
     my $backendsvs = &getHTTPFarmVS($farmname, $service, "backends");
 
     my @be = split("\n", $backendsvs);
@@ -780,7 +379,7 @@ sub getHTTPFarmBackends ($farmname, $service, $param_status = undef) {
         @be_status = @{ &getHTTPFarmBackendsStatus($farmname, $service) };
     }
 
-    foreach my $subl (@be) {
+    for my $subl (@be) {
         my @subbe = split(' ', $subl);
         my $id    = $subbe[1] + 0;
 
@@ -789,43 +388,25 @@ sub getHTTPFarmBackends ($farmname, $service, $param_status = undef) {
         my $tout = $subbe[7];
         my $prio = $subbe[9];
         my $weig = $subbe[11];
-        my $conn = $subbe[13];
-        my $tag  = $subbe[15];
 
         $tout = $tout eq '-' ? undef : $tout + 0;
         $prio = $prio eq '-' ? undef : $prio + 0;
         $weig = $weig eq '-' ? undef : $weig + 0;
-        $conn = $conn eq '-' ? undef : $conn + 0;
-        $tag  = $tag eq '-'  ? undef : $tag + 0;
 
         my $status = "undefined";
         if (not $param_status or $param_status eq "true") {
             $status = $be_status[$id] if $be_status[$id];
         }
 
-        if ($proxy_ng eq 'true') {
-            $backend_ref = {
-                id               => $id,
-                ip               => $ip,
-                port             => $port + 0,
-                timeout          => $tout,
-                priority         => $prio,
-                weight           => $weig,
-                connection_limit => $conn,
-                tag              => $tag
-            };
+        $backend_ref = {
+            id       => $id,
+            ip       => $ip,
+            port     => $port + 0,
+            timeout  => $tout,
+            weight   => $prio,
+            priority => $weig,
+        };
 
-        }
-        elsif ($proxy_ng) {
-            $backend_ref = {
-                id       => $id,
-                ip       => $ip,
-                port     => $port + 0,
-                timeout  => $tout,
-                weight   => $prio,
-                priority => $weig,
-            };
-        }
         if (not $param_status or $param_status eq "true") {
             $backend_ref->{status} = $status;
         }
@@ -883,7 +464,7 @@ sub getHTTPFarmBackendsStatus ($farm_name, $service) {
         my $backendstatus = &getHTTPBackendStatusFromFile($farm_name, $id, $service);
         if ($backendstatus ne "maintenance") {
             if ($farmStatus eq "up") {
-                $backendstatus = $stats->{$service}->{backends}[$id]->{status};
+                $backendstatus = $stats->{$service}{backends}[$id]->{status};
             }
             else {
                 $backendstatus = "undefined";
@@ -914,14 +495,14 @@ Parameters:
 Returns:
 
     hash reference
-    
-    $error_ref->{ code }
+
+    $error_ref->{code}
 
         0 on success
         1 on failure changing status,
         2 on failure removing sessions.
 
-    $error_ref->{ desc } - error message.
+    $error_ref->{desc} - error message.
 
 =cut
 
@@ -936,145 +517,42 @@ sub setHTTPFarmBackendStatus ($farm_name, $service, $backend_index, $status, $cu
 
     $cutmode = "" if &getHTTPFarmVS($farm_name, $service, "sesstype") eq "";
 
-    if ($proxy_ng eq 'true') {
-        if ($status eq 'maintenance' or $status eq 'fgDOWN') {
-            require Relianoid::Farm::HTTP::Action;
-            $output = &sendL7ZproxyCmd({
-                farm   => $farm_name,
-                uri    => "listener/0/service/$service_id/backend/$backend_index/status",
-                method => "PATCH",
-                body   => '{"status":"disabled"}',
-            });
-            if ($output->{result} ne "ok") {
-                my $msg = "Backend '$backend_index' in service '$service' of farm '$farm_name' cannot be disabled.";
-                &zenlog($msg, "error", "LSLB");
-                $error_ref->{code} = 1;
-                $error_ref->{desc} = $msg;
-                return $error_ref;
-            }
-            $error_ref->{code} = 0;
-            &setHTTPFarmBackendStatusFile($farm_name, $backend_index, $status, $service_id);
-            if ($cutmode eq 'cut') {
-                $output = &setHTTPFarmBackendsSessionsRemove($farm_name, $service, $backend_index);
-                if ($output) {
-                    my $msg = "Sessions for backend '$backend_index' in service '$service' of farm '$farm_name' were not deleted.";
-                    &zenlog($msg, "error", "LSLB");
-                    $error_ref->{code} = 2;
-                    $error_ref->{desc} = $msg;
-                    return $error_ref;
-                }
-            }
-        }
-        elsif ($status eq 'up') {
-
-            #store status and prio of all backends before turning backend 'up' unless backends info
-            #has already been passed as parameter.
-            my $backends_info;
-            $backends_info = &getHTTPFarmBackends($farm_name, $service, "true")
-              if ((not defined $backends_info_ref) and ($cutmode eq 'cut'));
-
-            require Relianoid::Farm::HTTP::Action;
-            $output = &sendL7ZproxyCmd({
-                farm   => $farm_name,
-                uri    => "listener/0/service/$service_id/backend/$backend_index/status",
-                method => "PATCH",
-                body   => '{"status":"active"}',
-            });
-            if ($output->{result} ne "ok") {
-                my $msg = "Backend '$backend_index' in service '$service' of farm '$farm_name' cannot be enabled";
-                &zenlog($msg, "error", "LSLB");
-                $error_ref->{code} = 1;
-                $error_ref->{desc} = $msg;
-                return $error_ref;
-            }
-            $error_ref->{code} = 0;
-            &setHTTPFarmBackendStatusFile($farm_name, $backend_index, 'active', $service_id);
-            if ($cutmode eq 'cut') {
-
-                #compare priority algorithm status of all backends before and after turning backend 'up'
-                my $y = 0;
-                my @backends;
-                if (defined $backends_info_ref) {
-                    @backends = @{$backends_info_ref};
-                }
-                else {
-                    foreach my $bk (@{$backends_info}) {
-                        if ($bk->{status} eq "up") {
-                            $backends[$y]->{status} = "up";
-                        }
-                        else {
-                            $backends[$y]->{status} = "down";
-                        }
-                        $backends[$y]->{priority} = $bk->{priority};
-                        $y++;
-                    }
-                }
-                require Relianoid::Farm::Backend;
-                my @bks_prio_status =
-                  @{ &getPriorityAlgorithmStatus(\@backends)->{status} };
-                $backends[$backend_index]->{status} = "up";
-                my @bks_updated_prio_status =
-                  @{ &getPriorityAlgorithmStatus(\@backends)->{status} };
-
-                # compare priority algorithm status of all backends and remove sessions of
-                # backends that have become useless due to priority and remove traffic.
-                $y = 0;
-                foreach my $bk (@bks_updated_prio_status) {
-                    if ($bk ne $bks_prio_status[$y]) {
-                        if ($backends[$y]->{status} eq "up") {
-                            $output = &setHTTPFarmBackendsSessionsRemove($farm_name, $service, $y);
-                            if ($output) {
-                                my $msg = "Sessions of unused backends in service '$service' of farm '$farm_name' were not deleted.";
-                                &zenlog($msg, "error", "LSLB");
-                                $error_ref->{code} = 2;
-                                $error_ref->{desc} = $msg;
-                            }
-                        }
-                    }
-                    $y++;
-                }
-            }
+    my $proxyctl = &getGlobalConfiguration('proxyctl');
+    if ($status eq 'maintenance' or $status eq 'fgDOWN') {
+        $output = &logAndRun("$proxyctl -c $socket_file -b 0 $service_id $backend_index");
+        if ($output) {
+            my $msg = "Backend '$backend_index' in service '$service' of farm '$farm_name' cannot be disabled";
+            $error_ref->{code} = 1;
+            $error_ref->{desc} = $msg;
             return $error_ref;
         }
+        else {
+            $error_ref->{code} = 0;
+        }
+        &setHTTPFarmBackendStatusFile($farm_name, $backend_index, $status, $service_id);
+        if ($cutmode eq 'cut') {
+            $output = &setHTTPFarmBackendsSessionsRemove($farm_name, $service, $backend_index);
+            if ($output) {
+                my $msg = "Sessions for backend '$backend_index' in service '$service' of farm '$farm_name' were not deleted.";
+                &zenlog($msg, "error", "LSLB");
+                $error_ref->{code} = 2;
+                $error_ref->{desc} = $msg;
+                return $error_ref;
+            }
+        }
     }
-    elsif ($proxy_ng eq 'false') {
-        my $proxyctl = &getGlobalConfiguration('proxyctl');
-        if ($status eq 'maintenance' or $status eq 'fgDOWN') {
-            $output = &logAndRun("$proxyctl -c $socket_file -b 0 $service_id $backend_index");
-            if ($output) {
-                my $msg = "Backend '$backend_index' in service '$service' of farm '$farm_name' cannot be disabled";
-                $error_ref->{code} = 1;
-                $error_ref->{desc} = $msg;
-                return $error_ref;
-            }
-            else {
-                $error_ref->{code} = 0;
-            }
-            &setHTTPFarmBackendStatusFile($farm_name, $backend_index, $status, $service_id);
-            if ($cutmode eq 'cut') {
-                $output = &setHTTPFarmBackendsSessionsRemove($farm_name, $service, $backend_index);
-                if ($output) {
-                    my $msg = "Sessions for backend '$backend_index' in service '$service' of farm '$farm_name' were not deleted.";
-                    &zenlog($msg, "error", "LSLB");
-                    $error_ref->{code} = 2;
-                    $error_ref->{desc} = $msg;
-                    return $error_ref;
-                }
-            }
+    elsif ($status eq 'up') {
+        $output = &logAndRun("$proxyctl -c $socket_file -B 0 $service_id $backend_index");
+        if ($output) {
+            my $msg = "Backend '$backend_index' in service '$service' of farm '$farm_name' cannot be enabled";
+            $error_ref->{code} = 1;
+            $error_ref->{desc} = $msg;
+            return $error_ref;
         }
-        elsif ($status eq 'up') {
-            $output = &logAndRun("$proxyctl -c $socket_file -B 0 $service_id $backend_index");
-            if ($output) {
-                my $msg = "Backend '$backend_index' in service '$service' of farm '$farm_name' cannot be enabled";
-                $error_ref->{code} = 1;
-                $error_ref->{desc} = $msg;
-                return $error_ref;
-            }
-            else {
-                $error_ref->{code} = 0;
-            }
-            &setHTTPFarmBackendStatusFile($farm_name, $backend_index, 'active', $service_id);
+        else {
+            $error_ref->{code} = 0;
         }
+        &setHTTPFarmBackendStatusFile($farm_name, $backend_index, 'active', $service_id);
     }
 
     return $error_ref;
@@ -1118,7 +596,6 @@ sub getHTTPBackendStatusFromFile ($farm_name, $backend, $service) {
         close $fh;
 
         for my $line (@lines) {
-
             #service index
             if ($line =~ /\ 0\ ${index}\ ${backend}/) {
                 if ($line =~ /maintenance/) {
@@ -1150,9 +627,7 @@ Parameters:
     status      - backend status to save in the status file
     idsv        - Service id
 
-Returns:
-
-    none
+Returns: Nothing
 
 FIXME:
 
@@ -1163,17 +638,17 @@ FIXME:
 sub setHTTPFarmBackendStatusFile ($farm_name, $backend, $status, $idsv) {
     require Tie::File;
 
-    my $statusfile = "$configdir\/$farm_name\_status.cfg";
+    my $statusfile = "${configdir}/${farm_name}_status.cfg";
     my $changed    = "false";
 
     unless (-e $statusfile) {
         my $proxyctl = &getGlobalConfiguration('proxyctl');
-        my @run      = @{ &logAndGet("$proxyctl -C -c /tmp/$farm_name\_proxy.socket", "array") };
+        my @run      = @{ &logAndGet("${proxyctl} -C -c /tmp/${farm_name}_proxy.socket", "array") };
         my @sw;
         my @bw;
         my @statusfile_ln;
 
-        foreach my $line (@run) {
+        for my $line (@run) {
             if ($line =~ /\.\ Service\ /) {
                 @sw = split("\ ", $line);
                 $sw[0] =~ s/\.//g;
@@ -1184,7 +659,6 @@ sub setHTTPFarmBackendStatusFile ($farm_name, $backend, $status, $idsv) {
                 $bw[0] =~ s/\.//g;
                 chomp $bw[0];
                 if ($bw[3] eq "active") {
-
                     #~ print FW "-B 0 $sw[0] $bw[0] active\n";
                 }
                 else {
@@ -1193,16 +667,16 @@ sub setHTTPFarmBackendStatusFile ($farm_name, $backend, $status, $idsv) {
             }
         }
 
-        open my $fd, '>', $statusfile;
-        print $fd join("\n", @statusfile_ln);
-        close $fd;
+        open my $fh, '>', $statusfile;
+        print $fh join("\n", @statusfile_ln);
+        close $fh;
     }
 
     tie my @filelines, 'Tie::File', "$statusfile";
     my $i = 0;
 
-    foreach my $linea (@filelines) {
-        if ($linea =~ /\ 0\ ${idsv}\ $backend/) {
+    for my $linea (@filelines) {
+        if ($linea =~ / 0 ${idsv} ${backend}/) {
             if ($status =~ /maintenance/ || $status =~ /fgDOWN/) {
                 $linea   = "-b 0 ${idsv} $backend $status";
                 $changed = "true";
@@ -1214,19 +688,17 @@ sub setHTTPFarmBackendStatusFile ($farm_name, $backend, $status, $idsv) {
         }
         $i++;
     }
+
     untie @filelines;
 
     if ($changed eq "false") {
-        open(my $fd, '>>', $statusfile);
+        open(my $fh, '>>', $statusfile);
 
         if ($status =~ /maintenance/ || $status =~ /fgDOWN/) {
-            print {$fd} "-b 0 ${idsv} $backend $status\n";
-        }
-        else {
-            splice(@filelines, $i, 1);
+            print {$fh} "-b 0 ${idsv} $backend $status\n";
         }
 
-        close $fd;
+        close $fh;
     }
 
     return;
@@ -1325,7 +797,7 @@ sub runRemoveHTTPBackendStatus ($farm_name, $backend, $service) {
 
     tie my @contents, 'Tie::File', "$configdir\/$farm_name\_status.cfg";
 
-    foreach my $line (@contents) {
+    for my $line (@contents) {
         $i++;
         if ($line =~ /0\ ${serv_index}\ ${backend}/) {
             splice @contents, $i, 1,;
@@ -1337,7 +809,7 @@ sub runRemoveHTTPBackendStatus ($farm_name, $backend, $service) {
     # decrease backend index in greater backend ids
     tie my @filelines, 'Tie::File', "$configdir\/$farm_name\_status.cfg";
 
-    foreach my $line (@filelines) {
+    for my $line (@filelines) {
         if ($line =~ /0\ ${serv_index}\ (\d+) (\w+)/) {
             my $backend_index = $1;
             my $status        = $2;
@@ -1423,33 +895,16 @@ Returns:
 
 sub setHTTPFarmBackendsSessionsRemove ($farm_name, $service, $backendid) {
     my $serviceid;
-    my $proxy_ng = &getGlobalConfiguration('proxy_ng');
-    my $err      = 0;
+    my $err = 0;
 
     &zenlog("Deleting established sessions to a backend $backendid from farm $farm_name in service $service",
         "info", "LSLB");
 
     $serviceid = &getFarmVSI($farm_name, $service);
-    if ($proxy_ng eq "true") {
-        require Relianoid::Farm::HTTP::Action;
-        $err = &sendL7ZproxyCmd({
-            farm   => $farm_name,
-            uri    => "listener/0/service/$serviceid/sessions",
-            method => "DELETE",
-            body   => '{ "backend-id":' . $backendid . ' }',
-        });
-        if ($err->{result} eq "ok") {
-            $err = 0;
-        }
-        else {
-            $err = 1;
-        }
-    }
-    elsif ($proxy_ng eq "false") {
-        my $proxyctl = &getGlobalConfiguration('proxyctl');
-        my $cmd      = "$proxyctl -c /tmp/$farm_name\_proxy.socket -f 0 $serviceid $backendid";
-        $err = &logAndRun($cmd);
-    }
+
+    my $proxyctl = &getGlobalConfiguration('proxyctl');
+    my $cmd      = "$proxyctl -c /tmp/$farm_name\_proxy.socket -f 0 $serviceid $backendid";
+    $err = &logAndRun($cmd);
 
     return $err;
 }
@@ -1460,14 +915,16 @@ sub getHTTPFarmBackendAvailableID ($farmname, $service) {
     # get an ID for the new backend
     my $backendsvs = &getHTTPFarmVS($farmname, $service, "backends");
     my @be         = split("\n", $backendsvs);
-    my $id;
+    my $id         = 0;
 
-    foreach my $subl (@be) {
+    for my $subl (@be) {
         my @subbe = split(' ', $subl);
         $id = $subbe[1] + 1;
     }
 
-    $id = 0 if $id eq '';
+    if (defined $id && $id eq '') {
+        $id = 0;
+    }
 
     return $id;
 }
@@ -1506,7 +963,7 @@ sub getHTTPFarmBackendsStatusInfo ($farm_name) {
     require Relianoid::Farm::Base;
     require Relianoid::Farm::HTTP::Backend;
     require Relianoid::Validate;
-    my $status;
+    my $status = {};
 
     my $serviceName;
     my $service_re = &getValidFormat('service');
@@ -1524,8 +981,7 @@ sub getHTTPFarmBackendsStatusInfo ($farm_name) {
     my @proxyctl = &getHTTPFarmBackendStatusCtl($farm_name);
 
     # Parse l7 proxy info
-    foreach my $line (@proxyctl) {
-
+    for my $line (@proxyctl) {
         # i.e.
         #     0. Service "HTTP" active (10)
         if ($line =~ /(\d+)\. Service "($service_re)"/) {
@@ -1549,21 +1005,19 @@ sub getHTTPFarmBackendsStatusInfo ($farm_name) {
                 require Relianoid::Farm::HTTP::Backend;
 
                 #Checkstatusfile
-                $backendHash->{"status"} =
-                  &getHTTPBackendStatusFromFile($farm_name, $backendHash->{id}, $serviceName);
+                $backendHash->{status} = &getHTTPBackendStatusFromFile($farm_name, $backendHash->{id}, $serviceName);
 
                 # not show fgDOWN status
-                $backendHash->{"status"} = "down"
-                  if ($backendHash->{"status"} ne "maintenance");
+                $backendHash->{status} = "down" if ($backendHash->{status} ne "maintenance");
             }
-            elsif ($backendHash->{"status"} eq "alive") {
-                $backendHash->{"status"} = "up";
+            elsif ($backendHash->{status} eq "alive") {
+                $backendHash->{status} = "up";
             }
-            elsif ($backendHash->{"status"} eq "DEAD") {
-                $backendHash->{"status"} = "down";
+            elsif ($backendHash->{status} eq "DEAD") {
+                $backendHash->{status} = "down";
             }
 
-            push(@{ $status->{$serviceName}->{backends} }, $backendHash);
+            push(@{ $status->{$serviceName}{backends} }, $backendHash);
         }
     }
 
