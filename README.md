@@ -45,20 +45,20 @@ Please, take into account these **requirements** before installing the load bala
 This git repository only contains the source code, the installable packages based in this code are updated in our RELIANOID APT repos, you can use them configuring your Debian 12 Bookworm system as follows:
 
 ```
-root@noid-ce-01# echo "deb http://repo.relianoid.com/ce/v7 bookworm main" > /etc/apt/sources.list.d/relianoid.list
-root@noid-ce-01# wget -O - https://repo.relianoid.com/public/relianoid.asc > /etc/apt/trusted.gpg.d/relianoid.asc
+echo "deb http://repo.relianoid.com/ce/v7 bookworm main" > /etc/apt/sources.list.d/relianoid.list
+wget -O - https://repo.relianoid.com/public/relianoid.asc > /etc/apt/trusted.gpg.d/relianoid.asc
 ```
 
 Now, update the local APT database
 
 ```
-root@noid-ce-01# apt-get update
+apt-get update
 ```
 
 And finally, install RELIANOID load balancer Community Edition
 
 ```
-root@noid-ce-01# apt-get install relianoid relianoid-gui
+apt-get install relianoid relianoid-gui
 ```
 
 ## Updates
