@@ -35,8 +35,10 @@ use feature qw(signatures);
 
 use Carp;
 
+use Relianoid::API;
+
 my $LOG_TAG = "";
-$LOG_TAG = "ZAPI"   if (exists $ENV{HTTP_ZAPI_KEY});
+$LOG_TAG = "API"    if get_http_api_key();
 $LOG_TAG = "WEBGUI" if (exists $ENV{HTTP_COOKIE});
 
 my $eload = eval { require Relianoid::ELoad };
@@ -113,7 +115,7 @@ sub POST ($path, $code, $mod = undef) {
         $input_ref = eval { JSON::decode_json($data) };
 
         if (&debug()) {
-            &zenlog("json: ${data}", "debug", $LOG_TAG);
+            &log_debug("json: ${data}", $LOG_TAG);
         }
 
         if (!$input_ref) {
@@ -141,7 +143,7 @@ sub POST ($path, $code, $mod = undef) {
         # Exception for /session. Allow no content, so content type too.
     }
     else {
-        &zenlog("Content-Type not supported: $ENV{CONTENT_TYPE}", "error", $LOG_TAG);
+        &log_error("Content-Type not supported: $ENV{CONTENT_TYPE}", $LOG_TAG);
         my $body = { message => 'Content-Type not supported', error => 'true' };
 
         return &httpResponse({ code => 415, body => $body });
@@ -188,7 +190,7 @@ sub PUT ($path, $code, $mod = undef) {
         $input_ref = eval { JSON::decode_json($data) };
 
         if (&debug()) {
-            &zenlog("json: ${data}", "debug", $LOG_TAG);
+            &log_debug("json: ${data}", $LOG_TAG);
         }
 
         if (!$input_ref) {
@@ -210,7 +212,7 @@ sub PUT ($path, $code, $mod = undef) {
         $input_ref = $data;
     }
     else {
-        &zenlog("Content-Type not supported: $ENV{CONTENT_TYPE}", "error", $LOG_TAG);
+        &log_error("Content-Type not supported: $ENV{CONTENT_TYPE}", $LOG_TAG);
         my $body = { message => 'Content-Type not supported', error => 'true' };
 
         return &httpResponse({ code => 415, body => $body });
@@ -266,7 +268,7 @@ sub OPTIONS ($path, $code) {
         @captures = ();
     }
 
-    &zenlog("OPTIONS captures( @captures )", "debug", $LOG_TAG) if &debug();
+    &log_debug("OPTIONS captures( @captures )", $LOG_TAG) if &debug();
 
     $code->(@captures);
 
@@ -277,27 +279,27 @@ sub OPTIONS ($path, $code) {
 
 =head1 httpResponse
 
-Render and print zapi response fron data input.
+Serialize and send to STDOUT API response from data input.
 
 Parameters: hash reference
 
     code    - HTTP status code digit
     headers - Optional. Hash reference of extra http headers to be included
     body    - Optional. Hash reference with data to be sent as JSON
+    type    - Optional. HTTP Content-type header. Example: 'text/plain'
 
-Returns:
+Returns: Nothing
 
-    This function exits the execution of the current process.
 =cut
 
-sub httpResponse ($self) {
-    return $self unless exists $ENV{GATEWAY_INTERFACE};
+sub httpResponse ($response) {
+    return $response unless exists $ENV{GATEWAY_INTERFACE};
 
-    if (not defined $self or ref $self ne 'HASH') {
+    if (not defined $response or ref $response ne 'HASH') {
         die 'httpResponse: Bad input';
     }
 
-    if (not defined $self->{code} or not exists $http_status_codes{ $self->{code} }) {
+    if (not defined $response->{code} or not exists $http_status_codes{ $response->{code} }) {
         die 'httpResponse: Bad http status code';
     }
 
@@ -306,13 +308,13 @@ sub httpResponse ($self) {
     my $q      = &getCGI();
     my $origin = '*';
 
-    if (!exists $ENV{HTTP_ZAPI_KEY}) {
+    if (not get_http_api_key()) {
         my $cors_devel_mode = &getGlobalConfiguration('cors_devel_mode') eq "true";
         $origin = $cors_devel_mode ? $ENV{HTTP_ORIGIN} : "https://$ENV{HTTP_HOST}";
     }
 
-    # Headers included in _ALL_ the responses, any method, any URI, sucess or error
-    my @headers = (
+    # Headers included in all the responses, any method, any URI, sucess or error
+    my %headers = (
         'Access-Control-Allow-Origin'      => $origin,
         'Access-Control-Allow-Credentials' => 'true',
         'Cache-Control'                    => 'no-cache',
@@ -320,12 +322,11 @@ sub httpResponse ($self) {
         'Pragma'                           => 'no-cache',
     );
 
-    if ($ENV{REQUEST_METHOD} eq 'OPTIONS')    # no session info received
-    {
-        push @headers,
-          'Access-Control-Allow-Methods' => 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers' => 'ZAPI_KEY, Authorization, Set-cookie, Content-Type, X-Requested-With',
-          ;
+    # no session info received
+    if ($ENV{REQUEST_METHOD} eq 'OPTIONS') {
+        $headers{'Access-Control-Allow-Methods'} = 'GET, POST, PUT, DELETE, OPTIONS';
+        $headers{'Access-Control-Allow-Headers'} =
+          'API_KEY, ZAPI_KEY, Authorization, Set-cookie, Content-Type, X-Requested-With';
     }
 
     if (exists $ENV{HTTP_COOKIE} && $ENV{HTTP_COOKIE} =~ /CGISESSID/) {
@@ -335,38 +336,36 @@ sub httpResponse ($self) {
             my $session        = CGI::Session->load($q);
             my $session_cookie = $q->cookie(CGISESSID => $session->id);
 
-            push @headers,
-              'Set-Cookie'                    => $session_cookie . "; SameSite=None; Secure; HttpOnly",
-              'Access-Control-Expose-Headers' => 'Set-Cookie, Content-Disposition',
-              ;
+            $headers{'Set-Cookie'}                    = "${session_cookie}; SameSite=None; Secure; HttpOnly";
+            $headers{'Access-Control-Expose-Headers'} = "Set-Cookie, Content-Disposition";
         }
     }
 
     if ($q->path_info =~ '/session') {
-        push @headers, 'Access-Control-Expose-Headers' => 'Set-Cookie';
+        $headers{'Access-Control-Expose-Headers'} = "Set-Cookie";
     }
 
-    # add possible extra headers
-    if (exists $self->{headers} && ref $self->{headers} eq 'HASH') {
-        push @headers, %{ $self->{headers} };
+    if (exists $response->{headers} && ref $response->{headers} eq 'HASH') {
+        %headers = (%headers, %{ $response->{headers} });
     }
 
-    # header
-    my $content_type = 'application/json';
-    $content_type = $self->{type} if $self->{type} && $self->{body};
-
-    my $output = $q->header(
-        -type    => $content_type,
-        -charset => 'utf-8',
-        -status  => "$self->{code} $http_status_codes{$self->{code}}",
-
-        # extra headers
-        @headers,
+    print $q->header(
+        -status => "$response->{code} $http_status_codes{$response->{code}}",
+        %headers,
     );
 
-    # body
-    if (exists $self->{body}) {
-        if (ref $self->{body} eq 'HASH') {
+    if ($response->{body}) {
+        my $json_type = 'application/json';
+
+        if (not $headers{-type}) {
+            $headers{-type} = $response->{type} // $json_type;
+        }
+
+        if ($headers{-type} eq $json_type) {
+            $headers{-charset} = 'utf-8';
+        }
+
+        if (ref $response->{body} eq 'HASH') {
             require JSON;
             require Relianoid::Debug;
 
@@ -374,30 +373,36 @@ sub httpResponse ($self) {
             my $pretty    = debug();
             my $json      = JSON->new->utf8->pretty($pretty)->canonical([$canonical]);
 
-            $output .= $json->encode($self->{body});
+            print $json->encode($response->{body});
+        }
+        elsif (ref $response->{body} eq 'GLOB') {
+            my $fh = $response->{body};
+            binmode $fh;
+
+            local $/ = \4096;
+            print while <$fh>;
+            close $fh;
         }
         else {
-            $output .= $self->{body};
+            print $response->{body};
         }
     }
 
-    print $output;
-
     # avoid logging frequent requests
     my @path_exceptions = ('/stats/system/connections', '/system/cluster/nodes', '/system/cluster/nodes/localhost');
-    my $exception       = $ENV{REQUEST_METHOD} eq 'GET' && grep { $ENV{PATH_INFO} eq $_ } @path_exceptions;
+    my $is_exception    = $ENV{REQUEST_METHOD} eq 'GET' && grep { $ENV{PATH_INFO} eq $_ } @path_exceptions;
 
-    unless ($exception) {
+    if (not $is_exception) {
         # log request if debug is enabled
-        my $req_msg = "STATUS: $self->{code} REQUEST: $ENV{REQUEST_METHOD} $ENV{SCRIPT_URL}";
+        my $req_msg = "STATUS: $response->{code} REQUEST: $ENV{REQUEST_METHOD} $ENV{SCRIPT_URL}";
 
         # include memory usage if debug is 2 or higher
         $req_msg = sprintf("%s %s", $req_msg, &getMemoryUsage()) if &debug();
-        &zenlog($req_msg, "info", $LOG_TAG);
+        &log_info($req_msg, $LOG_TAG);
 
         # log error message on error.
-        if (ref $self->{body} eq 'HASH' and exists $self->{body}{message}) {
-            &zenlog($self->{body}{message}, "info", $LOG_TAG);
+        if (ref $response->{body} eq 'HASH' and exists $response->{body}{message}) {
+            &log_info($response->{body}{message}, $LOG_TAG);
         }
     }
 
@@ -407,21 +412,21 @@ sub httpResponse ($self) {
 sub httpErrorResponse ($args) {
     unless (ref($args) eq 'HASH') {
         my $message = "httpErrorResponse: Argument is not a hash reference.";
-        &zenlog($message);
+        &log_info($message);
         carp($message);
     }
 
     # check required arguments: code, desc and msg
     unless ($args->{code} && $args->{desc} && $args->{msg}) {
         my $message = "httpErrorResponse: Missing required argument";
-        &zenlog($message);
+        &log_info($message);
         carp($message);
     }
 
     # check the status code is in a valid range
     unless ($args->{code} =~ /^4[0-9][0-9]$/) {
         my $message = "httpErrorResponse: Non-supported HTTP status code: $args->{code}";
-        &zenlog($message);
+        &log_info($message);
         carp($message);
     }
 
@@ -434,8 +439,8 @@ sub httpErrorResponse ($args) {
     my $doc_url = &getGlobalConfiguration('doc_v4_0');
     $body->{documentation} = $doc_url if $doc_url;
 
-    &zenlog("$args->{desc}: $args->{msg}", "error", $LOG_TAG);
-    &zenlog($args->{log_msg},              "info",  $LOG_TAG) if exists $args->{log_msg};
+    &log_error("$args->{desc}: $args->{msg}", $LOG_TAG);
+    &log_info($args->{log_msg}, $LOG_TAG) if exists $args->{log_msg};
 
     my $response = { code => $args->{code}, body => $body };
 
@@ -449,19 +454,19 @@ sub httpErrorResponse ($args) {
 sub httpSuccessResponse ($args) {
     unless (ref($args) eq 'HASH') {
         my $message = "httpSuccessResponse: Argument is not a hash reference";
-        &zenlog($message);
+        &log_info($message);
         carp($message);
     }
 
     unless ($args->{code} && $args->{desc} && $args->{msg}) {
         my $message = "httpSuccessResponse: Missing required argument";
-        &zenlog($message);
+        &log_info($message);
         carp($message);
     }
 
     unless ($args->{code} =~ /^2[0-9][0-9]$/) {
         my $message = "httpSuccessResponse: Non-supported HTTP status code: $args->{code}";
-        &zenlog($message);
+        &log_info($message);
         carp($message);
     }
 
@@ -471,10 +476,28 @@ sub httpSuccessResponse ($args) {
         message     => $args->{msg},
     };
 
-    &zenlog($args->{log_msg}, "info", $LOG_TAG) if exists $args->{log_msg};
+    &log_info($args->{log_msg}, $LOG_TAG) if exists $args->{log_msg};
 
     return &httpResponse({ code => $args->{code}, body => $body });
 }
+
+=pod
+
+=head1 httpDownloadResponse
+
+Arguments: array | hash
+
+Receives a hash, or an array with hash parameters.
+
+Hash keys:
+
+    desc - string - Description of the API response
+    dir  - string - Location of the file
+    file - string - File name
+
+Returns: Nothing
+
+=cut
 
 sub httpDownloadResponse (@args) {
     my $args;
@@ -484,19 +507,19 @@ sub httpDownloadResponse (@args) {
     # check errors loading the hash reference
     if ($@) {
         my $message = "httpDownloadResponse: Wrong argument received";
-        &zenlog($message);
+        &log_info($message);
         carp($message);
     }
 
     unless (ref($args) eq 'HASH') {
         my $message = "httpDownloadResponse: Argument is not a hash reference";
-        &zenlog($message);
+        &log_info($message);
         carp($message);
     }
 
     unless ($args->{desc} && $args->{dir} && $args->{file}) {
         my $message = "httpDownloadResponse: Missing required argument";
-        &zenlog($message);
+        &log_info($message);
         carp($message);
     }
 
@@ -511,39 +534,23 @@ sub httpDownloadResponse (@args) {
         return &httpErrorResponse({ code => 400, desc => $args->{desc}, msg => $msg });
     }
 
-    require Relianoid::File;
+    my $fh;
 
-    my $body = &getFile($path);
-
-    unless (defined $body) {
+    unless (open($fh, "<", $path)) {
         my $msg = "Could not open file $path: $!";
         return &httpErrorResponse({ code => 400, desc => $args->{desc}, msg => $msg });
     }
 
-    # make headers
-    my $origin = '*';
-
-    if (!exists $ENV{HTTP_ZAPI_KEY}) {
-        my $cors_devel_mode = &getGlobalConfiguration('cors_devel_mode') eq "true";
-        $origin = $cors_devel_mode ? $ENV{HTTP_ORIGIN} : "https://$ENV{HTTP_HOST}";
-    }
-
+    my $type    = 'application/x-download';
     my $headers = {
-        -type                              => 'application/x-download',
-        -attachment                        => $args->{file},
-        'Content-length'                   => -s $path,
-        'Access-Control-Allow-Origin'      => $origin,
-        'Access-Control-Allow-Credentials' => 'true'
+        -type            => $type,
+        -attachment      => $args->{file},
+        'Content-length' => -s $path,
     };
 
-    # optionally, remove the downloaded file, useful for temporal files
-    if ($args->{remove} && $args->{remove} eq 'true') {
-        unlink $path;
-    }
+    &log_info("[Download] $args->{desc}: $path", $LOG_TAG);
 
-    &zenlog("[Download] $args->{desc}: $path", "info", $LOG_TAG);
-
-    return &httpResponse({ code => 200, headers => $headers, body => $body });
+    return &httpResponse({ code => 200, headers => $headers, body => $fh, type => $type });
 }
 
 1;

@@ -27,80 +27,36 @@ use RRDs;
 use Relianoid::Config;
 use Relianoid::Stats;
 
-my $rrdap_dir = &getGlobalConfiguration('rrdap_dir');
-my $rrd_dir   = &getGlobalConfiguration('rrd_dir');
-my $db_cpu    = "cpu.rrd";
+my $collector_rrd_dir = &getGlobalConfiguration('collector_rrd_dir');
+my $db_cpu            = "cpu.rrd";
+my $rrd_filename      = "${collector_rrd_dir}/${db_cpu}";
 
 my @cpu = &getCPU();
 
-my $cpu_user;
-my $cpu_nice;
-my $cpu_sys;
-my $cpu_iowait;
-my $cpu_irq;
-my $cpu_softirq;
-my $cpu_idle;
-my $cpu_usage;
-my $ERROR;
-
-my $row = shift @cpu;
-
-if ($row->[0] eq "CPUuser") {
-    $cpu_user = $row->[1];
-    $row      = shift @cpu;
+my %cpu = ();
+for my $array_ref (@cpu) {
+    my ($key, $value) = @{$array_ref};
+    $cpu{$key} = $value;
 }
 
-if ($row->[0] eq "CPUnice") {
-    $cpu_nice = $row->[1];
-    $row      = shift @cpu;
-}
+my $cpu_user    = $cpu{"CPUuser"};
+my $cpu_nice    = $cpu{"CPUnice"};
+my $cpu_sys     = $cpu{"CPUsys"};
+my $cpu_iowait  = $cpu{"CPUiowait"};
+my $cpu_irq     = $cpu{"CPUirq"};
+my $cpu_softirq = $cpu{"CPUsoftirq"};
+my $cpu_idle    = $cpu{"CPUidle"};
+my $cpu_usage   = $cpu{"CPUusage"};
 
-if ($row->[0] eq "CPUsys") {
-    $cpu_sys = $row->[1];
-    $row     = shift @cpu;
-}
-
-if ($row->[0] eq "CPUiowait") {
-    $cpu_iowait = $row->[1];
-    $row        = shift @cpu;
-}
-
-if ($row->[0] eq "CPUirq") {
-    $cpu_irq = $row->[1];
-    $row     = shift @cpu;
-}
-
-if ($row->[0] eq "CPUsoftirq") {
-    $cpu_softirq = $row->[1];
-    $row         = shift @cpu;
-}
-
-if ($row->[0] eq "CPUidle") {
-    $cpu_idle = $row->[1];
-    $row      = shift @cpu;
-}
-
-if ($row->[0] eq "CPUusage") {
-    $cpu_usage = $row->[1];
-    $row       = shift @cpu;
-}
-
-if (   $cpu_user =~ /^$/
-    || $cpu_nice    =~ /^$/
-    || $cpu_sys     =~ /^$/
-    || $cpu_iowait  =~ /^$/
-    || $cpu_irq     =~ /^$/
-    || $cpu_softirq =~ /^$/
-    || $cpu_idle    =~ /^$/
-    || $cpu_usage   =~ /^$/)
-{
-    print "$0: Error: Unable to get the data\n";
+if (!$cpu_user || !$cpu_nice || !$cpu_sys || !$cpu_iowait || !$cpu_irq || !$cpu_softirq || !$cpu_idle || !$cpu_usage) {
+    print STDERR "$0: Error: Unable to get the data\n";
     exit;
 }
 
-if (!-f "$rrdap_dir/$rrd_dir/$db_cpu") {
-    print "$0: Info: Creating the rrd database $rrdap_dir/$rrd_dir/$db_cpu ...\n";
-    RRDs::create "$rrdap_dir/$rrd_dir/$db_cpu",
+if (!-f $rrd_filename) {
+    print "$0: Info: Creating the rrd database ${rrd_filename} ...\n";
+
+    RRDs::create $rrd_filename,
       "--step", "300",
       "DS:user:GAUGE:600:0.00:100.00",
       "DS:nice:GAUGE:600:0.00:100.00",
@@ -126,26 +82,26 @@ if (!-f "$rrdap_dir/$rrd_dir/$db_cpu") {
       "RRA:AVERAGE:0.5:288:372",                                 # yearly - every 1 day - 372 reg
       "RRA:MAX:0.5:288:372";                                     # yearly - every 1 day - 372 reg
 
-    if ($ERROR = RRDs::error) {
-        print "$0: Error: Unable to generate the rrd database: $ERROR\n";
+    if (my $error = RRDs::error) {
+        print STDERR "$0: Error: Unable to generate the rrd database: ${error}\n";
     }
 }
 
 print "$0: Info: CPU Stats ...\n";
-print "$0: Info:	user: $cpu_user %\n";
-print "$0: Info:	nice: $cpu_nice %\n";
-print "$0: Info:	sys: $cpu_sys %\n";
-print "$0: Info:	iowait: $cpu_iowait %\n";
-print "$0: Info:	irq: $cpu_irq %\n";
-print "$0: Info:	softirq: $cpu_softirq %\n";
-print "$0: Info:	idle: $cpu_idle %\n";
-print "$0: Info:	total used: $cpu_usage %\n";
+print "$0: Info:	user: ${cpu_user} %\n";
+print "$0: Info:	nice: ${cpu_nice} %\n";
+print "$0: Info:	sys: ${cpu_sys} %\n";
+print "$0: Info:	iowait: ${cpu_iowait} %\n";
+print "$0: Info:	irq: ${cpu_irq} %\n";
+print "$0: Info:	softirq: ${cpu_softirq} %\n";
+print "$0: Info:	idle: ${cpu_idle} %\n";
+print "$0: Info:	total used: ${cpu_usage} %\n";
+print "$0: Info: Updating data in ${rrd_filename} ...\n";
 
-print "$0: Info: Updating data in $rrdap_dir/$rrd_dir/$db_cpu ...\n";
-RRDs::update "$rrdap_dir/$rrd_dir/$db_cpu",
+RRDs::update $rrd_filename,
   "-t", "user:nice:sys:iowait:irq:softirq:idle:tused",
-  "N:$cpu_user:$cpu_nice:$cpu_sys:$cpu_iowait:$cpu_irq:$cpu_softirq:$cpu_idle:$cpu_usage";
+  "N:${cpu_user}:${cpu_nice}:${cpu_sys}:${cpu_iowait}:${cpu_irq}:${cpu_softirq}:${cpu_idle}:${cpu_usage}";
 
-if ($ERROR = RRDs::error) {
-    print "$0: Error: Unable to update the rrd database: $ERROR\n";
+if (my $error = RRDs::error) {
+    print STDERR "$0: Error: Unable to update the rrd database: ${error}\n";
 }

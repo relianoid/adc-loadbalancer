@@ -107,7 +107,7 @@ sub add_farm_backend_controller ($json_obj, $farmname) {
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
-    &zenlog("New backend created in farm $farmname with IP $json_obj->{ip}.", "info", "FARMS");
+    &log_info("New backend created in farm $farmname with IP $json_obj->{ip}.", "FARMS");
 
     # check priority for l4xnat
     if ($type eq 'l4xnat') {
@@ -118,7 +118,7 @@ sub add_farm_backend_controller ($json_obj, $farmname) {
 
         if (my $prio = &priorityAlgorithmIsOK($priorities)) {
             $info_msg = "Backends with high priority value ($prio) will not be used.";
-            &zenlog("Warning, backend with high priority value ($prio) in farm $farmname.", "warning", "FARMS");
+            &log_warn("Warning, backend with high priority value ($prio) in farm $farmname.", "FARMS");
         }
     }
 
@@ -146,7 +146,7 @@ sub add_farm_backend_controller ($json_obj, $farmname) {
 
     &eload(
         module => 'Relianoid::EE::Cluster',
-        func   => 'runZClusterRemoteManager',
+        func   => 'runClusterRemoteManager',
         args   => [ 'farm', 'restart', $farmname ],
     ) if ($eload);
 
@@ -240,8 +240,8 @@ sub add_service_backend_controller ($json_obj, $farmname, $service) {
     }
 
     # no error found, return successful response
-    &zenlog("Success, a new backend has been created in farm $farmname in service $service with IP $json_obj->{ip}.",
-        "info", "FARMS");
+    &log_info("Success, a new backend has been created in farm $farmname in service $service with IP $json_obj->{ip}.",
+        "FARMS");
 
     my $message = "Added backend to service successfully.";
     my $backend = &getFarmServers($farmname, $service)->[$id];
@@ -424,11 +424,11 @@ sub modify_farm_backend_controller ($json_obj, $farmname, $id_server) {
         require Relianoid::Farm::Validate;
         if (my $prio = &priorityAlgorithmIsOK(&getL4FarmPriorities($farmname))) {
             $info_msg = "Backends with high priority value ($prio) will not be used.";
-            &zenlog("Warning, backend with high priority value ($prio) in farm $farmname.", "warning", "FARMS");
+            &log_warn("Warning, backend with high priority value ($prio) in farm $farmname.", "FARMS");
         }
     }
 
-    &zenlog("Success, some parameters have been changed in the backend $id_server in farm $farmname.", "info", "FARMS");
+    &log_info("Success, some parameters have been changed in the backend $id_server in farm $farmname.", "FARMS");
 
     my $message = "Backend modified.";
     my $body    = {
@@ -441,7 +441,7 @@ sub modify_farm_backend_controller ($json_obj, $farmname, $id_server) {
 
     &eload(
         module => 'Relianoid::EE::Cluster',
-        func   => 'runZClusterRemoteManager',
+        func   => 'runClusterRemoteManager',
         args   => [ 'farm', 'restart', $farmname ],
     ) if ($eload && &getFarmStatus($farmname) eq 'up');
 
@@ -599,21 +599,21 @@ sub delete_farm_backend_controller ($farmname, $id_server) {
         require Relianoid::Farm::Validate;
         if (my $prio = &priorityAlgorithmIsOK(&getL4FarmPriorities($farmname))) {
             $info_msg = "Backends with high priority value ($prio) will not be used.";
-            &zenlog("Warning, backend with high priority value ($prio) in farm $farmname.", "warning", "FARMS");
+            &log_warn("Warning, backend with high priority value ($prio) in farm $farmname.", "FARMS");
         }
     }
 
-    &zenlog("Success, the backend $id_server in farm $farmname has been deleted.", "info", "FARMS");
+    &log_info("Success, the backend $id_server in farm $farmname has been deleted.", "FARMS");
 
     &eload(
         module => 'Relianoid::EE::Cluster',
-        func   => 'runZClusterRemoteManager',
+        func   => 'runClusterRemoteManager',
         args   => [ 'farm', 'delete', $farmname, 'backend', $id_server ],
     ) if ($eload && $type eq 'l4xnat');
 
     &eload(
         module => 'Relianoid::EE::Cluster',
-        func   => 'runZClusterRemoteManager',
+        func   => 'runClusterRemoteManager',
         args   => [ 'farm', 'restart', $farmname ],
     ) if ($eload && $type eq 'datalink');
 
@@ -685,14 +685,14 @@ sub delete_service_backend_controller ($farmname, $service, $id_server) {
 
     # check if there was an error deleting the backend
     if ($status == -1) {
-        &zenlog("It's not possible to delete the backend.", "info", "FARMS");
+        &log_info("It's not possible to delete the backend.", "FARMS");
 
         my $msg = "Could not find the backend with ID $id_server of the $farmname farm.";
         return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     # no error found, return successful response
-    &zenlog("Success, the backend $id_server in service $service in farm $farmname has been deleted.", "info", "FARMS");
+    &log_info("Success, the backend $id_server in service $service in farm $farmname has been deleted.", "FARMS");
 
     my $message = "Backend removed";
     my $body    = {

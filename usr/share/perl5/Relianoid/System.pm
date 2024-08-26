@@ -135,7 +135,7 @@ sub slurpFile ($path) {
     }
     else {
         my $msg = "Could not open file '$file': $!";
-        &zenlog($msg);
+        &log_info($msg);
         die $msg;
     }
 
@@ -168,7 +168,7 @@ sub getSpaceFree ($dir) {
     my $cmd  = "$df_bin -B1 $dir | $grep_bin -Ev '^(Filesystem|\$)' | $sed_bin -E 's/\\s+/ /g' | $cut_bin -d ' ' -f4";
     my $size = &logAndGet($cmd);
 
-    &zenlog("Dir: $dir, Free space (Bytes): $size", "debug2");
+    &log_debug2("Dir: $dir, Free space (Bytes): $size");
 
     return $size;
 }
@@ -263,12 +263,12 @@ sub checkSupportSaveSpace ($dir = "/tmp") {
     my $out = ($freeSpace > $supp_size) ? 0 : $supp_size;
 
     if ($out) {
-        &zenlog("There is no enough free space ('$freeSpace') in the '$dir' partition. Supportsave needs '$supp_size' bytes",
-            "error", "system");
+        &log_error("There is no enough free space ('$freeSpace') in the '$dir' partition. Supportsave needs '$supp_size' bytes",
+            "system");
     }
     else {
-        &zenlog("Checking free space ('$freeSpace') in the '$dir' partition. Supportsave needs '$supp_size' bytes",
-            "debug", "system");
+        &log_debug("Checking free space ('$freeSpace') in the '$dir' partition. Supportsave needs '$supp_size' bytes",
+            "system");
     }
 
     return $out;
@@ -291,8 +291,8 @@ Returns:
 =cut
 
 sub getSupportSave () {
-    my $zbindir   = &getGlobalConfiguration('zbindir');
-    my @ss_output = @{ &logAndGet("${zbindir}/supportsave", "array") };
+    my $bin_dir   = &getGlobalConfiguration('bin_dir');
+    my @ss_output = @{ &logAndGet("${bin_dir}/supportsave", "array") };
 
     # get the last "word" from the first line
     my $first_line = shift @ss_output;

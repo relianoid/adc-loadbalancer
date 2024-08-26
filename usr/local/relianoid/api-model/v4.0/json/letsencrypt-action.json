@@ -11,7 +11,7 @@
          ]
       },
       "farmname" : {
-         "description" : "Farm name which a temporal Service “Letsencryptz” is configured in. Required if param vip is not sent.",
+         "description" : "Farm name which a temporal Service “LetsEncryptTemporalFarm” is configured in. Required if param vip is not sent.",
          "dyn_values" : "true",
          "non_blank" : "true"
       },
@@ -30,10 +30,10 @@
          ]
       },
       "vip" : {
-         "description" : "IP of the system, where a temporal Farm “Letsencryptz” is configured. Required true if param vip is not sent.",
+         "description" : "IP of the system, where a temporal Farm “LetsEncryptTemporalFarm” is configured. Required true if param vip is not sent.",
          "dyn_values" : "true",
          "non_blank" : "true"
       }
    },
-   "url" : "/certificates/letsencryptz/<domain>/actions"
+   "url" : "/certificates/letsencrypt/<domain>/actions"
 }

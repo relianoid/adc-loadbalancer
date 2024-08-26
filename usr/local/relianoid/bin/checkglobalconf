@@ -35,64 +35,73 @@ use feature qw(signatures);
 
 use File::Copy;
 
-my $gc_tmp_fn = "/tmp/global.conf.tmp";
-my $gc_fn     = "/usr/local/relianoid/config/global.conf";
-my $gc_tpl_fn = "/usr/local/relianoid/share/global.conf.template";
-my $tag       = '#update';
+my $global_conf_filename          = "/usr/local/relianoid/config/global.conf";
+my $global_conf_template_filename = "/usr/local/relianoid/share/global.conf.template";
+my $tag                           = '#update';
 
-unless (-f $gc_fn) {
-    copy($gc_tpl_fn, $gc_fn);
-    my $err = system("sed -E 's/;$tag\$/;/g' -i $gc_fn");
-    exit $err;
+# If global.conf doesn't exists, use the template
+if (not -f $global_conf_filename) {
+    copy($global_conf_template_filename, $global_conf_filename);
+    exit system("sed -E 's/;$tag\$/;/g' -i $global_conf_filename");
+}
+else {
+    # Migrate global.conf values of renamed variables to be kept
+    if (system("grep -q '^\$zapikey=' $global_conf_filename")) {
+        system("sed -i 's/^\$zapikey ?=/\$api_key=/' $global_conf_filename");
+    }
 }
 
-open my $gc_tpl, '<', $gc_tpl_fn or die "Failed to open '$gc_tpl_fn': $!";
-chomp(my @gc_tpl_ln = <$gc_tpl>);
-close $gc_tpl;
+sub get_file_lines ($filename) {
+    if (open my $fh, '<', $filename) {
+        chomp(my @lines = <$fh>);
+        close $fh;
 
-open my $gconf, '<', $gc_fn or die "Failed to open '$gc_fn': $!";
-chomp(my @gconf_ln = <$gconf>);
-close $gconf;
+        return @lines;
+    }
+    else { die "Failed to open '$filename': $!"; }
+}
 
-my @gc_tmp_ln;
+my @template_gconf_lines = get_file_lines($global_conf_template_filename);
+my @current_gconf_lines  = get_file_lines($global_conf_filename);
 
-for my $tpl_line (@gc_tpl_ln) {
-    my $newline = $tpl_line;
+my @new_gconf_lines;
+
+for my $template_line (@template_gconf_lines) {
+    my $newline = $template_line;
 
     # for lines starting with $
-    if ($tpl_line =~ /^\$/) {
-        my ($var, $new_value) = $tpl_line =~ /(.+)\s*=\s*(.+)/;
+    if ($template_line =~ /^\$/) {
+        my ($var, $new_value) = $template_line =~ /(.+)\s*=\s*(.+)/;
 
         # strip variable name
         $var =~ s/\$//;
         $var =~ s/\s*$//;    # important
 
-        for my $gc_line (@gconf_ln) {
-            next unless $gc_line =~ /^\$$var\s*=/;
+        for my $current_gconf_line (@current_gconf_lines) {
+            next unless $current_gconf_line =~ /^\$$var\s*=/;
 
-            my (undef, $gc_value) = $gc_line =~ /(.+)\s*=\s*(.+)/;
+            my (undef, $gc_value) = $current_gconf_line =~ /(.+)\s*=\s*(.+)/;
             $gc_value  =~ s/^\s+//;
             $new_value =~ s/^\s+//;
 
             # update if the line is tagged to be updated
             if ($new_value =~ /$tag/i) {
-                $tpl_line =~ s/\s*$tag//i;
-                $newline = $tpl_line;
+                $template_line =~ s/\s*$tag//i;
+                $newline = $template_line;
             }
             elsif ($gc_value !~ $new_value) {
-                $newline = $gc_line;
+                $newline = $current_gconf_line;
             }
 
             last;
         }
     }
 
-    push(@gc_tmp_ln, "$newline");
+    push(@new_gconf_lines, "$newline");
 }
 
-open my $gc_tmp, '>', $gc_tmp_fn or die "Failed to open '$gc_tmp_fn': $!";
-print $gc_tmp join("\n", @gc_tmp_ln);
-close $gc_tmp;
+open my $fh, '>', $global_conf_filename or die "Failed to open '$global_conf_filename': $!";
+print $fh join("\n", @new_gconf_lines);
+close $fh;
 
-move($gc_tmp_fn, $gc_fn);
 print "Update global.conf file done...\n";

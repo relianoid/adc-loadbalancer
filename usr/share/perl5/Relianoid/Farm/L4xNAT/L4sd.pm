@@ -149,7 +149,7 @@ sub setL4sdType ($farm_name, $type) {
             close $fh;
         }
         else {
-            &zenlog("Could not create file $l4sdfile: $!", "error", "L4SD");
+            &log_error("Could not create file $l4sdfile: $!", "L4SD");
             return -1;
         }
     }

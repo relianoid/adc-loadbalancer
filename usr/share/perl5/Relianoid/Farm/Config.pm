@@ -140,7 +140,7 @@ sub setFarmTimeout ($timeout, $farm_name) {
     my $farm_type = &getFarmType($farm_name);
     my $output    = -1;
 
-    &zenlog("setting 'Timeout $timeout' for $farm_name farm $farm_type", "info", "LSLB");
+    &log_info("setting 'Timeout $timeout' for $farm_name farm $farm_type", "LSLB");
 
     if ($farm_type eq "http" || $farm_type eq "https") {
         require Relianoid::Farm::HTTP::Config;
@@ -177,7 +177,7 @@ sub setFarmAlgorithm ($algorithm, $farm_name) {
     my $farm_type = &getFarmType($farm_name);
     my $output    = -1;
 
-    &zenlog("setting 'Algorithm $algorithm' for $farm_name farm $farm_type", "info", "FARMS");
+    &log_info("setting 'Algorithm $algorithm' for $farm_name farm $farm_type", "FARMS");
 
     if ($farm_type eq "datalink" && $eload) {
         $output = &eload(
@@ -252,7 +252,7 @@ sub setFarmMaxClientTime ($max_client_time, $track, $farm_name) {
     my $farm_type = &getFarmType($farm_name);
     my $output    = -1;
 
-    &zenlog("setting 'MaxClientTime $max_client_time $track' for $farm_name farm $farm_type", "info", "LSLB");
+    &log_info("setting 'MaxClientTime $max_client_time $track' for $farm_name farm $farm_type", "LSLB");
 
     if ($farm_type eq "http" || $farm_type eq "https") {
         require Relianoid::Farm::HTTP::Config;
@@ -296,7 +296,7 @@ sub setFarmVirtualConf ($vip, $vip_port, $farm_name) {
     my $stat      = -1;
     $vip_port //= '';
 
-    &zenlog("setting 'VirtualConf $vip $vip_port' for $farm_name farm $farm_type", "info", "FARMS");
+    &log_info("setting 'VirtualConf $vip $vip_port' for $farm_name farm $farm_type", "FARMS");
 
     if ($farm_type eq "http" || $farm_type eq "https") {
         require Relianoid::Farm::HTTP::Config;
@@ -841,7 +841,7 @@ sub getPersistence ($farm_name) {
     if ($eload) {
         $nodestatus = &eload(
             module => 'Relianoid::EE::Cluster',
-            func   => 'getZClusterNodeStatus',
+            func   => 'getClusterNodeStatus',
             args   => [],
         );
     }
@@ -856,7 +856,7 @@ sub getPersistence ($farm_name) {
         my $persist = &getL4FarmParam('persist', $farm_name);
 
         if ($persist !~ /^$/) {
-            &zenlog("Persistence enabled to $persist for farm $farm_name", "info", "farm");
+            &log_info("Persistence enabled to $persist for farm $farm_name", "farm");
             return 0;
         }
     }
@@ -872,7 +872,7 @@ sub getPersistence ($farm_name) {
 
         while (<$lock_fh>) {
             if ($_ =~ /[^#]Session/) {
-                &zenlog("Persistence enabled for farm $farm_name", "info", "farm");
+                &log_info("Persistence enabled for farm $farm_name", "farm");
                 return 0;
             }
         }

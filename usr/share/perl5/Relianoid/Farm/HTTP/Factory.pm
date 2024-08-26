@@ -69,7 +69,7 @@ sub runHTTPFarmCreate ($vip, $vip_port, $farm_name, $farm_type, $status = 'up') 
     #copy template modyfing values
     my $proxytpl        = &getGlobalConfiguration('proxytpl');
     my $proxy_conf_file = "$configdir/${farm_name}_proxy.cfg";
-    &zenlog("Copying proxy template ($proxytpl) to $proxy_conf_file", "info", "LSLB");
+    &log_info("Copying proxy template ($proxytpl) to $proxy_conf_file", "LSLB");
     copy($proxytpl, $proxy_conf_file);
 
     #modify strings with variables
@@ -89,11 +89,6 @@ sub runHTTPFarmCreate ($vip, $vip_port, $farm_name, $farm_type, $status = 'up') 
 
     #create files with personalized errors
     my $f_err;
-    if ($eload) {
-        open $f_err, '>', "${configdir}/${farm_name}_ErrWAF.html";
-        print $f_err "The request was rejected by the server.\n";
-        close $f_err;
-    }
 
     open $f_err, '>', "${configdir}/${farm_name}_Err414.html";
     print $f_err "Request URI is too long.\n";
@@ -139,9 +134,9 @@ sub runHTTPFarmCreate ($vip, $vip_port, $farm_name, $farm_type, $status = 'up') 
     my $piddir = &getGlobalConfiguration('piddir');
 
     if ($status eq 'up') {
-        &zenlog("Running $proxy -f $configdir\/$farm_name\_proxy.cfg -p $piddir\/$farm_name\_proxy.pid", "info", "LSLB");
+        &log_info("Running $proxy -f $configdir\/$farm_name\_proxy.cfg -p $piddir\/$farm_name\_proxy.pid", "LSLB");
 
-        $output = &zsystem("$proxy -f $configdir\/$farm_name\_proxy.cfg -p $piddir\/$farm_name\_proxy.pid 2>/dev/null");
+        $output = &run_with_env("$proxy -f $configdir\/$farm_name\_proxy.cfg -p $piddir\/$farm_name\_proxy.pid 2>/dev/null");
     }
     else {
         $output = &setHTTPFarmBootStatus($farm_name, 'down');

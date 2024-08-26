@@ -228,7 +228,7 @@ sub setFarmServer ($farm_name, $service, $ids, $bk) {
         $bk->{timeout}   // 0
     );
     my $msg = sprintf("setting '$attrs_msg' for %s farm, %s service of type %s", $farm_name, $service // 'no', $farm_type);
-    &zenlog($msg, "info", "FARMS");
+    &log_info($msg, "FARMS");
 
     if ($farm_type eq "datalink" && $eload) {
         $output = &eload(
@@ -281,7 +281,7 @@ sub runFarmServerDelete ($ids, $farm_name, $service = undef) {
     my $farm_type = &getFarmType($farm_name);
     my $output    = -1;
 
-    &zenlog("running 'ServerDelete $ids' for $farm_name farm $farm_type", "info", "FARMS");
+    &log_info("running 'ServerDelete $ids' for $farm_name farm $farm_type", "FARMS");
 
     if ($farm_type eq "l4xnat") {
         require Relianoid::Farm::L4xNAT::Backend;

@@ -78,7 +78,7 @@ sub runFarmCreate ($farm_type, $vip, $vip_port, $farm_name, $fdev) {
         }
     }
 
-    &zenlog("running 'Create' for $farm_name farm $farm_type", "info", "LSLB");
+    &log_info("running 'Create' for $farm_name farm $farm_type", "LSLB");
 
     if ($farm_type =~ /^HTTPS?$/i) {
         require Relianoid::Farm::HTTP::Factory;

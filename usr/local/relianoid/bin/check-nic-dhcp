@@ -43,13 +43,13 @@ for my $iface (@interfaces) {
 
     # Get the system netmask
     my $netmask = $iface->netmask;
-    &zenlog("system interface = $iface", "debug", "NETWORK");
-    &zenlog("system addr = $addr",       "debug", "NETWORK");
-    &zenlog("system netmask = $netmask", "debug", "NETWORK");
+    &log_debug("system interface = $iface", "NETWORK");
+    &log_debug("system addr = $addr",       "NETWORK");
+    &log_debug("system netmask = $netmask", "NETWORK");
 
     # Get config file of interface
     my $cfg_file = &getInterfaceConfigFile($iface);
-    &zenlog("Interface config file = $cfg_file", "debug", "NETWORK");
+    &log_debug("Interface config file = $cfg_file", "NETWORK");
 
     my $iface_hash_ref = &getSystemInterface($iface);
     $iface_hash_ref->{'addr'} = $addr;

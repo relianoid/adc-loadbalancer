@@ -70,7 +70,7 @@ sub _runHTTPFarmStart ($farm_name, $writeconf = undef) {
 
     close $lock_fh;
 
-    &zenlog("Checking $farm_name farm configuration", "info", "LSLB");
+    &log_info("Checking $farm_name farm configuration", "LSLB");
     return -1 if (&getHTTPFarmConfigIsOK($farm_name));
 
     my $args = '';
@@ -80,10 +80,10 @@ sub _runHTTPFarmStart ($farm_name, $writeconf = undef) {
     }
 
     my $cmd = "$proxy $args -f $configdir\/$farm_filename -p $piddir\/$farm_name\_proxy.pid";
-    $status = &zsystem("$cmd");
+    $status = &run_with_env("$cmd");
 
     if ($status) {
-        &zenlog("failed: $cmd", "error", "LSLB");
+        &log_error("failed: $cmd", "LSLB");
         return $status;
     }
 
@@ -129,11 +129,11 @@ sub _runHTTPFarmStop ($farm_name, $writeconf = undef) {
         my @pids = &getFarmPid($farm_name);
 
         if (!@pids) {
-            &zenlog("Not found pid", "warning", "LSLB");
+            &log_warn("Not found pid", "LSLB");
         }
         else {
             my $pid = join(', ', @pids);
-            &zenlog("Stopping HTTP farm $farm_name with PID $pid", "info", "LSLB");
+            &log_info("Stopping HTTP farm $farm_name with PID $pid", "LSLB");
             kill 9, @pids;
             sleep($time);
         }
@@ -146,7 +146,7 @@ sub _runHTTPFarmStop ($farm_name, $writeconf = undef) {
         unlink $lf if -e $lf;
     }
     else {
-        &zenlog("Farm $farm_name can't be stopped, check the logs and modify the configuration", "info", "LSLB");
+        &log_info("Farm $farm_name can't be stopped, check the logs and modify the configuration", "LSLB");
         return 1;
     }
 
@@ -179,16 +179,16 @@ sub copyHTTPFarm ($farm_name, $new_farm_name, $del = "") {
 
     my $output           = 0;
     my @farm_configfiles = (
-        "$configdir\/$farm_name\_status.cfg",  "$configdir\/$farm_name\_proxy.cfg",
-        "$configdir\/$farm_name\_ErrWAF.html", "$configdir\/$farm_name\_Err414.html",
-        "$configdir\/$farm_name\_Err500.html", "$configdir\/$farm_name\_Err501.html",
-        "$configdir\/$farm_name\_Err503.html", "$configdir\/$farm_name\_sessions.cfg",
+        "${configdir}/${farm_name}_status.cfg",  "${configdir}/${farm_name}_proxy.cfg",
+        "${configdir}/${farm_name}_Err414.html", "${configdir}/${farm_name}_Err500.html",
+        "${configdir}/${farm_name}_Err501.html", "${configdir}/${farm_name}_Err503.html",
+        "${configdir}/${farm_name}_sessions.cfg",
     );
     my @new_farm_configfiles = (
-        "$configdir\/$new_farm_name\_status.cfg",  "$configdir\/$new_farm_name\_proxy.cfg",
-        "$configdir\/$new_farm_name\_ErrWAF.html", "$configdir\/$new_farm_name\_Err414.html",
-        "$configdir\/$new_farm_name\_Err500.html", "$configdir\/$new_farm_name\_Err501.html",
-        "$configdir\/$new_farm_name\_Err503.html", "$configdir\/$new_farm_name\_sessions.cfg",
+        "${configdir}/${new_farm_name}_status.cfg",  "${configdir}/${new_farm_name}_proxy.cfg",
+        "${configdir}/${new_farm_name}_Err414.html", "${configdir}/${new_farm_name}_Err500.html",
+        "${configdir}/${new_farm_name}_Err501.html", "${configdir}/${new_farm_name}_Err503.html",
+        "${configdir}/${new_farm_name}_sessions.cfg",
     );
 
     my $cfg = $configdir;
@@ -203,7 +203,7 @@ sub copyHTTPFarm ($farm_name, $new_farm_name, $del = "") {
         copy($farm_file, $new_farm_filename) or $output = -1;
         unlink($farm_file) if ($del eq 'del');
 
-        next unless ($farm_file eq "$configdir\/$farm_name\_proxy.cfg");
+        next unless ($farm_file eq "${configdir}/${farm_name}_proxy.cfg");
 
         my @lines = readFileAsArray($new_farm_filename);
 
@@ -219,7 +219,6 @@ sub copyHTTPFarm ($farm_name, $new_farm_name, $del = "") {
 
         for my $l (@lines) {
             $l =~ s/^(\s*Name\s+"?)${oFN}/$1${nFN}/;
-            $l =~ s/\tErrWAF "$cfg\/${oFN}_ErrWAF.html"/\tErrWAF "$cfg\/${nFN}_ErrWAF.html"/;
             $l =~ s/\tErr414 "$cfg\/${oFN}_Err414.html"/\tErr414 "$cfg\/${nFN}_Err414.html"/;
             $l =~ s/\tErr500 "$cfg\/${oFN}_Err500.html"/\tErr500 "$cfg\/${nFN}_Err500.html"/;
             $l =~ s/\tErr501 "$cfg\/${oFN}_Err501.html"/\tErr501 "$cfg\/${nFN}_Err501.html"/;
@@ -236,7 +235,7 @@ sub copyHTTPFarm ($farm_name, $new_farm_name, $del = "") {
 
         writeFileFromArray($new_farm_filename, \@lines);
 
-        &zenlog("Configuration saved in $new_farm_filename file", "info", "LSLB");
+        &log_info("Configuration saved in $new_farm_filename file", "LSLB");
     }
 
     if (-e "\/tmp\/$farm_name\_pound.socket" and $del eq 'del') {

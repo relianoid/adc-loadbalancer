@@ -1,0 +1,3 @@
+# Make your own script in your favorite language.
+# It will be called at the end of 'systemctl stop relianoid'
+# and replicated to the other node if RELIANOID cluster is running.

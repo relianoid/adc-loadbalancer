@@ -181,13 +181,13 @@ sub modify_l4xnat_farm ($json_obj, $farmname) {
 
             &eload(
                 module => 'Relianoid::EE::Cluster',
-                func   => 'runZClusterRemoteManager',
+                func   => 'runClusterRemoteManager',
                 args   => [ 'ipds', 'stop', $farmname ],
             );
 
             &eload(
                 module => 'Relianoid::EE::Cluster',
-                func   => 'runZClusterRemoteManager',
+                func   => 'runClusterRemoteManager',
                 args   => [ 'farm', 'stop', $farmname ],
             );
         }
@@ -290,7 +290,7 @@ sub modify_l4xnat_farm ($json_obj, $farmname) {
     }
 
     # no error found, return successful response
-    &zenlog("Success, some parameters have been changed in farm $farmname.", "info", "LSLB");
+    &log_info("Success, some parameters have been changed in farm $farmname.", "LSLB");
 
     if (&getL4FarmParam('status', $farmname) eq 'up' and $eload) {
         if ($reload_ipds) {
@@ -302,20 +302,20 @@ sub modify_l4xnat_farm ($json_obj, $farmname) {
 
             &eload(
                 module => 'Relianoid::EE::Cluster',
-                func   => 'runZClusterRemoteManager',
+                func   => 'runClusterRemoteManager',
                 args   => [ 'farm', 'start', $farmname ],
             );
 
             &eload(
                 module => 'Relianoid::EE::Cluster',
-                func   => 'runZClusterRemoteManager',
+                func   => 'runClusterRemoteManager',
                 args   => [ 'ipds', 'start', $farmname ],
             );
         }
         else {
             &eload(
                 module => 'Relianoid::EE::Cluster',
-                func   => 'runZClusterRemoteManager',
+                func   => 'runClusterRemoteManager',
                 args   => [ 'farm', 'restart', $farmname ],
             );
         }

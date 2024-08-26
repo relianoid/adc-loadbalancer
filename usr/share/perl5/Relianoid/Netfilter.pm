@@ -50,7 +50,7 @@ sub loadNfModule ($modname, $params) {
         my $modprobe         = &getGlobalConfiguration('modprobe');
         my $modprobe_command = "$modprobe $modname $params";
 
-        &zenlog("L4 loadNfModule: $modprobe_command", "info", "SYSTEM");
+        &log_info("L4 loadNfModule: $modprobe_command", "SYSTEM");
         $status = &logAndRun("$modprobe_command");
     }
 
@@ -67,7 +67,7 @@ sub removeNfModule ($modname) {
     my $modprobe         = &getGlobalConfiguration('modprobe');
     my $modprobe_command = "$modprobe -r $modname";
 
-    &zenlog("L4 removeNfModule: $modprobe_command", "info", "SYSTEM");
+    &log_info("L4 removeNfModule: $modprobe_command", "SYSTEM");
 
     return &logAndRun("$modprobe_command");
 }

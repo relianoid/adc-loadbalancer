@@ -31,7 +31,7 @@ my $eload = eval { require Relianoid::ELoad };
 
 =head1 Module
 
-Relianoid::LetsencryptZ
+Relianoid::Letsencrypt
 
 =cut
 
@@ -300,11 +300,11 @@ sub setLetsencryptFarmService ($farm_name, $vip) {
         require Relianoid::Farm::HTTP::Factory;
 
         if ($error = &runHTTPFarmCreate($vip, 80, $farm_name, "HTTP")) {
-            &zenlog("Error creating temporal Farm $farm_name", "Error", "LetsEncryptZ");
+            &log_error("Error creating temporal Farm $farm_name", "letsencrypt");
             return 1;
         }
 
-        &zenlog("The temporal Farm $farm_name has been created", "Info", "LetsEncryptZ");
+        &log_info("The temporal Farm $farm_name has been created", "letsencrypt");
     }
 
     #create Letsencrypt service
@@ -321,14 +321,14 @@ sub setLetsencryptFarmService ($farm_name, $vip) {
         }
 
         if ($error) {
-            &zenlog("Error creating the service $le_service", "Error", "LetsEncryptZ");
+            &log_error("Error creating the service $le_service", "letsencrypt");
             return 1;
         }
 
-        &zenlog("The Service $le_service in Farm $farm_name has been created", "Info", "LetsEncryptZ");
+        &log_info("The Service $le_service in Farm $farm_name has been created", "letsencrypt");
     }
     else {
-        &zenlog("The Service $le_service in Farm $farm_name already exists", "warning", "LetsEncryptZ");
+        &log_warn("The Service $le_service in Farm $farm_name already exists", "letsencrypt");
     }
 
     if ($eload) {
@@ -340,12 +340,12 @@ sub setLetsencryptFarmService ($farm_name, $vip) {
                 args   => [ $farm_name, $le_service, 0 ],
             );
             if ($error) {
-                &zenlog("Error moving the service $le_service", "Error", "LetsEncryptZ");
+                &log_error("Error moving the service $le_service", "letsencrypt");
                 return 4;
             }
         }
         else {
-            &zenlog("The Service $le_service in Farm $farm_name is already in the first position", "warning", "LetsEncryptZ");
+            &log_warn("The Service $le_service in Farm $farm_name is already in the first position", "letsencrypt");
         }
     }
 
@@ -353,34 +353,34 @@ sub setLetsencryptFarmService ($farm_name, $vip) {
     require Relianoid::Farm::HTTP::Backend;
     $error = &setHTTPFarmServer("", "127.0.0.1", 80, "", "", $farm_name, $le_service);
     if ($error) {
-        &zenlog("Error creating the Local Web Server backend on service $le_service", "Error", "LetsEncryptZ");
+        &log_error("Error creating the Local Web Server backend on service $le_service", "letsencrypt");
         return 2;
     }
 
     # create Letsencrypt URL Pattern http challenge
     $error = &setHTTPFarmVS($farm_name, $le_service, "urlp", "^/.well-known/acme-challenge/");
     if ($error) {
-        &zenlog("Error creating the URL pattern on service $le_service", "Error", "LetsEncryptZ");
+        &log_error("Error creating the URL pattern on service $le_service", "letsencrypt");
         return 3;
     }
 
-    &zenlog("The Service $le_service in Farm $farm_name has been configured", "Info", "LetsEncryptZ");
+    &log_info("The Service $le_service in Farm $farm_name has been configured", "letsencrypt");
 
     # Restart the farm
     require Relianoid::Farm::Action;
 
     if ($error = &runFarmStop($farm_name, "")) {
-        &zenlog("Error stopping the farm $farm_name", "Error", "LetsEncryptZ");
+        &log_error("Error stopping the farm $farm_name", "letsencrypt");
         return 5;
     }
 
     $error = &runFarmStart($farm_name, "");
     if ($error) {
-        &zenlog("Error starting the farm $farm_name", "Error", "LetsEncryptZ");
+        &log_error("Error starting the farm $farm_name", "letsencrypt");
         return 6;
     }
 
-    &zenlog("The Farm $farm_name has been restarted", "Info", "LetsEncryptZ");
+    &log_info("The Farm $farm_name has been restarted", "letsencrypt");
 
     return 0;
 }
@@ -410,44 +410,44 @@ sub unsetLetsencryptFarmService ($farm_name) {
         require Relianoid::Farm::Action;
 
         if (my $error = &runFarmStop($farm_name)) {
-            &zenlog("Error stopping the farm $farm_name", "Error", "LetsEncryptZ");
+            &log_error("Error stopping the farm $farm_name", "letsencrypt");
             return 1;
         }
 
         if (my $error = &runFarmDelete($farm_name)) {
-            &zenlog("Error deleting the farm $farm_name", "Error", "LetsEncryptZ");
+            &log_error("Error deleting the farm $farm_name", "letsencrypt");
             return 2;
         }
 
-        &zenlog("The Farm $farm_name has been deleted", "Info", "LetsEncryptZ");
+        &log_info("The Farm $farm_name has been deleted", "letsencrypt");
     }
     else {
         require Relianoid::Farm::HTTP::Service;
 
         if (&getHTTPFarmServices($farm_name, $le_service)) {
             if (my $error = &delHTTPFarmService($farm_name, $le_service)) {
-                &zenlog("Error Deleting the service $le_service on farm $farm_name", "Error", "LetsEncryptZ");
+                &log_error("Error Deleting the service $le_service on farm $farm_name", "letsencrypt");
                 return 3;
             }
-            &zenlog("The service $le_service on farm $farm_name has been deleted", "Info", "LetsEncryptZ");
+            &log_info("The service $le_service on farm $farm_name has been deleted", "letsencrypt");
 
             # Restart the farm
             require Relianoid::Farm::Action;
 
             if (my $error = &runFarmStop($farm_name, "")) {
-                &zenlog("Error stopping the farm $farm_name", "Error", "LetsEncryptZ");
+                &log_error("Error stopping the farm $farm_name", "letsencrypt");
                 return 1;
             }
 
             if (my $error = &runFarmStart($farm_name, "")) {
-                &zenlog("Error starting the farm $farm_name", "Error", "LetsEncryptZ");
+                &log_error("Error starting the farm $farm_name", "letsencrypt");
                 return 4;
             }
 
-            &zenlog("The Farm $farm_name has been restarted", "Info", "LetsEncryptZ");
+            &log_info("The Farm $farm_name has been restarted", "letsencrypt");
         }
         else {
-            &zenlog("The Service $le_service in Farm $farm_name can not be deleted, it does not exist", "warning", "LetsEncryptZ");
+            &log_warn("The Service $le_service in Farm $farm_name can not be deleted, it does not exist", "letsencrypt");
         }
     }
 
@@ -481,7 +481,7 @@ sub runLetsencryptLocalWebserverStart () {
     my $status = &getLetsencryptLocalWebserverRunning();
 
     if ($status == 1) {
-        &zenlog("$http_bin -d -C $le_webserver_config_file", "Info", "LetsencryptZ");
+        &log_info("$http_bin -d -C $le_webserver_config_file", "letsencrypt");
         &logAndRunBG("$http_bin -d -C $le_webserver_config_file");
     }
 
@@ -493,11 +493,11 @@ sub runLetsencryptLocalWebserverStart () {
         usleep(100_000);
     }
     if (not -f $pid_file) {
-        &zenlog("Error starting Local Web Server", "Error", "LetsEncryptZ");
+        &log_error("Error starting Local Web Server", "letsencrypt");
         $rc = 1;
     }
     else {
-        &zenlog("LetsencryptZ Local Web Server is running", "Info", "LetsEncryptZ");
+        &log_info("Letsencrypt Local Web Server is running", "letsencrypt");
     }
 
     return $rc;
@@ -532,7 +532,7 @@ sub runLetsencryptLocalWebserverStop () {
         $pid = &logAndGet("$cat_bin $pid_file");
         my $error = &logAndRun("$kill_bin -15 $pid");
         if ($error) {
-            &zenlog("Error stopping LetsencryptZ Local Web Server", "Error", "LetsEncryptZ");
+            &log_error("Error stopping Letsencrypt Local Web Server", "letsencrypt");
             return 1;
         }
         use Time::HiRes qw(usleep);
@@ -543,7 +543,7 @@ sub runLetsencryptLocalWebserverStop () {
             usleep(100_000);
         }
         unlink $pid_file if (-f $pid_file);
-        &zenlog("LetsencryptZ Local Web Server is stopped", "Info", "LetsEncryptZ");
+        &log_info("Letsencrypt Local Web Server is stopped", "letsencrypt");
     }
 
     return 0;
@@ -574,7 +574,7 @@ sub getLetsencryptLocalWebserverRunning () {
         use Relianoid::System;
 
         if (&checkPidFileRunning($pid_file)) {
-            &zenlog("LetsencryptZ Local Webser is not running but PID file $pid_file exists!", "warning", "LetsEncryptZ");
+            &log_warn("Letsencrypt Local Webser is not running but PID file $pid_file exists!", "letsencrypt");
             unlink $pid_file;
         }
         $rc = 0;
@@ -585,7 +585,7 @@ sub getLetsencryptLocalWebserverRunning () {
         my $le_webserver_config_file = &getGlobalConfiguration('le_webserver_config_file');
 
         if (&logAndRunCheck("$pgrep -f \"$http_bin -d -C $le_webserver_config_file\"")) {
-            &zenlog("LetsencryptZ Local Webserver is running but no PID file $pid_file exists!", "warning", "LetsEncryptZ");
+            &log_warn("Letsencrypt Local Webserver is running but no PID file $pid_file exists!", "letsencrypt");
             $rc = 2;
         }
         else {
@@ -696,7 +696,7 @@ sub runLetsencryptObtain ($farm_name = undef, $vip = undef, $domains_list = unde
     my $challenge_opt = "--preferred-challenges $challenge";
     my $opts          = "--agree-tos --no-eff-email -n";
 
-    my $le_binary = &getGlobalConfiguration('le_certbot_bin');
+    my $le_binary    = &getGlobalConfiguration('le_certbot_bin');
     my @command_args = (
         $le_binary,     "certonly", $certname_opt, $domains_opt,   $fullchain_opt, $method_opt,
         $configdir_opt, $email_opt, $test_opt,     $challenge_opt, $force_opt,     $opts
@@ -704,12 +704,12 @@ sub runLetsencryptObtain ($farm_name = undef, $vip = undef, $domains_list = unde
 
     my $cmd = join " ", @command_args;
 
-    &zenlog("Executing Letsencryptz obtain command : $cmd", "Info", "LetsencryptZ");
+    &log_info("Executing Letsencrypt obtain command : $cmd", "letsencrypt");
 
     $status = &logRunAndGet($cmd, "array", 1);
 
     if ($status->{stderr} and ($challenge eq "http")) {
-        &zenlog("Letsencryptz obtain command failed!: $status->{stdout}[-1]", "error", "LetsencryptZ");
+        &log_error("Letsencrypt obtain command failed!: $status->{stdout}[-1]", "letsencrypt");
         $rc = 3;
     }
     else {
@@ -717,7 +717,7 @@ sub runLetsencryptObtain ($farm_name = undef, $vip = undef, $domains_list = unde
         $status = &setLetsencryptCert(@{$domains_list}[0]);
 
         if ($status) {
-            &zenlog("Letsencryptz create PEM cert failed!", "error", "LetsencryptZ");
+            &log_error("Letsencrypt create PEM cert failed!", "letsencrypt");
             $rc = 4;
         }
     }
@@ -773,11 +773,11 @@ sub runLetsencryptDestroy ($le_cert_name) {
     my $opts          = "--reason unspecified";
 
     my $cmd = "$le_binary delete $certname_opt $configdir_opt $opts";
-    &zenlog("Executing Letsencryptz obtain command : $cmd", "Info", "LetsencryptZ");
+    &log_info("Executing Letsencrypt obtain command : $cmd", "letsencrypt");
 
     my $status = &logRunAndGet($cmd, "array");
     if ($status->{stderr}) {
-        &zenlog("Letsencryptz delete command failed!", "error", "LetsencryptZ");
+        &log_error("Letsencrypt delete command failed!", "letsencrypt");
         return 3;
     }
     return 3 if (-d "$le_config_path/live/$le_cert_name");
@@ -830,7 +830,7 @@ sub runLetsencryptRenew ($le_cert_name, $farm_name, $vip, $force, $lock_fh) {
     # Lock process
     my $lock_le_renew_fh;
     if (not $lock_fh) {
-        my $lock_le_renew = "/tmp/letsencryptz-renew.lock";
+        my $lock_le_renew = "/tmp/letsencrypt-renew.lock";
         if (not -f $lock_le_renew) {
             my $touch = &getGlobalConfiguration('touch');
             &logAndRun("$touch $lock_le_renew");
@@ -861,11 +861,9 @@ sub runLetsencryptRenew ($le_cert_name, $farm_name, $vip, $force, $lock_fh) {
     }
 
     # run le_binary command
-    my $test_opt;
-    $test_opt = "--test-cert"
-      unless (&checkLetsencryptStaging($le_cert_name));
-    my $force_opt;
-    $force_opt = "--force-renewal --break-my-certs" if ($force eq "true");
+    my $test_opt  = &isLetsencryptStaging($le_cert_name) ? "--test-cert"                      : "";
+    my $force_opt = ($force eq "true")                   ? "--force-renewal --break-my-certs" : "";
+
     my $fullchain_opt = "--fullchain-path " . &getGlobalConfiguration('le_fullchain_path');
     my $webroot_opt   = "--webroot --webroot-path " . &getGlobalConfiguration('le_webroot_path');
     my $configdir_opt = "--config-dir " . &getLetsencryptConfigPath();
@@ -875,20 +873,23 @@ sub runLetsencryptRenew ($le_cert_name, $farm_name, $vip, $force, $lock_fh) {
     my $le_binary = &getGlobalConfiguration('le_certbot_bin');
     my $cmd =
       "$le_binary certonly -d $le_cert_name $fullchain_opt $webroot_opt $configdir_opt $email_opt $test_opt $force_opt $opts";
-    &zenlog("Executing Letsencryptz renew command : $cmd", "Info", "LetsencryptZ");
+
+    &log_info("Executing Letsencrypt renew command : $cmd", "letsencrypt");
     $status = &logRunAndGet($cmd, "array");
 
     alarm(0);
+
     if ($status->{stderr}) {
         my $error_response = "Error creating new order";
+
         if (my ($le_msg) = grep { /$error_response/ } @{ $status->{stdout} }) {
-            &zenlog("$le_msg", "error", "LetsencryptZ");
+            &log_error("$le_msg", "letsencrypt");
             $error_ref->{code} = 6;
             $error_ref->{desc} = $le_msg;
         }
         else {
-            my $le_msg = "Letsencryptz renew command failed!";
-            &zenlog($le_msg, "error", "LetsencryptZ");
+            my $le_msg = "Letsencrypt renew command failed!";
+            &log_error($le_msg, "letsencrypt");
             $error_ref->{code} = 3;
             $error_ref->{desc} = $le_msg;
         }
@@ -896,18 +897,20 @@ sub runLetsencryptRenew ($le_cert_name, $farm_name, $vip, $force, $lock_fh) {
     else {
         # check is not due to renewal response
         my $renewal_response = "Cert not yet due for renewal";
+
         if (grep { /$renewal_response/ } @{ $status->{stdout} }) {
-            my $le_msg = "Letsencryptz certificate '$le_cert_name' not yet due for renewal!";
-            &zenlog($le_msg, "error", "LetsencryptZ");
+            my $le_msg = "Letsencrypt certificate '$le_cert_name' not yet due for renewal!";
+            &log_error($le_msg, "letsencrypt");
             $error_ref->{code} = 5;
             $error_ref->{desc} = $le_msg;
         }
         else {
             # create RELIANOID PEM cert
             $status = &setLetsencryptCert($le_cert_name);
+
             if ($status) {
-                my $le_msg = "Letsencryptz create PEM cert failed!";
-                &zenlog($le_msg, "error", "LetsencryptZ");
+                my $le_msg = "Letsencrypt create PEM cert failed!";
+                &log_error($le_msg, "letsencrypt");
                 $error_ref->{code} = 4;
                 $error_ref->{desc} = $le_msg;
             }
@@ -926,34 +929,35 @@ sub runLetsencryptRenew ($le_cert_name, $farm_name, $vip, $force, $lock_fh) {
 
 =pod
 
-=head1 checkLetsencryptStaging
+=head1 isLetsencryptStaging
 
-check the LetsEncrypt Certificate API server.
+Check the LetsEncrypt Certificate API server.
 
 Parameters:
 
     le_cert_name - Certificate Name.
 
-Returns:
-
-    Integer - 0 on using Stating server, otherwise 1.
+Returns: integer - 1 for staging, 0 for production.
 
 =cut
 
-sub checkLetsencryptStaging ($le_cert_name) {
+sub isLetsencryptStaging ($le_cert_name) {
     my $le_config_path = &getLetsencryptConfigPath();
+    my $rc             = 0;
 
-    my $rc = 1;
-    return 1 if (!$le_cert_name);
+    return $rc if (!$le_cert_name);
+
     my $le_cert_renewal_file = "$le_config_path/renewal/$le_cert_name.conf";
+
     if (-f $le_cert_renewal_file) {
-        require Relianoid::Config;
-        my $le_cert_renewal_conf = &getTiny($le_cert_renewal_file);
+        require Config::Tiny;
+
+        my $le_cert_renewal_conf = Config::Tiny->read($le_cert_renewal_file);
         my $le_api_server        = $le_cert_renewal_conf->{renewalparams}{server};
-        if ($le_api_server =~ /acme-staging/) {
-            $rc = 0;
-        }
+
+        $rc = int($le_api_server =~ /acme-staging/);
     }
+
     return $rc;
 }
 
@@ -1072,7 +1076,7 @@ sub getLetsencryptCron ($le_cert_name) {
         chomp(@le_cron_list);
     }
     else {
-        zenlog("Could not open $le_cron_file: $!" . "debug");
+        log_debug("Could not open $le_cron_file: $!");
     }
 
     my $command = "root $le_renewal_bin --cert $le_cert_name";
@@ -1123,7 +1127,7 @@ sub getLetsencryptCertConfigIsBroken ($cert_name) {
         or (!-d "$le_fullchain_path/archive/$cert_name/"))
     {
         $broken = 1;
-        &zenlog("Detected LetsEncrypt configuration broken", "ERROR", "letsencryptz");
+        &log_error("Detected LetsEncrypt configuration broken", "letsencrypt");
     }
 
     return $broken;
@@ -1153,14 +1157,14 @@ sub runLetsencryptCertConfigBackup ($cert_name) {
       "cd $le_fullchain_path && tar zcf $le_backup_path/$le_backup_file live/$cert_name/ archive/$cert_name/ renewal/$cert_name.conf";
     my $output = 0;
 
-    &zenlog("Creating LetsEncrypt Configuration Backup to $le_backup_path/$le_backup_file", "INFO", "letsencryptz");
+    &log_info("Creating LetsEncrypt Configuration Backup to $le_backup_path/$le_backup_file", "letsencrypt");
     if (-f "$le_backup_path/$le_backup_file") {
         &logAndRun("mv $le_backup_path/$le_backup_file $le_backup_path/$le_backup_file.bck");
     }
     $output = &logAndRun($cmd);
     if (-f "$le_backup_path/$le_backup_file.bck") {
         if ($output) {
-            &zenlog("Creating LetsEncrypt Configuration Backup Failed, recovering backup", "ERROR", "letsencryptz");
+            &log_error("Creating LetsEncrypt Configuration Backup Failed, recovering backup", "letsencrypt");
             &logAndRun("mv $le_backup_path/$le_backup_file.bck $le_backup_path/$le_backup_file");
         }
         else {
@@ -1196,12 +1200,12 @@ sub runLetsencryptCertConfigRecovery ($cert_name) {
     my $output = 0;
 
     if (-f "$le_backup_path/$le_backup_file") {
-        &zenlog("Recovery LetsEncrypt Configuration Backup from $le_backup_path/$le_backup_file", "INFO", "letsencryptz");
+        &log_info("Recovery LetsEncrypt Configuration Backup from $le_backup_path/$le_backup_file", "letsencrypt");
         &logAndRun($cmd);
         $output = 1;
     }
     else {
-        &zenlog("No backup available to recover at $le_backup_path/$le_backup_file", "WARNING", "letsencryptz");
+        &log_warn("No backup available to recover at $le_backup_path/$le_backup_file", "letsencrypt");
         $output = 1;
     }
 

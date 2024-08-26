@@ -36,5 +36,5 @@
          "non_blank" : "true"
       }
    },
-   "url" : "/certificates/letsencryptz"
+   "url" : "/certificates/letsencrypt"
 }

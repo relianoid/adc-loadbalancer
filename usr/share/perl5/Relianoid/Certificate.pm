@@ -323,12 +323,12 @@ sub delCert ($certname) {
                 unlink "$certdir/$key_file";
             }
             else {
-                &zenlog("Key file was not found '$certdir/$key_file'", "error", "LSLB");
+                &log_error("Key file was not found '$certdir/$key_file'", "LSLB");
             }
         }
     }
 
-    &zenlog("Error removing certificate '$certdir/$certname'", "error", "LSLB")
+    &log_error("Error removing certificate '$certdir/$certname'", "LSLB")
       if !$files_removed;
 
     return $files_removed;
@@ -392,9 +392,9 @@ sub createCSR ($name, $fqdn, $country, $state, $locality, $organization, $divisi
           &logAndRun(
             "$openssl req -nodes -newkey rsa:$key -keyout $configdir/$name.key $subdomains -out $configdir/$name.csr -batch -subj \"/C=$country\/ST=$state/L=$locality/O=$organization/OU=$division/CN=$fqdn/emailAddress=$mail\"  2> /dev/null"
           );
-        &zenlog(
+        &log_info(
             "Creating CSR: $openssl req -nodes -newkey rsa:$key -keyout $configdir/$name.key $subdomains -out $configdir/$name.csr -batch -subj \"/C=$country\/ST=$state/L=$locality/O=$organization/OU=$division/CN=$fqdn/emailAddress=$mail\"",
-            "info", "LSLB"
+            "LSLB"
         ) if (not $output);
     }
     else {
@@ -402,9 +402,9 @@ sub createCSR ($name, $fqdn, $country, $state, $locality, $organization, $divisi
           &logAndRun(
             "$openssl req -passout pass:$password -newkey rsa:$key -keyout $configdir/$name.key $subdomains -out $configdir/$name.csr $configdir/openssl.cnf -batch -subj \"/C=$country/ST=$state/L=$locality/O=$organization/OU=$division/CN=$fqdn/emailAddress=$mail\""
           );
-        &zenlog(
+        &log_info(
             "Creating CSR: $openssl req -passout pass:$password -newkey rsa:$key -keyout $configdir/$name.key $subdomains -out $configdir/$name.csr $configdir/openssl.cnf -batch -subj \"/C=$country\/ST=$state/L=$locality/O=$organization/OU=$division/CN=$fqdn/emailAddress=$mail\"",
-            "info", "LSLB"
+            "LSLB"
         ) if (not $output);
     }
     return $output;
@@ -712,11 +712,11 @@ sub checkCertPEMKeyEncrypted ($cert_path) {
             my @strerr    = split(/:/, $error);
             my $error_str = $strerr[4];
             if ($error_str eq "bad decrypt") {
-                &zenlog("Private Key Encrypted was found in '$cert_path': " . $strerr[4], "debug", "LSLB");
+                &log_debug("Private Key Encrypted was found in '$cert_path': " . $strerr[4], "LSLB");
                 $rc = 1;
             }
             else {
-                &zenlog("Error checking Private Key Encrypted in '$cert_path': " . $strerr[4], "debug", "LSLB");
+                &log_debug("Error checking Private Key Encrypted in '$cert_path': " . $strerr[4], "LSLB");
                 $rc = -1;
             }
         }
@@ -760,7 +760,7 @@ sub checkCertPEMValid ($cert_path) {
         my $error     = Net::SSLeay::ERR_error_string(Net::SSLeay::ERR_get_error());
         my @strerr    = split(/:/, $error);
         my $error_str = $strerr[4];
-        &zenlog("$error_msg in '$cert_path': " . $error_str, "debug", "LSLB");
+        &log_debug("$error_msg in '$cert_path': " . $error_str, "LSLB");
         return $error_ref;
     }
 
@@ -769,7 +769,7 @@ sub checkCertPEMValid ($cert_path) {
         my $error_msg = "PEM file private key is encrypted";
         $error_ref->{code} = 1;
         $error_ref->{desc} = $error_msg;
-        &zenlog("$error_msg in '$cert_path'", "debug", "LSLB");
+        &log_debug("$error_msg in '$cert_path'", "LSLB");
         return $error_ref;
     }
 
@@ -782,21 +782,21 @@ sub checkCertPEMValid ($cert_path) {
             my $error_msg = "No Certificate found";
             $error_ref->{code} = 2;
             $error_ref->{desc} = $error_msg;
-            &zenlog("$error_msg in '$cert_path': " . $error_str, "debug", "LSLB");
+            &log_debug("$error_msg in '$cert_path': " . $error_str, "LSLB");
             return $error_ref;
         }
         elsif ($error_str eq "ca md too weak") {
             my $error_msg = "Cipher weak found";
             $error_ref->{code} = 3;
             $error_ref->{desc} = $error_msg;
-            &zenlog("$error_msg in '$cert_path': " . $error_str, "debug", "LSLB");
+            &log_debug("$error_msg in '$cert_path': " . $error_str, "LSLB");
             return $error_ref;
         }
         else {
             my $error_msg = "Error using Certificate";
             $error_ref->{code} = 4;
             $error_ref->{desc} = $error_msg;
-            &zenlog("$error_msg in '$cert_path': " . $error_str, "debug", "LSLB");
+            &log_debug("$error_msg in '$cert_path': " . $error_str, "LSLB");
             return $error_ref;
         }
     }
@@ -810,21 +810,21 @@ sub checkCertPEMValid ($cert_path) {
             my $error_msg = "No Private Key found";
             $error_ref->{code} = 5;
             $error_ref->{desc} = $error_msg;
-            &zenlog("$error_msg in '$cert_path': " . $error_str, "debug", "LSLB");
+            &log_debug("$error_msg in '$cert_path': " . $error_str, "LSLB");
             return $error_ref;
         }
         elsif ($error_str eq "key values mismatch") {
             my $error_msg = "Private Key is not valid for the first Certificate found";
             $error_ref->{code} = 6;
             $error_ref->{desc} = $error_msg;
-            &zenlog("$error_msg in '$cert_path': " . $error_str, "debug", "LSLB");
+            &log_debug("$error_msg in '$cert_path': " . $error_str, "LSLB");
             return $error_ref;
         }
         else {
             my $error_msg = "Error using Private Key";
             $error_ref->{code} = 7;
             $error_ref->{desc} = $error_msg;
-            &zenlog("$error_msg in '$cert_path': " . $error_str, "debug", "LSLB");
+            &log_debug("$error_msg in '$cert_path': " . $error_str, "LSLB");
             return $error_ref;
         }
     }
@@ -837,7 +837,7 @@ sub checkCertPEMValid ($cert_path) {
         my $error_msg = "Error checking Private Key";
         $error_ref->{code} = 8;
         $error_ref->{desc} = $error_msg;
-        &zenlog("$error_msg in '$cert_path': " . $error_str, "debug", "LSLB");
+        &log_debug("$error_msg in '$cert_path': " . $error_str, "LSLB");
         return $error_ref;
     }
 

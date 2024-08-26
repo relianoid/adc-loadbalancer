@@ -24,62 +24,40 @@
 use strict;
 use warnings;
 use RRDs;
-use Relianoid::Farm::Base;
-use Relianoid::Farm::Stats;
-use Relianoid::Net::ConnStats;
+use Relianoid::Config;
+use Relianoid::Stats;
 
-my $eload = eval { require Relianoid::ELoad; };
+my $collector_rrd_dir = &getGlobalConfiguration('collector_rrd_dir');
+my $db_hd             = "hd.rrd";
 
-my $rrdap_dir = &getGlobalConfiguration('rrdap_dir');
-my $rrd_dir   = &getGlobalConfiguration('rrd_dir');
+my @disks = getDiskSpace();
 
-foreach my $farmfile (&getFarmList()) {
-    my $farm   = &getFarmName($farmfile);
-    my $ftype  = &getFarmType($farm);
-    my $status = &getFarmStatus($farm);
+while (@disks) {
+    my @total_ref = @{ shift @disks };
+    my @used_ref  = @{ shift @disks };
+    my @free_ref  = @{ shift @disks };
 
-    if ($ftype =~ /datalink/ || $status ne "up") {
+    my ($partition) = split("\ ", $total_ref[0]);
+    my $rrd_filename = "${collector_rrd_dir}/${partition}${db_hd}";
+
+    my $tot  = $total_ref[1];
+    my $used = $used_ref[1];
+    my $free = $free_ref[1];
+
+    if ($tot =~ /^$/ || $used =~ /^$/ || $free =~ /^$/) {
+        print STDERR "$0: Error: Unable to get the data for partition ${partition}\n";
+        print STDERR "$0: tot:${tot} used:${used} free:${free}\n";
         next;
     }
 
-    my $ERROR;
-    my $db_farm = "$farm-farm.rrd";
+    if (!-f $rrd_filename) {
+        print "$0: Info: Creating the rrd database ${rrd_filename} ...\n";
 
-    my $synconns;
-    my $globalconns;
-
-    if ($ftype eq 'gslb') {
-        my $stats;
-        $stats = &eload(
-            module => 'Relianoid::EE::Farm::GSLB::Stats',
-            func   => 'getGSLBFarmStats',
-            args   => [$farm],
-        ) if $eload;
-
-        $synconns    = $stats->{syn};
-        $globalconns = $stats->{est};
-    }
-    else {
-        my $vip = &getFarmVip("vip", $farm);
-
-        my $netstat;
-        $netstat = &getConntrack("", $vip, "", "", "") if ($ftype eq 'l4xnat');
-
-        $synconns    = &getFarmSYNConns($farm, $netstat);    # SYN_RECV connections
-        $globalconns = &getFarmEstConns($farm, $netstat);    # ESTABLISHED connections
-    }
-
-    if ($globalconns eq '' || $synconns eq '') {
-        print "$0: Error: Unable to get the data for farm $farm\n";
-        exit;
-    }
-
-    if (!-f "$rrdap_dir/$rrd_dir/$db_farm") {
-        print "$0: Info: Creating the rrd database $rrdap_dir/$rrd_dir/$db_farm ...\n";
-        RRDs::create "$rrdap_dir/$rrd_dir/$db_farm",
-          "--step", "300",
-          "DS:pending:GAUGE:600:0:12500000",
-          "DS:established:GAUGE:600:0:12500000",
+        RRDs::create $rrd_filename,     #
+          "--step", "300",              # data-point interval in seconds
+          "DS:tot:GAUGE:600:0:U",       # total
+          "DS:used:GAUGE:600:0:U",      # used
+          "DS:free:GAUGE:600:0:U",      # free
           "RRA:LAST:0.5:1:288",         # daily - every 5 min - 288 reg
           "RRA:MIN:0.5:1:288",          # daily - every 5 min - 288 reg
           "RRA:AVERAGE:0.5:1:288",      # daily - every 5 min - 288 reg
@@ -97,20 +75,20 @@ foreach my $farmfile (&getFarmList()) {
           "RRA:AVERAGE:0.5:288:372",    # yearly - every 1 day - 372 reg
           "RRA:MAX:0.5:288:372";        # yearly - every 1 day - 372 reg
 
-        if ($ERROR = RRDs::error) {
-            print "$0: Error: Unable to generate the swap rrd database: $ERROR\n";
+        if (my $error = RRDs::error) {
+            print STDERR "$0: Error: Unable to generate the rrd database for partition ${partition}: ${error}\n";
         }
     }
 
-    print "$0: Info: $farm Farm Connections Stats ...\n";
-    print "$0: Info:	Pending: $synconns\n";
-    print "$0: Info:	Established: $globalconns\n";
-    print "$0: Info: Updating data in $rrdap_dir/$rrd_dir/$db_farm ...\n";
+    print "$0: Info: Disk Stats for partition ${partition} ...\n";
+    print "$0: Info:	Total: ${tot} Bytes\n";
+    print "$0: Info:	Used: ${used} Bytes\n";
+    print "$0: Info:	Free: ${free} Bytes\n";
+    print "$0: Info: Updating data in ${rrd_filename} ...\n";
 
-    RRDs::update("$rrdap_dir/$rrd_dir/$db_farm",
-        "-t", "pending:established", "N:$synconns:$globalconns");
+    RRDs::update $rrd_filename, "-t", "tot:used:free", "N:${tot}:${used}:${free}";
 
-    if ($ERROR = RRDs::error) {
-        print "$0: Error: Unable to update the rrd database: $ERROR\n";
+    if (my $error = RRDs::error) {
+        print STDERR "$0: Error: Unable to update the rrd database for partition ${partition}: ${error}\n";
     }
 }

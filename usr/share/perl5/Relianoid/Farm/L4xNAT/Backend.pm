@@ -170,7 +170,7 @@ sub setL4FarmServer ($farm_name, $ids, $ip, $port = undef, $weight = undef, $pri
         $msg  .= "state:up ";
     }
 
-    &zenlog("$msg") if &debug();
+    &log_info("$msg") if &debug();
 
     $output = &sendL4NlbCmd({
         farm   => $farm_name,
@@ -267,7 +267,7 @@ Returns:
 sub setL4FarmBackendsSessionsRemove ($farm_name, $backend_ref = undef, $farm_mode = undef) {
     my $output = -1;
     if (not defined $backend_ref) {
-        &zenlog("Warning removing sessions for backend id farm '$farm_name': Backend id not found", "warning", "lslb");
+        &log_warn("Warning removing sessions for backend id farm '$farm_name': Backend id not found", "lslb");
         return $output;
     }
 
@@ -316,13 +316,12 @@ sub setL4FarmBackendsSessionsRemove ($farm_name, $backend_ref = undef, $farm_mod
         chop $sessions;
         my $error = &logAndRun("$nft_bin delete element $table nftlb $map_name { $sessions }");
         if ($error) {
-            &zenlog("Error removing '$n_sessions_deleted' sessions for backend id '$backend_ref->{id}' in farm '$farm_name'",
-                "error", "lslb");
+            &log_error("Error removing '$n_sessions_deleted' sessions for backend id '$backend_ref->{id}' in farm '$farm_name'",
+                "lslb");
             $output = 1;
         }
         else {
-            &zenlog("Removing '$n_sessions_deleted' sessions for backend id '$backend_ref->{id}' in farm '$farm_name'",
-                "info", "lslb");
+            &log_info("Removing '$n_sessions_deleted' sessions for backend id '$backend_ref->{id}' in farm '$farm_name'", "lslb");
             $output = 0;
         }
     }
@@ -414,14 +413,14 @@ sub setL4FarmBackendStatus ($farm_name, $backend, $status, $cutmode = undef) {
 
     if ($output) {
         $msg = "Status of backend $backend in farm '$farm_name' was not changed to $status";
-        &zenlog($msg, "error", "LSLB");
+        &log_error($msg, "LSLB");
         $error_ref->{code} = 1;
         $error_ref->{desc} = $msg;
         return $error_ref;
     }
     else {
         $msg = "Status of backend $backend in farm '$farm_name' was changed to $status";
-        &zenlog($msg, "info", "LSLB");
+        &log_info($msg, "LSLB");
         $error_ref->{code} = 0;
         $error_ref->{desc} = $msg;
     }
@@ -758,7 +757,7 @@ sub resetL4FarmBackendConntrackMark ($server) {
     my $conntrack = &getGlobalConfiguration('conntrack');
     my $cmd       = "$conntrack -D -m $server->{tag}/0x7fffffff";
 
-    &zenlog("running: $cmd") if &debug();
+    &log_info("running: $cmd") if &debug();
 
     # return_code = 0 -> deleted
     # return_code = 1 -> not found/deleted
@@ -781,10 +780,10 @@ sub resetL4FarmBackendConntrackMark ($server) {
 
     if (&debug()) {
         if ($return_code) {
-            &zenlog("Connection tracking for " . $server->{ip} . " not removed.");
+            &log_info("Connection tracking for " . $server->{ip} . " not removed.");
         }
         else {
-            &zenlog("Connection tracking for " . $server->{ip} . " removed.");
+            &log_info("Connection tracking for " . $server->{ip} . " removed.");
         }
     }
 

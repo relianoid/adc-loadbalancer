@@ -67,7 +67,7 @@ sub getHTTPFarmEstConns ($farm_name) {
     my $ct_params = &getConntrackParams($filter);
     $count = &getConntrackCount($ct_params);
 
-    #~ &zenlog( "getHTTPFarmEstConns: $farm_name farm -> $count connections." );
+    #~ &log_info( "getHTTPFarmEstConns: $farm_name farm -> $count connections." );
 
     return $count + 0;
 }
@@ -107,7 +107,7 @@ sub getHTTPFarmSYNConns ($farm_name) {
     $ct_params = &getConntrackParams($filter);
     $count += &getConntrackCount($ct_params);
 
-    #~ &zenlog( "getHTTPFarmSYNConns: $farm_name farm -> $count connections." );
+    #~ &log_info( "getHTTPFarmSYNConns: $farm_name farm -> $count connections." );
 
     return $count + 0;
 }
@@ -307,12 +307,10 @@ sub getHTTPFarmBackendsStats ($farm_name, $service_name = undef) {
             $backend_info->{ $backendHash->{id} }{ip}   = $backendHash->{ip};
             $backend_info->{ $backendHash->{id} }{port} = $backendHash->{port};
 
-            if (defined $6) {
-                $backendHash->{established} = $6 + 0;
-            }
-            else {
-                $backendHash->{established} = &getHTTPBackendEstConns($farm_name, $backendHash->{ip}, $backendHash->{port});
-            }
+            # The established connections should be always defined with >= 0
+            # If there is any case where it is not defined, we can use the IP based filtering in conntrack
+            # $backendHash->{established} = &getHTTPBackendEstConns($farm_name, $backendHash->{ip}, $backendHash->{port});
+            $backendHash->{established} = $6 + 0;
 
             # Getting real status
             my $backend_disabled = $4;

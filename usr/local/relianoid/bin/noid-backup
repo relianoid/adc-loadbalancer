@@ -51,11 +51,11 @@ if ($action eq "-c") {
     print $file $version;
     close $file;
 
-    zenlog("Creating backup ${backup_file}");
+    log_info("Creating backup ${backup_file}");
 
     my $cmd    = "${tar} -czf ${backup_file} ${backup_for}";
     my $output = `${cmd} 2>&1`;
-    zenlog($output);
+    log_info($output);
 
     unlink $version_file;
 }
@@ -63,7 +63,7 @@ if ($action eq "-c") {
 if ($action eq "-d") {
     my $output = `${tar} -xzf ${backup_dir}/backup-${name}.tar.gz -C / 2>&1`;
     print STDERR $output if $output;
-    zenlog($output);
+    log_info($output);
 }
 
 if ($action eq "-D52to60") {

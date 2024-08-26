@@ -110,13 +110,13 @@ sub setFarmCertificate ($cert_file, $farm_name) {
     my $cert_dir  = &getGlobalConfiguration('certdir');
     my $cert_path = "${cert_dir}/${cert_file}";
 
-    &zenlog("Setting 'Certificate ${cert_file}' for ${farm_name} farm https", "info", "LSLB");
+    &log_info("Setting 'Certificate ${cert_file}' for ${farm_name} farm https", "LSLB");
 
     require Relianoid::Certificate;
     my $error = &checkCertPEMValid($cert_path);
 
     if ($error->{code}) {
-        &zenlog("'Certificate ${cert_file}' for ${farm_name} farm https is not valid", "error", "LSLB");
+        &log_error("'Certificate ${cert_file}' for ${farm_name} farm https is not valid", "LSLB");
         return $output;
     }
 

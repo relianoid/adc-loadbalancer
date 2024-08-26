@@ -62,7 +62,7 @@ sub getNetIpFormat ($ip, $bin) {
         return $x->to_string_compressed();
     }
     else {
-        &zenlog("The bin '$bin' is not recoignized. The ip '$ip' couldn't be converted", "error", "networking");
+        &log_error("The bin '$bin' is not recoignized. The ip '$ip' couldn't be converted", "networking");
     }
 
     return $ip;
@@ -120,7 +120,7 @@ sub getProtoTransport ($profile) {
         $proto = [ "tcp", "udp" ];
     }
     else {
-        &zenlog("The funct 'getProfileProto' does not understand the parameter '$profile'", "error", "networking");
+        &log_error("The funct 'getProfileProto' does not understand the parameter '$profile'", "networking");
     }
 
     return $proto;
@@ -185,7 +185,7 @@ sub validatePortKernelSpace ($ip, $port, $proto, $farmname = undef) {
 
         # check if farm is all ports
         if ($port eq '*' or $f_port eq '*') {
-            &zenlog("Port collision with farm '$farm' for using all ports", "warning", "net");
+            &log_warn("Port collision with farm '$farm' for using all ports", "net");
             return 0;
         }
 
@@ -194,7 +194,7 @@ sub validatePortKernelSpace ($ip, $port, $proto, $farmname = undef) {
         my $col         = &getArrayCollision($f_port_list, $port_list);
 
         if (defined $col) {
-            &zenlog("Port collision ($col) with farm '$farm'", "warning", "net");
+            &log_warn("Port collision ($col) with farm '$farm'", "net");
             return 0;
         }
     }
@@ -300,7 +300,7 @@ sub validatePortUserSpace ($ip, $port, $proto, $farmname, $process = undef) {
                 and $cur_vip eq $ip
                 and $cur_port eq $port)
             {
-                &zenlog("The networking configuration matches with the own farm", "debug", "networking");
+                &log_debug("The networking configuration matches with the own farm", "networking");
                 return 1;
             }
         }
@@ -354,7 +354,7 @@ sub validatePortUserSpace ($ip, $port, $proto, $farmname, $process = undef) {
     @out = grep { /$filter/ } @out;
 
     if (@out) {
-        &zenlog("The ip '$ip' and the port '$port' are being used for some process", "warning", "networking");
+        &log_warn("The ip '$ip' and the port '$port' are being used for some process", "networking");
         return 0;
     }
 
@@ -398,7 +398,7 @@ sub validatePort ($ip, $port, $proto, $farmname = undef, $process = undef) {
     }
 
     if (!defined $proto && !defined $farmname) {
-        &zenlog("Check port needs the protocol to validate the ip '$ip' and the port '$port'", "error", "networking");
+        &log_error("Check port needs the protocol to validate the ip '$ip' and the port '$port'", "networking");
         return 0;
     }
 

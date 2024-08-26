@@ -40,7 +40,7 @@ load_global_conf
 SSHDCONFIG="/etc/ssh/sshd_config"
 
 if ! grep "^PermitRootLogin.*yes" $SSHDCONFIG &>/dev/null; then
-    sed -i -e 's/^PermitRootLogin.*/PermitRootLogin yes/' $SSHDCONFIG
+    sed -i -e 's/^.*PermitRootLogin\s.*/PermitRootLogin yes/' $SSHDCONFIG
     if [[ "$(systemctl status sshd.service | grep -c 'sshd is not running')" == '0' ]]; then
         systemctl reload sshd.service 2> /dev/null
     fi
@@ -66,14 +66,6 @@ fi
 
 ## Create configuration files
 
-# Move zlb-stop & zlb-start
-if [ ! -f $zlb_start_script ]; then
-    cp $zlb_start_tpl $zlb_start_script
-fi
-if [ ! -f $zlb_stop_script ]; then
-    cp $zlb_stop_tpl $zlb_stop_script
-fi
-
 # create Web server
 if [ ! -f "$http_server_cert" ]; then
     cp -rf $http_server_cert_tpl $http_server_cert
@@ -92,6 +84,49 @@ fi
 # Apply all migrating scripts to RELIANOID
 MIGRATIONS_DIR="/usr/local/relianoid/migrations"
 for SCRIPT in "$MIGRATIONS_DIR"/*; do $SCRIPT; done
+
+## Migrations from Zevenet to Relianoid
+RELIANOID_PATH=$zdir
+CRON_FILE=/etc/cron.d/relianoid
+if grep -q zenntp $CRON_FILE; then
+    sed -i 's/zenntp/noid-ntp/' $CRON_FILE
+fi
+
+if grep -q zenrrd $CRON_FILE; then
+    sed -i 's/zenrrd/noid-collector/' $CRON_FILE
+fi
+
+ZENRRD_DIR="${RELIANOID_PATH}/app/zenrrd"
+if [[ -d "${ZENRRD_DIR}" && ! -L "${ZENRRD_DIR}" ]]; then
+    mv "${RELIANOID_PATH}/app/zenrrd/rrd"/* "${RELIANOID_PATH}/var/noid-collector/rrd/" 2> /dev/null
+    rm -r "$ZENRRD_DIR"
+
+    # leaves a symbolic link $RELIANOID_PATH/app/zenrrd for compatibility
+    ln -s "../var/noid-collector" "${RELIANOID_PATH}/app/zenrrd"
+fi
+
+# Migrate API user
+if id --user zapi &> /dev/null; then
+    usermod --login api zapi
+fi
+
+zlb_start="/usr/local/relianoid/config/zlb-start"
+zlb_stop="/usr/local/relianoid/config/zlb-stop"
+if [ -f $zlb_start ]; then
+    mv $zlb_start $start_script
+fi
+if [ -f $zlb_stop ]; then
+    mv $zlb_stop $stop_script
+fi
+## End of: Migrations from Zevenet to Relianoid
+
+# Create noid-start and noid-stop if they don't exist yet
+if [ ! -f $start_script ]; then
+    cp $start_template $start_script
+fi
+if [ ! -f $stop_script ]; then
+    cp $stop_template $stop_script
+fi
 
 # Restarting RELIANOID service
 echo "RELIANOID will be unavailable while the service is restarting."
@@ -148,8 +183,5 @@ fi
 
 # Configure apt repository
 perl -E "require Relianoid::System::Packages; exit &setSystemPackagesRepo();"
-
-## Run checkupdates to update message
-$checkupdates_bin > /dev/null
 
 echo "RELIANOID Load Balancer installation completed."

@@ -26,7 +26,6 @@ use warnings;
 use feature qw(signatures);
 
 use Relianoid::HTTP;
-use Relianoid::Validate;
 
 =pod
 
@@ -41,41 +40,44 @@ my $REQUEST_METHOD = $ENV{REQUEST_METHOD};
 
 if ($PATH_INFO =~ qr{^/ids$}) {
     require Relianoid::HTTP::Controllers::API::Ids;
-    GET qr{^/ids$} => \&list_ids_controller;    #  GET /rbac/users
+
+    GET qr{^/ids$} => \&list_ids_controller;
 }
 
-# Certificates
-my $cert_re     = &getValidFormat('certificate');
-my $cert_pem_re = &getValidFormat('cert_pem');
-my $le_cert_re  = &getValidFormat('le_certificate_name');
+require Relianoid::Validate;
 
-# LetsencryptZ
-if ($PATH_INFO =~ qr{^/certificates/letsencryptz}) {
-    require Relianoid::HTTP::Controllers::API::LetsencryptZ;
+if ($PATH_INFO =~ qr{^/certificates/letsencryptz?}) {
+    require Relianoid::HTTP::Controllers::API::Letsencrypt;
 
-    GET qr{^/certificates/letsencryptz$}               => \&list_le_cert_controller;   #  GET List LetsencryptZ certificates
-    GET qr{^/certificates/letsencryptz/config$}        => \&get_le_conf_controller;    #  GET LetsencryptZ config
-    GET qr{^/certificates/letsencryptz/($le_cert_re)$} => \&get_le_cert_controller;    #  GET LetsencryptZ certificate
-    POST qr{^/certificates/letsencryptz$} => \&add_le_cert_controller;                 #  Create LetsencryptZ certificates
-    POST qr{^/certificates/letsencryptz/($le_cert_re)/actions$} =>
-      \&actions_le_cert_controller;                                                    #  LetsencryptZ certificates actions
-    DELETE qr{^/certificates/letsencryptz/($le_cert_re)$} => \&delete_le_cert_controller; #  DELETE LetsencryptZ certificate
-    PUT qr{^/certificates/letsencryptz/config$}        => \&set_le_conf_controller;    #  Modify LetsencryptZ config
-    PUT qr{^/certificates/letsencryptz/($le_cert_re)$} => \&set_le_cert_controller;    #  Modify LetsencryptZ certificates
+    my $le_cert_re = &getValidFormat('le_certificate_name');
+
+    GET qr{^/certificates/letsencryptz?/config$} => \&get_le_conf_controller;    #  GET config
+    PUT qr{^/certificates/letsencryptz?/config$} => \&set_le_conf_controller;    #  Modify config
+
+    GET qr{^/certificates/letsencryptz?$} => \&list_le_cert_controller;          #  List certificates
+    POST qr{^/certificates/letsencryptz?$} => \&add_le_cert_controller;          #  Create certificate
+
+    GET qr{^/certificates/letsencryptz?/($le_cert_re)$} => \&get_le_cert_controller;          #  GET certificate
+    DELETE qr{^/certificates/letsencryptz?/($le_cert_re)$} => \&delete_le_cert_controller;    #  DELETE certificate
+    PUT qr{^/certificates/letsencryptz?/($le_cert_re)$} => \&set_le_cert_controller;          #  Modify certificate
+
+    POST qr{^/certificates/letsencryptz?/($le_cert_re)/actions$} => \&actions_le_cert_controller;  #  LE certificate actions
 }
 
 # SSL certificates
 if ($PATH_INFO =~ qr{^/certificates}) {
     require Relianoid::HTTP::Controllers::API::Certificate;
+
+    my $cert_re      = &getValidFormat('certificate');
     my $cert_name_re = &getValidFormat('certificate_name');
 
-    GET qr{^/certificates$}                 => \&list_certificates_controller;         #  GET List SSL certificates
-    GET qr{^/certificates/($cert_re)/info$} => \&get_certificate_info_controller;      #  GET SSL certificate information
-    GET qr{^/certificates/($cert_re)$}      => \&download_certificate_controller;      #  Download SSL certificate
-    POST qr{^/certificates$}     => \&create_csr_controller;                           #  Create CSR certificates
-    POST qr{^/certificates/pem$} => \&create_certificate_controller;                   #  POST certificates
+    GET qr{^/certificates$}                 => \&list_certificates_controller;       #  GET List SSL certificates
+    GET qr{^/certificates/($cert_re)/info$} => \&get_certificate_info_controller;    #  GET SSL certificate information
+    GET qr{^/certificates/($cert_re)$}      => \&download_certificate_controller;    #  Download SSL certificate
+    POST qr{^/certificates$}     => \&create_csr_controller;                         #  Create CSR certificates
+    POST qr{^/certificates/pem$} => \&create_certificate_controller;                 #  POST certificates
 
-    if ($PATH_INFO !~ qr{^/certificates/letsencryptz-wildcard$}) {
+    if ($PATH_INFO !~ qr{^/certificates/letsencryptz?-wildcard$}) {
         POST qr{^/certificates/($cert_name_re)$} => \&upload_certificate_controller;    #  POST certificates
     }
 
@@ -85,10 +87,11 @@ if ($PATH_INFO =~ qr{^/certificates}) {
 my $farm_re    = &getValidFormat('farm_name');
 my $service_re = &getValidFormat('service');
 my $be_re      = &getValidFormat('backend');
-my $fg_name_re = &getValidFormat('fg_name');
 
 if ($PATH_INFO =~ qr{^/farms/$farm_re/certificates}) {
     require Relianoid::HTTP::Controllers::API::Certificate;
+
+    my $cert_pem_re = &getValidFormat('cert_pem');
 
     POST qr{^/farms/($farm_re)/certificates$} => \&add_farm_certificate_controller;
     DELETE qr{^/farms/($farm_re)/certificates/($cert_pem_re)$} => \&delete_farm_certificate_controller;
@@ -98,6 +101,8 @@ if (   $PATH_INFO =~ qr{^/monitoring/fg}
     or $PATH_INFO =~ qr{^/farms/$farm_re(?:/services/$service_re)?/fg})
 {
     require Relianoid::HTTP::Controllers::API::Farm::Guardian;
+
+    my $fg_name_re = &getValidFormat('fg_name');
 
     POST qr{^/farms/($farm_re)(?:/services/($service_re))?/fg$} => \&add_fg_to_farm_controller;
     DELETE qr{^/farms/($farm_re)(?:/services/($service_re))?/fg/($fg_name_re)$} => \&delete_fg_from_farm_controller;
@@ -377,7 +382,7 @@ if ($PATH_INFO =~ qr{^/farms/$farm_re/(?:addheader|headremove|addresponseheader|
 }
 
 ##### Load modules dynamically #######################################
-my $routes_path = &getGlobalConfiguration('zlibdir') . '/API40/Routes';
+my $routes_path = &getGlobalConfiguration('lib_dir') . '/API40/Routes';
 opendir(my $dir, $routes_path);
 
 for my $file (readdir $dir) {
@@ -386,8 +391,8 @@ for my $file (readdir $dir) {
     my $module = "$routes_path/$file";
 
     unless (eval { require $module; }) {
-        &zenlog("Error loading module: $module", "debug2", "SYSTEM");
-        &zenlog($@,                              "error",  "SYSTEM");
+        &log_debug2("Error loading module: $module", "SYSTEM");
+        &log_error($@, "SYSTEM");
         die $@;
     }
 }

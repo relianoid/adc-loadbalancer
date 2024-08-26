@@ -40,10 +40,10 @@ Relianoid::Log
 
 sub warning_signal {    ## no critic Subroutines::RequireArgUnpacking
     print STDERR @_;
-    zenlog("@_", "warn");
+    log_warn("@_");
 }
 
-# Get the program name for zenlog
+# Get the program name for logs messages
 my $program_name =
     ($0 ne '-e')                                     ? $0
   : (exists $ENV{_} && $ENV{_} !~ /enterprise.bin$/) ? $ENV{_}
@@ -53,19 +53,19 @@ my $basename = (split('/', $program_name))[-1];
 
 =pod
 
-=head1 zenlog
+=head1 _log
 
 Write logs through syslog
 
 Usage:
 
-    &zenlog($text, $priority, $tag);
+    &_log($text, $priority, $tag);
 
 Examples:
 
-    &zenlog("This is a message.", "info", "LSLB");
-    &zenlog("Some errors happened.", "err", "FG");
-    &zenlog("testing debug mode", "debug", "SYSTEM");
+    &_log("This is a message.", "info", "LSLB");
+    &_log("Some errors happened.", "err", "FG");
+    &_log("testing debug mode", "debug", "SYSTEM");
 
 The different debug levels are:
 
@@ -90,7 +90,7 @@ Returns:
 
 =cut
 
-sub zenlog ($message, $type = 'info', $tag = '') {
+sub _log ($message, $type = 'info', $tag = '') {
     if ($tag eq 'PROFILING') {
         $type = "debug5";
         return if &debug() < 5;
@@ -122,70 +122,36 @@ sub zenlog ($message, $type = 'info', $tag = '') {
     return;
 }
 
-=pod
+sub log_info ($message, $tag = '') {
+    return _log($message, 'info', $tag);
+}
 
-=head1 notlog
+sub log_warn ($message, $tag = '') {
+    return _log($message, 'warning', $tag);
+}
 
-Write logs through syslog. Exclusive use for logging notifications.
+sub log_error ($message, $tag = '') {
+    return _log($message, 'error', $tag);
+}
 
-Usage:
+sub log_debug ($message, $tag = '') {
+    return _log($message, 'debug', $tag);
+}
 
-    &notlog($text, $priority, $tag);
+sub log_debug2 ($message, $tag = '') {
+    return _log($message, 'debug2', $tag);
+}
 
-Examples:
+sub log_debug3 ($message, $tag = '') {
+    return _log($message, 'debug3', $tag);
+}
 
-    &notlog("This is a message.", "info", "LSLB");
-    &notlog("Some errors happened.", "err", "FG");
-    &notlog("testing debug mode", "debug", "SYSTEM");
+sub log_debug4 ($message, $tag = '') {
+    return _log($message, 'debug4', $tag);
+}
 
-The different debug levels are:
-
-    1 - Command executions.
-        API inputs.
-    2 - The command standart output, when there isn't any error.
-        API outputs.
-        Parameters modified in configuration files.
-    3 - (reserved)
-    4 - (reserved)
-    5 - Profiling.
-
-Parametes:
-
-    message - String to be written in log.
-    type    - Log level. info, error, debug, debug2, warn. Default: info
-    tag     - RBAC, LSLB, GSLB, DSLB, IPDS, FG, NOTIF, NETWORK, MONITOR, SYSTEM, CLUSTER, AWS
-
-Returns:
-
-    none - .
-
-=cut
-
-sub notlog ($message, $type = 'info', $tag = "") {
-    if ($tag eq 'PROFILING') {
-        $type = "debug5";
-        return 0 if (&debug() < 5);
-    }
-
-    if ($type =~ /^(debug)(\d*)?$/) {
-        my $debug_lvl = $2;
-        $debug_lvl = 1 if not $debug_lvl;
-        $type      = "$1$debug_lvl";
-        return 0 if (&debug() lt $debug_lvl);
-    }
-
-    if ($tag) {
-        $tag = lc "${tag} :: ";
-    }
-
-    my $program = $basename;
-    $type = uc($type);
-
-    openlog($program, LOG_PID, LOG_LOCAL2);
-    syslog(LOG_INFO, "(${type}) ${tag}${message}");
-    closelog();
-
-    return;
+sub log_debug5 ($message, $tag = '') {
+    return _log($message, 'debug5', $tag);
 }
 
 =pod
@@ -214,13 +180,13 @@ sub logAndRun ($command) {
     my $return_code = $?;
 
     if ($return_code) {
-        &zenlog($program . " running: $command", "error", "SYSTEM");
-        &zenlog("out: @cmd_output",              "error", "SYSTEM") if @cmd_output;
-        &zenlog("last command failed!",          "error", "SYSTEM");
+        &log_error("${program} running: ${command}", "SYSTEM");
+        &log_error("out: @cmd_output",               "SYSTEM") if @cmd_output;
+        &log_error("last command failed!",           "SYSTEM");
     }
     else {
-        &zenlog($program . " running: $command", "debug",  "SYSTEM");
-        &zenlog("out: @cmd_output",              "debug2", "SYSTEM");
+        &log_debug("${program} running: ${command}", "SYSTEM");
+        &log_debug2("out: @cmd_output", "SYSTEM");
     }
 
     return $return_code;
@@ -228,7 +194,7 @@ sub logAndRun ($command) {
 
 =pod
 
-=head1 logAndRunBG()
+=head1 logAndRunBG
 
 Non-blocking version of logging and running a command, returning execution error code.
 
@@ -249,11 +215,11 @@ sub logAndRunBG ($command) {
     my $return_code = system("$command >/dev/null 2>&1 &");
 
     if ($return_code) {
-        &zenlog($program . " running: $command", "error", "SYSTEM");
-        &zenlog("last command failed!",          "error", "SYSTEM");
+        &log_error("${program} running: ${command}", "SYSTEM");
+        &log_error("last command failed!",           "SYSTEM");
     }
     else {
-        &zenlog($program . " running: $command", "debug", "SYSTEM");
+        &log_debug("${program} running: ${command}", "SYSTEM");
     }
 
     return $return_code;
@@ -261,7 +227,7 @@ sub logAndRunBG ($command) {
 
 =pod
 
-=head1 zsystem
+=head1 run_with_env
 
 Run a command with the environment parameters customized.
 
@@ -279,59 +245,20 @@ See Also:
 
 =cut
 
-sub zsystem (@command) {
+sub run_with_env (@command) {
     my $program = $basename;
 
     my @cmd_output = `. /etc/profile -notbui >/dev/null 2>&1 && @command 2>&1`;
     my $out        = $?;
 
     if ($out) {
-        &zenlog($program . " running: @command", "error", "SYSTEM");
-        &zenlog("@cmd_output", "error", "error", "SYSTEM") if @cmd_output;
-        &zenlog("last command failed!", "error", "SYSTEM");
+        &log_error("${program} running: @command", "SYSTEM");
+        &log_error("@cmd_output",                  "SYSTEM") if @cmd_output;
+        &log_error("last command failed!",         "SYSTEM");
     }
     else {
-        &zenlog($program . " running: @command", "debug",  "SYSTEM");
-        &zenlog("out: @cmd_output",              "debug2", "SYSTEM");
-    }
-
-    return $out;
-}
-
-=pod
-
-=head1 zsystem_bg
-
-Run a command with the environment parameters customized in the background.
-
-Parameters:
-
-    exec - Command to run.
-
-Returns:
-
-    integer - Returns 0 on success or another value on failure
-
-See Also:
-
-    C<_runGSLBFarmStart>, C<runGSLBFarmCreate>
-
-=cut
-
-sub zsystem_bg (@command) {
-    my $program = $basename;
-
-    my @cmd_output = `. /etc/profile -notbui >/dev/null 2>&1 && @command 2>&1 &`;
-    my $out        = $?;
-
-    if ($out) {
-        &zenlog($program . " running: @command", "error", "SYSTEM");
-        &zenlog("@cmd_output", "error", "error", "SYSTEM") if @cmd_output;
-        &zenlog("last command failed!", "error", "SYSTEM");
-    }
-    else {
-        &zenlog($program . " running: @command", "debug",  "SYSTEM");
-        &zenlog("out: @cmd_output",              "debug2", "SYSTEM");
+        &log_debug("${program} running: @command", "SYSTEM");
+        &log_debug2("out: @cmd_output", "SYSTEM");
     }
 
     return $out;
@@ -372,7 +299,7 @@ sub logAndGet ($cmd, $type = 'string', $add_stderr = 0) {
     my $err_code = $? >> 8;
 
     if (&debug() >= 2) {
-        &zenlog("Executed (out: $err_code): $cmd", "debug2", "system");
+        &log_debug2("Executed (out: $err_code): $cmd", "system");
     }
 
     if ($err_code and not $add_stderr) {
@@ -380,18 +307,18 @@ sub logAndGet ($cmd, $type = 'string', $add_stderr = 0) {
         if (open(my $fh, '<', $tmp_err)) {
             local $/ = undef;
             my $err_str = <$fh>;
-            &zenlog("sterr: $err_str", "debug2", "SYSTEM");
+            &log_debug2("sterr: $err_str", "SYSTEM");
             close $fh;
         }
         else {
-            &zenlog("file '$tmp_err' not found", "error", "SYSTEM");
+            &log_error("file '$tmp_err' not found", "SYSTEM");
         }
     }
 
     chomp($out);
 
     # logging if there is not any error
-    &zenlog("out: $out", "debug3", "SYSTEM");
+    &log_debug3("out: $out", "SYSTEM");
 
     if ($type eq 'array') {
         my @out = split("\n", $out);
@@ -431,10 +358,10 @@ sub logAndRunCheck ($command) {
     my $return_code = $? >> 8;
 
     if (&debug() >= 2) {
-        &zenlog($program . " err_code '$return_code' checking: $command", "debug2", "SYSTEM");
+        &log_debug2("${program} err_code '${return_code}' checking: ${command}", "SYSTEM");
     }
     if (&debug() >= 3) {
-        &zenlog($program . " output: @cmd_output", "debug3", "SYSTEM");
+        &log_debug3("${program} output: @cmd_output", "SYSTEM");
     }
 
     # returning error code of the execution
@@ -474,7 +401,7 @@ sub logRunAndGet ($command, $format = 'string', $outflush = 0) {
     $exit->{stdout} = $get[0];
     $exit->{stderr} = $get[1];
 
-    &zenlog("Executed (out: $exit->{stderr}): $command", "debug", "system");
+    &log_debug("Executed (out: $exit->{stderr}): $command", "system");
 
     if ($format eq 'array') {
         my @out = split("\n", $get[0]);

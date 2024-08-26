@@ -44,7 +44,7 @@ fi
 
 backup_dir="${prefix}/${ss_dir}"
 
-monitoring_paths="${home_dir}/app/zenrrd/rrd ${home_dir}/logs /var/log/messages* /var/log/syslog* /var/log/letsencrypt /var/log/cherokee* ${home_dir}/node_status /var/log/apt /var/run/*_proxy.pid";
+monitoring_paths="${home_dir}/var/noid-collector/rrd ${home_dir}/logs /var/log/messages* /var/log/syslog* /var/log/letsencrypt /var/log/cherokee* ${home_dir}/node_status /var/log/apt /var/run/*_proxy.pid";
 
 
 echo "Saving information for support in the path ${backup_dir}.tar.gz"
@@ -86,7 +86,7 @@ echo "- Partitions"
 /bin/df -h                              &>> $backup_dir/partitions.txt
 
 echo "- Time"
-${zbindir}/noid-ntp                    	&>> $backup_dir/ntp_test.txt
+$bin_dir/noid-ntp                    	&>> $backup_dir/ntp_test.txt
 
 if [[ ! -z $ssyncdctl_bin ]]; then
 	echo "- Sessions Table"

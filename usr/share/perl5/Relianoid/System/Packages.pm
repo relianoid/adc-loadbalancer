@@ -69,7 +69,7 @@ sub setSystemPackagesRepo () {
     my $repo_version = "v7";
     my $error        = 0;
 
-    &zenlog("Configuring the APT repository", "info", "SYSTEM");
+    &log_info("Configuring the APT repository", "SYSTEM");
 
     # configuring repository
     open(my $fh, '>', $file);
@@ -122,7 +122,7 @@ sub getSystemPackagesUpdatesList () {
         $install_msg .= "    'checkupdates -i'";
     }
 
-    my $fh = &openlock($package_list, '<');
+    my $fh = &openlock($package_list, 'r');
     if ($fh) {
         @pkg_list = split(' ', <$fh>);
         close $fh;
@@ -132,7 +132,7 @@ sub getSystemPackagesUpdatesList () {
           if ((exists $pkg_list[0]) and ($pkg_list[0] eq 'Listing...'));
     }
 
-    $fh = &openlock($message_file, '<');
+    $fh = &openlock($message_file, 'r');
     if (defined $fh) {
         $msg = <$fh>;
         close $fh;

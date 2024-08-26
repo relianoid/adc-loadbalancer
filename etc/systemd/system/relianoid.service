@@ -8,5 +8,6 @@ WantedBy=multi-user.target
 Type=oneshot
 ExecStart=/etc/init.d/relianoid start
 ExecStop=/etc/init.d/relianoid stop
+ExecReload=/etc/init.d/relianoid reload
 RemainAfterExit=true
 StandardOutput=journal

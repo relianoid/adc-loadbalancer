@@ -49,7 +49,7 @@ Relianoid::JSON
 
 sub decodeJSONFile ($file) {
     my $file_str;
-    my $fh = &openlock($file, '<');
+    my $fh = &openlock($file, 'r');
     return if !defined $fh;
 
     {
@@ -62,8 +62,8 @@ sub decodeJSONFile ($file) {
 
     eval { $f_json = $json->decode($file_str); };
     if ($@) {
-        &zenlog("Error decoding the file $file", 'error');
-        &zenlog("json: $@",                      'debug');
+        &log_error("Error decoding the file $file");
+        &log_debug("json: $@");
     }
 
     return $f_json;

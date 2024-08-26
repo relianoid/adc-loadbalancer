@@ -78,8 +78,8 @@ sub getAuthorizationCredentials() {
         ($username, $password) = split /:/, $decoded_digest, 2;
     }
 
-    &zenlog("User not found",     "error", "zapi") if not length $username;
-    &zenlog("Password not found", "error", "zapi") if not length $password;
+    &log_error("User not found",     "api") if not length $username;
+    &log_error("Password not found", "api") if not length $password;
 
     return if not length $username or not length $password;
 
@@ -102,7 +102,7 @@ sub authenticateCredentials ($user, $pass) {
         my $simple   = Authen::Simple::Passwd->new(path => "$passfile");
 
         if ($simple->authenticate($user, $pass)) {
-            &zenlog("The user '$user' login locally", "debug", "auth");
+            &log_debug("The user '$user' login locally", "auth");
             $valid_credentials = 1;
         }
     }

@@ -64,7 +64,7 @@ sub delete_nic_controller ($nic) {
 
         my $zcl_conf = &eload(
             module => 'Relianoid::EE::Cluster',
-            func   => 'getZClusterConfig',
+            func   => 'getClusterConfig',
         );
 
         if (defined $zcl_conf->{_}{interface}
@@ -113,7 +113,7 @@ sub delete_nic_controller ($nic) {
         # check if some VPN is using this ip
         my $vpns = &eload(
             module => 'Relianoid::EE::VPN::Util',
-            func   => 'getVPNByIp',
+            func   => 'getVpnByIp',
             args   => [ $if_ref->{addr} ],
         );
 
@@ -125,7 +125,7 @@ sub delete_nic_controller ($nic) {
 
         $vpns = &eload(
             module => 'Relianoid::EE::VPN::Util',
-            func   => 'getVPNByNet',
+            func   => 'getVpnByNet',
             args   => [ $if_ref->{net} ],
         );
 
@@ -142,7 +142,7 @@ sub delete_nic_controller ($nic) {
     };
 
     if ($@) {
-        &zenlog("Module failed: $@", 'error', 'net');
+        &log_error("Module failed: $@", 'net');
         my $msg = "The configuration for the network interface $nic can't be deleted.";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
@@ -212,7 +212,7 @@ sub actions_nic_controller ($json_obj, $nic) {
     if ($eload) {
         my $zcl_conf = &eload(
             module => 'Relianoid::EE::Cluster',
-            func   => 'getZClusterConfig',
+            func   => 'getClusterConfig',
         );
 
         if (defined $zcl_conf->{_}{track_interface}) {
@@ -453,7 +453,7 @@ sub modify_nic_controller ($json_obj, $nic) {
 
                 my $zcl_conf = &eload(
                     module => 'Relianoid::EE::Cluster',
-                    func   => 'getZClusterConfig',
+                    func   => 'getClusterConfig',
                 );
 
                 if (defined $zcl_conf->{_}{interface}
@@ -479,7 +479,7 @@ sub modify_nic_controller ($json_obj, $nic) {
 
             $vpns_localgw = &eload(
                 module => 'Relianoid::EE::VPN::Util',
-                func   => 'getVPNByIp',
+                func   => 'getVpnByIp',
                 args   => [ $if_ref->{addr} ],
             ) if $eload;
         }
@@ -494,7 +494,7 @@ sub modify_nic_controller ($json_obj, $nic) {
                 my $net = NetAddr::IP->new($if_ref->{addr}, $if_ref->{mask})->cidr();
                 $vpns_localnet = &eload(
                     module => 'Relianoid::EE::VPN::Util',
-                    func   => 'getVPNByNet',
+                    func   => 'getVpnByNet',
                     args   => [$net],
                 ) if $eload;
             }
@@ -710,7 +710,7 @@ sub modify_nic_controller ($json_obj, $nic) {
         };
 
         if ($@) {
-            &zenlog("Module failed: $@", "error", "net");
+            &log_error("Module failed: $@", "net");
             my $msg = "Errors found trying to modify interface $nic";
             return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }

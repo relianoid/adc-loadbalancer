@@ -55,10 +55,6 @@ Bugs:
 
     Verify password? Really?!
 
-See Also:
-
-    API v4: <set_user>, <set_user_zapi>
-
 =cut
 
 sub changePassword ($user, $newpass, $verifypass) {
@@ -81,9 +77,9 @@ EOF
 
     my $output = system($cmd );
     if ($output) {
-        &zenlog("Error trying to change the $user password", "error");
+        &log_error("Error trying to change the $user password");
     }
-    else { &zenlog("The $user password was changed", "info"); }
+    else { &log_info("The $user password was changed"); }
 
     return $output;
 }

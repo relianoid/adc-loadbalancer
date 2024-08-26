@@ -35,7 +35,7 @@ Relianoid::HTTP::Controllers::API::System::Backup
 
 =cut
 
-#	GET	/system/backup
+# GET /system/backup
 sub list_backups_controller () {
     my $desc    = "Get backups";
     my $backups = &getBackup();
@@ -43,7 +43,7 @@ sub list_backups_controller () {
     return &httpResponse({ code => 200, body => { description => $desc, params => $backups } });
 }
 
-#	POST  /system/backup
+# POST /system/backup
 sub create_backup_controller ($json_obj) {
     my $desc = "Create a backups";
 
@@ -75,7 +75,7 @@ sub create_backup_controller ($json_obj) {
     return &httpResponse({ code => 200, body => $body });
 }
 
-#	GET	/system/backup/BACKUP
+# GET /system/backup/BACKUP
 sub download_backup_controller ($backup) {
     my $desc = "Download a backup";
 
@@ -86,43 +86,11 @@ sub download_backup_controller ($backup) {
 
     my $backup_dir           = &getGlobalConfiguration('backupdir');
     my $backup_filename      = &getBackupFilename($backup);
-    my $backup_absolute_path = "${backup_dir}/${backup_filename}";
-    my $encoding             = ":raw :bytes";
-    my $backup_fh;
 
-    unless (open($backup_fh, "< ${encoding}", $backup_absolute_path)) {
-        my $msg = "Could not open backup file '${backup_filename}': $!";
-        zenlog($msg, 'error');
-        return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
-    }
-
-    require Relianoid::CGI;
-    my $cgi             = &getCGI();
-    my $ac_allow_origin = (exists $ENV{HTTP_ZAPI_KEY}) ? '*' : "https://$ENV{HTTP_HOST}/";
-
-    print $cgi->header(
-        -type                              => 'application/x-download',
-        -attachment                        => $backup_filename,
-        'Content-length'                   => -s $backup_absolute_path,
-        'Access-Control-Allow-Origin'      => $ac_allow_origin,
-        'Access-Control-Allow-Credentials' => 'true',
-    );
-
-    binmode $backup_fh;
-
-    {
-        local $/ = \4096;
-
-        while (<$backup_fh>) {
-            print $_;
-        }
-    }
-
-    close $backup_fh;
-    exit 0;
+    return &httpDownloadResponse(desc => $desc, dir => $backup_dir, file => $backup_filename);
 }
 
-#	PUT	/system/backup/BACKUP
+# PUT /system/backup/BACKUP
 sub upload_backup_controller ($upload_filehandle, $name) {
     my $desc = "Upload a backup";
 
@@ -155,7 +123,7 @@ sub upload_backup_controller ($upload_filehandle, $name) {
     return &httpResponse({ code => 200, body => $body });
 }
 
-#	DELETE /system/backup/BACKUP
+# DELETE /system/backup/BACKUP
 sub delete_backup_controller ($backup) {
     my $desc = "Delete backup $backup'";
 
@@ -181,7 +149,7 @@ sub delete_backup_controller ($backup) {
     return &httpResponse({ code => 200, body => $body });
 }
 
-#	POST /system/backup/BACKUP/actions
+# POST /system/backup/BACKUP/actions
 sub apply_backup_controller ($json_obj, $backup) {
     my $desc = "Apply a backup to the system";
 
@@ -208,7 +176,7 @@ sub apply_backup_controller ($json_obj, $backup) {
             return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
         else {
-            &zenlog("Applying The backup version ($b_version) is different to the Relianoid version ($sys_version).");
+            &log_info("Applying The backup version ($b_version) is different to the Relianoid version ($sys_version).");
         }
     }
 

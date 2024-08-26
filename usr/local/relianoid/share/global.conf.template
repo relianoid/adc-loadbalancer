@@ -10,12 +10,12 @@ $version="_VERSION_";#update
 $debug="0";
 # nftlb debug level
 $nftlb_debug="5";
-#ZAPI Versions
-$zapi_versions="4.0.3";#update
+# API Versions
+$api_versions="4.0.3";#update
 # API model path
 $api_model_path="/usr/local/relianoid/api-model";#update
-#ZAPI KEY
-$zapikey="";
+# API key
+$api_key="";
 #proxy
 $http_proxy="";
 $https_proxy="";
@@ -30,17 +30,17 @@ $session_timeout="30";
 
 ## Relianoid Paths
 #Relianoid root directory
-$zdir="/usr/local/relianoid";#update
+$lb_dir="/usr/local/relianoid";#update
 #Relianoid lib directory
-$zlibdir="/usr/share/perl5/Relianoid";#update
+$lib_dir="/usr/share/perl5/Relianoid";#update
 #Relianoid bin directory
-$zbindir="$zdir/bin";#update
+$bin_dir="$lb_dir/bin";#update
 #Document Root for Web Aplication directory
-$basedir="$zdir/www";#update
+$basedir="$lb_dir/www";#update
 #configuration directory.In this section all config files are saved.
-$configdir="$zdir/config";#update
+$configdir="$lb_dir/config";#update
 #certificates directory
-$certdir="$zdir/config/certificates";#update
+$certdir="$lb_dir/config/certificates";#update
 # directory for local configurations, it is not sync by the cluster
 $localconfig="$configdir/local";#update
 # Directory with monitoring commands. In this directory you can save your own check scripts.
@@ -48,24 +48,24 @@ $libexec_dir="/usr/lib/nagios/plugins";
 # Directory with monitoring commands.
 $nagios_plugins_dir="/usr/lib/nagios/plugins";#update
 #Relianoid bin directory
-$templatedir="$zdir/share";#update
+$templatedir="$lb_dir/share";#update
 #Save backups on
-$backupdir="$zdir/backups";#update
+$backupdir="$lb_dir/backups";#update
 #Log directory
 $logdir="/var/log";#update
 #piddir
 $piddir="/var/run";
 #relianoid activation certificate path
 #first boot flag
-$first_boot_flag="/etc/firstzlbboot";
-#zna migration flag
-$migration_flag="/etc/zlbmigration";
+$first_boot_flag="/etc/first_boot";#update
+# migration flag
+$migration_flag="/etc/run_migration";#update
 #relianoid service
 $relianoid_service="relianoid.service";#update
 #relianoid no restart service flag
 $relianoid_service_norestart_flag="/etc/noidnorestart";#update
 # directory of the migration scripts
-$mig_dir="$zdir/migrations";#update
+$mig_dir="$lb_dir/migrations";#update
 
 # System files
 #rt tables file
@@ -101,10 +101,10 @@ $snmpd_service="snmpd.service";#update
 $snmptrap_cmd="/usr/bin/snmptrap";#update
 
 # start / stop scripts
-$zlb_start_script="$configdir/zlb-start";
-$zlb_stop_script="$configdir/zlb-stop";
-$zlb_start_tpl="$templatedir/zlb-start.template";
-$zlb_stop_tpl="$templatedir/zlb-stop.template";
+$start_script="$configdir/noid-start";
+$stop_script="$configdir/noid-stop";
+$start_template="$templatedir/noid-start.template";
+$stop_template="$templatedir/noid-stop.template";
 
 ## Relianoid Files
 #appliance version file
@@ -113,34 +113,34 @@ $applianceVersionFile="/etc/relianoid_version";#update
 $globalcfg="$configdir/global.conf";#update
 $globalcfg_tpl="$templatedir/global.conf.template";
 # RELIANOID license
-$licenseFileTxt="$zdir/license.txt";#update
+$licenseFileTxt="$lb_dir/license.txt";#update
 # RELIANOID license
-$licenseFileHtml="$zdir/license.html";#update
+$licenseFileHtml="$lb_dir/license.html";#update
 #File configuration RELIANOID Cluster
 $filecluster="$configdir/cluster.conf";#update
 
 #let's encrypt configuration
-$temp_farm="letsencryptRelianoid";#update
+$temp_farm="LetsEncryptTemporalFarm";#update
 $le_farm="LetsencryptRelianoid";#update
-$le_service="LetsencryptZ";
+$le_service="Letsencrypt";#update
 $le_binary="/usr/local/relianoid/bin/certbot-auto --no-self-upgrade";#update
 $le_certbot_bin="/usr/bin/certbot";
 $le_fullchain_path="/usr/local/relianoid/config/letsencrypt/";#update
-$le_webroot_path="/usr/local/relianoid/app/letsencryptz/webroot/";#update
-$le_webserver_config_file="/usr/local/relianoid/app/letsencryptz/etc/cherokee_localhost.conf";#update
+$le_webroot_path="/usr/local/relianoid/app/letsencrypt/webroot/";#update
+$le_webserver_config_file="/usr/local/relianoid/app/letsencrypt/etc/cherokee_localhost.conf";#update
 $le_config_path="/usr/local/relianoid/config/letsencrypt/";#update
-$le_manual_auth_hook="$zbindir/le_dns_auth_hook";
-$le_manual_cleanup_hook="$zbindir/le_dns_cleanup_hook";
-$le_acme_bin="/usr/local/relianoid/app/letsencryptz/acme/acme.sh";#update
+$le_manual_auth_hook="$bin_dir/le_dns_auth_hook";#update
+$le_manual_cleanup_hook="$bin_dir/le_dns_cleanup_hook";#update
+$le_acme_bin="/usr/local/relianoid/app/letsencrypt/acme/acme.sh";#update
 $le_acme_config_path="$le_config_path/acme";
 $le_acme_cert_path="$le_acme_config_path/live";
 $le_email="";
-$le_cron_file="/etc/cron.d/letsencryptz";
-$le_renewal_bin="$zbindir/letsencryptz-autorenew";
+$le_cron_file="/etc/cron.d/letsencrypt";#update
+$le_renewal_bin="$bin_dir/noid-letsencrypt-autorenew";#update
 $le_renewal_timeout="120";
 
 #File configuration GUI
-$http_server_dir="$zdir/app/cherokee";
+$http_server_dir="$lb_dir/app/cherokee";#update
 $http_server_service="cherokee.service";#update
 $confhttp="$http_server_dir/etc/cherokee/cherokee.conf";#update
 $confhttp_tpl="$templatedir/cherokee.conf.template";#update
@@ -278,9 +278,9 @@ $lsmod="/usr/sbin/lsmod";
 $gdnsdctl="/usr/bin/gdnsdctl";#update
 #Where is gdnsd plugins?
 #Where is l4sd?
-$l4sd="$zbindir/l4sd";#update
+$l4sd="$bin_dir/l4sd";#update
 #Where is factory_reset?
-$factory_reset_bin="$zbindir/factory_reset.sh";
+$factory_reset_bin="$bin_dir/factory_reset.sh";#update
 #Where is id binary?
 $bin_id="/usr/bin/id";
 #Where is wget binary?
@@ -312,7 +312,7 @@ $nft_bin="/usr/sbin/nft";#update
 #Where is nftlb?
 $nftlb_bin="/usr/local/relianoid/app/nftlb/sbin/nftlb";#update
 #Where is the nftlb service?
-$nftlb_svc="$zbindir/nftlbd";
+$nftlb_svc="$bin_dir/nftlbd";#update
 #Where is poweroff
 $aws_poweroff_bin="/sbin/poweroff";#update
 $default_poweroff_bin="/usr/sbin/poweroff";#update
@@ -345,7 +345,7 @@ $dig_bin="/usr/bin/dig";
 
 # Pound
 #where is pound binary?
-$base_pound="$zdir/app/pound";#update
+$base_pound="$lb_dir/app/pound";#update
 #where is pound binary?
 $pound="$base_pound/sbin/pound";#update
 #where is pound ctl?
@@ -403,8 +403,8 @@ $l4xnat_sip_params="";#update
 
 
 #FarmGuardian binary, create advanced check for backend servers
-$farmguardian="$zbindir/farmguardian";#update
-$fgmark="$zbindir/mark.so";#update
+$farmguardian="$bin_dir/farmguardian";#update
+$fgmark="$bin_dir/mark.so";#update
 
 # files to save the status of the system packages
 $apt_msg="$localconfig/apt_message.txt";
@@ -412,20 +412,20 @@ $apt_outdated_list="$localconfig/apt_outdated_list.txt";
 
 #maintenance status under human action, flag
 
-#Where is ZenRRD Directory?. There is a perl script that create rrd database and images from Monitoring section
-$rrdap_dir="$zdir/app/zenrrd";#update
-#Relative path in Web Root directory ($basedir) where is graphs from ZenRRD *no modify
+# noid-collector data directory
+$collector_data_dir="$lb_dir/var/noid-collector";#update
+# Absolute path to the directory where the collector rrd databases are located. DO NOT MODIFY
+$collector_rrd_dir="$lb_dir/var/noid-collector/rrd";#update
+# Absolute path for temporary files to generate graphs from metrics
 $img_dir="/tmp";#update
-#Relative path where is rrd databases from ZenRRD * no modify
-$rrd_dir="rrd";#update
 
 
 #Service to configure RELIANOID replication directory 
-$cluster_notify="$zbindir/enterprise.bin noid-cluster-notify";#update
+$cluster_notify="$bin_dir/enterprise.bin noid-cluster-notify";#update
 #RELIANOID inotify pid file
 $cluster_notify_pid="/var/run/noid-cluster-notify.pid";#update
 #Rsync replication parameters
-$zenrsync="-azvr --delete";#update
+$rsync_args="-azvr --delete";#update
 #ARP unsolicited
 $arp_unsolicited="";
 #ARP announcement, true / false (default)
@@ -462,10 +462,9 @@ $curl_bin="/usr/bin/curl";
 # node_status file path
 
 # noid-cluster-manager command path
-$cluster_manager="$zbindir/noid-cluster-manager";#update
 # ssh-copy-id file path
 # primary-backup conntrackd script
-$primary_backup="$zbindir/primary-backup.sh";#update
+$primary_backup="$bin_dir/primary-backup.sh";#update
 
 # sshd file
 $sshConf="/etc/ssh/sshd_config";
@@ -479,7 +478,7 @@ $key_id="id_rsa";
 $keygen_cmd="ssh-keygen -t rsa -f $key_path/$key_id -N '' -q";#update
 
 #RELIANOID backup
-$backup_cmd="$zbindir/noid-backup";#update
+$backup_cmd="$bin_dir/noid-backup";#update
 
 #Do backup to
 $backupfor="$configdir $confhttp $rttables $sshConf $snmpdconfig_file /etc/hostname $filedns /etc/cron.d/relianoid $applianceVersionFile";#update

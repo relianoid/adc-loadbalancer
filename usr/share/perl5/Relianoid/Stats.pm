@@ -185,8 +185,7 @@ sub getLoadStats () {
         ($last, $last5, $last15) = split(" ", $lastline);
     }
 
-    my @data =
-      ([ 'Last', $last ], [ 'Last 5', $last5 ], [ 'Last 15', $last15 ],);
+    my @data = ([ 'Last', $last ], [ 'Last 5', $last5 ], [ 'Last 15', $last15 ],);
 
     return @data;
 }
@@ -261,7 +260,7 @@ sub getNetworkStats ($format = "") {
     }
     else {
         my $msg = "Could not open the file '$netinfo_filename': $!";
-        zenlog($msg, 'error');
+        log_error($msg);
         die $msg;
     }
 

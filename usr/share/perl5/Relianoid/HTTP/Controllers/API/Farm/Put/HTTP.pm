@@ -113,7 +113,7 @@ sub modify_http_farm ($json_obj, $farmname) {
 
             &eload(
                 module => 'Relianoid::EE::Cluster',
-                func   => 'runZClusterRemoteManager',
+                func   => 'runClusterRemoteManager',
                 args   => [ 'ipds', 'stop', $farmname ],
             );
         }
@@ -316,7 +316,7 @@ sub modify_http_farm ($json_obj, $farmname) {
             ) if ($eload);
 
             unless ($ssloff) {
-                &zenlog("The CPU does not support SSL offloading.", "warning", "system");
+                &log_warn("The CPU does not support SSL offloading.", "system");
             }
 
             if (&setFarmCipherList($farmname, $ciphers_lib) == -1) {
@@ -421,7 +421,7 @@ sub modify_http_farm ($json_obj, $farmname) {
         }
     }
 
-    &zenlog("Success, some parameters have been changed in farm $farmname.", "info", "LSLB");
+    &log_info("Success, some parameters have been changed in farm $farmname.", "LSLB");
 
     # Return the received json object updated.
     require Relianoid::HTTP::Controllers::API::Farm::Output::HTTP;
@@ -443,7 +443,7 @@ sub modify_http_farm ($json_obj, $farmname) {
 
         &eload(
             module => 'Relianoid::EE::Cluster',
-            func   => 'runZClusterRemoteManager',
+            func   => 'runClusterRemoteManager',
             args   => [ 'ipds', 'start', $farmname ],
         );
     }

@@ -11,6 +11,6 @@ systemctl start relianoid.service
 # update cluster status
 echo master > /etc/relianoid-ce-cluster.status
 
-# start zeninotify
-nohup /usr/local/relianoid/app/zeninotify/zeninotify.pl >/dev/null 2>&1 &
+# start noid-cluster-notify
+nohup /usr/local/relianoid/bin/noid-cluster-notify.pl >/dev/null 2>&1 &
 

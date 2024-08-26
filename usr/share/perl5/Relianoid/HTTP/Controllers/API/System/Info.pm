@@ -38,6 +38,7 @@ Relianoid::HTTP::Controllers::API::System::Info
 =cut
 
 # show license
+# GET /system/license/($license_re)
 sub get_license_controller ($format) {
     my $desc = "Get license";
     my $licenseFile;
@@ -58,6 +59,7 @@ sub get_license_controller ($format) {
     return &httpResponse({ code => 200, body => $file, type => 'text/plain' });
 }
 
+# GET /system/supportsave
 sub get_supportsave_controller () {
     my $desc = "Get supportsave file";
 
@@ -113,7 +115,9 @@ sub get_system_info_controller () {
         'hostname'                => &getHostname(),
         'user'                    => &getUser(),
         'supported_zapi_versions' => \@api_versions,
+        'supported_api_versions'  => \@api_versions,
         'last_zapi_version'       => $api_versions[-1],
+        'last_api_version'        => $api_versions[-1],
         'edition'                 => $eload ? "enterprise" : "community",
         'language'                => &getGlobalConfiguration('lang'),
         'platform'                => &getGlobalConfiguration('cloud_provider'),
@@ -125,7 +129,7 @@ sub get_system_info_controller () {
     if ($eload) {
         $params = &eload(
             module => 'Relianoid::EE::System::Ext',
-            func   => 'setSystemExtendZapi',
+            func   => 'getSystemInfoExt',
             args   => [$params],
         );
     }
@@ -134,7 +138,7 @@ sub get_system_info_controller () {
     return &httpResponse({ code => 200, body => $body });
 }
 
-#  POST /system/language
+# POST /system/language
 sub set_language_controller ($json_obj) {
     my $desc   = "Modify the WebGUI language";
     my $params = &getAPIModel("system_language-modify.json");
@@ -157,7 +161,7 @@ sub set_language_controller ($json_obj) {
     });
 }
 
-#  GET /system/language
+# GET /system/language
 sub get_language_controller () {
     my $desc = "List the WebGUI language";
     my $lang = &getGlobalConfiguration('lang') || 'en';

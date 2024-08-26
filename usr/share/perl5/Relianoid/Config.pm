@@ -73,7 +73,7 @@ sub getGlobalConfiguration ($parameter, $force_reload = 0) {
             return;
         }
         else {
-            &zenlog("The global configuration parameter '$parameter' has not been found", 'warn', 'Configuration');
+            &log_warn("The global configuration parameter '$parameter' has not been found", 'Configuration');
 
             return;
         }
@@ -120,7 +120,7 @@ sub parseGlobalConfiguration () {
     }
     else {
         my $msg = "Could not open $global_conf_filepath: $!";
-        &zenlog($msg, "error", "SYSTEM");
+        &log_error($msg, "SYSTEM");
         die $msg;
     }
 
@@ -186,7 +186,7 @@ sub setGlobalConfiguration ($param, $value) {
         close $fh;
     }
     else {
-        zenlog("Could not open file ${global_conf_file}: $!", "error");
+        log_error("Could not open file ${global_conf_file}: $!");
     }
 
     # reload global.conf struct
@@ -227,42 +227,6 @@ sub setConfigStr2Arr ($obj, $param_list) {
 
 =pod
 
-=head1 getTiny
-
-Get a Config::Tiny object from a file name.
-
-Parameters:
-
-    file_path - Path to file.
-
-Returns: 
-
-- On success: L<Config::Tiny> object
-- On error: undef
-
-=cut
-
-sub getTiny ($file_path) {
-    require Relianoid::Debug;
-
-    if (!-f $file_path) {
-        if (open my $fi, '>', $file_path) {
-            close $fi;
-            &zenlog("The file was created $file_path", "debug") if debug();
-        }
-        else {
-            &zenlog("Cannot create file $file_path: $!", "error");
-            return;
-        }
-    }
-
-    require Config::Tiny;
-
-    return Config::Tiny->read($file_path);
-}
-
-=pod
-
 =head1 getTinyObj
 
 Get a Config::Tiny object from a file name.
@@ -287,7 +251,11 @@ Returns:
 =cut
 
 sub getTinyObj ($filepath, $section = undef, $key_ref = undef, $key_action = "error") {
-    my $conf = &getTiny($filepath);
+    if (!-f "$filepath") {
+        return;
+    }
+    require Config::Tiny;
+    my $conf = Config::Tiny->read($filepath);
     if (not defined $conf) {
         return;
     }
@@ -355,22 +323,30 @@ Returns:
 
 sub setTinyObj ($path, $object = undef, $key = undef, $value = undef, $action = undef) {
     unless ($object) {
-        &zenlog("Object not defined trying to save it in file $path");
+        &log_info("Object not defined trying to save it in file $path");
         return;
     }
 
-    &zenlog("Modify $object from $path", "debug2");
+    &log_debug2("Modify $object from $path");
 
     require Relianoid::Lock;
     require Config::Tiny;
+    require Relianoid::File;
 
     my $lock_file = &getLockFile($path);
     my $lock_fd   = &openlock($lock_file, 'w');
 
-    my $fileHandle = &getTiny($path);
+    my $fileHandle;
+    if (!-f "$path") {
+        createFile($path);
+        $fileHandle = Config::Tiny->new;
+    }
+    else {
+        $fileHandle = Config::Tiny->read($path);
+    }
 
     unless ($fileHandle) {
-        &zenlog("Could not open file $path: " . Config::Tiny::errstr());
+        &log_info("Could not open file $path: " . Config::Tiny::errstr());
         return -1;
     }
 
@@ -432,7 +408,7 @@ Returns:
 =cut
 
 sub delTinyObj ($path, $object) {
-    &zenlog("Delete $object from $path", "debug2");
+    &log_debug2("Delete $object from $path");
 
     require Relianoid::Lock;
 
@@ -480,7 +456,7 @@ sub migrateConfigFiles () {
         if (debug()) {
             my $msg = "Running migration ${mig_dir}/${file} got $errno\n";
             print STDERR $msg;
-            zenlog($msg, "debug");
+            log_debug($msg);
         }
     }
 

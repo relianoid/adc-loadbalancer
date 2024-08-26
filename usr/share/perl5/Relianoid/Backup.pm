@@ -201,7 +201,7 @@ sub uploadBackup ($filename, $upload_filehandle) {
     $error = &logAndRun("$tar -tf $filepath $config_path");
 
     if ($error) {
-        &zenlog("$filename looks being a not valid backup", 'error', 'backup');
+        &log_error("$filename looks being a not valid backup", 'backup');
         unlink $filepath;
         return 2;
     }
@@ -234,10 +234,10 @@ sub deleteBackup ($file) {
 
     if (-e $filepath) {
         unlink($filepath);
-        &zenlog("Deleted backup file $file", "info", "SYSTEM");
+        &log_info("Deleted backup file $file", "SYSTEM");
     }
     else {
-        &zenlog("File $file not found", "warning", "SYSTEM");
+        &log_warn("File $file not found", "SYSTEM");
         $error = 1;
     }
 
@@ -270,43 +270,49 @@ sub applyBackup ($backup) {
     # get current version
     my $version = &getGlobalConfiguration('version');
 
-    &zenlog("Stopping Relianoid service", "info", "SYSTEM");
+    &log_info("Stopping Relianoid service", "SYSTEM");
     $error = &logAndRun("$systemctl stop $relianoid_service");
     if ($error) {
-        &zenlog("Problem stopping Relianoid Load Balancer service", "error", "SYSTEM");
+        &log_error("Problem stopping Relianoid Load Balancer service", "SYSTEM");
         return $error;
     }
 
-    &zenlog("Restoring backup $file", "info", "SYSTEM");
+    &log_info("Restoring backup $file", "SYSTEM");
     my $cmd   = "$tar -xvzf $file -C /";
     my $eject = &logAndGet($cmd, 'array');
 
     if (not @{$eject}) {
-        &zenlog("The backup $file could not be extracted", "error", "SYSTEM");
+        &log_error("The backup $file could not be extracted", "SYSTEM");
         return $error;
     }
 
-    &zenlog("unpacked files: @{$eject}", "info", "SYSTEM");
+    &log_info("unpacked files: @{$eject}", "SYSTEM");
+
+    my $bck_version = &getGlobalConfiguration('version');
 
     # it would overwrite version if it was different
     require Relianoid::System;
     &setGlobalConfiguration('version', $version);
 
-    unlink '/relianoid_version';
+    # set migration files process only if 
+    # backup version is less than the current version
+    require version;
+    if (version->parse($bck_version) < version->parse($version)) {
+        my $migration_flag = &getGlobalConfiguration('migration_flag');
+        open(my $fh, '>', $migration_flag) or die "$!";
+        close($fh);
+        &log_info("Migration Flag enabled") if (-e $migration_flag);
+    }
 
-    # set migration files process
-    my $migration_flag = &getGlobalConfiguration('migration_flag');
-    open(my $fh, '>', $migration_flag) or die "$!";
-    close($fh);
-    &zenlog("Migration Flag enabled") if (-e $migration_flag);
+    unlink '/relianoid_version';
 
     $error = &logAndRun("$systemctl start $relianoid_service");
 
     if (!$error) {
-        &zenlog("Backup applied and Relianoid Load Balancer restarted...", "info", "SYSTEM");
+        &log_info("Backup applied and Relianoid Load Balancer restarted...", "SYSTEM");
     }
     else {
-        &zenlog("Problem restarting Relianoid Load Balancer service", "error", "SYSTEM");
+        &log_error("Problem restarting Relianoid Load Balancer service", "SYSTEM");
     }
 
     return $error;
@@ -337,12 +343,12 @@ sub getBackupVersion ($backup) {
     $config_path =~ s/^\///;
 
     my $cmd = "${tar} -xOf ${file} ${config_path}";
-    zenlog("Running: $cmd", "debug");
+    log_debug("Running: $cmd");
 
     my @lines = `$cmd`;
 
     if ($?) {
-        zenlog("errno: $?", "error");
+        log_error("errno: $?");
     }
 
     my $version = "";
@@ -354,7 +360,7 @@ sub getBackupVersion ($backup) {
         }
     }
 
-    &zenlog("Backup: $backup, version: $version", "debug3", "system");
+    &log_debug3("Backup: $backup, version: $version", "system");
 
     return $version;
 }

@@ -39,7 +39,7 @@ use Relianoid::HTTP;
 local $ENV{API_VERSION} = "4.0";
 
 ##### Debugging messages #############################################
-&zenlog("REQUEST: $ENV{REQUEST_METHOD} $ENV{SCRIPT_URL}") if &debug();
+&log_info("REQUEST: $ENV{REQUEST_METHOD} $ENV{SCRIPT_URL}") if &debug();
 
 ##### No authentication required #####################################
 if ($ENV{REQUEST_METHOD} eq 'OPTIONS') {
@@ -62,7 +62,7 @@ require Relianoid::API;
 require Relianoid::HTTP::Auth;
 
 # Verify authentication
-unless ((exists $ENV{HTTP_ZAPI_KEY} && &isApiKeyValid())
+unless ((get_http_api_key() && &isApiKeyValid())
     or (exists $ENV{HTTP_COOKIE} && &validCGISession()))
 {
     &httpResponse({ code => 401, body => { message => 'Authorization required' } });

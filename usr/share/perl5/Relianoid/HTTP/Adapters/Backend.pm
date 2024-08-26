@@ -126,7 +126,7 @@ sub _buildBackendAPIParams ($backend, $api_keys, $translate) {
     if (&debug()) {
         for my $param (@{$api_keys}) {
             if (!grep { $param eq $_ } @bk_keys) {
-                &zenlog("API parameter $param is missing", 'error', 'API');
+                &log_error("API parameter $param is missing", 'API');
             }
         }
     }

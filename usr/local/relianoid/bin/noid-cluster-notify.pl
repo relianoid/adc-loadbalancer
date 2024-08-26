@@ -42,8 +42,8 @@ open STDOUT, '>>', "$zeninolog" or die "Error creating log file";
 print "Running the first replication...\n";
 if ($exclude ne "") {
     my @commands = (
-        "$rsync $zenrsync $exclude $configdir\/ root\@$remote_ip:$configdir\/",
-        "$rsync $zenrsync $rttables root\@$remote_ip:$rttables",
+        "$rsync $rsync_args $exclude $configdir\/ root\@$remote_ip:$configdir\/",
+        "$rsync $rsync_args $rttables root\@$remote_ip:$rttables",
     );
 
     for my $cmd (@commands) {
@@ -91,14 +91,14 @@ while (1) {
 
         if ($name =~ /config/) {
             print "Exclude files: $exclude\n";
-            my $cmd = "$rsync $zenrsync $exclude $configdir\/ root\@$remote_ip:$configdir\/";
+            my $cmd = "$rsync $rsync_args $exclude $configdir\/ root\@$remote_ip:$configdir\/";
             my @eject = `$cmd`;
             print @eject;
             print "ran replication process: $cmd\n";
         }
 
         if ($name =~ /iproute2/) {
-            my $cmd = "$rsync $zenrsync $rttables root\@$remote_ip:$rttables";
+            my $cmd = "$rsync $rsync_args $rttables root\@$remote_ip:$rttables";
             my @eject = `$cmd`;
             print @eject;
             print "ran replication process: $cmd\n";

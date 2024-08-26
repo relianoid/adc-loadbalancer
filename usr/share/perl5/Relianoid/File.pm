@@ -53,7 +53,7 @@ Returns:
 
 sub getFile ($file_name) {
     unless (-f $file_name) {
-        &zenlog("Could not find file '$file_name'");
+        &log_info("Could not find file '$file_name'");
         return;
     }
 
@@ -67,7 +67,7 @@ sub getFile ($file_name) {
         close $fh;
     }
     else {
-        &zenlog("Could not open file '$file_name': $!");
+        &log_info("Could not open file '$file_name': $!");
         return;
     }
 
@@ -97,7 +97,7 @@ Returns:
 
 sub setFile ($path, $content) {
     unless (defined $content) {
-        &zenlog("Trying to save undefined content");
+        &log_info("Trying to save undefined content");
         return 0;
     }
 
@@ -107,7 +107,7 @@ sub setFile ($path, $content) {
         close $fh;
     }
     else {
-        &zenlog("Could not open file '$path': $!");
+        &log_info("Could not open file '$path': $!");
         return 0;
     }
 
@@ -169,7 +169,7 @@ Returns:
 
 sub createFile ($filename) {
     if (-f $filename) {
-        &zenlog("The file $filename already exists", "error", "System");
+        &log_error("The file $filename already exists", "System");
         return 1;
     }
 
@@ -177,7 +177,7 @@ sub createFile ($filename) {
         close $fh;
     }
     else {
-        &zenlog("The file $filename could not be created: $!", "error", "System");
+        &log_error("The file $filename could not be created: $!", "System");
         return 2;
     }
 
@@ -192,7 +192,7 @@ sub createFile ($filename) {
 
 sub deleteFile ($file) {
     if (!-f $file) {
-        &zenlog("The file $file doesn't exist", "error", "System");
+        &log_error("The file $file doesn't exist", "System");
         return 1;
     }
     unlink $file;
@@ -324,7 +324,7 @@ Returns:
 sub readFileAsArray ($file_name) {
     unless (-f $file_name) {
         my $msg = "Could not find file '$file_name'";
-        &zenlog($msg, 'error');
+        &log_error($msg);
         croak($msg);
     }
 
@@ -335,7 +335,7 @@ sub readFileAsArray ($file_name) {
     }
     else {
         my $msg = "Could not open file '$file_name': $!";
-        &zenlog($msg, 'error');
+        &log_error($msg);
         croak($msg);
     }
 
@@ -363,12 +363,12 @@ Returns:
 sub writeFileFromArray ($file_name, $array_ref) {
     unless (defined $file_name and length $file_name) {
         my $msg = "The file name is not a valid string";
-        &zenlog($msg, 'error');
+        &log_error($msg);
         croak($msg);
     }
     unless (ref $array_ref eq 'ARRAY') {
         my $msg = "Did not receive an array reference";
-        &zenlog($msg, 'error');
+        &log_error($msg);
         croak($msg);
     }
 
@@ -378,7 +378,7 @@ sub writeFileFromArray ($file_name, $array_ref) {
     }
     else {
         my $msg = "Could not open file '$file_name': $!";
-        &zenlog($msg, 'error');
+        &log_error($msg);
         croak($msg);
     }
 

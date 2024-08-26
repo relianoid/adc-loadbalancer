@@ -103,7 +103,7 @@ sub add_farm_service_controller ($json_obj, $farmname) {
     }
 
     # no error found, return successful response
-    &zenlog("Success, a new service has been created in farm $farmname with id $json_obj->{id}.", "info", "FARMS");
+    &log_info("Success, a new service has been created in farm $farmname with id $json_obj->{id}.", "FARMS");
 
     my $body = {
         description => $desc,
@@ -405,7 +405,7 @@ sub modify_farm_service_controller ($json_obj, $farmname, $service) {
     require Relianoid::HTTP::Controllers::API::Farm::Get::HTTP;
     $output_params = &get_http_service_struct($farmname, $service);
 
-    &zenlog("Success, some parameters have been changed in service $service in farm $farmname.", "info", "FARMS");
+    &log_info("Success, some parameters have been changed in service $service in farm $farmname.", "FARMS");
 
     my $body = {
         description => "Modify service $service in farm $farmname",
@@ -484,7 +484,7 @@ sub delete_farm_service_controller ($farmname, $service) {
     }
 
     # no errors found, returning successful response
-    &zenlog("Success, the service $service has been deleted in farm $farmname.", "info", "FARMS");
+    &log_info("Success, the service $service has been deleted in farm $farmname.", "FARMS");
 
     my $message = "The service $service has been deleted in farm $farmname.";
     my $body    = {

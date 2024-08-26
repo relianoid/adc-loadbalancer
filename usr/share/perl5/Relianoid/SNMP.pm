@@ -58,17 +58,17 @@ sub setSnmpdStatus ($snmpd_status) {
     my $snmpd_srv   = &getGlobalConfiguration('snmpd_service');
 
     if ($snmpd_status eq 'true') {
-        &zenlog("Starting snmp service", "info", "SYSTEM");
+        &log_info("Starting snmp service", "SYSTEM");
         &logAndRun("$systemctl enable $snmpd_srv");
         $return_code = &logAndRun("$systemctl start $snmpd_srv");
     }
     elsif ($snmpd_status eq 'false') {
-        &zenlog("Stopping snmp service", "info", "SYSTEM");
+        &log_info("Stopping snmp service", "SYSTEM");
         &logAndRun("$systemctl disable $snmpd_srv");
         $return_code = &logAndRun("$systemctl stop $snmpd_srv");
     }
     else {
-        &zenlog("SNMP requested state is invalid", "warning", "SYSTEM");
+        &log_warn("SNMP requested state is invalid", "SYSTEM");
         return -1;
     }
 
@@ -616,7 +616,7 @@ sub _setSnmpdConfig ($snmpd_conf) {
     }
     else {
         close $lock_fh;
-        &zenlog("Could not open ${snmpdconfig_file}: $!", "warning", "SYSTEM");
+        &log_warn("Could not open ${snmpdconfig_file}: $!", "SYSTEM");
         return -1;
     }
 

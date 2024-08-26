@@ -40,7 +40,7 @@ use Relianoid::HTTP::Auth;
 use CGI::Session;
 
 my $LOG_TAG = "";
-$LOG_TAG = "ZAPI"   if (exists $ENV{HTTP_ZAPI_KEY});
+$LOG_TAG = "API"    if get_http_api_key();
 $LOG_TAG = "WEBGUI" if (exists $ENV{HTTP_COOKIE});
 
 =pod
@@ -111,7 +111,7 @@ sub session_login_controller () {
         $body->{key} = eload(module => 'Relianoid::EE::Certificate::Activation', func => 'getNodeKey');
     }
 
-    &zenlog("Login successful for user: $username", "info", $LOG_TAG);
+    &log_info("Login successful for user: $username", $LOG_TAG);
 
     return &httpResponse({
         code    => 200,
@@ -140,7 +140,7 @@ sub session_logout_controller () {
     my $username = $session->param('username');
     my $ip_addr  = $session->param('_SESSION_REMOTE_ADDR');
 
-    &zenlog("Logged out user $username from $ip_addr", "info", $LOG_TAG);
+    &log_info("Logged out user $username from $ip_addr", $LOG_TAG);
 
     $session->delete();
     $session->flush();

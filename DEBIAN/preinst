@@ -62,20 +62,6 @@ if (-f "${old_cluster_status}") {
 }
 ### Zevenet to Relianoid
 
-# Save zlb-stop and zlb-start to a temporal directory
-my $zvn_start = "/usr/local/relianoid/config/zlb-start";
-my $zvn_stop  = "/usr/local/relianoid/config/zlb-stop";
-my $tmp_start = "/tmp/zlb-start";
-my $tmp_stop  = "/tmp/zlb-stop";
-
-if (-f $zvn_start) {
-    move($zvn_start, $tmp_start);
-}
-
-if (-f $zvn_stop) {
-    move($zvn_stop, $tmp_stop);
-}
-
 # Create the new GUI system group
 system "groupadd -f webgui";
 system "usermod -a -G webgui root";

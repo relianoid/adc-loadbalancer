@@ -60,7 +60,7 @@ sub createIf ($if_ref) {
     my $status = 1;
 
     if (defined $$if_ref{vlan} && $$if_ref{vlan} ne '') {
-        &zenlog("Creating vlan $$if_ref{name}", "info", "NETWORK");
+        &log_info("Creating vlan $$if_ref{name}", "NETWORK");
 
         my $ip_cmd = "$ip_bin link add link $$if_ref{dev} name $$if_ref{name} type vlan id $$if_ref{vlan}";
         $status = &logAndRun($ip_cmd);
@@ -106,12 +106,12 @@ sub upIf ($if_ref, $writeconf = 0) {
         my $cat       = &getGlobalConfiguration('cat_bin');
         my $status_if = &logAndGet("$cat /sys/class/net/$$if_ref{name}/operstate");
 
-        &zenlog("Link status for $$if_ref{name} is $status_if", "info", "NETWORK");
+        &log_info("Link status for $$if_ref{name} is $status_if", "NETWORK");
 
         if ($status_if =~ /down/) {
             use Time::HiRes qw(usleep);
 
-            &zenlog("Waiting link up for $$if_ref{name}", "info", "NETWORK");
+            &log_info("Waiting link up for $$if_ref{name}", "NETWORK");
 
             my $max_retry = 50;
             my $retry     = 0;
@@ -120,7 +120,7 @@ sub upIf ($if_ref, $writeconf = 0) {
                 $status_if = &logAndGet("$cat /sys/class/net/$$if_ref{name}/operstate");
 
                 if ($status_if !~ /down/) {
-                    &zenlog("Link up for $$if_ref{name}", "info", "NETWORK");
+                    &log_info("Link up for $$if_ref{name}", "NETWORK");
                     last;
                 }
 
@@ -130,7 +130,7 @@ sub upIf ($if_ref, $writeconf = 0) {
 
             if ($status_if =~ /down/) {
                 $status = 1;
-                &zenlog("No link up for $$if_ref{name}", "warning", "NETWORK");
+                &log_warn("No link up for $$if_ref{name}", "NETWORK");
                 &downIf({ name => $if_ref->{name} }, '');
             }
         }
@@ -184,7 +184,7 @@ sub downIf ($if_ref, $writeconf = 0) {
     my $status;
 
     if (ref $if_ref ne 'HASH') {
-        &zenlog("Wrong argument putting down the interface", "error", "NETWORK");
+        &log_error("Wrong argument putting down the interface", "NETWORK");
         return -1;
     }
 
@@ -271,7 +271,7 @@ See Also:
 
 # stop network interface
 sub stopIf ($if_ref) {
-    &zenlog("Stopping interface $$if_ref{name}", "info", "NETWORK");
+    &log_info("Stopping interface $$if_ref{name}", "NETWORK");
 
     my $status = 0;
     my $if     = $$if_ref{name};
@@ -365,26 +365,28 @@ sub delIf ($if_ref) {
 
     &setRuleIPtoTable($$if_ref{name}, $$if_ref{addr}, "del");
 
-    # If $if is Vini do nothing
-    if (not defined($$if_ref{vini}) or not length $$if_ref{vini}) {
-        my $ip_cmd;
-
+    # Block for any kind of network interface, except virtual interfaces
+    if (not(defined $$if_ref{vini} && length $$if_ref{vini})) {
         # If $if is a gre Tunnel, delete gre
         if ($$if_ref{type} eq 'gre') {
-            $ip_cmd = "$ip_bin tunnel delete $$if_ref{name} mode gre";
+            my $ip_cmd = "$ip_bin tunnel delete $$if_ref{name} mode gre";
             $status = &logAndRun($ip_cmd);
         }
         else {
-            if (not defined $if_ref->{dhcp} or $if_ref->{dhcp} ne 'true') {
+            my $is_dhcp = defined $if_ref->{dhcp} && $if_ref->{dhcp} eq 'true';
+
+            if (! $is_dhcp && $$if_ref{addr}) {
                 # If $if is a Interface, delete that IP
-                $ip_cmd = "$ip_bin addr del $$if_ref{addr}/$$if_ref{mask} dev $$if_ref{name}";
-                $status = &logAndRun($ip_cmd)
-                  if (length $if_ref->{addr} && length $if_ref->{mask});
+                my $ip_cmd = "$ip_bin addr del $$if_ref{addr}/$$if_ref{mask} dev $$if_ref{name}";
+
+                if (length $if_ref->{addr} && length $if_ref->{mask}) {
+                    $status = &logAndRun($ip_cmd);
+                }
             }
 
             # If $if is a Vlan, delete Vlan
             if (defined $$if_ref{vlan} and length $$if_ref{vlan}) {
-                $ip_cmd = "$ip_bin link delete $$if_ref{name} type vlan";
+                my $ip_cmd = "$ip_bin link delete $$if_ref{name} type vlan";
                 $status = &logAndRun($ip_cmd);
             }
         }
@@ -466,7 +468,7 @@ sub delIp ($if, $ip, $netmask) {
         return 0;
     }
 
-    &zenlog("Deleting ip $ip/$netmask from interface $if", "info", "NETWORK");
+    &log_info("Deleting ip $ip/$netmask from interface $if", "NETWORK");
 
     # Vini
     if ($if =~ /\:/) {
@@ -508,7 +510,7 @@ sub isIp ($if_ref) {
     my @ip_output = @{ &logAndGet("$ip_bin -$$if_ref{ip_v} addr show dev $routed_iface", "array") };
 
     if (grep { /$$if_ref{addr}\// } @ip_output) {
-        &zenlog("The IP '$$if_ref{addr}' already is applied in '$routed_iface'", "debug2", "NETWORK");
+        &log_debug2("The IP '$$if_ref{addr}' already is applied in '$routed_iface'", "NETWORK");
         return 1;
     }
 
@@ -550,7 +552,7 @@ sub addIp ($if_ref) {
         return 0;
     }
 
-    &zenlog("Adding IP $$if_ref{addr}/$$if_ref{mask} to interface $$if_ref{name}", "info", "NETWORK");
+    &log_info("Adding IP $$if_ref{addr}/$$if_ref{mask} to interface $$if_ref{name}", "NETWORK");
 
     # Do not add automatically route in the main table
     # The routes are managed by relianoid
@@ -589,7 +591,7 @@ sub addIp ($if_ref) {
         if ($eload) {
             my $cl_status = &eload(
                 module => 'Relianoid::EE::Cluster',
-                func   => 'getZClusterNodeStatus',
+                func   => 'getClusterNodeStatus',
                 args   => [],
             );
 
@@ -598,7 +600,7 @@ sub addIp ($if_ref) {
             {
                 require Relianoid::Net::Util;
 
-                &zenlog("Announcing garp $if_announce and $$if_ref{addr} ");
+                &log_info("Announcing garp $if_announce and $$if_ref{addr} ");
                 &sendGArp($if_announce, $$if_ref{addr});
             }
         }
@@ -674,19 +676,19 @@ sub execIpCmd ($command) {
           ($command =~ /add/)
           ? "Trying to apply the rule but it already was applied"
           : "Trying to remove the rule but it was not found";
-        &zenlog($msg,                "debug",  "net");
-        &zenlog("running: $command", "debug",  "SYSTEM");
-        &zenlog("out: @cmd_output",  "debug2", "SYSTEM");
+        &log_debug($msg,                "net");
+        &log_debug("running: $command", "SYSTEM");
+        &log_debug2("out: @cmd_output", "SYSTEM");
         $return_code = -1;
     }
     elsif ($return_code) {
-        &zenlog("Command failed: $command", "error", "SYSTEM");
-        &zenlog("out: @cmd_output", "error", "error", "SYSTEM");
+        &log_error("Command failed: $command", "SYSTEM");
+        &log_error("out: @cmd_output",         "SYSTEM");
         $return_code = 1;
     }
     else {
-        &zenlog("running: $command", "debug",  "SYSTEM");
-        &zenlog("out: @cmd_output",  "debug2", "SYSTEM");
+        &log_debug("running: $command", "SYSTEM");
+        &log_debug2("out: @cmd_output", "SYSTEM");
         $return_code = 0;
     }
 

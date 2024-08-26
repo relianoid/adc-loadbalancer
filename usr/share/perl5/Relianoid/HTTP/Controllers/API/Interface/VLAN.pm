@@ -247,7 +247,7 @@ sub delete_vlan_controller ($vlan) {
 
         my $zcl_conf = &eload(
             module => 'Relianoid::EE::Cluster',
-            func   => 'getZClusterConfig',
+            func   => 'getClusterConfig',
         );
         if (defined $zcl_conf->{_}{track_interface}) {
             my @track_interface =
@@ -273,7 +273,7 @@ sub delete_vlan_controller ($vlan) {
         # check if some VPN is using this ip
         my $vpns = &eload(
             module => 'Relianoid::EE::VPN::Util',
-            func   => 'getVPNByIp',
+            func   => 'getVpnByIp',
             args   => [ $if_ref->{addr} ],
         );
         if (@{$vpns}) {
@@ -283,7 +283,7 @@ sub delete_vlan_controller ($vlan) {
         }
         $vpns = &eload(
             module => 'Relianoid::EE::VPN::Util',
-            func   => 'getVPNByNet',
+            func   => 'getVpnByNet',
             args   => [ $if_ref->{net} ],
         );
         if (@{$vpns}) {
@@ -310,7 +310,7 @@ sub delete_vlan_controller ($vlan) {
     };
 
     if ($@) {
-        &zenlog("Module failed: $@", "error", "net");
+        &log_error("Module failed: $@", "net");
         my $msg = "The VLAN interface $vlan can't be deleted";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
@@ -440,7 +440,7 @@ sub actions_vlan_controller ($json_obj, $vlan) {
             }
             my $zcl_conf = &eload(
                 module => 'Relianoid::EE::Cluster',
-                func   => 'getZClusterConfig',
+                func   => 'getClusterConfig',
             );
             if (defined $zcl_conf->{_}{track_interface}) {
                 my @track_interface = split(/\s/, $zcl_conf->{_}{track_interface});
@@ -627,7 +627,7 @@ sub modify_vlan_controller ($json_obj, $vlan) {
             @farms        = &getFarmListByVip($if_ref->{addr});
             $vpns_localgw = &eload(
                 module => 'Relianoid::EE::VPN::Util',
-                func   => 'getVPNByIp',
+                func   => 'getVpnByIp',
                 args   => [ $if_ref->{addr} ],
             ) if $eload;
         }
@@ -643,7 +643,7 @@ sub modify_vlan_controller ($json_obj, $vlan) {
                   NetAddr::IP->new($if_ref->{addr}, $if_ref->{mask})->cidr();
                 $vpns_localnet = &eload(
                     module => 'Relianoid::EE::VPN::Util',
-                    func   => 'getVPNByNet',
+                    func   => 'getVpnByNet',
                     args   => [$net],
                 ) if $eload;
             }

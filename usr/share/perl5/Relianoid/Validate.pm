@@ -106,7 +106,7 @@ my %format_re = (
     # log
     'log' => qr/[\.\-\w]+/,
 
-    #zapi
+    # api
     'zapi_key'      => qr/[a-zA-Z0-9]+/,
     'zapi_status'   => $enable,
     'zapi_password' => qr/.+/,
@@ -312,22 +312,16 @@ my %format_re = (
 
 );
 
-sub getAPIModel ($file) {
-    require Relianoid::API;
-    my $api_version = &getApiVersion();
-    my $dir         = &getGlobalConfiguration("api_model_path") . "/v$api_version/json";
-
+sub getAPIModel ($file_name) {
     require JSON;
-    my $content;
-    {
-        open(my $fh, '<', "$dir/$file")
-          or die "The file '$dir/$file' was not found";
-        local $/ = undef;
-        $content = <$fh>;
-        close $fh;
-    }
+    require Relianoid::API;
+    require Relianoid::File;
 
-    if ($content ne "") {
+    my $api_version = &getApiVersion();
+    my $dir_name    = &getGlobalConfiguration("api_model_path") . "/v${api_version}/json";
+    my $content     = getFile("${dir_name}/${file_name}");
+
+    if ($content) {
         return JSON::decode_json($content)->{params};
     }
     else {
@@ -367,7 +361,7 @@ Returns:
 
 See also:
 
-    Mainly but not exclusively used in zapi v3.
+    Mainly but not exclusively used in API v3.
 
 =cut
 
@@ -393,7 +387,7 @@ sub getValidFormat ($format_name, $value = undef, %new_format_re) {
     }
     else {
         my $message = "getValidFormat: format $format_name not found.";
-        &zenlog($message);
+        &log_info($message);
         die($message);
     }
 }
@@ -423,7 +417,7 @@ sub getValidPort ($port, $profile = undef) {
         return &getValidFormat('multiport', $port);
     }
     elsif ($profile =~ /^(?:DATALINK)$/i) {
-        return ! defined $port;
+        return !defined $port;
     }
     elsif (!defined $profile) {
         return &getValidFormat('port', $port);
@@ -468,7 +462,7 @@ Parameters:
                                         # ",10" indicates that the value has to be less than 10 but without low limit
                                         # "10," indicates that the value has to be more than 10 but without high limit
                                         # The values of the interval has to be integer numbers
-            "exceptions"	: [ "zapi", "webgui", "root" ],	# The parameter can't have got any of the listed values
+            "exceptions"	: [ "api", "webgui", "root" ],	# The parameter can't have got any of the listed values
             "values" : ["priority", "weight"],		# list of possible values for a parameter
             "length" : 32,				# it is the maximum string size for the value
             "regex"	: "/\w+,\d+/",		# regex format
@@ -574,7 +568,7 @@ sub checkApiParams ($json_obj, $param_obj, $description) {
         if ((exists $param_obj->{$param}{values})) {
             if ($r eq 'ARRAY') {
                 for my $value (@{ $json_obj->{$param} }) {
-                    if (!grep { /^$value$/ } @{ $param_obj->{$param}{values} }) {
+                    if (!grep { $value eq $_ } @{ $param_obj->{$param}{values} }) {
                         return
                           "The parameter '$param' expects some of the following values: '"
                           . join("', '", @{ $param_obj->{$param}{values} }) . "'";
@@ -808,7 +802,7 @@ This function returns a 400 HTTP error code
 Parameters:
 
     Model - It is the struct with all allowed parameters and its possible values and options
-    Description - Descriptive message about the zapi call
+    Description - Descriptive message about the API call
 
 Returns:
 

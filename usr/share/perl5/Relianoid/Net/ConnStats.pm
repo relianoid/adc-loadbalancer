@@ -81,8 +81,8 @@ sub getConntrack ($orig_src, $orig_dst, $reply_src, $reply_dst, $protocol) {
     my @output = @{ &logAndGet($conntrack_cmd, "array") };
 
     # my $conns_count = scalar @output;
-    # &zenlog( "getConntrack command: $conntrack_cmd", "info", "MONITOR" );
-    # &zenlog( "getConntrack returned $conns_count connections.", "info", "MONITOR" );
+    # &log_info( "getConntrack command: $conntrack_cmd", "MONITOR" );
+    # &log_info( "getConntrack returned $conns_count connections.", "MONITOR" );
 
     return \@output;
 }
@@ -125,8 +125,8 @@ sub getNetstatFilter ($proto, $state, $ninfo, $fpid, $netstat) {
     my $output = \@output;
 
     # my $conns_count = scalar @output;
-    # &zenlog( "getNetstatFilter filter: '$filter'", "info", "MONITOR" );
-    # &zenlog( "getNetstatFilter returned $conns_count connections.", "info", "MONITOR" );
+    # &log_info( "getNetstatFilter filter: '$filter'", "MONITOR" );
+    # &log_info( "getNetstatFilter returned $conns_count connections.", "MONITOR" );
 
     return $output;
 }
@@ -325,14 +325,14 @@ sub getConntrackCount ($conntrack_params) {
 
     require Relianoid::Debug;
 
-    &zenlog("Conntrack count: $conntrack_cmd", "debug", "MONITOR") if &debug();
+    &log_debug("Conntrack count: $conntrack_cmd", "MONITOR") if &debug();
 
     # Do not use the function 'logAndGet', this function manages the output error and code
     my $summary = `$conntrack_cmd`;
     my $error   = $?;
     my ($count) = $summary =~ m/: ([0-9]+) flow entries have been shown./;
 
-    &zenlog("Conntrack count: An error happened running the command: $conntrack_cmd", "error", "MONITOR")
+    &log_error("Conntrack count: An error happened running the command: $conntrack_cmd", "MONITOR")
       if $error;
 
     return $count + 0;

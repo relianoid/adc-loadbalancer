@@ -1,3 +1,0 @@
-#make your own script in your favorite language, it will be called
-#at the end of the procedure /etc/init.d/relianoid stop
-#and replicated to the other node if RELIANOID cluster is running.

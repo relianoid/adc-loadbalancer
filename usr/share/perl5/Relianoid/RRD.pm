@@ -32,10 +32,6 @@ use Relianoid::Config;
 
 my $eload = eval { require Relianoid::ELoad };
 
-my $basedir   = &getGlobalConfiguration('basedir');
-my $rrdap_dir = &getGlobalConfiguration('rrdap_dir');
-my $rrd_dir   = &getGlobalConfiguration('rrd_dir');
-
 my $width     = "600";
 my $height    = "150";
 my $imagetype = "PNG";
@@ -61,7 +57,7 @@ Parameters:
 
 Returns:
 
-    scalar - It is the time in RRD format
+    scalar - Date in RRD format
 
 =cut
 
@@ -94,9 +90,10 @@ Parameters:
 
     graph file - it is the graph file created of reading the RRD
 
-Returns:
+Returns: integer - Error code.
 
-    Integer - Error code. 1 on failure or 0 on success
+- 0: success
+- 1: error 
 
 =cut
 
@@ -105,7 +102,7 @@ sub logRRDError ($graph) {
 
     if ($error || !-s $graph) {
         $error //= 'The graph was not generated';
-        &zenlog("$0: unable to generate $graph: $error", "error");
+        &log_error("$0: unable to generate $graph: $error");
         return 1;
     }
 
@@ -121,12 +118,12 @@ It returns the times with the RELIANOID API format (11-09-2020-14:05)
 
 Parameters:
 
-    rrd file - It is the rrd bbdd file
+    start - string - Date of the begining of the chart
+    last  - string - Date of the end of the chart
 
-Returns:
+Returns: array
 
-    Array - It returns an array with 2 values: the first and last times samples
-        of the graph
+Pair of strings with the dates defining the range of a chart, both included.
 
 =cut
 
@@ -157,13 +154,10 @@ Parameters:
 
     file - Path to image file.
 
-Returns:
+Returns: string
 
-    scalar - Base64 encoded image on success, or an empty string on failure.
-
-See Also:
-
-    <printGraph>
+- On success: Base64 encoded image.
+- On error: Empty string.
 
 =cut
 
@@ -193,28 +187,23 @@ Parameters:
     name - Name of the graph resource, without sufixes.
     type - 'farm', 'iface', 'vpn'.
 
-Returns:
-
-    none - .
-
-See Also:
-
-    <runFarmDelete>, <setBondMaster>, <delIf>
+Returns: Nothing
 
 =cut
 
 sub delGraph ($name, $type) {
-    my $rrdap_dir = &getGlobalConfiguration('rrdap_dir');
-    my $rrd_dir   = &getGlobalConfiguration('rrd_dir');
+    my $collector_rrd_dir = &getGlobalConfiguration('collector_rrd_dir');
 
     if ($type =~ /iface/) {
-        &zenlog("Delete graph file: $rrdap_dir/$rrd_dir/${name}iface.rrd", "info", "MONITOR");
-        unlink("$rrdap_dir/$rrd_dir/${name}iface.rrd");
+        my $filename = "${collector_rrd_dir}/${name}iface.rrd";
+        &log_info("Delete graph file: ${filename}", "MONITOR");
+        unlink($filename);
     }
 
     if ($type =~ /farm/) {
-        &zenlog("Delete graph file: $rrdap_dir/$rrd_dir/$name-farm.rrd", "info", "MONITOR");
-        unlink glob("$rrdap_dir/$rrd_dir/$name-farm.rrd");
+        my $filename = "${collector_rrd_dir}/${name}-farm.rrd";
+        &log_info("Delete graph file: ${filename}", "MONITOR");
+        unlink glob($filename);
 
         &eload(
             module => 'Relianoid::EE::IPDS::Stats',
@@ -224,8 +213,9 @@ sub delGraph ($name, $type) {
     }
 
     if ($type =~ /vpn/) {
-        &zenlog("Delete graph file: $rrdap_dir/$rrd_dir/$name-vpn.rrd", "info", "MONITOR");
-        unlink glob("$rrdap_dir/$rrd_dir/$name-vpn.rrd");
+        my $filename = "${collector_rrd_dir}/${name}-vpn.rrd";
+        &log_info("Delete graph file: ${filename}", "MONITOR");
+        unlink glob($filename);
     }
 
     return;
@@ -245,17 +235,13 @@ Parameters:
         * time which the graph starts. Format: MM-DD-YYYY-HH:mm (ie: 11-09-2020-14:05)
     end - time which the graph stops. The default value is "now", the current time.
 
-Returns:
+Returns: hash reference
 
-    hash ref - The output hash contains the following keys:
+The output hash contains the following keys:
 
-        img => Base64 encoded image, or an empty string on failure,
-        start => firt time of the graph
-        last => last time of the graph
-
-See Also:
-
-    <genCpuGraph>, <genDiskGraph>, <genLoadGraph>, <genMemGraph>, <genMemSwGraph>, <genNetGraph>, <genFarmGraph>, <genLoadGraph>
+    img   - Base64 encoded image, or an empty string on failure,
+    start - firt time of the graph
+    last  - last time of the graph
 
 =cut
 
@@ -297,7 +283,7 @@ sub printGraph ($type, $time, $end = "now") {
         &genVPNGraph($type, $graph_fn, $time);
     }
     else {
-        &zenlog("The requested graph '$type' is unknown", "error");
+        &log_error("The requested graph '$type' is unknown");
         return {};
     }
 
@@ -322,47 +308,39 @@ Generate CPU usage graph image file for a period of time.
 
 Parameters:
 
-    type - Database name without extension.
+    type  - Database name without extension.
     graph - Path to file to be generated.
     start - time which the graph starts. Format: MM-DD-YYYY-HH:mm (ie: 11-09-2020-14:05)
-    end - time which the graph stops
+    end   - time which the graph stops
 
-
-Returns:
-
-    none
-
-See Also:
-
-    <printGraph>
-
-    <genDiskGraph>, <genLoadGraph>, <genMemGraph>, <genMemSwGraph>, <genNetGraph>, <genFarmGraph>, <genLoadGraph>
+Returns: Nothing
 
 =cut
 
 sub genCpuGraph ($type, $graph, $start, $end) {
-    my $db_cpu = "$rrdap_dir/$rrd_dir/$type.rrd";
+    my $collector_rrd_dir = &getGlobalConfiguration('collector_rrd_dir');
+    my $cpu_db            = "${collector_rrd_dir}/${type}.rrd";
 
-    if (-e $db_cpu) {
+    if (-e $cpu_db) {
         RRDs::graph(
-            "$graph",
-            "--imgformat=$imagetype",
-            "--start=$start",
-            "--end=$end",
-            "--width=$width",
-            "--height=$height",
+            $graph,
+            "--imgformat=${imagetype}",
+            "--start=${start}",
+            "--end=${end}",
+            "--width=${width}",
+            "--height=${height}",
             "--alt-autoscale-max",
             "--lower-limit=0",
             "--title=CPU",
             "--vertical-label=%",
-            "DEF:user=$db_cpu:user:AVERAGE",
-            "DEF:nice=$db_cpu:nice:AVERAGE",
-            "DEF:sys=$db_cpu:sys:AVERAGE",
-            "DEF:iowait=$db_cpu:iowait:AVERAGE",
-            "DEF:irq=$db_cpu:irq:AVERAGE",
-            "DEF:softirq=$db_cpu:softirq:AVERAGE",
-            "DEF:idle=$db_cpu:idle:AVERAGE",
-            "DEF:tused=$db_cpu:tused:AVERAGE",
+            "DEF:user=${cpu_db}:user:AVERAGE",
+            "DEF:nice=${cpu_db}:nice:AVERAGE",
+            "DEF:sys=${cpu_db}:sys:AVERAGE",
+            "DEF:iowait=${cpu_db}:iowait:AVERAGE",
+            "DEF:irq=${cpu_db}:irq:AVERAGE",
+            "DEF:softirq=${cpu_db}:softirq:AVERAGE",
+            "DEF:idle=${cpu_db}:idle:AVERAGE",
+            "DEF:tused=${cpu_db}:tused:AVERAGE",
             "AREA:sys#DC374A:System\\t",
             "GPRINT:sys:LAST:Last\\:%8.2lf %%",
             "GPRINT:sys:MIN:Min\\:%8.2lf %%",
@@ -417,51 +395,58 @@ Generate disk partition usage graph image file for a period of time.
 
 Parameters:
 
-    type - Database name without extension.
+    type  - Database name without extension.
     graph - Path to file to be generated.
     start - time which the graph starts. Format: MM-DD-YYYY-HH:mm (ie: 11-09-2020-14:05)
-    end - time which the graph stops
+    end   - time which the graph stops
 
-Returns:
-
-    none
-
-See Also:
-
-    <printGraph>
-
-    <genCpuGraph>, <genLoadGraph>, <genMemGraph>, <genMemSwGraph>, <genNetGraph>, <genFarmGraph>, <genLoadGraph>
+Returns: Nothing
 
 =cut
 
 sub genDiskGraph ($type, $graph, $start, $end) {
-    my $db_hd = "$rrdap_dir/$rrd_dir/$type.rrd";
+    my $collector_rrd_dir = &getGlobalConfiguration('collector_rrd_dir');
+    my $hd_db             = "${collector_rrd_dir}/${type}.rrd";
 
-    my $dev = $type;
-    $dev =~ s/hd$//;
-    $dev =~ s/dev-//;
-    $dev =~ s/-/\// if $dev !~ /dm-/;
+    my $device = $type;
+    $device =~ s/hd$//;
+    $device =~ s/dev-//;
+    $device =~ s/-/\// if $device !~ /dm-/;
 
-    my $mount = &getDiskMountPoint($dev);
+    my $mount = &getDiskMountPoint($device);
 
-    if (-e $db_hd) {
+    if (-e $hd_db) {
         RRDs::graph(
-            "$graph",                               "--start=$start",
-            "--end=$end",                           "--title=PARTITION $mount",
-            "--vertical-label=SPACE",               "-h",
-            "$height",                              "-w",
-            "$width",                               "--lazy",
-            "-l 0",                                 "-a",
-            "$imagetype",                           "DEF:tot=$db_hd:tot:AVERAGE",
-            "DEF:used=$db_hd:used:AVERAGE",         "DEF:free=$db_hd:free:AVERAGE",
-            "CDEF:total=used,free,+",               "AREA:used#595959:Used\\t",
-            "GPRINT:used:LAST:Last\\:%8.2lf %s",    "GPRINT:used:MIN:Min\\:%8.2lf %s",
-            "GPRINT:used:AVERAGE:Avg\\:%8.2lf %s",  "GPRINT:used:MAX:Max\\:%8.2lf %s\\n",
-            "STACK:free#46b971:Free\\t",            "GPRINT:free:LAST:Last\\:%8.2lf %s",
-            "GPRINT:free:MIN:Min\\:%8.2lf %s",      "GPRINT:free:AVERAGE:Avg\\:%8.2lf %s",
-            "GPRINT:free:MAX:Max\\:%8.2lf %s\\n",   "LINE1:total#000000:Total\\t",
-            "GPRINT:total:LAST:Last\\:%8.2lf %s",   "GPRINT:total:MIN:Min\\:%8.2lf %s",
-            "GPRINT:total:AVERAGE:Avg\\:%8.2lf %s", "GPRINT:total:MAX:Max\\:%8.2lf %s\\n"
+            $graph,
+            "--start=${start}",                        #
+            "--end=${end}",                            #
+            "--title=PARTITION ${mount}",              #
+            "--vertical-label=SPACE",                  #
+            "--width=${width}",                        #
+            "--height=${height}",                      #
+            "--lazy",                                  #
+            "-l 0",                                    #
+            "-a",                                      #
+            "$imagetype",                              #
+            "DEF:tot=${hd_db}:tot:AVERAGE",            #
+            "DEF:used=${hd_db}:used:AVERAGE",          #
+            "DEF:free=${hd_db}:free:AVERAGE",          #
+            "CDEF:total=used,free,+",                  #
+            "AREA:used#595959:Used\\t",                #
+            "GPRINT:used:LAST:Last\\:%8.2lf %s",       #
+            "GPRINT:used:MIN:Min\\:%8.2lf %s",         #
+            "GPRINT:used:AVERAGE:Avg\\:%8.2lf %s",     #
+            "GPRINT:used:MAX:Max\\:%8.2lf %s\\n",      #
+            "STACK:free#46b971:Free\\t",               #
+            "GPRINT:free:LAST:Last\\:%8.2lf %s",       #
+            "GPRINT:free:MIN:Min\\:%8.2lf %s",         #
+            "GPRINT:free:AVERAGE:Avg\\:%8.2lf %s",     #
+            "GPRINT:free:MAX:Max\\:%8.2lf %s\\n",      #
+            "LINE1:total#000000:Total\\t",             #
+            "GPRINT:total:LAST:Last\\:%8.2lf %s",      #
+            "GPRINT:total:MIN:Min\\:%8.2lf %s",        #
+            "GPRINT:total:AVERAGE:Avg\\:%8.2lf %s",    #
+            "GPRINT:total:MAX:Max\\:%8.2lf %s\\n"      #
         );
     }
 
@@ -476,42 +461,49 @@ Generate system load graph image file for a period of time.
 
 Parameters:
 
-    type - Database name without extension.
+    type  - Database name without extension.
     graph - Path to file to be generated.
     start - Period of time shown in the graph.
-    end - End time period
+    end   - End time period
 
-Returns:
-
-    none
-
-See Also:
-
-    <printGraph>
-
-    <genCpuGraph>, <genDiskGraph>, <genMemGraph>, <genMemSwGraph>, <genNetGraph>, <genFarmGraph>, <genLoadGraph>
+Returns: Nothing
 
 =cut
 
 sub genLoadGraph ($type, $graph, $start, $end) {
-    my $db_load = "$rrdap_dir/$rrd_dir/$type.rrd";
+    my $collector_rrd_dir = &getGlobalConfiguration('collector_rrd_dir');
+    my $load_db           = "${collector_rrd_dir}/${type}.rrd";
 
-    if (-e $db_load) {
+    if (-e $load_db) {
         RRDs::graph(
-            "$graph",                               "--imgformat=$imagetype",
-            "--start=$start",                       "--end=$end",
-            "--width=$width",                       "--height=$height",
-            "--alt-autoscale-max",                  "--lower-limit=0",
-            "--title=LOAD AVERAGE",                 "--vertical-label=LOAD",
-            "DEF:load=$db_load:load:AVERAGE",       "DEF:load5=$db_load:load5:AVERAGE",
-            "DEF:load15=$db_load:load15:AVERAGE",   "AREA:load#729e00:last minute\\t\\t",
-            "GPRINT:load:LAST:Last\\:%3.2lf",       "GPRINT:load:MIN:Min\\:%3.2lf",
-            "GPRINT:load:AVERAGE:Avg\\:%3.2lf",     "GPRINT:load:MAX:Max\\:%3.2lf\\n",
-            "STACK:load5#46b971:last 5 minutes\\t", "GPRINT:load5:LAST:Last\\:%3.2lf",
-            "GPRINT:load5:MIN:Min\\:%3.2lf",        "GPRINT:load5:AVERAGE:Avg\\:%3.2lf",
-            "GPRINT:load5:MAX:Max\\:%3.2lf\\n",     "STACK:load15#595959:last 15 minutes\\t",
-            "GPRINT:load15:LAST:Last\\:%3.2lf",     "GPRINT:load15:MIN:Min\\:%3.2lf",
-            "GPRINT:load15:AVERAGE:Avg\\:%3.2lf",   "GPRINT:load15:MAX:Max\\:%3.2lf\\n"
+            $graph,                                      #
+            "--imgformat=${imagetype}",                  #
+            "--start=${start}",                          #
+            "--end=${end}",                              #
+            "--width=${width}",                          #
+            "--height=${height}",                        #
+            "--alt-autoscale-max",                       #
+            "--lower-limit=0",                           #
+            "--title=LOAD AVERAGE",                      #
+            "--vertical-label=LOAD",                     #
+            "DEF:load=${load_db}:load:AVERAGE",          #
+            "DEF:load5=${load_db}:load5:AVERAGE",        #
+            "DEF:load15=${load_db}:load15:AVERAGE",      #
+            "AREA:load#729e00:last minute\\t\\t",        #
+            "GPRINT:load:LAST:Last\\:%3.2lf",            #
+            "GPRINT:load:MIN:Min\\:%3.2lf",              #
+            "GPRINT:load:AVERAGE:Avg\\:%3.2lf",          #
+            "GPRINT:load:MAX:Max\\:%3.2lf\\n",           #
+            "STACK:load5#46b971:last 5 minutes\\t",      #
+            "GPRINT:load5:LAST:Last\\:%3.2lf",           #
+            "GPRINT:load5:MIN:Min\\:%3.2lf",             #
+            "GPRINT:load5:AVERAGE:Avg\\:%3.2lf",         #
+            "GPRINT:load5:MAX:Max\\:%3.2lf\\n",          #
+            "STACK:load15#595959:last 15 minutes\\t",    #
+            "GPRINT:load15:LAST:Last\\:%3.2lf",          #
+            "GPRINT:load15:MIN:Min\\:%3.2lf",            #
+            "GPRINT:load15:AVERAGE:Avg\\:%3.2lf",        #
+            "GPRINT:load15:MAX:Max\\:%3.2lf\\n"          #
         );
     }
 
@@ -531,41 +523,51 @@ Parameters:
     start - time which the graph starts. Format: MM-DD-YYYY-HH:mm (ie: 11-09-2020-14:05)
     end - time which the graph stops
 
-Returns:
-
-    none
-
-See Also:
-
-    <printGraph>
-
-    <genCpuGraph>, <genDiskGraph>, <genLoadGraph>, <genMemSwGraph>, <genNetGraph>, <genFarmGraph>, <genLoadGraph>
+Returns: Nothing
 
 =cut
 
 sub genMemGraph ($type, $graph, $start, $end) {
-    my $db_mem = "$rrdap_dir/$rrd_dir/$type.rrd";
+    my $collector_rrd_dir = &getGlobalConfiguration('collector_rrd_dir');
+    my $ram_db            = "${collector_rrd_dir}/${type}.rrd";
 
-    if (-e $db_mem) {
+    if (-e $ram_db) {
         RRDs::graph(
-            "$graph",                              "--imgformat=$imagetype",
-            "--start=$start",                      "--end=$end",
-            "--width=$width",                      "--height=$height",
-            "--alt-autoscale-max",                 "--lower-limit=0",
-            "--title=RAM",                         "--vertical-label=MEMORY",
-            "--base=1024",                         "DEF:memt=$db_mem:memt:AVERAGE",
-            "DEF:memu=$db_mem:memu:AVERAGE",       "DEF:memf=$db_mem:memf:AVERAGE",
-            "DEF:memc=$db_mem:memc:AVERAGE",       "AREA:memu#595959:Used\\t\\t",
-            "GPRINT:memu:LAST:Last\\:%8.2lf %s",   "GPRINT:memu:MIN:Min\\:%8.2lf %s",
-            "GPRINT:memu:AVERAGE:Avg\\:%8.2lf %s", "GPRINT:memu:MAX:Max\\:%8.2lf %s\\n",
-            "STACK:memf#46b971:Free\\t\\t",        "GPRINT:memf:LAST:Last\\:%8.2lf %s",
-            "GPRINT:memf:MIN:Min\\:%8.2lf %s",     "GPRINT:memf:AVERAGE:Avg\\:%8.2lf %s",
-            "GPRINT:memf:MAX:Max\\:%8.2lf %s\\n",  "LINE2:memc#46F2A2:Cache&Buffer\\t",
-            "GPRINT:memc:LAST:Last\\:%8.2lf %s",   "GPRINT:memc:MIN:Min\\:%8.2lf %s",
-            "GPRINT:memc:AVERAGE:Avg\\:%8.2lf %s", "GPRINT:memc:MAX:Max\\:%8.2lf %s\\n",
-            "LINE1:memt#000000:Total\\t\\t",       "GPRINT:memt:LAST:Last\\:%8.2lf %s",
-            "GPRINT:memt:MIN:Min\\:%8.2lf %s",     "GPRINT:memt:AVERAGE:Avg\\:%8.2lf %s",
-            "GPRINT:memt:MAX:Max\\:%8.2lf %s\\n"
+            $graph,                                   #
+            "--imgformat=${imagetype}",               #
+            "--start=${start}",                       #
+            "--end=${end}",                           #
+            "--width=${width}",                       #
+            "--height=${height}",                     #
+            "--alt-autoscale-max",                    #
+            "--lower-limit=0",                        #
+            "--title=RAM",                            #
+            "--vertical-label=MEMORY",                #
+            "--base=1024",                            #
+            "DEF:memt=${ram_db}:memt:AVERAGE",        #
+            "DEF:memu=${ram_db}:memu:AVERAGE",        #
+            "DEF:memf=${ram_db}:memf:AVERAGE",        #
+            "DEF:memc=${ram_db}:memc:AVERAGE",        #
+            "AREA:memu#595959:Used\\t\\t",            #
+            "GPRINT:memu:LAST:Last\\:%8.2lf %s",      #
+            "GPRINT:memu:MIN:Min\\:%8.2lf %s",        #
+            "GPRINT:memu:AVERAGE:Avg\\:%8.2lf %s",    #
+            "GPRINT:memu:MAX:Max\\:%8.2lf %s\\n",     #
+            "STACK:memf#46b971:Free\\t\\t",           #
+            "GPRINT:memf:LAST:Last\\:%8.2lf %s",      #
+            "GPRINT:memf:MIN:Min\\:%8.2lf %s",        #
+            "GPRINT:memf:AVERAGE:Avg\\:%8.2lf %s",    #
+            "GPRINT:memf:MAX:Max\\:%8.2lf %s\\n",     #
+            "LINE2:memc#46F2A2:Cache&Buffer\\t",      #
+            "GPRINT:memc:LAST:Last\\:%8.2lf %s",      #
+            "GPRINT:memc:MIN:Min\\:%8.2lf %s",        #
+            "GPRINT:memc:AVERAGE:Avg\\:%8.2lf %s",    #
+            "GPRINT:memc:MAX:Max\\:%8.2lf %s\\n",     #
+            "LINE1:memt#000000:Total\\t\\t",          #
+            "GPRINT:memt:LAST:Last\\:%8.2lf %s",      #
+            "GPRINT:memt:MIN:Min\\:%8.2lf %s",        #
+            "GPRINT:memt:AVERAGE:Avg\\:%8.2lf %s",    #
+            "GPRINT:memt:MAX:Max\\:%8.2lf %s\\n"      #
         );
     }
 
@@ -580,46 +582,56 @@ Generate swap memory usage graph image file for a period of time.
 
 Parameters:
 
-    type - Database name without extension.
+    type  - Database name without extension.
     graph - Path to file to be generated.
     start - time which the graph starts. Format: MM-DD-YYYY-HH:mm (ie: 11-09-2020-14:05)
-    end - time which the graph stops
+    end   - time which the graph stops
 
-Returns:
-
-    none
-
-See Also:
-
-    <printGraph>
-
-    <genCpuGraph>, <genDiskGraph>, <genLoadGraph>, <genMemGraph>, <genNetGraph>, <genFarmGraph>, <genLoadGraph>
+Returns: Nothing
 
 =cut
 
 sub genMemSwGraph ($type, $graph, $start, $end) {
-    my $db_memsw = "$rrdap_dir/$rrd_dir/$type.rrd";
+    my $collector_rrd_dir = &getGlobalConfiguration('collector_rrd_dir');
+    my $swap_db           = "${collector_rrd_dir}/${type}.rrd";
 
-    if (-e $db_memsw) {
+    if (-e $swap_db) {
         RRDs::graph(
-            "$graph",                             "--imgformat=$imagetype",
-            "--start=$start",                     "--end=$end",
-            "--width=$width",                     "--height=$height",
-            "--alt-autoscale-max",                "--lower-limit=0",
-            "--title=SWAP",                       "--vertical-label=MEMORY",
-            "--base=1024",                        "DEF:swt=$db_memsw:swt:AVERAGE",
-            "DEF:swu=$db_memsw:swu:AVERAGE",      "DEF:swf=$db_memsw:swf:AVERAGE",
-            "DEF:swc=$db_memsw:swc:AVERAGE",      "AREA:swu#595959:Used\\t\\t",
-            "GPRINT:swu:LAST:Last\\:%8.2lf %s",   "GPRINT:swu:MIN:Min\\:%8.2lf %s",
-            "GPRINT:swu:AVERAGE:Avg\\:%8.2lf %s", "GPRINT:swu:MAX:Max\\:%8.2lf %s\\n",
-            "STACK:swf#46b971:Free\\t\\t",        "GPRINT:swf:LAST:Last\\:%8.2lf %s",
-            "GPRINT:swf:MIN:Min\\:%8.2lf %s",     "GPRINT:swf:AVERAGE:Avg\\:%8.2lf %s",
-            "GPRINT:swf:MAX:Max\\:%8.2lf %s\\n",  "LINE2:swc#46F2A2:Cached\\t",
-            "GPRINT:swc:LAST:Last\\:%8.2lf %s",   "GPRINT:swc:MIN:Min\\:%8.2lf %s",
-            "GPRINT:swc:AVERAGE:Avg\\:%8.2lf %s", "GPRINT:swc:MAX:Max\\:%8.2lf %s\\n",
-            "LINE1:swt#000000:Total\\t\\t",       "GPRINT:swt:LAST:Last\\:%8.2lf %s",
-            "GPRINT:swt:MIN:Min\\:%8.2lf %s",     "GPRINT:swt:AVERAGE:Avg\\:%8.2lf %s",
-            "GPRINT:swt:MAX:Max\\:%8.2lf %s\\n",
+            $graph,                                  #
+            "--imgformat=${imagetype}",              #
+            "--start=${start}",                      #
+            "--end=${end}",                          #
+            "--width=${width}",                      #
+            "--height=${height}",                    #
+            "--alt-autoscale-max",                   #
+            "--lower-limit=0",                       #
+            "--title=SWAP",                          #
+            "--vertical-label=MEMORY",               #
+            "--base=1024",                           #
+            "DEF:swt=${swap_db}:swt:AVERAGE",        #
+            "DEF:swu=${swap_db}:swu:AVERAGE",        #
+            "DEF:swf=${swap_db}:swf:AVERAGE",        #
+            "DEF:swc=${swap_db}:swc:AVERAGE",        #
+            "AREA:swu#595959:Used\\t\\t",            #
+            "GPRINT:swu:LAST:Last\\:%8.2lf %s",      #
+            "GPRINT:swu:MIN:Min\\:%8.2lf %s",        #
+            "GPRINT:swu:AVERAGE:Avg\\:%8.2lf %s",    #
+            "GPRINT:swu:MAX:Max\\:%8.2lf %s\\n",     #
+            "STACK:swf#46b971:Free\\t\\t",           #
+            "GPRINT:swf:LAST:Last\\:%8.2lf %s",      #
+            "GPRINT:swf:MIN:Min\\:%8.2lf %s",        #
+            "GPRINT:swf:AVERAGE:Avg\\:%8.2lf %s",    #
+            "GPRINT:swf:MAX:Max\\:%8.2lf %s\\n",     #
+            "LINE2:swc#46F2A2:Cached\\t",            #
+            "GPRINT:swc:LAST:Last\\:%8.2lf %s",      #
+            "GPRINT:swc:MIN:Min\\:%8.2lf %s",        #
+            "GPRINT:swc:AVERAGE:Avg\\:%8.2lf %s",    #
+            "GPRINT:swc:MAX:Max\\:%8.2lf %s\\n",     #
+            "LINE1:swt#000000:Total\\t\\t",          #
+            "GPRINT:swt:LAST:Last\\:%8.2lf %s",      #
+            "GPRINT:swt:MIN:Min\\:%8.2lf %s",        #
+            "GPRINT:swt:AVERAGE:Avg\\:%8.2lf %s",    #
+            "GPRINT:swt:MAX:Max\\:%8.2lf %s\\n",     #
         );
     }
 
@@ -634,45 +646,52 @@ Generate network interface usage graph image file for a period of time.
 
 Parameters:
 
-    type - Database name without extension.
+    type  - Database name without extension.
     graph - Path to file to be generated.
     start - time which the graph starts. Format: MM-DD-YYYY-HH:mm (ie: 11-09-2020-14:05)
-    end - time which the graph stops
+    end   - time which the graph stops
 
-Returns:
-
-    none
-
-See Also:
-
-    <printGraph>
-
-    <genCpuGraph>, <genDiskGraph>, <genLoadGraph>, <genMemGraph>, <genMemSwGraph>, <genFarmGraph>, <genLoadGraph>
+Returns: Nothing
 
 =cut
 
 sub genNetGraph ($type, $graph, $start, $end) {
-    my $db_if   = "$rrdap_dir/$rrd_dir/$type.rrd";
-    my $if_name = $type;
-    $if_name =~ s/iface//g;
+    my $collector_rrd_dir = &getGlobalConfiguration('collector_rrd_dir');
+    my $interface_db      = "${collector_rrd_dir}/${type}.rrd";
+    my $interface_name    = $type;
+    $interface_name =~ s/iface//g;
 
-    if (-e $db_if) {
+    if (-e $interface_db) {
         RRDs::graph(
-            "$graph",                                           "--imgformat=$imagetype",
-            "--start=$start",                                   "--end=$end",
-            "--height=$height",                                 "--width=$width",
-            "--lazy",                                           "-l 0",
-            "--alt-autoscale-max",                              "--title=TRAFFIC ON $if_name",
-            "--vertical-label=BANDWIDTH",                       "DEF:in=$db_if:in:AVERAGE",
-            "DEF:out=$db_if:out:AVERAGE",                       "CDEF:in_bytes=in,1024,*",
-            "CDEF:out_bytes=out,1024,*",                        "CDEF:out_bytes_neg=out_bytes,-1,*",
-            "AREA:in_bytes#46b971:In ",                         "LINE1:in_bytes#000000",
-            "GPRINT:in_bytes:LAST:Last\\:%5.1lf %sByte/sec",    "GPRINT:in_bytes:MIN:Min\\:%5.1lf %sByte/sec",
-            "GPRINT:in_bytes:AVERAGE:Avg\\:%5.1lf %sByte/sec",  "GPRINT:in_bytes:MAX:Max\\:%5.1lf %sByte/sec\\n",
-            "AREA:out_bytes_neg#595959:Out",                    "LINE1:out_bytes_neg#000000",
-            "GPRINT:out_bytes:LAST:Last\\:%5.1lf %sByte/sec",   "GPRINT:out_bytes:MIN:Min\\:%5.1lf %sByte/sec",
-            "GPRINT:out_bytes:AVERAGE:Avg\\:%5.1lf %sByte/sec", "GPRINT:out_bytes:MAX:Max\\:%5.1lf %sByte/sec\\n",
-            "HRULE:0#000000"
+            $graph,                                                #
+            "--imgformat=${imagetype}",                            #
+            "--start=${start}",                                    #
+            "--end=${end}",                                        #
+            "--height=${height}",                                  #
+            "--width=${width}",                                    #
+            "--lazy",                                              #
+            "-l 0",                                                #
+            "--alt-autoscale-max",                                 #
+            "--title=TRAFFIC ON ${interface_name}",                #
+            "--vertical-label=BANDWIDTH",                          #
+            "DEF:in=${interface_db}:in:AVERAGE",                   #
+            "DEF:out=${interface_db}:out:AVERAGE",                 #
+            "CDEF:in_bytes=in,1024,*",                             #
+            "CDEF:out_bytes=out,1024,*",                           #
+            "CDEF:out_bytes_neg=out_bytes,-1,*",                   #
+            "AREA:in_bytes#46b971:In ",                            #
+            "LINE1:in_bytes#000000",                               #
+            "GPRINT:in_bytes:LAST:Last\\:%5.1lf %sByte/sec",       #
+            "GPRINT:in_bytes:MIN:Min\\:%5.1lf %sByte/sec",         #
+            "GPRINT:in_bytes:AVERAGE:Avg\\:%5.1lf %sByte/sec",     #
+            "GPRINT:in_bytes:MAX:Max\\:%5.1lf %sByte/sec\\n",      #
+            "AREA:out_bytes_neg#595959:Out",                       #
+            "LINE1:out_bytes_neg#000000",                          #
+            "GPRINT:out_bytes:LAST:Last\\:%5.1lf %sByte/sec",      #
+            "GPRINT:out_bytes:MIN:Min\\:%5.1lf %sByte/sec",        #
+            "GPRINT:out_bytes:AVERAGE:Avg\\:%5.1lf %sByte/sec",    #
+            "GPRINT:out_bytes:MAX:Max\\:%5.1lf %sByte/sec\\n",     #
+            "HRULE:0#000000"                                       #
         );
     }
 
@@ -687,10 +706,10 @@ Generate farm connections graph image file for a period of time.
 
 Parameters:
 
-    type - Database name without extension.
+    type  - Database name without extension.
     graph - Path to file to be generated.
     start - time which the graph starts. Format: MM-DD-YYYY-HH:mm (ie: 11-09-2020-14:05)
-    end - time which the graph stops
+    end   - time which the graph stops
 
 Returns:
 
@@ -705,29 +724,28 @@ See Also:
 =cut
 
 sub genFarmGraph ($type, $graph, $start, $end) {
-    my $db_farm = "$rrdap_dir/$rrd_dir/$type.rrd";
-    my $fname   = $type;
-    $fname =~ s/-farm$//g;
+    my $collector_rrd_dir = &getGlobalConfiguration('collector_rrd_dir');
+    my $farm_db           = "${collector_rrd_dir}/${type}.rrd";
+    my $farm_name         = $type;
+    $farm_name =~ s/-farm$//g;
 
-    if (-e $db_farm) {
+    if (-e $farm_db) {
         RRDs::graph(
-            "$graph",
-            "--start=$start",
-            "--end=$end",
-            "-h",
-            "$height",
-            "-w",
-            "$width",
+            $graph,
+            "--start=${start}",
+            "--end=${end}",
+            "--height=${height}",    #
+            "--width=${width}",      #
             "--lazy",
             "-l 0",
             "-a",
-            "$imagetype",
-            "--title=CONNECTIONS ON $fname farm",
+            "${imagetype}",
+            "--title=CONNECTIONS ON ${farm_name} farm",
             "--vertical-label=Connections",
-            "DEF:pending=$db_farm:pending:AVERAGE",
-            "DEF:established=$db_farm:established:AVERAGE",
+            "DEF:pending=${farm_db}:pending:AVERAGE",
+            "DEF:established=${farm_db}:established:AVERAGE",
 
-            # "DEF:closed=$rrdap_dir/$rrd_dir/$db_farm:closed:AVERAGE",
+            # "DEF:closed=$db_farm:closed:AVERAGE",
             "LINE2:pending#595959:Pending\\t",
             "GPRINT:pending:LAST:Last\\:%6.0lf ",
             "GPRINT:pending:MIN:Min\\:%6.0lf ",
@@ -762,37 +780,30 @@ Parameters:
     graph - Path to file to be generated.
     time - Period of time shown in the graph.
 
-Returns:
-
-    none
-
-See Also:
-
-    <printGraph>
-
-    <genCpuGraph>, <genDiskGraph>, <genLoadGraph>, <genMemGraph>, <genMemSwGraph>, <genFarmGraph>, <genLoadGraph>
+Returns: Nothing
 
 =cut
 
 sub genVPNGraph ($type, $graph, $time) {
-    my $db_vpn   = "$type.rrd";
-    my $vpn_name = $type;
+    my $collector_rrd_dir = &getGlobalConfiguration('collector_rrd_dir');
+    my $vpn_db            = "${collector_rrd_dir}/${type}.rrd";
+    my $vpn_name          = $type;
     $vpn_name =~ s/-vpn$//g;
 
-    if (-e "$rrdap_dir/$rrd_dir/$db_vpn") {
+    if (-e $vpn_db) {
         RRDs::graph(
-            "$graph",                                              #
-            "--imgformat=$imagetype",                              #
-            "--start=-1$time",                                     #
-            "--height=$height",                                    #
-            "--width=$width",                                      #
+            $graph,                                                #
+            "--imgformat=${imagetype}",                            #
+            "--start=-1${time}",                                   #
+            "--height=${height}",                                  #
+            "--width=${width}",                                    #
             "--lazy",                                              #
             "-l 0",                                                #
             "--alt-autoscale-max",                                 #
-            "--title=TRAFFIC ON $vpn_name",                        #
+            "--title=TRAFFIC ON ${vpn_name}",                      #
             "--vertical-label=BANDWIDTH",                          #
-            "DEF:in=$rrdap_dir/$rrd_dir/$db_vpn:in:AVERAGE",       #
-            "DEF:out=$rrdap_dir/$rrd_dir/$db_vpn:out:AVERAGE",     #
+            "DEF:in=${vpn_db}:in:AVERAGE",                         #
+            "DEF:out=${vpn_db}:out:AVERAGE",                       #
             "CDEF:in_bytes=in,1024,*",                             #
             "CDEF:out_bytes=out,1024,*",                           #
             "CDEF:out_bytes_neg=out_bytes,-1,*",                   #
@@ -812,7 +823,7 @@ sub genVPNGraph ($type, $graph, $time) {
         );
 
         my $rrdError = RRDs::error;
-        print "$0: unable to generate $graph: $rrdError\n" if ($rrdError);
+        print "$0: unable to generate ${graph}: ${rrdError}\n" if ($rrdError);
     }
 
     return;
@@ -828,22 +839,22 @@ Parameters:
 
     graphtype - 'System', 'Network', 'Farm' or ... else?.
 
-Returns:
-
-    list - List of graph names or -1!!!.
+Returns: string list - List of graph names
 
 =cut
 
 #function that returns the graph list to show
 sub getGraphs2Show ($graphtype) {
-    my @results = ();
+    my $collector_rrd_dir = &getGlobalConfiguration('collector_rrd_dir');
+    my @results           = ();
     my @dir_list;
-    if (opendir(my $dir, "$rrdap_dir/$rrd_dir")) {
+
+    if (opendir(my $dir, $collector_rrd_dir)) {
         @dir_list = readdir($dir);
         closedir($dir);
     }
     else {
-        croak("Could not open directory '$rrdap_dir/$rrd_dir/'");
+        croak("Could not open directory '$collector_rrd_dir/'");
     }
 
     if ($graphtype eq 'System') {

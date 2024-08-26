@@ -194,7 +194,7 @@ sub modify_farmguardian_controller ($json_obj, $fgname) {
     if ($eload) {
         &eload(
             module => 'Relianoid::EE::Cluster',
-            func   => 'runZClusterRemoteManager',
+            func   => 'runClusterRemoteManager',
             args   => [ 'fg', 'restart', $fgname ],
         );
     }
@@ -230,7 +230,7 @@ sub delete_farmguardian_controller ($fg_name) {
         if ($eload) {
             &eload(
                 module => 'Relianoid::EE::Cluster',
-                func   => 'runZClusterRemoteManager',
+                func   => 'runClusterRemoteManager',
                 args   => [ 'fg', 'stop', $fg_name ],
             );
         }
@@ -315,7 +315,7 @@ sub add_fg_to_farm_controller ($json_obj, $farm, $srv = undef) {
         if ($eload) {
             &eload(
                 module => 'Relianoid::EE::Cluster',
-                func   => 'runZClusterRemoteManager',
+                func   => 'runClusterRemoteManager',
                 args   => [ 'fg_farm', 'start', $farm, $srv ],
             );
         }
@@ -390,7 +390,7 @@ sub delete_fg_from_farm_controller ($farm, $srv, $fgname = undef) {
         if ($eload) {
             &eload(
                 module => 'Relianoid::EE::Cluster',
-                func   => 'runZClusterRemoteManager',
+                func   => 'runClusterRemoteManager',
                 args   => [ 'fg_farm', 'stop', $farm, $srv ],
             );
         }

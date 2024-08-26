@@ -42,13 +42,13 @@ if ($action eq "start") {
         "$ucarp -r ${dead_ratio} --interface=$interface --srcip=$local_ip --vhid=$cluster_id "
       . "--pass=$password --addr=$cluster_ip --upscript=$up_script --downscript=$down_script -B";
     my @run  = `$command`;
-    my $exec = `nohup /usr/local/relianoid/app/zeninotify/zeninotify.pl >/dev/null 2>&1 &`;
+    my $exec = `nohup /usr/local/relianoid/bin/noid-cluster-notify.pl >/dev/null 2>&1 &`;
     exit;
 }
 
 if ($action eq "stop") {
     print "Stopping RELIANOID CE Cluster...\n";
-    my $command = "pkill -9 ucarp ; kill -9 `pidof -x zeninotify.pl` 2>/dev/null";
+    my $command = "pkill -9 ucarp ; kill -9 `pidof -x noid-cluster-notify.pl` 2>/dev/null";
     my @run     = `$command`;
     if (-e $cluster_status_file) {
         unlink $cluster_status_file;

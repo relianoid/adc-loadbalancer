@@ -27,7 +27,7 @@ use feature qw(signatures);
 
 use Carp;
 use Relianoid::Log;
-use Relianoid::Config;
+use Config::Tiny;
 
 my $configdir   = &getGlobalConfiguration("configdir");
 my $fg_conf     = "$configdir/farmguardian.conf";
@@ -122,7 +122,10 @@ Returns:
 =cut
 
 sub getFGExistsConfig ($fg_name) {
-    my $fh = &getTiny($fg_conf);
+    if (!-f "$fg_conf") {
+        return 0;
+    }
+    my $fh = Config::Tiny->read($fg_conf);
     return (exists $fh->{$fg_name}) ? 1 : 0;
 }
 
@@ -143,7 +146,10 @@ Returns:
 =cut
 
 sub getFGExistsTemplate ($fg_name) {
-    my $fh = &getTiny($fg_template);
+    if (!-f "$fg_template") {
+        return 0;
+    }
+    my $fh = Config::Tiny->read($fg_template);
     return (exists $fh->{$fg_name}) ? 1 : 0;
 }
 
@@ -184,7 +190,11 @@ Returns:
 =cut
 
 sub getFGConfigList() {
-    my $fg_file = &getTiny($fg_conf);
+    if (!-f "$fg_conf") {
+        return ();
+    }
+
+    my $fg_file = Config::Tiny->read($fg_conf);
     return keys %{$fg_file};
 }
 
@@ -205,7 +215,10 @@ Returns:
 =cut
 
 sub getFGTemplateList() {
-    my $fg_file = &getTiny($fg_template);
+    if (!-f "$fg_template") {
+        return ();
+    }
+    my $fg_file = Config::Tiny->read($fg_template);
     return keys %{$fg_file};
 }
 
@@ -287,8 +300,18 @@ sub getFGObject ($fg_name, $use_template = '') {
     # using template file if farmguardian is not defined in config file
     else { $file = $fg_template; }
 
-    my $obj = &getTiny($file)->{$fg_name};
-
+    my $obj;
+    if (!-f "$file") {
+        require Relianoid::File;
+        createFile($file);
+        $obj = Config::Tiny->new;
+    }
+    else {
+        $obj = Config::Tiny->read($file);
+    }
+    if (exists $obj->{$fg_name}) {
+        $obj = $obj->{$fg_name};
+    }
     $obj = &setConfigStr2Arr($obj, ['farms']);
 
     return $obj;
@@ -298,32 +321,37 @@ sub getFGObject ($fg_name, $use_template = '') {
 
 =head1 getFGFarm
 
-Get the fg name that a farm is using
+Get the farmguardian name that a farm is using
 
 Parameters:
 
-    Farm - Farm name
-    service - Service of the farm. This parameter is mandatory for HTTP and GSLB farms
+    farm    - string - Farm name
+    service - string - Optional. Service of the farm. This parameter is mandatory for HTTP and GSLB farms
 
-Returns:
-
-    string|undef - Farmguardian name
+Returns: string|undef - Farmguardian name if found or undef if not found.
 
 =cut
 
-sub getFGFarm ($farm, $srv = undef) {
-    my $fg;
-    my $farm_tag = ($srv) ? "${farm}_$srv" : "$farm";
-    my $fg_list  = &getTiny($fg_conf);
+sub getFGFarm ($farm, $service = undef) {
+    my $farmguardian = undef;
+    my $farm_tag = $service ? "${farm}_${service}" : $farm;
+
+    if (!-f $fg_conf) {
+        return $farmguardian;
+    }
+
+    my $fg_list = Config::Tiny->read($fg_conf);
 
     for my $fg_name (keys %{$fg_list}) {
+        next if not exists $fg_list->{$fg_name}{farms};
+
         if (grep { /(^| )$farm_tag( |$)/ } $fg_list->{$fg_name}{farms}) {
-            $fg = $fg_name;
+            $farmguardian = $fg_name;
             last;
         }
     }
 
-    return $fg;
+    return $farmguardian;
 }
 
 =pod
@@ -504,11 +532,16 @@ Returns:
 =cut
 
 sub setFGFarmRename ($farm, $new_farm) {
-    my $fh = &getTiny($fg_conf);
+    my $fh;
     my $srv;
     my $farm_tag;
     my $new_farm_tag;
     my $out;
+
+    if (!-f $fg_conf) {
+        return 1;
+    }
+    $fh = Config::Tiny->read($fg_conf);
 
     # foreach farm check, remove and add farm
     for my $fg (keys %{$fh}) {
@@ -522,7 +555,7 @@ sub setFGFarmRename ($farm, $new_farm) {
 
             my $status_file     = &getFGStatusFile($farm);
             my $new_status_file = &getFGStatusFile($new_farm);
-            &zenlog("renaming $status_file =>> $new_status_file") if &debug();
+            &log_info("renaming $status_file =>> $new_status_file") if &debug();
             rename $status_file, $new_status_file;
         }
     }
@@ -770,7 +803,7 @@ Returns:
 =cut
 
 sub runFGStop ($fgname) {
-    &zenlog("Stopping farmguardian $fgname", "debug", "FG");
+    &log_debug("Stopping farmguardian $fgname", "FG");
 
     my $out;
     my $obj = &getFGObject($fgname);
@@ -805,7 +838,7 @@ Returns:
 =cut
 
 sub runFGStart ($fgname) {
-    &zenlog("Starting farmguardian $fgname", "debug", "FG");
+    &log_debug("Starting farmguardian $fgname", "FG");
 
     my $out;
     my $obj = &getFGObject($fgname);
@@ -887,13 +920,13 @@ sub runFGFarmStop ($farm, $service = undef) {
 
     if ($fgpid && $fgpid > 0) {
         my $service_str = $service // '';
-        &zenlog("running 'kill 9, $fgpid' stopping FarmGuardian $farm $service_str", "debug", "FG");
+        &log_debug("running 'kill 9, $fgpid' stopping FarmGuardian $farm $service_str", "FG");
 
         # kill returns the number of process affected
         $out = kill 9, $fgpid;
         $out = (not $out);
         if ($out) {
-            &zenlog("running 'kill 9, $fgpid' stopping FarmGuardian $farm $service_str", "error", "FG");
+            &log_error("running 'kill 9, $fgpid' stopping FarmGuardian $farm $service_str", "FG");
         }
 
         # delete pid files
@@ -1004,14 +1037,14 @@ sub runFGFarmStart ($farm, $svice = undef) {
         my $node = "";
         $node = &eload(
             module => 'Relianoid::EE::Cluster',
-            func   => 'getZClusterNodeStatus',
+            func   => 'getClusterNodeStatus',
             args   => [],
         );
         return 0 unless (not $node or $node eq 'master');
     }
 
     $svice = '' if not defined $svice;
-    &zenlog("Start fg for farm $farm, $svice", "debug", "FG");
+    &log_debug("Start fg for farm $farm, $svice", "FG");
 
     if ($ftype =~ /http/ && $svice eq "") {
         require Relianoid::Farm::Config;
@@ -1029,7 +1062,7 @@ sub runFGFarmStart ($farm, $svice = undef) {
 
         return 0 if not $fgname;
 
-        &zenlog("Starting fg $fgname, farm $farm, $svice", "debug", "FG");
+        &log_debug("Starting fg $fgname, farm $farm, $svice", "FG");
         my $fg = &getFGObject($fgname);
 
         if ($fg->{log} eq 'true') {
@@ -1066,7 +1099,7 @@ sub runFGFarmStart ($farm, $svice = undef) {
             my $msg = "The farmguardian for the farm '$farm'";
             $msg .= " and the service '$svice'" if ($svice);
             $msg .= " could not start properly";
-            &zenlog($msg, "error", "fg");
+            &log_error($msg, "fg");
         }
     }
     elsif ($ftype ne 'gslb') {
@@ -1181,7 +1214,7 @@ sub setOldFarmguardian ($obj) {
     my $type = &getFarmType($farm);
     my $set;
 
-    &zenlog("setOldFarmguardian: $farm, $srv", "debug2", "FG");
+    &log_debug2("setOldFarmguardian: $farm, $srv", "FG");
 
     # default object
     my $def = {
@@ -1292,8 +1325,8 @@ Returns: integer
 =cut
 
 sub runFarmGuardianCreate ($fname, $ttcheck, $script, $usefg, $fglog, $svice) {
-    &zenlog("runFarmGuardianCreate( farm: $fname, interval: $ttcheck, cmd: $script, log: $fglog, enabled: $usefg )",
-        "debug", "FG");
+    &log_debug("runFarmGuardianCreate( farm: $fname, interval: $ttcheck, cmd: $script, log: $fglog, enabled: $usefg )",
+        "FG");
 
     my $output = -1;
 

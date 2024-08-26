@@ -109,7 +109,7 @@ Returns:
 =cut
 
 sub startNlb () {
-    my $nftlbd         = &getGlobalConfiguration('zbindir') . "/nftlbd";
+    my $nftlbd         = &getGlobalConfiguration('bin_dir') . "/nftlbd";
     my $pidof          = &getGlobalConfiguration('pidof');
     my $nlbpidfile     = &getNlbPidFile();
     my $nlbpid         = &getNlbPid();
@@ -191,19 +191,35 @@ sub httpNlbRequest ($self) {
 
     if ($output !~ /^2/) {    # err
         my $tag = (exists $self->{check}) ? 'debug' : 'error';
-        &zenlog("cmd failed: $execmd", $tag, 'system') if (!&debug());
+        my $msg = "cmd failed: $execmd";
+
+        if (not &debug()) {
+            if (exists $self->{check}) {
+                &log_debug($msg, 'system');
+            }
+            else {
+                &log_error($msg, 'system');
+            }
+        }
 
         if (open(my $fh, '<', $file)) {
             local $/ = undef;
             my $err = <$fh>;
             close $fh;
 
-            &zenlog("(code: $output): $err", $tag, 'system');
+            my $msg = "(code: $output): $err";
+
+            if (exists $self->{check}) {
+                &log_debug($msg, 'system');
+            }
+            else {
+                &log_error($msg, 'system');
+            }
 
             unlink $file_tmp if (-f $file_tmp);
         }
         else {
-            &zenlog("The file '$file' could not be opened", 'error', 'system');
+            &log_error("The file '$file' could not be opened", 'system');
         }
 
         return -1;
@@ -257,7 +273,7 @@ sub execNft ($action, $table, $chain_def, $rule) {
     }
     elsif ($action eq "delete") {
         if (!defined $chain || $chain eq "") {
-            &zenlog("Deleting cluster table $table");
+            &log_info("Deleting cluster table $table");
             $output = &logAndRun("$nft delete table $table");
         }
         elsif (!defined $rule || $rule eq "") {

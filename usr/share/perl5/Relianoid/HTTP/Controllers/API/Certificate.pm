@@ -97,7 +97,7 @@ sub download_certificate_controller ($cert_filename) {
 # DELETE /certificates/CERTIFICATE
 sub delete_certificate_controller ($cert_filename) {
     require Relianoid::Certificate;
-    require Relianoid::LetsencryptZ;
+    require Relianoid::Letsencrypt;
 
     my $desc     = "Delete certificate";
     my $cert_dir = &getGlobalConfiguration('certdir');
@@ -140,14 +140,14 @@ sub delete_certificate_controller ($cert_filename) {
 
     if ($eload) {
         my $wildcard = &eload(
-            module => 'Relianoid::EE::LetsencryptZ::Wildcard',
+            module => 'Relianoid::EE::Letsencrypt::Wildcard',
             func   => 'getLetsencryptWildcardCertificates',
             args   => [$le_cert_name]
         );
 
         if (@{$wildcard}) {
             $error = &eload(
-                module => 'Relianoid::EE::LetsencryptZ::Wildcard',
+                module => 'Relianoid::EE::Letsencrypt::Wildcard',
                 func   => 'runLetsencryptWildcardDestroy',
                 args   => [$le_cert_name]
             );
@@ -341,12 +341,12 @@ sub add_farm_certificate_controller ($json_obj, $farmname) {
     if ($status) {
         my $msg = "It's not possible to add the certificate with name $json_obj->{file} for the $farmname farm";
 
-        &zenlog("It's not possible to add the certificate.", "error", "LSLB");
+        &log_error("It's not possible to add the certificate.", "LSLB");
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     # no errors found, return succesful response
-    &zenlog("Success trying to add a certificate to the farm.", "info", "LSLB");
+    &log_info("Success trying to add a certificate to the farm.", "LSLB");
 
     my $message =
       "The certificate $json_obj->{file} has been added to the farm $farmname, you need restart the farm to apply";
@@ -387,7 +387,7 @@ sub delete_farm_certificate_controller ($farmname, $certfilename) {
     # validate certificate
     unless ($certfilename && &getValidFormat('cert_pem', $certfilename)) {
         my $msg = "Invalid certificate id, please insert a valid value.";
-        &zenlog("Invalid certificate id.", "error", "LSLB");
+        &log_error("Invalid certificate id.", "LSLB");
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
@@ -422,7 +422,7 @@ sub delete_farm_certificate_controller ($farmname, $certfilename) {
 
     # check if the certificate could not be removed
     if ($status == -1) {
-        &zenlog("It's not possible to delete the certificate.", "error", "LSLB");
+        &log_error("It's not possible to delete the certificate.", "LSLB");
 
         my $msg = "It isn't possible to delete the selected certificate $certfilename from the SNI list";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
@@ -430,7 +430,7 @@ sub delete_farm_certificate_controller ($farmname, $certfilename) {
 
     # check if removing the certificate would leave the SNI list empty, not supported
     if ($status == 1) {
-        &zenlog("It's not possible to delete all certificates, at least one is required for HTTPS.", "error", "LSLB");
+        &log_error("It's not possible to delete all certificates, at least one is required for HTTPS.", "LSLB");
 
         my $msg = "It isn't possible to delete all certificates, at least one is required for HTTPS profiles";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
@@ -450,7 +450,7 @@ sub delete_farm_certificate_controller ($farmname, $certfilename) {
         $body->{status} = 'needed restart';
     }
 
-    &zenlog("Success trying to delete a certificate to the SNI list.", "info", "LSLB");
+    &log_info("Success trying to delete a certificate to the SNI list.", "LSLB");
 
     return &httpResponse({ code => 200, body => $body });
 }

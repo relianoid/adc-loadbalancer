@@ -119,10 +119,10 @@ sub setIfacesUp ($if_name, $type) {
         }
 
         if ($type eq "vini") {
-            &zenlog("Virtual interfaces of $if_name have been put up.", "info", "NETWORK");
+            &log_info("Virtual interfaces of $if_name have been put up.", "NETWORK");
         }
         elsif ($type eq "vlan") {
-            &zenlog("VLAN interfaces of $if_name have been put up.", "info", "NETWORK");
+            &log_info("VLAN interfaces of $if_name have been put up.", "NETWORK");
         }
     }
 
@@ -159,7 +159,7 @@ sub sendGPing ($pif) {
         my $pingc    = &getGlobalConfiguration('pingc');
         my $ping_cmd = "$ping_bin -c $pingc -I $if_conf->{addr} $gw";
 
-        &zenlog("Sending $pingc ping(s) to gateway $gw from $if_conf->{addr}", "info", "NETWORK");
+        &log_info("Sending $pingc ping(s) to gateway $gw from $if_conf->{addr}", "NETWORK");
         &logAndRunBG("$ping_cmd");
     }
     return;
@@ -203,14 +203,14 @@ sub sendGArp ($if, $ip) {
         my $arp_arg    = $arp_unsolicited ? '-U' : '-A';
         my $arping_cmd = "$arping_bin $arp_arg -c 2 -I $iface[0] $ip";
 
-        &zenlog("$arping_cmd", "info", "NETWORK");
+        &log_info("$arping_cmd", "NETWORK");
         &logAndRunBG("$arping_cmd");
     }
     elsif ($ip_v == 6) {
         my $arpsend_bin = &getGlobalConfiguration('arpsend_bin');
         my $arping_cmd  = "$arpsend_bin -U -i $ip $iface[0]";
 
-        &zenlog("$arping_cmd", "info", "NETWORK");
+        &log_info("$arping_cmd", "NETWORK");
         &logAndRunBG("$arping_cmd");
     }
 
@@ -272,7 +272,7 @@ sub unsetArpAnnounce () {
     if (-f $path) {
         my $rem = unlink $path;
         if (!$rem) {
-            &zenlog("Error deleting the file '$path'", "error", "NETWORK");
+            &log_error("Error deleting the file '$path'", "NETWORK");
             return 1;
         }
     }
@@ -408,7 +408,7 @@ sub setIpForward ($arg) {
     my $status = 0;
     my $switch = $arg eq 'true';
 
-    &zenlog("setting $arg to IP forwarding ", "info", "NETWORK");
+    &log_info("setting $arg to IP forwarding ", "NETWORK");
 
     # switch forwarding as requested
     $status += &logAndRun("echo $switch > /proc/sys/net/ipv4/conf/all/forwarding");
@@ -455,7 +455,7 @@ sub getInterfaceOfIp ($ip) {
     }
 
     # returns an invalid interface name, an undefined variable
-    &zenlog("Warning: No interface was found configured with IP address $ip", "info", "NETWORK");
+    &log_info("Warning: No interface was found configured with IP address $ip", "NETWORK");
 
     return;
 }

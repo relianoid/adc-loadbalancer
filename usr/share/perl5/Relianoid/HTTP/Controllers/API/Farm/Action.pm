@@ -160,18 +160,18 @@ sub actions_farm_controller ($json_obj, $farmname) {
         $status = &runFarmStart($farmname, "true");
 
         if ($status) {
-            my $msg = "ZAPI error, trying to start the farm in the action restart in farm $farmname.";
+            my $msg = "API error, trying to start the farm in the action restart in farm $farmname.";
             return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }
 
     my $msg = "The action $json_obj->{action} has been performed in farm $farmname.";
 
-    &zenlog("Success, $msg", "info", "FARMS");
+    &log_info("Success, $msg", "FARMS");
 
     &eload(
         module => 'Relianoid::EE::Cluster',
-        func   => 'runZClusterRemoteManager',
+        func   => 'runClusterRemoteManager',
         args   => [ 'farm', $json_obj->{action}, $farmname ],
     ) if ($eload);
 
@@ -287,7 +287,7 @@ sub set_service_backend_maintenance_controller ($json_obj, $farmname, $service, 
 
     &eload(
         module => 'Relianoid::EE::Cluster',
-        func   => 'runZClusterRemoteManager',
+        func   => 'runClusterRemoteManager',
         args   => [ 'farm', 'restart', $farmname ],
     ) if ($eload && &getFarmStatus($farmname) eq 'up');
 
@@ -374,7 +374,7 @@ sub set_backend_maintenance_controller ($json_obj, $farmname, $backend_id) {
 
     &eload(
         module => 'Relianoid::EE::Cluster',
-        func   => 'runZClusterRemoteManager',
+        func   => 'runClusterRemoteManager',
         args   => [ 'farm', 'restart', $farmname ],
     ) if ($eload && &getFarmStatus($farmname) eq 'up');
 

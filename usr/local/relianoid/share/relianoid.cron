@@ -1,4 +1,4 @@
-*/5  * * * *	root	/usr/local/relianoid/bin/zenrrd &>/dev/null
+*/5  * * * *	root	/usr/local/relianoid/bin/noid-collector &>/dev/null
 */10 * * * *	root	/usr/local/relianoid/bin/noid-ntp &>/dev/null
 */30 * * * *    root    /usr/bin/find /tmp/ -name "cgisess_*" -mmin +60 -exec rm -f {} \;  &>/dev/null
 */30 * * * *    root    /usr/bin/find /tmp/ -name "supportsave*.tar.gz" -mmin +60 -exec rm -f {} \;  &>/dev/null

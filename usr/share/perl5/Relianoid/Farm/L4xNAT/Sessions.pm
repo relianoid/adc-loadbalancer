@@ -158,7 +158,7 @@ sub listL4FarmSessions ($farmname) {
 
     my $session_tmp = "/tmp/session_$farmname.data";
     my $lock_f      = &getLockFile($session_tmp);
-    my $lock_fd     = &openlock($lock_f, '>');
+    my $lock_fd     = &openlock($lock_f, 'w');
     my $err         = &sendL4NlbCmd({
         method => "GET",
         uri    => "/farms/" . $farmname . '/sessions',

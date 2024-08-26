@@ -1,8 +1,17 @@
 {
    "action" : "set",
-   "description" : "Modify the configuration of the current user. The current user is the user got from the ZAPI_KEY or the user logged by the WebGUI.",
+   "description" : "Modify the configuration of the current user. The current user is authenticated with the API_KEY or logged in the WebGUI.",
    "method" : "POST",
    "params" : {
+      "api_key" : {
+         "description" : "Each user can have an API key. With this API key, the user can do action through the API key with the permissions of the user’s role.",
+         "regex" : "(?^:[a-zA-Z0-9]+)"
+      },
+      "api_permissions" : {
+         "description" : "The possible values are: true, to enable the access to the load balancer through the API; or false, to deny the access through the API.",
+         "non_blank" : "true",
+         "regex" : "(?^:(?:true|false))"
+      },
       "newpassword" : {
          "description" : "New user password to access through the WebGUI.",
          "format_msg" : "must contain at least a letter and a number and a minimum length of 8 characters.",
@@ -14,12 +23,12 @@
          "non_blank" : "true"
       },
       "zapi_permissions" : {
-         "description" : "The possible values are: true, to enable the access to the load balancer through the ZAPI; or false, to deny the access through the ZAPI.",
+         "description" : "The possible values are: true, to enable the access to the load balancer through the API; or false, to deny the access through the API. This parameter is deprecated and it will be removed, use `api_permissions` instead.",
          "non_blank" : "true",
          "regex" : "(?^:(?:true|false))"
       },
       "zapikey" : {
-         "description" : "Each user can have a zapikey. With this zapikey, the user can do action through the zapikey with the permissions of the user’s role.",
+         "description" : "Each user can have an API key. With this API key, the user can do action through the API key with the permissions of the user’s role. This parameter is deprecated and it will be removed, use `api_key` instead.",
          "regex" : "(?^:[a-zA-Z0-9]+)"
       }
    },

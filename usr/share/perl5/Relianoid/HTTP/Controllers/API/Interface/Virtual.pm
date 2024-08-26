@@ -150,14 +150,14 @@ sub add_virtual_controller ($json_obj) {
     };
 
     if ($@) {
-        &zenlog("Module failed: $@", "error", "net");
+        &log_error("Module failed: $@", "net");
         my $msg = "The $json_obj->{name} virtual network interface can't be created";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     &eload(
         module => 'Relianoid::EE::Cluster',
-        func   => 'runZClusterRemoteManager',
+        func   => 'runClusterRemoteManager',
         args   => [ 'interface', 'start', $if_ref->{name} ],
     ) if ($eload);
 
@@ -214,7 +214,7 @@ sub delete_virtual_controller ($virtual) {
         if ($eload) {
             &eload(
                 module => 'Relianoid::EE::Cluster',
-                func   => 'runZClusterRemoteManager',
+                func   => 'runClusterRemoteManager',
                 args   => [ 'interface', 'stop', $if_ref->{name} ],
             );
 
@@ -234,7 +234,7 @@ sub delete_virtual_controller ($virtual) {
     };
 
     if ($@) {
-        &zenlog("Module failed: $@", "error", "net");
+        &log_error("Module failed: $@", "net");
         my $msg = "The virtual interface $virtual can't be deleted";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
@@ -242,7 +242,7 @@ sub delete_virtual_controller ($virtual) {
     if ($eload) {
         &eload(
             module => 'Relianoid::EE::Cluster',
-            func   => 'runZClusterRemoteManager',
+            func   => 'runClusterRemoteManager',
             args   => [ 'interface', 'delete', $if_ref->{name} ],
         );
     }
@@ -356,7 +356,7 @@ sub actions_virtual_controller ($json_obj, $virtual) {
 
         &eload(
             module => 'Relianoid::EE::Cluster',
-            func   => 'runZClusterRemoteManager',
+            func   => 'runClusterRemoteManager',
             args   => [ 'interface', 'start', $if_ref->{name} ],
         ) if ($eload);
     }
@@ -373,7 +373,7 @@ sub actions_virtual_controller ($json_obj, $virtual) {
         if ($eload) {
             &eload(
                 module => 'Relianoid::EE::Cluster',
-                func   => 'runZClusterRemoteManager',
+                func   => 'runClusterRemoteManager',
                 args   => [ 'interface', 'stop', $if_ref->{name} ],
             );
         }
@@ -456,7 +456,7 @@ sub modify_virtual_controller ($json_obj, $virtual) {
     if ($eload) {
         &eload(
             module => 'Relianoid::EE::Cluster',
-            func   => 'runZClusterRemoteManager',
+            func   => 'runClusterRemoteManager',
             args   => [ 'interface', 'stop', $if_ref->{name} ],
         );
     }
@@ -492,7 +492,7 @@ sub modify_virtual_controller ($json_obj, $virtual) {
     };
 
     if ($@) {
-        &zenlog("Module failed: $@", "error", "net");
+        &log_error("Module failed: $@", "net");
         my $msg = "Errors found trying to modify interface $virtual";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
@@ -500,12 +500,12 @@ sub modify_virtual_controller ($json_obj, $virtual) {
     if ($eload) {
         &eload(
             module => 'Relianoid::EE::Cluster',
-            func   => 'runZClusterRemoteManager',
+            func   => 'runClusterRemoteManager',
             args   => [ 'interface', 'start', $if_ref->{name} ],
         );
         &eload(
             module => 'Relianoid::EE::Cluster',
-            func   => 'runZClusterRemoteManager',
+            func   => 'runClusterRemoteManager',
             args   => [ 'farm', 'restart_farms', @farms ],
         );
     }

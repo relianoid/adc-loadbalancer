@@ -34,7 +34,7 @@ my ($farmname, $count) = @ARGV;
 if (not $farmname) {
     my $msg = "Expecting at least a farm name. Ie: $0 FARM_NAME [COUNT]";
     say STDERR $msg;
-    zenlog($msg, 'warn');
+    log_warn($msg);
     return 1;
 }
 
@@ -58,14 +58,14 @@ if (-e "$configdir/$filename" and $type eq "datalink") {
             my $output = &logAndRunCheck("ping -c $count $backend");
 
             if ($output ne 0 and $status eq "up") {
-                &zenlog(
+                &log_info(
                     "disabling datalink backend $index with ip $backend for the $farmname farm");
                 &setFarmBackendStatus($farmname, $index, "down");    # disable backend
                 &runFarmStop($farmname, "true");
                 &runFarmStart($farmname, "true");
             }
             if ($output eq 0 and $status eq "down") {
-                &zenlog("enabling datalink backend $index with ip $backend for the $farmname farm");
+                &log_info("enabling datalink backend $index with ip $backend for the $farmname farm");
                 &setFarmBackendStatus($farmname, $index, "up");      # enable backend
                 &runFarmStop($farmname, "true");
                 &runFarmStart($farmname, "true");

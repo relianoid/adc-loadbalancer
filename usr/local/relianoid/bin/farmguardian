@@ -79,7 +79,7 @@ my $pidfile;
 my $type = &getFarmType($farmname);
 unless ($type =~ /^(?:http|https|l4xnat)$/) {
     my $msg = "FarmGuardian does not support $type farm profile";
-    &zenlog($msg);
+    &log_info($msg);
     exit -1;
 }
 
@@ -115,7 +115,7 @@ if (not $fgname) {
     my $msg = "Abort: Configuration for farm $ms was not found";
 
     if ($logging eq 'enabled') {
-        &zenlog($msg);
+        &log_info($msg);
     }
     else {
         print "$msg\n";
@@ -149,7 +149,7 @@ else {
     my $msg = "Cannot open file $filepid: $!";
 
     if ($logging eq 'enabled') {
-        &zenlog($msg);
+        &log_info($msg);
     }
     else {
         print "$msg\n";
@@ -209,7 +209,7 @@ while (1) {
             my $msg = "Farm $farmname is down, abort.";
 
             if ($logging eq 'enabled') {
-                &zenlog($msg);
+                &log_info($msg);
             }
             else {
                 print "$msg\n";
@@ -297,7 +297,7 @@ while (1) {
             }
         }
 
-        &zenlog($logline);
+        &log_info($logline);
     }
 
     # backend loop. checking every backend.
@@ -336,14 +336,14 @@ while (1) {
                     $svc_prio++;
 
                     if ($logging eq 'enabled') {
-                        &zenlog("$logheader increasing service priority to $svc_prio");
+                        &log_info("$logheader increasing service priority to $svc_prio");
                     }
                 }
                 $logline .= "service priority $svc_prio";
             }
 
             if ($logging eq 'enabled') {
-                &zenlog($logline);
+                &log_info($logline);
             }
 
             next;
@@ -364,7 +364,7 @@ while (1) {
             $command = "$nagios_plugins_dir/$command";
         }
         else {
-            zenlog("Could not find the command '$file_name'", "error");
+            log_error("Could not find the command '$file_name'");
         }
 
         if (defined $fgmarkbin and $usemark) {
@@ -413,7 +413,7 @@ while (1) {
                 $svc_prio++;
 
                 if ($logging eq 'enabled') {
-                    &zenlog("$logheader increasing service priority to $svc_prio");
+                    &log_info("$logheader increasing service priority to $svc_prio");
                 }
             }
         }
@@ -423,7 +423,7 @@ while (1) {
             if (defined $backendprio[$j]) {
                 $logline .= "service priority $svc_prio - ";
             }
-            &zenlog($logline . "timedout $timedout - errorcode $errorcode");
+            &log_info($logline . "timedout $timedout - errorcode $errorcode");
         }
 
         ### Enable backend
@@ -432,7 +432,7 @@ while (1) {
             and $http_prio_enable)
         {
             if ($logging eq 'enabled') {
-                &zenlog("**execution OK in server $j - errorcode:$errorcode - timedout:$timedout - backend state:$backendstatus[$j]");
+                &log_info("**execution OK in server $j - errorcode:$errorcode - timedout:$timedout - backend state:$backendstatus[$j]");
             }
 
             # Enabling backend for every type of farm supported
@@ -470,7 +470,7 @@ while (1) {
 
             # WARNING: This message format is expected by 'sec'
             if (not $first_exec and ($status_error->{code} != 1 and $status_error->{code} != -1)) {
-                &zenlog("BackEnd $backendserv[$j]:$backendport[$j] resurrect$auxLog");
+                &log_info("BackEnd $backendserv[$j]:$backendport[$j] resurrect$auxLog");
             }
         }
         ### Disable backend
@@ -483,7 +483,7 @@ while (1) {
           )
         {
             if ($logging eq 'enabled') {
-                &zenlog("**execution error in ' $command ', output::**\n@output");
+                &log_info("**execution error in ' $command ', output::**\n@output");
             }
 
             # Disabling backend for every type of farm supported
@@ -510,7 +510,7 @@ while (1) {
             if (defined $backendprio[$j] and ($backendprio[$j] <= $svc_prio)) {
                 $svc_prio++;
                 if ($logging eq 'enabled') {
-                    &zenlog("$logheader increasing service priority to $svc_prio");
+                    &log_info("$logheader increasing service priority to $svc_prio");
                 }
             }
 
@@ -518,7 +518,7 @@ while (1) {
 
             # WARNING: This message format is expected by 'sec'
             if (not $first_exec and ($status_error->{code} != 1 and $status_error->{code} != -1)) {
-                &zenlog("BackEnd $backendserv[$j]:$backendport[$j] down$auxLog");
+                &log_info("BackEnd $backendserv[$j]:$backendport[$j] down$auxLog");
             }
         }
         $backendidx++;
@@ -526,10 +526,10 @@ while (1) {
 
     $first_exec = 0;
 
-    #~ &zenlog( "backendid " . Dumper( \@backendid ) );
-    #~ &zenlog( "backendserv " . Dumper( \@backendserv ) );
-    #~ &zenlog( "backendport " . Dumper( \@backendport ) );
-    #~ &zenlog( "backendstatus " . Dumper( \@backendstatus ) );
+    #~ &log_info( "backendid " . Dumper( \@backendid ) );
+    #~ &log_info( "backendserv " . Dumper( \@backendserv ) );
+    #~ &log_info( "backendport " . Dumper( \@backendport ) );
+    #~ &log_info( "backendstatus " . Dumper( \@backendstatus ) );
 
     sleep($timetocheck);
 }
@@ -546,10 +546,14 @@ sub printHelp () {
 }
 
 sub getFGAlias ($bk) {
-    require Relianoid::Config;
     my $alias_file = &getGlobalConfiguration("configdir") . "/alias.conf";
 
-    my $st = &getTiny($alias_file);
+    if (!-f "$alias_file") {
+        return $bk;
+    }
+
+    require Config::Tiny;
+    my $st = Config::Tiny->read($alias_file);
 
     return $st->{backend}{$bk} // $bk;
 }

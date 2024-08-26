@@ -116,13 +116,13 @@ sub setHTTPFarmServer ($ids, $rip, $port, $weight, $timeout, $farm_name, $servic
 
                     if ($contents[ $i + 3 ] =~ /^\s*TimeOut/) {
                         $contents[ $i + 3 ] = "\t\t\tTimeOut $timeout";
-                        &zenlog("Modified current timeout", "info", "LSLB");
+                        &log_info("Modified current timeout", "LSLB");
                     }
 
                     if ($contents[ $i + 4 ] =~ /^\s*Priority/) {
                         $contents[ $i + 4 ] = "\t\t\tPriority $weight";
                         splice @contents, $i + 4, 1, if ($priority == 2);
-                        &zenlog("Modified current priority", "info", "LSLB");
+                        &log_info("Modified current priority", "LSLB");
                         $p_m = 1;
                     }
 
@@ -534,7 +534,7 @@ sub setHTTPFarmBackendStatus ($farm_name, $service, $backend_index, $status, $cu
             $output = &setHTTPFarmBackendsSessionsRemove($farm_name, $service, $backend_index);
             if ($output) {
                 my $msg = "Sessions for backend '$backend_index' in service '$service' of farm '$farm_name' were not deleted.";
-                &zenlog($msg, "error", "LSLB");
+                &log_error($msg, "LSLB");
                 $error_ref->{code} = 2;
                 $error_ref->{desc} = $msg;
                 return $error_ref;
@@ -728,7 +728,7 @@ Returns:
 sub setHTTPFarmBackendMaintenance ($farm_name, $backend, $mode, $service) {
     my $output = 0;
 
-    &zenlog("setting Maintenance mode for $farm_name service $service backend $backend", "info", "LSLB");
+    &log_info("setting Maintenance mode for $farm_name service $service backend $backend", "LSLB");
 
     if (&getFarmStatus($farm_name) eq 'up') {
         $output = &setHTTPFarmBackendStatus($farm_name, $service, $backend, 'maintenance', $mode);
@@ -758,7 +758,7 @@ Returns:
 sub setHTTPFarmBackendNoMaintenance ($farm_name, $backend, $service) {
     my $output = 0;
 
-    &zenlog("setting Disabled maintenance mode for $farm_name service $service backend $backend", "info", "LSLB");
+    &log_info("setting Disabled maintenance mode for $farm_name service $service backend $backend", "LSLB");
 
     if (&getFarmStatus($farm_name) eq 'up') {
         $output = &setHTTPFarmBackendStatus($farm_name, $service, $backend, 'up', 'cut');
@@ -845,7 +845,7 @@ FIXME:
 =cut
 
 sub setHTTPFarmBackendStatusFromFile ($farm_name) {
-    &zenlog("Setting backends status in farm $farm_name", "info", "LSLB");
+    &log_info("Setting backends status in farm $farm_name", "LSLB");
 
     my $be_status_filename = "$configdir\/$farm_name\_status.cfg";
     my $proxyctl           = &getGlobalConfiguration('proxyctl');
@@ -867,7 +867,7 @@ sub setHTTPFarmBackendStatusFromFile ($farm_name) {
     }
     else {
         my $msg = "Error opening $be_status_filename: $!. Aborting execution.";
-        &zenlog($msg, "error", "LSLB");
+        &log_error($msg, "LSLB");
         die $msg;
     }
 
@@ -897,8 +897,8 @@ sub setHTTPFarmBackendsSessionsRemove ($farm_name, $service, $backendid) {
     my $serviceid;
     my $err = 0;
 
-    &zenlog("Deleting established sessions to a backend $backendid from farm $farm_name in service $service",
-        "info", "LSLB");
+    &log_info("Deleting established sessions to a backend $backendid from farm $farm_name in service $service",
+        "LSLB");
 
     $serviceid = &getFarmVSI($farm_name, $service);
 

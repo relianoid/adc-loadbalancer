@@ -21,30 +21,23 @@
 #
 ###############################################################################
 
-# this script run all pl files with -rrd.pl regex in $rrdap_dir,
-# this -rrd.pl files will create the rrd graphs that RELIANOID load balancer gui
-# will paint in Monitoring section
-# USE:
-# you have to include in the cron user this next line for example:
-# execution over 2 minutes
-# */2 * * * * /usr/local/relianoid/app/rrd/zenrrd
-# Fell free to create next graphs, in files type
-# name-rrd.pl, the system will include them automatically to run them
-# and view them in RELIANOID load balancer GUI (Monitoring section)
+# This command collects different metrics and store them in RRD files, graphs
+# of these metrics are available via RELIANOID Load Balancer GUI and API.
+#
+# The collection of metrics is scheduled with cron.
 
 use strict;
 use warnings;
 use feature qw(signatures);
 
 use Relianoid::Config;
-use Relianoid::Log;
 use Relianoid::Debug;
+use Relianoid::Lock;
 
-my $rrdap_dir = &getGlobalConfiguration('rrdap_dir');
-my $lockfile  = "/tmp/rrd.lock";
+my $lockfile = getLockFile("rrd");
 
 if (-e $lockfile) {
-    print "RRD Locked by $lockfile, maybe other zenrrd in execution\n";
+    print "RRD Locked by $lockfile, maybe other noid-collector in execution\n";
     exit;
 }
 else {
@@ -53,19 +46,23 @@ else {
     close $lock;
 }
 
-opendir(my $dir, $rrdap_dir);
-my @rrd_scripts = grep { /-rrd.(?:pl|sh)$/ } readdir($dir);
-closedir($dir);
+my $bin_dir = &getGlobalConfiguration('bin_dir');
 
-for my $script_rrd (@rrd_scripts) {
-    print "Executing $script_rrd...\n";
+opendir(my $dh, $bin_dir);
+my @commands = grep { /^noid-collector-.+-rrd\.(?:pl|sh)$/ } readdir($dh);
+closedir($dh);
+
+for my $command_filename (@commands) {
+    print "Executing $command_filename...\n";
+
+    my $cmd = "${bin_dir}/${command_filename}";
 
     if (&debug() == 0) {
-        my $errno = system("$rrdap_dir/$script_rrd >/dev/null 2>&1");
-        &zenlog("Error running '$rrdap_dir/$script_rrd' from zenrrd", "error", "SYSTEM") if $errno;
+        my $errno = system("${cmd} >/dev/null 2>&1");
+        &log_error("Error running '${cmd}' from noid-collector", "SYSTEM") if $errno;
     }
     else {
-        &logAndRun("$rrdap_dir/$script_rrd");
+        &logAndRun($cmd);
     }
 }
 

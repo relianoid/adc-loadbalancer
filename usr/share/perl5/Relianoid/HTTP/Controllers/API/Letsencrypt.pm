@@ -29,15 +29,15 @@ use feature qw(signatures);
 
 =head1 Module
 
-Relianoid::HTTP::Controllers::API::LetsencryptZ
+Relianoid::HTTP::Controllers::API::Letsencrypt
 
 =cut
 
 my $eload = eval { require Relianoid::ELoad };
 
-# GET /certificates/letsencryptz
+# GET /certificates/letsencrypt
 sub list_le_cert_controller () {
-    require Relianoid::LetsencryptZ;
+    require Relianoid::Letsencrypt;
 
     my $desc         = "List LetsEncrypt certificates";
     my $certificates = &getLetsencryptCertificates();
@@ -50,14 +50,14 @@ sub list_le_cert_controller () {
     }
     if ($eload) {
         my $wildcards = &eload(
-            module => 'Relianoid::EE::LetsencryptZ::Wildcard',
+            module => 'Relianoid::EE::Letsencrypt::Wildcard',
             func   => 'getLetsencryptWildcardCertificates'
         );
 
         for my $cert (@{$wildcards}) {
             push @out,
               &eload(
-                module => 'Relianoid::EE::LetsencryptZ::Wildcard',
+                module => 'Relianoid::EE::Letsencrypt::Wildcard',
                 func   => 'getLetsencryptWildcardCertificateInfo',
                 args   => [ $cert->{name} ]
               );
@@ -72,9 +72,9 @@ sub list_le_cert_controller () {
     return &httpResponse({ code => 200, body => $body });
 }
 
-# GET /certificates/letsencryptz/le_cert_re
+# GET /certificates/letsencrypt/le_cert_re
 sub get_le_cert_controller ($le_cert_name) {
-    require Relianoid::LetsencryptZ;
+    require Relianoid::Letsencrypt;
 
     my $desc    = "Show Let's Encrypt certificate $le_cert_name";
     my $le_cert = &getLetsencryptCertificates($le_cert_name);
@@ -94,10 +94,10 @@ sub get_le_cert_controller ($le_cert_name) {
     return &httpResponse({ code => 200, body => $body });
 }
 
-# POST /certificates/letsencryptz
+# POST /certificates/letsencrypt
 sub add_le_cert_controller ($json_obj) {
     require Relianoid::Certificate;
-    require Relianoid::LetsencryptZ;
+    require Relianoid::Letsencrypt;
     require Relianoid::Net::Interface;
     require Relianoid::Farm::Core;
 
@@ -105,7 +105,7 @@ sub add_le_cert_controller ($json_obj) {
     my @farm_list = &getFarmsByType("http");
 
     my $desc   = "Create LetsEncrypt certificate";
-    my $params = &getAPIModel("letsencryptz-create.json");
+    my $params = &getAPIModel("letsencrypt-create.json");
     $params->{vip}{values}      = $ip_list;
     $params->{farmname}{values} = \@farm_list;
 
@@ -189,7 +189,7 @@ sub add_le_cert_controller ($json_obj) {
     # check Email config
     my $le_conf = &getLetsencryptConfig();
     if (!$le_conf->{email}) {
-        my $msg = "LetsencryptZ email is not configured.";
+        my $msg = "Letsencrypt email is not configured.";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
@@ -201,7 +201,7 @@ sub add_le_cert_controller ($json_obj) {
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
-    &zenlog("Success, the Letsencrypt certificate has been created successfully.", "info", "LestencryptZ");
+    &log_info("Success, the Letsencrypt certificate has been created successfully.", "letsencrypt");
 
     my $out  = &getLetsencryptCertificateInfo($json_obj->{domains}[0]);
     my $body = {
@@ -213,11 +213,11 @@ sub add_le_cert_controller ($json_obj) {
     return &httpResponse({ code => 200, body => $body });
 }
 
-# DELETE /certificates/letsencryptz/le_cert_re
+# DELETE /certificates/letsencrypt/le_cert_re
 sub delete_le_cert_controller ($le_cert_name) {
     my $desc = "Delete LetsEncrypt certificate";
 
-    require Relianoid::LetsencryptZ;
+    require Relianoid::Letsencrypt;
 
     my $le_cert = &getLetsencryptCertificates($le_cert_name);
     if (!@{$le_cert}) {
@@ -239,7 +239,7 @@ sub delete_le_cert_controller ($le_cert_name) {
     }
 
     if ($eload) {
-        # check the certificate is being used by ZAPI Webserver
+        # check the certificate is being used by API web server
         my $status = &eload(
             module => 'Relianoid::EE::System::HTTP',
             func   => 'getHttpsCertUsed',
@@ -270,7 +270,7 @@ sub delete_le_cert_controller ($le_cert_name) {
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
-    &zenlog("Success, the Let's Encrypt certificate has been deleted successfully.", "info", "LestencryptZ");
+    &log_info("Success, the Let's Encrypt certificate has been deleted successfully.", "letsencrypt");
 
     my $msg  = "Let's Encrypt Certificate $le_cert_name has been deleted.";
     my $body = {
@@ -281,12 +281,12 @@ sub delete_le_cert_controller ($le_cert_name) {
     return &httpResponse({ code => 200, body => $body });
 }
 
-# POST /certificates/letsencryptz/le_cert_re/actions
+# POST /certificates/letsencrypt/le_cert_re/actions
 sub actions_le_cert_controller ($json_obj, $le_cert_name) {
     my $desc = "Let's Encrypt certificate actions";
 
     require Relianoid::Certificate;
-    require Relianoid::LetsencryptZ;
+    require Relianoid::Letsencrypt;
 
     # check the certificate is a LE cert
     my $le_cert = &getLetsencryptCertificates($le_cert_name);
@@ -300,7 +300,7 @@ sub actions_le_cert_controller ($json_obj, $le_cert_name) {
     require Relianoid::Farm::Core;
     my @farm_list = &getFarmsByType("http");
 
-    my $params = &getAPIModel("letsencryptz-action.json");
+    my $params = &getAPIModel("letsencrypt-action.json");
     $params->{vip}{values}      = $ip_list;
     $params->{farmname}{values} = \@farm_list;
 
@@ -363,7 +363,7 @@ sub actions_le_cert_controller ($json_obj, $le_cert_name) {
     # check Email config
     my $le_conf = &getLetsencryptConfig();
     if (!$le_conf->{email}) {
-        my $msg = "LetsencryptZ email is not configured.";
+        my $msg = "Letsencrypt email is not configured.";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
@@ -373,7 +373,7 @@ sub actions_le_cert_controller ($json_obj, $le_cert_name) {
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_ref->{desc} });
     }
 
-    &zenlog("Success, the Letsencrypt certificate has been renewed successfully.", "info", "LestencryptZ");
+    &log_info("Success, the Letsencrypt certificate has been renewed successfully.", "letsencrypt");
 
     my @farms_restarted;
     my @farms_restarted_error;
@@ -408,7 +408,7 @@ sub actions_le_cert_controller ($json_obj, $le_cert_name) {
         if ($eload) {
             &eload(
                 module => 'Relianoid::EE::Cluster',
-                func   => 'runZClusterRemoteManager',
+                func   => 'runClusterRemoteManager',
                 args   => [ 'farm', 'restart_farms', @farms_restarted ],
             ) if @farms_restarted;
         }
@@ -433,12 +433,12 @@ sub actions_le_cert_controller ($json_obj, $le_cert_name) {
     return &httpResponse({ code => 200, body => $body });
 }
 
-# PUT /certificates/letsencryptz/le_cert_re
+# PUT /certificates/letsencrypt/le_cert_re
 sub set_le_cert_controller ($json_obj, $le_cert_name) {
     my $desc = "Modify Let's Encrypt certificate";
 
     require Relianoid::Certificate;
-    require Relianoid::LetsencryptZ;
+    require Relianoid::Letsencrypt;
 
     # check the certificate is a LE cert
     my $le_cert = &getLetsencryptCertificates($le_cert_name);
@@ -447,7 +447,7 @@ sub set_le_cert_controller ($json_obj, $le_cert_name) {
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
-    my $params = &getAPIModel("letsencryptz-modify.json");
+    my $params = &getAPIModel("letsencrypt-modify.json");
 
     # dyn_values model
     if (defined $json_obj->{vip}) {
@@ -530,7 +530,7 @@ sub set_le_cert_controller ($json_obj, $le_cert_name) {
     # check Email config
     my $le_conf = &getLetsencryptConfig();
     if (!$le_conf->{email}) {
-        my $msg = "LetsencryptZ email is not configured.";
+        my $msg = "Letsencrypt email is not configured.";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
@@ -544,7 +544,7 @@ sub set_le_cert_controller ($json_obj, $le_cert_name) {
             return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
 
-        &zenlog("Success, the Auto Renewal for Letsencrypt certificate has been enabled successfully.", "info", "LestencryptZ");
+        &log_info("Success, the Auto Renewal for Letsencrypt certificate has been enabled successfully.", "letsencrypt");
         $msg = "The Auto Renewal for Let's Encrypt certificate $le_cert_name has been enabled successfully.";
     }
     else {
@@ -553,8 +553,8 @@ sub set_le_cert_controller ($json_obj, $le_cert_name) {
             my $msg = "The Auto Renewal for Let's Encrypt certificate $le_cert_name can't be disabled";
             return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
-        &zenlog("Success, the Auto Renewal for Letsencrypt certificate has been disabled successfully.",
-            "info", "LestencryptZ");
+        &log_info("Success, the Auto Renewal for Letsencrypt certificate has been disabled successfully.",
+            "letsencrypt");
         $msg = "The Auto Renewal for Let's Encrypt certificate $le_cert_name has been disabled successfully.";
     }
 
@@ -567,11 +567,11 @@ sub set_le_cert_controller ($json_obj, $le_cert_name) {
     return &httpResponse({ code => 200, body => $body });
 }
 
-# GET /certificates/letsencryptz/config
+# GET /certificates/letsencrypt/config
 sub get_le_conf_controller () {
     my $desc = "Get LetsEncrypt Config";
 
-    require Relianoid::LetsencryptZ;
+    require Relianoid::Letsencrypt;
     my $out  = &getLetsencryptConfig();
     my $body = {
         description => $desc,
@@ -580,17 +580,17 @@ sub get_le_conf_controller () {
     return &httpResponse({ code => 200, body => $body });
 }
 
-# PUT /certificates/letsencryptz/config
+# PUT /certificates/letsencrypt/config
 sub set_le_conf_controller ($json_obj) {
     my $desc   = "Modify LetsEncrypt Config";
-    my $params = &getAPIModel("letsencryptz_config-modify.json");
+    my $params = &getAPIModel("letsencrypt_config-modify.json");
 
     # Check allowed parameters
     if (my $error_msg = &checkApiParams($json_obj, $params, $desc)) {
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg });
     }
 
-    require Relianoid::LetsencryptZ;
+    require Relianoid::Letsencrypt;
     my $error = &setLetsencryptConfig($json_obj);
     if ($error) {
         my $msg = "The Letsencrypt Config can't be updated";

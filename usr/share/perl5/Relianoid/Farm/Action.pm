@@ -67,7 +67,7 @@ sub _runFarmStart ($farm_name, $writeconf = 0) {
 
     # finish the function if the farm is already up
     if (&getFarmStatus($farm_name) eq "up") {
-        zenlog("Farm $farm_name already up", "info", "FARMS");
+        log_info("Farm $farm_name already up", "FARMS");
         return 0;
     }
 
@@ -77,7 +77,7 @@ sub _runFarmStart ($farm_name, $writeconf = 0) {
     require Relianoid::Net::Interface;
 
     if (!&getIpAddressExists($ip)) {
-        &zenlog("The virtual interface $ip is not defined in any interface.");
+        &log_info("The virtual interface $ip is not defined in any interface.");
         return $status;
     }
 
@@ -88,12 +88,12 @@ sub _runFarmStart ($farm_name, $writeconf = 0) {
     if ($farm_type ne "datalink") {
         my $port = &getFarmVip("vipp", $farm_name);
         if (!&validatePort($ip, $port, undef, $farm_name)) {
-            &zenlog("The networking '$ip:$port' is being used.");
+            &log_info("The networking '$ip:$port' is being used.");
             return 2;
         }
     }
 
-    &zenlog("Starting farm $farm_name with type $farm_type", "info", "FARMS");
+    &log_info("Starting farm $farm_name with type $farm_type", "FARMS");
 
     if ($farm_type eq "http" || $farm_type eq "https") {
         require Relianoid::Farm::HTTP::Action;
@@ -146,13 +146,13 @@ NOTE:
 
 sub runFarmStart ($farm_name, $writeconf = 0) {
     my $status = &_runFarmStart($farm_name, $writeconf);
-    &zenlog("Farm start status: $status");
+    &log_info("Farm start status: $status");
 
     return $status if ($status != 0);
 
     require Relianoid::FarmGuardian;
     my $fg_status = &runFarmGuardianStart($farm_name, "");
-    &zenlog("Farm guardian start status: $fg_status");
+    &log_info("Farm guardian start status: $fg_status");
 
     if ($eload) {
         &eload(
@@ -246,7 +246,7 @@ sub _runFarmStop ($farm_name, $writeconf = 0) {
     my $farm_type = &getFarmType($farm_name);
     my $status    = $farm_type;
 
-    &zenlog("Stopping farm $farm_name with type $farm_type", "info", "FARMS");
+    &log_info("Stopping farm $farm_name with type $farm_type", "FARMS");
 
     if ($farm_type =~ /http/) {
         require Relianoid::Farm::HTTP::Action;
@@ -322,7 +322,7 @@ sub runFarmDelete ($farm_name) {
     my $farm_type = &getFarmType($farm_name);
     my $status    = 1;
 
-    &zenlog("running 'Delete' for $farm_name", "info", "FARMS");
+    &log_info("running 'Delete' for $farm_name", "FARMS");
 
     if ($farm_type eq "gslb") {
         require File::Path;
@@ -400,12 +400,12 @@ sub runFarmReload ($farm_name) {
     require Relianoid::Farm::Action;
 
     if (&getFarmRestartStatus($farm_name)) {
-        &zenlog("'Reload' on $farm_name is not executed. 'Restart' is needed.", "info", "FARMS");
+        &log_info("'Reload' on $farm_name is not executed. 'Restart' is needed.", "FARMS");
         return 2;
     }
     my $status = 0;
 
-    &zenlog("running 'Reload' for $farm_name", "info", "FARMS");
+    &log_info("running 'Reload' for $farm_name", "FARMS");
 
     $status = &_runFarmReload($farm_name);
 
@@ -577,8 +577,7 @@ Returns:
 =cut
 
 sub setNewFarmName ($farm_name, $new_farm_name) {
-    my $rrdap_dir = &getGlobalConfiguration('rrdap_dir');
-    my $rrd_dir   = &getGlobalConfiguration('rrd_dir');
+    my $collector_rrd_dir   = &getGlobalConfiguration('collector_rrd_dir');
 
     my $farm_type = &getFarmType($farm_name);
     my $output    = -1;
@@ -592,7 +591,7 @@ sub setNewFarmName ($farm_name, $new_farm_name) {
 
     # end of farmguardian renaming
 
-    &zenlog("setting 'NewFarmName $new_farm_name' for $farm_name farm $farm_type", "info", "FARMS");
+    &log_info("setting 'NewFarmName $new_farm_name' for $farm_name farm $farm_type", "FARMS");
 
     if ($farm_type eq "http" || $farm_type eq "https") {
         require Relianoid::Farm::HTTP::Action;
@@ -619,14 +618,14 @@ sub setNewFarmName ($farm_name, $new_farm_name) {
 
     # farmguardian renaming
     if ($output == 0) {
-        &zenlog("restarting farmguardian", 'info', 'FG') if &debug();
+        &log_info("restarting farmguardian", 'FG') if &debug();
         &runFGFarmStart($farm_name);
     }
 
     # end of farmguardian renaming
 
     # rename rrd
-    File::Copy::move("$rrdap_dir/$rrd_dir/$farm_name-farm.rrd", "$rrdap_dir/$rrd_dir/$new_farm_name-farm.rrd");
+    File::Copy::move("$collector_rrd_dir/$farm_name-farm.rrd", "$collector_rrd_dir/$new_farm_name-farm.rrd");
 
     # delete old graphs
     unlink("img/graphs/bar$farm_name.png");
@@ -670,7 +669,7 @@ sub copyFarm ($farm_name, $new_farm_name) {
     my $farm_type = &getFarmType($farm_name);
     my $output    = -1;
 
-    &zenlog("copying the farm '$farm_name' to '$new_farm_name'", "info", "FARMS");
+    &log_info("copying the farm '$farm_name' to '$new_farm_name'", "FARMS");
 
     if ($farm_type eq "http" || $farm_type eq "https") {
         require Relianoid::Farm::HTTP::Action;

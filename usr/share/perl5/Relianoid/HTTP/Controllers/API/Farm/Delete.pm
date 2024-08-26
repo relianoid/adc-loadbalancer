@@ -56,7 +56,7 @@ sub delete_farm_controller ($farmname) {
 
         &eload(
             module => 'Relianoid::EE::Cluster',
-            func   => 'runZClusterRemoteManager',
+            func   => 'runClusterRemoteManager',
             args   => [ 'farm', 'stop', $farmname ],
         ) if ($eload);
     }
@@ -68,11 +68,11 @@ sub delete_farm_controller ($farmname) {
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
-    &zenlog("Success, the farm $farmname has been deleted.", "info", "FARMS");
+    &log_info("Success, the farm $farmname has been deleted.", "FARMS");
 
     &eload(
         module => 'Relianoid::EE::Cluster',
-        func   => 'runZClusterRemoteManager',
+        func   => 'runClusterRemoteManager',
         args   => [ 'farm', 'delete', $farmname ],
     ) if ($eload);
 

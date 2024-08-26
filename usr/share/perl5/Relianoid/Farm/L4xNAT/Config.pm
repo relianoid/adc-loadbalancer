@@ -922,7 +922,7 @@ sub writeL4NlbConfigFile ($nftfile, $cfgfile) {
         return 1;
     }
 
-    &zenlog("Saving farm conf '$cfgfile'", "debug");
+    &log_debug("Saving farm conf '$cfgfile'");
 
     my $fo = &openlock($cfgfile, 'w');
 
@@ -1003,7 +1003,7 @@ sub resetL4FarmConntrack ($farm_name) {
     $conns += &getL4FarmSYNConns($farm_name, $netstat);
 
     if ($conns > 0) {
-        &zenlog("Error flushing conntrack for $farm_name", "ERROR");
+        &log_error("Error flushing conntrack for $farm_name");
         $error = 1;
     }
 

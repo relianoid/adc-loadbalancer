@@ -59,7 +59,7 @@ Returns:
 sub startL4Farm ($farm_name, $writeconf = 0) {
     require Relianoid::Farm::L4xNAT::Config;
 
-    &zenlog("Starting L4xNAT farm $farm_name") if &debug();
+    &log_info("Starting L4xNAT farm $farm_name") if &debug();
 
     my $status = 0;
     my $farm   = &getL4FarmStruct($farm_name);
@@ -110,7 +110,7 @@ sub stopL4Farm ($farm_name, $writeconf) {
     require Relianoid::Farm::Core;
     require Relianoid::Farm::L4xNAT::Config;
 
-    &zenlog("Stopping L4xNAT farm $farm_name") if &debug();
+    &log_info("Stopping L4xNAT farm $farm_name") if &debug();
 
     my $farm = &getL4FarmStruct($farm_name);
 
@@ -402,7 +402,7 @@ sub sendL4NlbCmd ($self) {
         }
 
         if (!$match) {
-            &zenlog("The farms was not loaded properly, trying it again", "error",);
+            &log_error("The farms was not loaded properly, trying it again");
             &loadL4FarmNlb($self->{farm});
         }
     }

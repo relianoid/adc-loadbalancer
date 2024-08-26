@@ -27,7 +27,7 @@ use feature qw(signatures);
 
 use Fcntl ':flock';    #use of lock functions
 
-require Relianoid::Log;
+use Relianoid::Log;
 
 my $lock_file = undef;
 my $lock_fh   = undef;
@@ -49,6 +49,7 @@ Write a lock file based on a input path
 =cut
 
 sub getLockFile ($lock) {
+    # replace slash with underscore
     $lock =~ s/\//_/g;
     $lock = "/tmp/$lock.lock";
 
@@ -63,7 +64,6 @@ Open file and lock it, return the filehandle.
 
     Usage:
 
-        my $filehandle = &openlock( $path );
         my $filehandle = &openlock( $path, 'r' );
 
     Lock is exclusive when the file is openend for writing.
@@ -94,34 +94,47 @@ Parameters:
 
 Returns:
 
-    scalar - Filehandle
+    scalar - File handle
 
 =cut
 
-sub openlock ($path, $mode = '') {
-    $mode =~ s/a/>>/;    # append
-    $mode =~ s/w/>/;     # write
-    $mode =~ s/r/</;     # read
-
+sub openlock ($path, $mode) {
     my $binmode  = $mode =~ s/b//;
     my $textmode = $mode =~ s/t//;
 
+    if ($binmode && $textmode) {
+        log_error("Raw and UTF-8 encoding cannot be used at the same time");
+        return;
+    }
+
     my $encoding = '';
-    $encoding = ":encoding(UTF-8)" if $textmode;
-    $encoding = ":raw :bytes"      if $binmode;
+    if    ($textmode) { $encoding = ":encoding(UTF-8)" }
+    elsif ($binmode)  { $encoding = ":raw :bytes" }
+
+    my $open_mode;
+    if    ($mode eq 'a') { $open_mode = '>>' }
+    elsif ($mode eq 'w') { $open_mode = '>' }
+    elsif ($mode eq 'r') { $open_mode = '<' }
+
+    if (not $open_mode) {
+        log_error("Bad open mode");
+        return;
+    }
 
     my $fh;
-    if (open($fh, "$mode $encoding", $path)) {    ## no critic (RequireBriefOpen)
+    my $open_mode_with_layer = $encoding ? "${open_mode} ${encoding}" : $open_mode;
+
+    if (open($fh, $open_mode_with_layer, $path)) {    ## no critic (RequireBriefOpen)
         if ($binmode) {
             binmode $fh;
         }
     }
     else {
-        &zenlog("Error opening the file $path: $!");
+        &log_error("Error opening the file $path: $!");
         return;
     }
 
-    if ($mode =~ />/) {
+    if ($open_mode eq ">") {
         # exclusive lock for writing
         flock $fh, LOCK_EX;
     }

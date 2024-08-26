@@ -10,5 +10,5 @@
          "required" : "true"
       }
    },
-   "url" : "/certificates/letsencryptz/config"
+   "url" : "/certificates/letsencrypt/config"
 }

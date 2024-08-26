@@ -45,13 +45,16 @@ sub get_system_user_controller () {
 
     if ('root' eq $user) {
         require Relianoid::API;
-        my $params = {
-            'user'             => $user,
-            'zapi_permissions' => &getAPI("status"),
-            'service'          => 'local'
 
-              # it is configured if the status is up
-              # 'zapikey'	=> &getAPI( "zapikey" ),
+        my $api_status = &getAPI("status");
+        my $params     = {
+            user             => $user,
+            api_permissions  => $api_status,
+            zapi_permissions => $api_status,
+            service          => 'local'
+
+            # it is configured if the status is up
+            # 'api_key'	=> &getAPI( "api_key" ),
         };
 
         return &httpResponse({
@@ -140,38 +143,36 @@ sub set_system_user_controller ($json_obj) {
             }
         }
 
-        # modify zapikey. change this parameter before than zapi permissions
-        if (exists $json_obj->{zapikey}) {
+        # modify api_key. change this parameter before than API permissions
+        if (exists $json_obj->{api_key}) {
             if ($eload) {
-                my $zapi_user = &eload(
+                my $api_user = &eload(
                     module => 'Relianoid::EE::RBAC::User::Core',
-                    func   => 'getRBACUserbyZapikey',
-                    args   => [ $json_obj->{zapikey} ],
+                    func   => 'getRBACUserByAPIKey',
+                    args   => [ $json_obj->{api_key} ],
                 );
-                if ($zapi_user and $zapi_user ne $user) {
-                    my $msg = "The zapikey is not valid.";
+
+                if ($api_user and $api_user ne $user) {
+                    my $msg = "The api_key is not valid.";
                     return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
                 }
             }
-            &setAPI('key', $json_obj->{zapikey});
+            &setAPI('key', $json_obj->{api_key});
         }
 
-        # modify zapi permissions
-        if (exists $json_obj->{zapi_permissions}) {
-            if ($json_obj->{zapi_permissions} eq 'true'
-                && !&getAPI('zapikey'))
-            {
-                my $msg = "It is necessary a zapikey to enable the zapi permissions.";
+        # modify API permissions
+        my $json_api_permissions = $json_obj->{api_permissions} // $json_obj->{zapi_permissions};
+
+        if (defined $json_api_permissions) {
+            if ($json_api_permissions eq 'true' && !&getAPI('api_key')) {
+                my $msg = "It is necessary a api_key to enable the API permissions.";
                 return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
             }
-            if (   $json_obj->{zapi_permissions} eq 'true'
-                && &getAPI("status") eq 'false')
-            {
+
+            if ($json_api_permissions eq 'true' && &getAPI("status") eq 'false') {
                 &setAPI("enable");
             }
-            elsif ($json_obj->{zapi_permissions} eq 'false'
-                && &getAPI("status") eq 'true')
-            {
+            elsif ($json_api_permissions eq 'false' && &getAPI("status") eq 'true') {
                 &setAPI("disable");
             }
         }

@@ -41,21 +41,22 @@ local $SIG{__WARN__}    = \&warning_signal;
 
 my $eload = eval { require Relianoid::ELoad };
 
-my $basedir      = &getGlobalConfiguration('basedir');
-my $configdir    = &getGlobalConfiguration('configdir');
-my $defaultgw    = &getGlobalConfiguration('defaultgw');
-my $defaultgwif  = &getGlobalConfiguration('defaultgwif');
-my $defaultgw6   = &getGlobalConfiguration('defaultgw6');
-my $defaultgwif6 = &getGlobalConfiguration('defaultgwif6');
-my $docker_flag  = &getGlobalConfiguration('docker_flag');
-my $zbindir      = &getGlobalConfiguration('zbindir');
-my $systemctl    = &getGlobalConfiguration('systemctl');
-my $snmpd_srv    = &getGlobalConfiguration('snmpd_service');
-my $ssh_srv      = &getGlobalConfiguration('sshService');
-my $cherokee_srv = &getGlobalConfiguration('http_server_service');
-my $cron_service = &getGlobalConfiguration('cron_service');
-my $action       = shift @ARGV // '';
-my $print_msg    = "";
+my $basedir           = &getGlobalConfiguration('basedir');
+my $configdir         = &getGlobalConfiguration('configdir');
+my $defaultgw         = &getGlobalConfiguration('defaultgw');
+my $defaultgwif       = &getGlobalConfiguration('defaultgwif');
+my $defaultgw6        = &getGlobalConfiguration('defaultgw6');
+my $defaultgwif6      = &getGlobalConfiguration('defaultgwif6');
+my $docker_flag       = &getGlobalConfiguration('docker_flag');
+my $bin_dir           = &getGlobalConfiguration('bin_dir');
+my $systemctl         = &getGlobalConfiguration('systemctl');
+my $snmpd_srv         = &getGlobalConfiguration('snmpd_service');
+my $ssh_srv           = &getGlobalConfiguration('sshService');
+my $cherokee_srv      = &getGlobalConfiguration('http_server_service');
+my $cron_service      = &getGlobalConfiguration('cron_service');
+my $relianoid_service = &getGlobalConfiguration('relianoid_service');
+my $action            = shift @ARGV // '';
+my $print_msg         = "";
 
 if ($action !~ /^(start|stop|restart)$/) {
     print "Usage: /etc/init.d/relianoid start|stop|restart\n";
@@ -64,7 +65,7 @@ if ($action !~ /^(start|stop|restart)$/) {
 
 sub printAndLog (@params) {
     print("@params\n");
-    zenlog(@params);
+    log_info("@params");
     return;
 }
 
@@ -115,7 +116,7 @@ sub local_http_service ($command) {
 
 if ($action eq "restart") {
     # do not use 'logAndRun' function, it is necessary to print the stdoutput
-    system('$systemctl restart $relianoid_service');
+    system("$systemctl restart $relianoid_service");
     &local_http_service('restart');    # force a cherokee restart
 }
 
@@ -125,7 +126,7 @@ if ($action eq "start") {
 
     # Configure NIC interfaces in docker.
     if (-f $docker_flag) {
-        &logAndRun("$zbindir/check-nic-dhcp");
+        &logAndRun("$bin_dir/check-nic-dhcp");
     }
 
     # ZNA firmware upgrade
@@ -158,7 +159,7 @@ if ($action eq "start") {
     require Relianoid::Farm::L4xNAT::Service;
     &loadL4FarmModules();
 
-    &zenlog("RELIANOID: Modules loaded");
+    &log_info("RELIANOID: Modules loaded");
 
     # import system interface to RELIANOID if configured
     #testing interface configured on the installation and gw
@@ -167,10 +168,6 @@ if ($action eq "start") {
         open my $fr, '<', $etc_network_interfaces;
         my @file = <$fr>;
         close $fr;
-
-        if (grep { /zenmodified/ } @file) {
-            system("sed -i 's/zenmodified/ relianoid_modified/' $etc_network_interfaces");
-        }
 
         # FIXME: Make function of this procedure
         if (!grep { /relianoid_modified/ } @file) {
@@ -199,7 +196,7 @@ if ($action eq "start") {
                                 $netmask = $block->mask;
                             }
                             else {
-                                &zenlog($Net::Netmask::error);
+                                &log_info($Net::Netmask::error);
                                 die $Net::Netmask::error;
                             }
                         }
@@ -222,18 +219,18 @@ if ($action eq "start") {
 
                 # Write interface file
                 if ($interface{name}) {
-                    &zenlog("Writing interface: $interface{name}");
+                    &log_info("Writing interface: $interface{name}");
                     &setInterfaceConfig(\%interface);
 
                     # gateway
                     if ($interface{gateway}) {
-                        &zenlog("Writing gateway: $interface{gateway}");
+                        &log_info("Writing gateway: $interface{gateway}");
                         setGlobalConfiguration('defaultgw',   $gateway);
                         setGlobalConfiguration('defaultgwif', $ifname);
                     }
 
                     # route table
-                    &zenlog("Writing route table: $interface{name}");
+                    &log_info("Writing route table: $interface{name}");
                     &writeRoutes($interface{name});
                 }
             }
@@ -261,7 +258,7 @@ if ($action eq "start") {
     my @interfaces        = @{ &getConfigInterfaceList() };
     my @system_interfaces = &getInterfaceList();
 
-    &zenlog("RELIANOID: Setting up NIC interfaces...");
+    &log_info("RELIANOID: Setting up NIC interfaces...");
     require Relianoid::Net::Core;
 
     # first real interfaces
@@ -270,7 +267,7 @@ if ($action eq "start") {
             next if (defined $iface->{type} and $iface->{type} eq 'bond');
             next unless &eload(
                 module => 'Relianoid::EE::VPN::Core',
-                func   => 'getVPNExists',
+                func   => 'getVpnExists',
                 args   => [ $$iface{name} ]
             );
         }
@@ -279,7 +276,7 @@ if ($action eq "start") {
         if ($$iface{name} eq $$iface{dev}) {
             # check if it is an existent device
             if (!grep { $$iface{name} eq $_ } @system_interfaces) {
-                &zenlog("RELIANOID: Nonexistent NIC interface $$iface{name} Config found!.");
+                &log_info("RELIANOID: Nonexistent NIC interface $$iface{name} Config found!.");
 
                 # skip ethX types, ethA1 for example
                 next if ($$iface{name} =~ /eth(?:[a-z]|[A-Z])+/);
@@ -287,7 +284,7 @@ if ($action eq "start") {
                 # remove interface config
                 my $if_file = &getInterfaceConfigFile($$iface{name});
                 if (-f $if_file) {
-                    &zenlog("RELIANOID: Deleting Nonexistent NIC interface Config File $if_file.");
+                    &log_info("RELIANOID: Deleting Nonexistent NIC interface Config File $if_file.");
                     unlink $if_file;
                 }
 
@@ -363,7 +360,7 @@ if ($action eq "start") {
     &logAndRun("$systemctl start $ssh_srv");
     &logAndRun("$systemctl start $cherokee_srv");
 
-    &zenlog("RELIANOID: Setting up VLAN interfaces...");
+    &log_info("RELIANOID: Setting up VLAN interfaces...");
 
     # vlans interfaces (ie. eth0.20)
     for my $iface (@interfaces) {
@@ -417,7 +414,7 @@ if ($action eq "start") {
 
     # Hook to enable cluster and modules
     if ($eload) {
-        &zenlog("RELIANOID: Setting up Cluster...");
+        &log_info("RELIANOID: Setting up Cluster...");
 
         $print_msg = &eload(module => 'Relianoid::EE::Service', func => 'start_cluster');
         print $print_msg . "\n" if $print_msg;
@@ -429,7 +426,7 @@ if ($action eq "start") {
         print $print_msg . "\n" if $print_msg;
     }
 
-    &zenlog("RELIANOID: Setting up virtual interfaces...");
+    &log_info("RELIANOID: Setting up virtual interfaces...");
 
     # virtual interfaces (ie. eth0:20, eth0.20:2)
     for my $iface (@interfaces) {
@@ -443,7 +440,7 @@ if ($action eq "start") {
 
         if ($return_code) {
             my $toif = &getParentInterfaceName($$iface{name});
-            &zenlog("failed addIp");
+            &log_info("failed addIp");
             my @ip_output = @{ &logAndGet("$ip_bin -$$iface{ip_v} address list dev $toif", "array") };
             if (grep { /$$iface{addr}/ } @ip_output) {
                 $return_code = 0;
@@ -475,13 +472,13 @@ if ($action eq "start") {
 
     if ($eload) {
         print("* Starting VPNs:\n");
-        my $vpns = &eload(module => 'Relianoid::EE::VPN::Core', func => 'getVPNList');
+        my $vpns = &eload(module => 'Relianoid::EE::VPN::Core', func => 'getVpnList');
 
-        &zenlog("RELIANOID: Setting up vpns...");
+        &log_info("RELIANOID: Setting up vpns...");
         for my $vpn_name (@{$vpns}) {
             my $bstatus = &eload(
                 module => 'Relianoid::EE::VPN::Core',
-                func   => 'getVPNBootstatus',
+                func   => 'getVpnBootstatus',
                 args   => ["$vpn_name"]
             );
             if ($bstatus and $bstatus eq "up") {
@@ -515,7 +512,7 @@ if ($action eq "start") {
         $enable_fg = &eload(module => 'Relianoid::EE::Service', func => 'getEnableFarmGuardian')
           if $eload;
 
-        &zenlog("RELIANOID: Setting up farms...");
+        &log_info("RELIANOID: Setting up farms...");
 
         for my $ffile (@farmsf) {
             my $farmname = &getFarmName($ffile);
@@ -586,12 +583,12 @@ if ($action eq "start") {
 
     # At this point every relianoid interface and farm is running
     # now a personalized script can be executed
-    &printAndLog("Running $configdir/zlb-start ...");
+    my $start_script = &getGlobalConfiguration('start_script');
 
-    my @ownscript = `$configdir/zlb-start 2>&1`;
+    &printAndLog("Running $start_script ...");
+    my @ownscript = `$start_script 2>&1`;
     &printAndLog(@ownscript) if (@ownscript);
-
-    &printAndLog("End of $configdir/zlb-start");
+    &printAndLog("End of $start_script");
 
     # make sure related system services are running
     if (&logAndRunCheck("$systemctl status $ssh_srv")) {
@@ -608,15 +605,15 @@ if ($action eq "start") {
 
     # Check the failback configuration
     if ($eload) {
-        if (&eload(module => 'Relianoid::EE::Cluster', func => 'checkZClusterLocalIsPrimary')) {
-            &zenlog("Local node detected as primary", "debug", "cluster");
-            &eload(module => 'Relianoid::EE::Cluster', func => 'enableZCluster');
+        if (&eload(module => 'Relianoid::EE::Cluster', func => 'checkClusterLocalIsPrimary')) {
+            &log_debug("Local node detected as primary", "cluster");
+            &eload(module => 'Relianoid::EE::Cluster', func => 'enableCluster');
         }
 
-        my $node_status = &eload(module => 'Relianoid::EE::Cluster', func => 'getZClusterNodeStatus');
+        my $node_status = &eload(module => 'Relianoid::EE::Cluster', func => 'getClusterNodeStatus');
 
         if (defined $node_status and $node_status eq "backup") {
-            &zenlog("conntrackd Synchronization against master");
+            &log_info("conntrackd Synchronization against master");
             my $primary_backup = &getGlobalConfiguration('primary_backup');
             &logAndRun("$primary_backup backup");
         }
@@ -692,12 +689,12 @@ if ($action eq "stop") {
 
     if ($eload) {
         print("* Stopping VPNs:\n");
-        my $vpns = &eload(module => 'Relianoid::EE::VPN::Core', func => 'getVPNList');
+        my $vpns = &eload(module => 'Relianoid::EE::VPN::Core', func => 'getVpnList');
 
         for my $vpn_name (@{$vpns}) {
             my $status = &eload(
                 module => 'Relianoid::EE::VPN::Core',
-                func   => 'getVPNStatus',
+                func   => 'getVpnStatus',
                 args   => ["$vpn_name"]
             );
             if ($status and $status eq "up") {
@@ -743,12 +740,12 @@ if ($action eq "stop") {
 
     # At this point every relianoid interface and farm is stopped
     # now a personalized script can be executed
-    &printAndLog("Running $configdir/zlb-stop ...");
+    my $stop_script = &getGlobalConfiguration('stop_script');
 
-    my @ownscript = `$configdir/zlb-stop 2>&1`;
+    &printAndLog("Running $stop_script ...");
+    my @ownscript = `$stop_script 2>&1`;
     &printAndLog(@ownscript) if @ownscript;
-
-    &printAndLog("End of $configdir/zlb-stop");
+    &printAndLog("End of $stop_script");
 
     &printAndLog("Stop process finished...");
 }

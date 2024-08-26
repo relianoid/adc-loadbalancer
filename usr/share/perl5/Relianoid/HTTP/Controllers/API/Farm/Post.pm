@@ -140,7 +140,7 @@ sub add_farm_controller ($json_obj) {
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
-    &zenlog("Success, the farm $json_obj->{farmname} has been created successfully.", "info", "FARMS");
+    &log_info("Success, the farm $json_obj->{farmname} has been created successfully.", "FARMS");
 
     my $out_p = $json_obj;
     $out_p->{interface} = $json_obj->{interface};
@@ -154,7 +154,7 @@ sub add_farm_controller ($json_obj) {
     if ($eload) {
         &eload(
             module => 'Relianoid::EE::Cluster',
-            func   => 'runZClusterRemoteManager',
+            func   => 'runClusterRemoteManager',
             args   => [ 'farm', 'start', $json_obj->{farmname} ],
         );
     }

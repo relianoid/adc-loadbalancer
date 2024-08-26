@@ -62,7 +62,7 @@ Returns:
 sub writeRoutes ($if_name) {
     my $rttables = &getGlobalConfiguration('rttables');
 
-    &zenlog("Creating table 'table_$if_name'", "debug");
+    &log_debug("Creating table 'table_$if_name'");
 
     open my $fh, '<', $rttables;
     my @contents = <$fh>;
@@ -88,7 +88,7 @@ sub writeRoutes ($if_name) {
         print $fh "$rtnumber\ttable_$if_name\n";
         close $fh;
 
-        &zenlog("Created the table ID 'table_$if_name'", "info", "network");
+        &log_info("Created the table ID 'table_$if_name'", "network");
     }
 
     return;
@@ -157,7 +157,7 @@ sub applyRoutingCmd ($action, $if_ref, $table) {
     my $ip_local    = NetAddr::IP->new($$if_ref{addr}, $$if_ref{mask});
     my $net_local   = $ip_local->network();
 
-    &zenlog("addlocalnet: $action route for $$if_ref{name} in table $table", "debug", "NETWORK")
+    &log_debug("addlocalnet: $action route for $$if_ref{name} in table $table", "NETWORK")
       if &debug();
 
     my $ip_cmd =
@@ -188,7 +188,7 @@ See Also:
 =cut
 
 sub addlocalnet ($if_ref) {
-    &zenlog("addlocalnet( name: $$if_ref{name}, addr: $$if_ref{addr}, mask: $$if_ref{mask} )", "debug", "NETWORK")
+    &log_debug("addlocalnet( name: $$if_ref{name}, addr: $$if_ref{addr}, mask: $$if_ref{mask} )", "NETWORK")
       if &debug();
 
     # Get network
@@ -231,9 +231,9 @@ sub addlocalnet ($if_ref) {
             my $net_local_table = $ip_table->network();
 
             if ($net_local_table eq $net_local && $$if_ref{name} ne $link) {
-                &zenlog(
+                &log_error(
                     "The network $net_local of dev $$if_ref{name} is the same than the network for $link, route is not going to be applied in table $table",
-                    "error", "network"
+                    "network"
                 );
                 $skip_route = 1;
             }
@@ -276,7 +276,7 @@ sub addlocalnet ($if_ref) {
         }
         next if (grep { /^(?:\*|table_$$if_ref{name})$/ } @isolates);
 
-        &zenlog("addlocalnet: into current interface: name $$iface{name} type $$iface{type}", "debug", "NETWORK");
+        &log_debug("addlocalnet: into current interface: name $$iface{name} type $$iface{type}", "NETWORK");
 
         #if duplicated network, next
         my $ip    = NetAddr::IP->new($$iface{addr}, $$iface{mask});
@@ -284,9 +284,9 @@ sub addlocalnet ($if_ref) {
         my $table = "table_$$if_ref{name}";
 
         if ($net eq $net_local && $$iface{name} ne $$if_ref{name}) {
-            &zenlog(
+            &log_error(
                 "The network $net of dev $$iface{name} is the same than the network for $$if_ref{name}, the route is not going to be applied in table $table",
-                "error", "network"
+                "network"
             );
             next;
         }
@@ -348,7 +348,7 @@ sub isRoute ($route, $ipv = undef) {
     if (&debug() > 1) {
         my $msg = ($exists) ? "(Already exists)" : "(Not found)";
         $msg .= " $ip_cmd";
-        &zenlog($msg, "debug", "net");
+        &log_debug($msg, "net");
     }
 
     return $exists;
@@ -486,7 +486,7 @@ sub isRule ($conf) {
     if (&debug() > 1) {
         my $msg = ($exist) ? "(Already existed)" : "(Not found)";
         $msg .= " $cmd";
-        &zenlog($msg, "debug", "net");
+        &log_debug($msg, "net");
     }
 
     return $exist;
@@ -706,7 +706,7 @@ sub setRule ($action, $rule) {
 
     my $isrule = &isRule($rule);
 
-    &zenlog("action '$action' and the rule exist=$isrule", "debug", "net");
+    &log_debug("action '$action' and the rule exist=$isrule", "net");
 
     if ($action eq "add" && $isrule == 0) {
         &applyRule($action, $rule);
@@ -769,8 +769,7 @@ sub applyRoutes ($table, $if_ref, $gateway = undef) {
     if (!defined $$if_ref{vini} || $$if_ref{vini} eq '') {
         if ($table eq "local") {
             my $gateway = $$if_ref{gateway} // '';
-            &zenlog("Applying $table routes in stack IPv$$if_ref{ip_v} to $$if_ref{name} with gateway \"${gateway}\"",
-                "info", "NETWORK");
+            &log_info("Applying $table routes in stack IPv$$if_ref{ip_v} to $$if_ref{name} with gateway \"${gateway}\"", "NETWORK");
 
             &addlocalnet($if_ref);
 
@@ -803,10 +802,10 @@ sub applyRoutes ($table, $if_ref, $gateway = undef) {
                 }
 
                 if (&existRoute("default via $gateway dev $$if_ref{name}", 1, 0)) {
-                    &zenlog("Gateway \"$gateway\" is already applied in $table routes in stack IPv$$if_ref{ip_v}", "info", "NETWORK");
+                    &log_info("Gateway \"$gateway\" is already applied in $table routes in stack IPv$$if_ref{ip_v}", "NETWORK");
                 }
                 else {
-                    &zenlog("Applying $table routes in stack IPv$$if_ref{ip_v} with gateway \"$gateway\"", "info", "NETWORK");
+                    &log_info("Applying $table routes in stack IPv$$if_ref{ip_v} with gateway \"$gateway\"", "NETWORK");
                     my $ip_cmd = "$ip_bin -$$if_ref{ip_v} route $action default via $gateway dev $$if_ref{name} $routeparams";
                     $status = &logAndRun("$ip_cmd");
                 }
@@ -838,7 +837,7 @@ sub applyRoutes ($table, $if_ref, $gateway = undef) {
         if ($eload) {
             my $cl_status = &eload(
                 module => 'Relianoid::EE::Cluster',
-                func   => 'getZClusterNodeStatus',
+                func   => 'getClusterNodeStatus',
                 args   => [],
             );
             my $cl_maintenance = &eload(
@@ -849,7 +848,7 @@ sub applyRoutes ($table, $if_ref, $gateway = undef) {
 
             if (($cl_status and $cl_status ne "backup") and $cl_maintenance ne "true") {
                 require Relianoid::Net::Util;
-                &zenlog("Announcing garp $if_announce and $$if_ref{addr} ");
+                &log_info("Announcing garp $if_announce and $$if_ref{addr} ");
                 &sendGArp($if_announce, $$if_ref{addr});
             }
         }
@@ -890,7 +889,7 @@ sub delRoutes ($table, $if_ref) {
 
     my $status = 0;
 
-    &zenlog("Deleting $table routes for IPv$$if_ref{ip_v} in interface $$if_ref{name}", "info", "NETWORK");
+    &log_info("Deleting $table routes for IPv$$if_ref{ip_v} in interface $$if_ref{name}", "NETWORK");
 
     if (!defined $$if_ref{vini} || $$if_ref{vini} eq '') {
         #an interface is going to be deleted, delete the rule of the IP first
@@ -900,7 +899,7 @@ sub delRoutes ($table, $if_ref) {
         if ($table eq "local") {
             # exists if the tables does not exist
             if (!grep { /^table_$if_ref->{name}/ } &listRoutingTablesNames()) {
-                &zenlog("The table table_$if_ref->{name} was not flushed because it was not found", "debug2", "net");
+                &log_debug2("The table table_$if_ref->{name} was not flushed because it was not found", "net");
                 return 0;
             }
 
@@ -917,15 +916,15 @@ sub delRoutes ($table, $if_ref) {
             $status = $errno;
 
             if ($status) {
-                &zenlog("running: $ip_cmd",     "error", "SYSTEM");
-                &zenlog("out: @{$out_ref}",     "error", "SYSTEM") if @{$out_ref};
-                &zenlog("err: @{$err_ref}",     "error", "SYSTEM") if @{$err_ref};
-                &zenlog("last command failed!", "error", "SYSTEM");
+                &log_error("running: $ip_cmd",     "SYSTEM");
+                &log_error("out: @{$out_ref}",     "SYSTEM") if @{$out_ref};
+                &log_error("err: @{$err_ref}",     "SYSTEM") if @{$err_ref};
+                &log_error("last command failed!", "SYSTEM");
             }
             else {
-                &zenlog("running: $ip_cmd", "debug",  "SYSTEM");
-                &zenlog("out: @{$out_ref}", "debug2", "SYSTEM") if @{$out_ref};
-                &zenlog("err: @{$err_ref}", "debug2", "SYSTEM") if @{$err_ref};
+                &log_debug("running: $ip_cmd", "SYSTEM");
+                &log_debug2("out: @{$out_ref}", "SYSTEM") if @{$out_ref};
+                &log_debug2("err: @{$err_ref}", "SYSTEM") if @{$err_ref};
             }
 
             my $rule = &getRuleFromIface($if_ref);
@@ -1169,7 +1168,7 @@ sub listRoutingTablesNames () {
     my @exceptions = ('local', 'default', 'unspec');
 
     require Relianoid::Lock;
-    my $fh = &openlock($rttables, '<');
+    my $fh = &openlock($rttables, 'r');
     chomp(my @rttables_lines = <$fh>);
     close $fh;
 
@@ -1219,7 +1218,7 @@ sub listRoutingRulesSys ($filter = undef) {
 
     my $dec_data = eval { JSON::decode_json($data); };
     if ($@) {
-        &zenlog("Decoding json: $@", "error", "net");
+        &log_error("Decoding json: $@", "net");
         $dec_data = [];
     }
 

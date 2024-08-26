@@ -75,7 +75,7 @@ sub setHTTPFarmClientTimeout ($client, $farm_name) {
         $i_f++;
 
         if ($filefarmhttp[$i_f] =~ /^Client/) {
-            &zenlog("setting 'ClientTimeout $client' for $farm_name farm http", "info", "LSLB");
+            &log_info("setting 'ClientTimeout $client' for $farm_name farm http", "LSLB");
             $filefarmhttp[$i_f] = "Client\t\t $client";
             $output             = 0;
             $found              = "true";
@@ -146,7 +146,7 @@ sub setHTTPFarmSessionType ($session, $farm_name) {
     my $lock_file = &getLockFile($farm_name);
     my $lock_fh   = &openlock($lock_file, 'w');
 
-    &zenlog("Setting 'Session type $session' for $farm_name farm http", "info", "LSLB");
+    &log_info("Setting 'Session type $session' for $farm_name farm http", "LSLB");
     tie my @contents, 'Tie::File', "$configdir\/$farm_filename";
 
     my $i     = -1;
@@ -252,7 +252,7 @@ sub setHTTPFarmBlacklistTime ($blacklist_time, $farm_name) {
         $i_f++;
 
         if ($filefarmhttp[$i_f] =~ /^Alive/) {
-            &zenlog("Setting 'Blacklist time $blacklist_time' for $farm_name farm http", "info", "LSLB");
+            &log_info("Setting 'Blacklist time $blacklist_time' for $farm_name farm http", "LSLB");
 
             $filefarmhttp[$i_f] = "Alive\t\t $blacklist_time";
             $output             = 0;
@@ -344,7 +344,7 @@ sub setHTTPFarmHttpVerb ($verb, $farm_name) {
         $i_f++;
 
         if ($filefarmhttp[$i_f] =~ /xHTTP/) {
-            &zenlog("Setting 'Http verb $verb' for $farm_name farm http", "info", "LSLB");
+            &log_info("Setting 'Http verb $verb' for $farm_name farm http", "LSLB");
 
             $filefarmhttp[$i_f] = "\txHTTP $verb";
             $output             = 0;
@@ -546,7 +546,7 @@ sub setHTTPFarmRewriteL ($farm_name, $rewritelocation, $path = undef) {
     my $farm_filename = &getFarmFile($farm_name);
     my $output        = 1;
 
-    &zenlog("setting 'Rewrite Location' for $farm_name to $rewritelocation", "info", "LSLB");
+    &log_info("setting 'Rewrite Location' for $farm_name to $rewritelocation", "LSLB");
 
     my $lock_file = &getLockFile($farm_name);
     my $lock_fh   = &openlock($lock_file, 'w');
@@ -638,7 +638,7 @@ sub setHTTPFarmConnTO ($tout, $farm_name) {
     my $farm_filename = &getFarmFile($farm_name);
     my $output        = -1;
 
-    &zenlog("Setting 'ConnTo timeout $tout' for $farm_name farm http", "info", "LSLB");
+    &log_info("Setting 'ConnTo timeout $tout' for $farm_name farm http", "LSLB");
 
     my $lock_file = &getLockFile($farm_name);
     my $lock_fh   = &openlock($lock_file, 'w');
@@ -870,11 +870,11 @@ sub setHTTPFarmErr ($farm_name, $content, $error) {
     my $output = -1;
 
     if (not $error) {
-        zenlog("Setting undefined HTTP Err", "error");
+        log_error("Setting undefined HTTP Err");
         return $output;
     }
 
-    &zenlog("Setting 'Err$error' for $farm_name farm http", "info", "LSLB");
+    &log_info("Setting 'Err$error' for $farm_name farm http", "LSLB");
 
     my $file_path = "${configdir}/${farm_name}_Err${error}.html";
 
@@ -1008,21 +1008,6 @@ sub setHTTPFarmConfErrFile ($enabled, $farm_name, $err) {
         }
     }
     untie @filefarmhttp;
-
-    if ($eload) {
-        if ($enabled eq "true") {
-            if (!-f "$configdir\/$farm_name\_ErrWAF.html") {
-                open my $f_err, '>', "${configdir}/${farm_name}_ErrWAF.html";
-                print $f_err "The request was rejected by the server.\n";
-                close $f_err;
-            }
-        }
-        else {
-            if (-f "$configdir\/$farm_name\_ErrWAF.html") {
-                unlink "$configdir\/$farm_name\_ErrWAF.html";
-            }
-        }
-    }
 
     return;
 }
@@ -1357,17 +1342,18 @@ sub getHTTPFarmConfigIsOK ($farm_name) {
     my $rc  = $?;
 
     if ($rc or &debug()) {
-        my $tag     = ($rc) ? 'error'  : 'debug';
-        my $message = $rc   ? 'failed' : 'running';
-
-        &zenlog("$message: $proxy_command", $tag, "LSLB");
-        &zenlog("output: $run ",            $tag, "LSLB");
+        if ($rc) {
+            &log_error("failed: $proxy_command", "LSLB");
+        }
+        else {
+            &log_debug("running: $proxy_command", "LSLB");
+        }
 
         if ($run =~ / line (\d+)/) {
             my $line_number = $1;
             my $line        = `sed -n '$line_number p' ${farm_filepath}`;
 
-            zenlog("${farm_filepath} line $line_number: $line", "error");
+            log_error("${farm_filepath} line $line_number: $line");
         }
     }
 
@@ -1404,8 +1390,8 @@ sub getHTTPFarmConfigErrorMessage ($farm_name) {
     chomp @run;
     shift @run if ($run[0] =~ /starting\.\.\./);
 
-    &zenlog("Error checking ${farm_filepath}.", "Error", "LSLB");
-    &zenlog($run[0],                            "Error", "LSLB");
+    &log_error("Error checking ${farm_filepath}.", "LSLB");
+    &log_error($run[0],                            "LSLB");
 
     $run[0] = $run[1] if ($run[0] =~ /waf/i);
     $run[0] =~ / line (\d+): /;
@@ -1457,10 +1443,10 @@ sub getHTTPFarmConfigErrorMessage ($farm_name) {
     }
     elsif (&debug()) {
         $msg = $run[0];
-        zenlog("${farm_filepath} line $error_line_number: $line", "error");
+        log_error("${farm_filepath} line $error_line_number: $line");
     }
 
-    &zenlog("Error checking config file: $msg", 'debug');
+    &log_debug("Error checking config file: $msg");
 
     return $msg;
 }
@@ -1691,7 +1677,7 @@ sub addHTTPAddheader ($farm_name, $header) {
     }
     untie @fileconf;
 
-    &zenlog("Could not add AddHeader") if $errno;
+    &log_info("Could not add AddHeader") if $errno;
 
     return $errno;
 }
@@ -1741,7 +1727,7 @@ sub modifyHTTPAddheader ($farm_name, $header, $header_ind) {
     }
     untie @fileconf;
 
-    &zenlog("Could not modify AddHeader") if $errno;
+    &log_info("Could not modify AddHeader") if $errno;
 
     return $errno;
 }
@@ -1789,7 +1775,7 @@ sub delHTTPAddheader ($farm_name, $header_ind) {
     }
     untie @fileconf;
 
-    &zenlog("Could not remove HeadRemove") if $errno;
+    &log_info("Could not remove HeadRemove") if $errno;
 
     return $errno;
 }
@@ -1863,7 +1849,7 @@ sub addHTTPHeadremove ($farm_name, $header) {
     }
     untie @fileconf;
 
-    &zenlog("Could not add HeadRemove") if $errno;
+    &log_info("Could not add HeadRemove") if $errno;
 
     return $errno;
 }
@@ -1913,7 +1899,7 @@ sub modifyHTTPHeadremove ($farm_name, $header, $header_ind) {
     }
     untie @fileconf;
 
-    &zenlog("Could not modify HeadRemove") if $errno;
+    &log_info("Could not modify HeadRemove") if $errno;
 
     return $errno;
 }
@@ -1961,7 +1947,7 @@ sub delHTTPHeadremove ($farm_name, $header_ind) {
     }
     untie @fileconf;
 
-    &zenlog("Could not remove HeadRemove") if $errno;
+    &log_info("Could not remove HeadRemove") if $errno;
 
     return $errno;
 }
@@ -2035,7 +2021,7 @@ sub addHTTPAddRespheader ($farm_name, $header) {
     }
     untie @fileconf;
 
-    &zenlog("Could not add AddResponseHeader") if $errno;
+    &log_info("Could not add AddResponseHeader") if $errno;
 
     return $errno;
 }
@@ -2085,7 +2071,7 @@ sub modifyHTTPAddRespheader ($farm_name, $header, $header_ind) {
     }
     untie @fileconf;
 
-    &zenlog("Could not modify AddResponseHeader") if $errno;
+    &log_info("Could not modify AddResponseHeader") if $errno;
 
     return $errno;
 }
@@ -2133,7 +2119,7 @@ sub delHTTPAddRespheader ($farm_name, $header_ind) {
     }
     untie @fileconf;
 
-    &zenlog("Could not remove AddResponseHeader") if $errno;
+    &log_info("Could not remove AddResponseHeader") if $errno;
 
     return $errno;
 }
@@ -2208,7 +2194,7 @@ sub addHTTPRemRespHeader ($farm_name, $header) {
     }
     untie @fileconf;
 
-    &zenlog("Could not add RemoveResponseHead") if $errno;
+    &log_info("Could not add RemoveResponseHead") if $errno;
 
     return $errno;
 }
@@ -2258,7 +2244,7 @@ sub modifyHTTPRemRespHeader ($farm_name, $header, $header_ind) {
     }
     untie @fileconf;
 
-    &zenlog("Could not modify RemoveResponseHead") if $errno;
+    &log_info("Could not modify RemoveResponseHead") if $errno;
 
     return $errno;
 }
@@ -2306,7 +2292,7 @@ sub delHTTPRemRespHeader ($farm_name, $header_ind) {
     }
     untie @fileconf;
 
-    &zenlog("Could not remove RemoveResponseHead") if $errno;
+    &log_info("Could not remove RemoveResponseHead") if $errno;
 
     return $errno;
 }
@@ -2521,7 +2507,7 @@ sub setHTTPFarmLogs ($farm_name, $action) {
         writeFileFromArray("$configdir/$farm_filename", \@lines);
     }
     else {
-        &zenlog("Error modifying http logs", "error", "LSLB");
+        &log_error("Error modifying http logs", "LSLB");
     }
 
     return $output;

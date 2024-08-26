@@ -95,7 +95,7 @@ Bugs:
 
 sub getInterfaceConfig ($if_name, $ip_v = '') {
     unless (defined $if_name) {
-        &zenlog('getInterfaceConfig got undefined interface name', 'debug2', 'network');
+        &log_debug2('getInterfaceConfig got undefined interface name', 'network');
     }
 
     my $configdir       = &getGlobalConfiguration('configdir');
@@ -172,9 +172,11 @@ sub getInterfaceConfig ($if_name, $ip_v = '') {
     # Interfaces without ip do not get HW addr via socket,
     # in those cases get the MAC from the OS.
     unless ($iface->{mac}) {
-        open my $fh, '<', "/sys/class/net/$if_name/address";
-        chomp($iface->{mac} = <$fh>);
-        close $fh;
+        if (-f "/sys/class/net/$if_name/address") {
+            open my $fh, '<', "/sys/class/net/$if_name/address";
+            chomp($iface->{mac} = <$fh>);
+            close $fh;
+        }
     }
 
     if ($eload) {
@@ -245,8 +247,16 @@ sub getInterfaceConfigParam ($if_name, $params_ref) {
         return;
     }
 
-    require Relianoid::Config;
-    my $if_config = &getTiny($config_filename);
+    require Config::Tiny;
+    my $if_config;
+    if (!-f "$config_filename") {
+        require Relianoid::File;
+        createFile($config_filename);
+        $if_config = Config::Tiny->new;
+    }
+    else {
+        $if_config = Config::Tiny->read($config_filename);
+    }
 
     for my $param (@{$params_ref}) {
         if (defined $if_config->{$if_name}{$param}) {
@@ -281,13 +291,13 @@ sub setInterfaceConfig ($if_ref) {
 
     my $fileHandle = Config::Tiny->new;
     if (ref $if_ref ne 'HASH') {
-        &zenlog("Input parameter is not a hash reference", "warning", "NETWORK");
+        &log_warn("Input parameter is not a hash reference", "NETWORK");
         return;
     }
 
     if (&debug() > 2) {
         require Data::Dumper;
-        &zenlog("setInterfaceConfig: " . Data::Dumper->Dumper($if_ref), "debug", "NETWORK");
+        &log_debug("setInterfaceConfig: " . Data::Dumper->Dumper($if_ref), "NETWORK");
     }
 
     my @if_params       = ('status', 'name', 'addr', 'mask', 'gateway', 'mac', 'dhcp', 'isolate');
@@ -336,7 +346,7 @@ sub cleanInterfaceConfig ($if_ref) {
     my $err       = 0;
 
     if (!-f $file) {
-        &zenlog("The file $file has not been found", "info", "NETWORK");
+        &log_info("The file $file has not been found", "NETWORK");
         return 1;
     }
 
@@ -421,7 +431,7 @@ sub getConfigInterfaceList ($params_ref = undef) {
         closedir $dir;
     }
     else {
-        &zenlog("Error reading directory $configdir: $!", "error", "NETWORK");
+        &log_error("Error reading directory $configdir: $!", "NETWORK");
     }
 
     for my $filename (@filenames) {
@@ -880,7 +890,7 @@ Returns:
 sub getInterfaceType ($if_name) {
     my $type;
 
-    if ($if_name eq '' || !defined $if_name) {
+    if (!defined $if_name || $if_name eq '') {
         return;
     }
 
@@ -924,7 +934,9 @@ sub getInterfaceType ($if_name) {
             return 'virtual';
         }
         else {
-            return;
+            # vpn interfaces that are being deleted will exit here
+            # return an empty string to be able to compare with strings
+            return '';
         }
     }
 
@@ -932,9 +944,14 @@ sub getInterfaceType ($if_name) {
     {
         my $if_type_filename = "/sys/class/net/$if_name/type";
 
-        open(my $fh, '<', $if_type_filename) or die "Could not open file ${if_type_filename}: $!";
-        chomp($code = <$fh>);
-        close $fh;
+        if (open(my $fh, '<', $if_type_filename)) {
+            chomp($code = <$fh>);
+            close $fh;
+        }
+        else {
+            log_error("Could not open file ${if_type_filename}: $!");
+            return;
+        }
     }
 
     if ($code == 1) {
@@ -1023,8 +1040,9 @@ sub getInterfaceType ($if_name) {
 
     my $msg = "Could not recognize the type of the interface $if_name.";
 
-    &zenlog($msg, "error", "NETWORK");
-    die($msg);    # This should not happen
+    &log_error($msg, "NETWORK");
+
+    return;
 }
 
 =pod
@@ -1103,7 +1121,7 @@ sub getInterfaceTypeList ($list_type, $iface_name = undef) {
     }
     else {
         my $msg = "Interface type '$list_type' is not supported.";
-        &zenlog($msg, "error", "NETWORK");
+        &log_error($msg, "NETWORK");
         die($msg);
     }
 
@@ -1440,7 +1458,7 @@ sub getIpAddressList () {
     my @out    = ();
     my $params = ["addr"];
     for my $if_ref (@{ &getConfigInterfaceList($params) }) {
-        if (defined $if_ref->{addr}) {
+        if ($if_ref->{addr}) {
             push @out, $if_ref->{addr};
         }
     }
@@ -1568,7 +1586,7 @@ sub get_interface_list_struct () {
     if ($eload) {
         $cluster_if = &eload(
             module => 'Relianoid::EE::Cluster',
-            func   => 'getZClusterInterfaces',    # 100
+            func   => 'getClusterInterfaces',     # 100
         );
     }
 
@@ -1729,7 +1747,7 @@ sub get_nic_list_struct () {
     my @output_list;
 
     if ($eload) {
-        $cluster_if = &eload(module => 'Relianoid::EE::Cluster', func => 'getZClusterInterfaces');
+        $cluster_if = &eload(module => 'Relianoid::EE::Cluster', func => 'getClusterInterfaces');
     }
 
     for my $if_ref (&getInterfaceTypeList('nic')) {
@@ -1855,7 +1873,7 @@ sub get_vlan_list_struct () {
         # get cluster interfaces
         $cluster_if = &eload(
             module => 'Relianoid::EE::Cluster',
-            func   => 'getZClusterInterfaces',
+            func   => 'getClusterInterfaces',
         );
     }
 
@@ -2152,10 +2170,10 @@ sub createVlan ($if_ref) {
     }
 
     if ($err) {
-        &zenlog("The vlan $if_ref->{name} could not be created", "error", "NETWORK");
+        &log_error("The vlan $if_ref->{name} could not be created", "NETWORK");
     }
     else {
-        &zenlog("The vlan $if_ref->{name} was created properly", "info", "NETWORK");
+        &log_info("The vlan $if_ref->{name} was created properly", "NETWORK");
     }
 
     return $err;

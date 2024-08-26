@@ -29,7 +29,7 @@ for my $file (@iface_files) {
       if (!(Config::Tiny->errstr =~ /$iface/)
         && defined $iface_file->{$iface});
 
-    &zenlog("Migrating $iface configuration files", "info", "NETWORK");
+    &log_info("Migrating $iface configuration files", "NETWORK");
 
     #Is not in Tiny format, if unset, delete file, if set, parse the file
     say "File $file not in tiny format";
@@ -41,17 +41,17 @@ for my $file (@iface_files) {
     require Relianoid::Net::Interface;
     &setInterfaceConfig($if_ref) if (defined $if_ref);
 }
-&zenlog("Interfaces configuration migration finished", "info", "NETWORK");
+&log_info("Interfaces configuration migration finished", "NETWORK");
 
 sub _getInterfaceConfig    # \%iface ($if_name, $ip_version)
 {
     my ($if_name) = @_;
 
     unless (defined $if_name) {
-        &zenlog('getInterfaceConfig got undefined interface name', 'debug2', 'network');
+        &log_debug2('getInterfaceConfig got undefined interface name', 'network');
     }
 
-    #~ &zenlog( "[CALL] getInterfaceConfig( $if_name )" );
+    #~ &log_info( "[CALL] getInterfaceConfig( $if_name )" );
 
     my $ip_version;
     my $if_line;

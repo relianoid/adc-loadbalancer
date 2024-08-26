@@ -37,7 +37,7 @@ use warnings;
 my $bin    = "/usr/local/relianoid/bin/relianoid";
 my $action = $ARGV[0];
 
-if ("$action" eq "start") {
+if ("$action" eq "start" || "$action" eq "reload") {
     exit system "$bin start > /dev/console";
 }
 
@@ -51,4 +51,4 @@ if ("$action" eq "restart") {
     exit system "$bin start > /dev/console";
 }
 
-print "Usage: /etc/init.d/relianoid ( stop | start | restart )\n";
+print "Usage: /etc/init.d/relianoid ( stop | start | restart | reload )\n";
