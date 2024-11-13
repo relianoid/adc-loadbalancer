@@ -305,16 +305,22 @@ sub getFGObject ($fg_name, $use_template = '') {
         require Relianoid::File;
         createFile($file);
         $obj = Config::Tiny->new;
+        return $obj;
     }
-    else {
-        $obj = Config::Tiny->read($file);
+
+    $obj = Config::Tiny->read($file);
+
+    if (! defined $fg_name || $fg_name =~ /^$/) {
+        return $obj;
     }
+
     if (exists $obj->{$fg_name}) {
         $obj = $obj->{$fg_name};
+        $obj = &setConfigStr2Arr($obj, ['farms']);
+        return $obj;
     }
-    $obj = &setConfigStr2Arr($obj, ['farms']);
 
-    return $obj;
+    return;
 }
 
 =pod
@@ -396,6 +402,7 @@ Returns:
 
 sub createFGTemplate ($name, $template) {
     my $values = &getFGObject($template, 'template');
+    return if (! defined $values);
     $values->{template} = "false";
 
     &setFGObject($name, $values);
@@ -496,7 +503,10 @@ sub setFGObject ($fg_name, $key = undef, $value = undef) {
     # if the fg does not exist in config file, take it from template file
     unless (&getFGExistsConfig($fg_name)) {
         my $template = &getFGObject($fg_name, 'template');
-        $out = &setTinyObj($fg_conf, $fg_name, $template);
+
+        if (defined $template) {
+            $out = &setTinyObj($fg_conf, $fg_name, $template);
+        }
     }
 
     $out = &runFGStop($fg_name) if $restart;
@@ -594,8 +604,10 @@ sub linkFGFarm ($fg_name, $farm, $srv = undef) {
     # if the fg does not exist in config file, take it from template file
     unless (&getFGExistsConfig($fg_name)) {
         my $template = &getFGObject($fg_name, 'template');
-        $out = &setTinyObj($fg_conf, $fg_name, $template);
-        return $out if $out;
+        if (defined $template) {
+            $out = &setTinyObj($fg_conf, $fg_name, $template);
+            return $out if $out;
+        }
     }
 
     $out = &setTinyObj($fg_conf, $fg_name, 'farms', $farm_tag, 'add');

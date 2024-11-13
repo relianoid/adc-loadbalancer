@@ -62,24 +62,21 @@ sub setSystemPackagesRepo () {
         );
     }
 
+    require Relianoid::File;
+
     my $host         = &getGlobalConfiguration('repo_url_relianoid');
     my $file         = &getGlobalConfiguration('apt_source_relianoid');
     my $aptget_bin   = &getGlobalConfiguration('aptget_bin');
     my $distribution = "bookworm";
     my $repo_version = "v7";
-    my $error        = 0;
+    my $content      = "deb http://$host/ce/$repo_version/ $distribution main\n";
 
     &log_info("Configuring the APT repository", "SYSTEM");
 
-    # configuring repository
-    open(my $fh, '>', $file);
-    print $fh "deb http://$host/ce/$repo_version/ $distribution main\n";
-    close $fh;
+    my $success    = 1;
+    my $error_code = (setFile($file, $content) == $success) ? 0 : 1;
 
-    # update repositories
-    $error = &logAndRun("$aptget_bin update -o Dir::Etc::sourceparts=\"-\" -o Dir::Etc::sourcelist=$file");
-
-    return $error;
+    return $error_code;
 }
 
 =pod

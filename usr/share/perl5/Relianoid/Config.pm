@@ -23,7 +23,7 @@
 
 use strict;
 use warnings;
-use feature qw(signatures state);
+use feature qw(say signatures state);
 
 use Relianoid::Log;
 
@@ -442,8 +442,6 @@ Returns:
 =cut
 
 sub migrateConfigFiles () {
-    require Relianoid::Debug;
-
     my $mig_dir = &getGlobalConfiguration('mig_dir');
 
     opendir(my $dh, $mig_dir);
@@ -452,11 +450,14 @@ sub migrateConfigFiles () {
 
     for my $file (@files) {
         my $errno = system("${mig_dir}/${file} >/dev/null");
+        my $msg = "";
 
-        if (debug()) {
-            my $msg = "Running migration ${mig_dir}/${file} got $errno\n";
-            print STDERR $msg;
-            log_debug($msg);
+        if ($errno == 0) {
+            $msg = "[ OK ]  ${file} ($errno)";
+            log_info($msg);
+        } else {
+            $msg = "[ERROR] ${file} ($errno)";
+            log_error($msg);
         }
     }
 

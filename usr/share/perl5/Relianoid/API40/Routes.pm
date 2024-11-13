@@ -68,20 +68,19 @@ if ($PATH_INFO =~ qr{^/certificates/letsencryptz?}) {
 if ($PATH_INFO =~ qr{^/certificates}) {
     require Relianoid::HTTP::Controllers::API::Certificate;
 
-    my $cert_re      = &getValidFormat('certificate');
     my $cert_name_re = &getValidFormat('certificate_name');
 
-    GET qr{^/certificates$}                 => \&list_certificates_controller;       #  GET List SSL certificates
-    GET qr{^/certificates/($cert_re)/info$} => \&get_certificate_info_controller;    #  GET SSL certificate information
-    GET qr{^/certificates/($cert_re)$}      => \&download_certificate_controller;    #  Download SSL certificate
-    POST qr{^/certificates$}     => \&create_csr_controller;                         #  Create CSR certificates
-    POST qr{^/certificates/pem$} => \&create_certificate_controller;                 #  POST certificates
+    GET qr{^/certificates$}                      => \&list_certificates_controller;       #  GET List SSL certificates
+    GET qr{^/certificates/($cert_name_re)/info$} => \&get_certificate_info_controller;    #  GET SSL certificate information
+    GET qr{^/certificates/($cert_name_re)$}      => \&download_certificate_controller;    #  Download SSL certificate
+    POST qr{^/certificates$}     => \&create_csr_controller;                              #  Create CSR certificates
+    POST qr{^/certificates/pem$} => \&create_certificate_controller;                      #  POST certificates
 
     if ($PATH_INFO !~ qr{^/certificates/letsencryptz?-wildcard$}) {
-        POST qr{^/certificates/($cert_name_re)$} => \&upload_certificate_controller;    #  POST certificates
+        POST qr{^/certificates/($cert_name_re)$} => \&upload_certificate_controller;      #  POST certificates
     }
 
-    DELETE qr{^/certificates/($cert_re)$} => \&delete_certificate_controller;           #  DELETE certificate
+    DELETE qr{^/certificates/($cert_name_re)$} => \&delete_certificate_controller;        #  DELETE certificate
 }
 
 my $farm_re    = &getValidFormat('farm_name');
@@ -104,8 +103,10 @@ if (   $PATH_INFO =~ qr{^/monitoring/fg}
 
     my $fg_name_re = &getValidFormat('fg_name');
 
-    POST qr{^/farms/($farm_re)(?:/services/($service_re))?/fg$} => \&add_fg_to_farm_controller;
-    DELETE qr{^/farms/($farm_re)(?:/services/($service_re))?/fg/($fg_name_re)$} => \&delete_fg_from_farm_controller;
+    POST qr{^/farms/($farm_re)/services/($service_re)/fg$} => \&add_fg_to_farm_controller;
+    POST qr{^/farms/($farm_re)/fg$}                        => \&add_fg_to_farm_controller;
+    DELETE qr{^/farms/($farm_re)/services/($service_re)/fg/($fg_name_re)$} => \&delete_fg_from_farm_controller;
+    DELETE qr{^/farms/($farm_re)/fg/($fg_name_re)$}                        => \&delete_fg_from_farm_controller;
 
     GET qr{^/monitoring/fg$} => \&list_farmguardian_controller;
     POST qr{^/monitoring/fg$} => \&create_farmguardian_controller;
@@ -257,15 +258,26 @@ if ($PATH_INFO =~ qr{^/graphs}) {
     require Relianoid::HTTP::Controllers::API::Graph;
 
     my $frequency_re = &getValidFormat('graphs_frequency');
-    my $system_id_re = &getValidFormat('graphs_system_id');
     my $rrd_re       = &getValidFormat('rrd_time');
 
     GET qr{^/graphs$} => \&list_graphs_controller;
 
-    GET qr{^/graphs/system$}                                                      => \&list_sys_graphs_controller;
-    GET qr{^/graphs/system/($system_id_re)$}                                      => \&get_sys_graphs_controller;
-    GET qr{^/graphs/system/($system_id_re)/($frequency_re)$}                      => \&get_sys_graphs_freq_controller;
-    GET qr{^/graphs/system/($system_id_re)/custom/start/($rrd_re)/end/($rrd_re)$} => \&get_sys_graphs_interval_controller;
+    GET qr{^/graphs/system$} => \&list_sys_graphs_controller;
+
+    GET qr{^/graphs/system/(cpu)$}  => \&get_sys_graphs_controller;
+    GET qr{^/graphs/system/(load)$} => \&get_sys_graphs_controller;
+    GET qr{^/graphs/system/(ram)$}  => \&get_sys_graphs_controller;
+    GET qr{^/graphs/system/(swap)$} => \&get_sys_graphs_controller;
+
+    GET qr{^/graphs/system/(cpu)/($frequency_re)$}  => \&get_sys_graphs_freq_controller;
+    GET qr{^/graphs/system/(load)/($frequency_re)$} => \&get_sys_graphs_freq_controller;
+    GET qr{^/graphs/system/(ram)/($frequency_re)$}  => \&get_sys_graphs_freq_controller;
+    GET qr{^/graphs/system/(swap)/($frequency_re)$} => \&get_sys_graphs_freq_controller;
+
+    GET qr{^/graphs/system/(cpu)/custom/start/($rrd_re)/end/($rrd_re)$}  => \&get_sys_graphs_interval_controller;
+    GET qr{^/graphs/system/(load)/custom/start/($rrd_re)/end/($rrd_re)$} => \&get_sys_graphs_interval_controller;
+    GET qr{^/graphs/system/(ram)/custom/start/($rrd_re)/end/($rrd_re)$}  => \&get_sys_graphs_interval_controller;
+    GET qr{^/graphs/system/(swap)/custom/start/($rrd_re)/end/($rrd_re)$} => \&get_sys_graphs_interval_controller;
 
     # $disk_re includes 'root' at the beginning
     my $disk_re = &getValidFormat('mount_point');

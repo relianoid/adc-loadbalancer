@@ -181,7 +181,7 @@ sub apply_backup_controller ($json_obj, $backup) {
     }
 
     my $msg   = "The backup was properly applied. Some changes need a system reboot to work.";
-    my $error = &applyBackup($backup);
+    my $error = &restoreBackup($backup);
 
     if ($error) {
         $msg = "There was a error applying the backup.";

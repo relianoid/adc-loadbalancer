@@ -171,14 +171,6 @@ sed -i "s/1;30m/0;37m/g" /etc/bash.bashrc 2> /dev/null
 # Cluster
 sed -i '/changed-by-relianoid/d' /root/.bashrc &>/dev/null || true
 sed -i '/^export PROMPT_COMMAND=.*zevenet-ce-cluster.status/d' /root/.bashrc &>/dev/null || true # Deprecate Zevenet
-
-if ! grep relianoid-ce-cluster.status /root/.bashrc &>/dev/null; then
-    {
-        echo "if [ -f /etc/relianoid-ce-cluster.status ]; then #changed-by-relianoid"
-        echo "export PROMPT_COMMAND=\"echo -n \[\\\$(cat /etc/relianoid-ce-cluster.status 2>/dev/null)\]\ \" #changed-by-relianoid"
-        echo "fi #changed-by-relianoid"
-    } >> /root/.bashrc
-fi
 # Cluster
 
 # Configure apt repository

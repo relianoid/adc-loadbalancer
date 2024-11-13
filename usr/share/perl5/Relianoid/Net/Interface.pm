@@ -297,7 +297,7 @@ sub setInterfaceConfig ($if_ref) {
 
     if (&debug() > 2) {
         require Data::Dumper;
-        &log_debug("setInterfaceConfig: " . Data::Dumper->Dumper($if_ref), "NETWORK");
+        &log_debug3("setInterfaceConfig: " . Data::Dumper->Dumper($if_ref), "NETWORK");
     }
 
     my @if_params       = ('status', 'name', 'addr', 'mask', 'gateway', 'mac', 'dhcp', 'isolate');
@@ -1611,10 +1611,10 @@ sub get_interface_list_struct () {
         # Exclude cluster maintenance interface
         next if $if_ref->{type} eq 'dummy';
 
-        # Exclude no user's virtual interfaces
+        # Exclude no user's virtual interfaces, but pass the physical ones
         next if ($rbac_mod
-            && !grep { $if_ref->{name} eq $_ } @{$rbac_if_list}
-            && ($if_ref->{type} eq 'virtual'));
+             && ($if_ref->{type} ne 'virtual' || !grep { $if_ref->{name} eq $_ } @{$rbac_if_list})
+             && ($if_ref->{type} eq 'virtual'));
 
         $if_ref->{status} = $all_status->{ $if_ref->{name} };
 

@@ -114,6 +114,113 @@ sub local_http_service ($command) {
     return;
 }
 
+sub import_system_network_interfaces () {
+    # import system interface to RELIANOID if configured
+    #testing interface configured on the installation and gw
+
+    my $etc_network_interfaces = "/etc/network/interfaces";
+
+    if (!-e $etc_network_interfaces) {
+        return;
+    }
+
+    my @file = ();
+
+    if (open my $fr, '<', $etc_network_interfaces) {
+        @file = <$fr>;
+        close $fr;
+    }
+    else {
+        my $msg = "Could not open file $etc_network_interfaces: $!";
+        printAndLog($msg);
+    }
+
+    if (grep { /relianoid_modified/ } @file) {
+        return;
+    }
+
+    my @blocks = &getInterfaceBlocks(@file);
+
+    for my $block (@blocks) {
+        my ($ifname, $ip, $netmask, $gateway);
+
+        for my $line (@{$block}) {
+            chomp($line);
+
+            if ($line =~ /iface.*inet static/i) {
+                (undef, $ifname) = split(" ", $line);
+            }
+            elsif ($line =~ /\Waddress/i) {
+                my (undef, $ip_n_mask) = split(" ", $line);
+                my $mask;
+                ($ip, $mask) = split("/", $ip_n_mask);
+
+                if ($mask)    # only when bitmask is declared
+                {
+                    require Net::Netmask;
+                    my $block = Net::Netmask->new2($ip_n_mask);
+
+                    if ($block) {
+                        $netmask = $block->mask;
+                    }
+                    else {
+                        &log_info($Net::Netmask::error);
+                        die $Net::Netmask::error;
+                    }
+                }
+            }
+            elsif ($line =~ /netmask/i) {
+                (undef, $netmask) = split(" ", $line);
+            }
+            elsif ($line =~ /gateway/i) {
+                (undef, $gateway) = split(" ", $line);
+            }
+        }
+
+        my %interface = (
+            name    => $ifname,
+            addr    => $ip,
+            mask    => $netmask,
+            gateway => $gateway,
+            status  => "up",
+        );
+
+        # Write interface file
+        if ($interface{name}) {
+            &log_info("Writing interface: $interface{name}");
+            &setInterfaceConfig(\%interface);
+
+            # gateway
+            if ($interface{gateway}) {
+                &log_info("Writing gateway: $interface{gateway}");
+                setGlobalConfiguration('defaultgw',   $gateway);
+                setGlobalConfiguration('defaultgwif', $ifname);
+            }
+
+            # route table
+            &log_info("Writing route table: $interface{name}");
+            &writeRoutes($interface{name});
+        }
+    }
+
+    # overwriting interfaces file
+    my $file_content =            #
+      "# relianoid_modified\n"    #
+      . "auto lo\n"               #
+      . "iface lo inet loopback\n";
+
+    if (open my $fh, '>', $etc_network_interfaces) {
+        print $fh $file_content;
+        close $fh;
+    }
+    else {
+        my $msg = "Could not open file $etc_network_interfaces: $!";
+        printAndLog($msg);
+    }
+
+    return;
+}
+
 if ($action eq "restart") {
     # do not use 'logAndRun' function, it is necessary to print the stdoutput
     system("$systemctl restart $relianoid_service");
@@ -161,92 +268,8 @@ if ($action eq "start") {
 
     &log_info("RELIANOID: Modules loaded");
 
-    # import system interface to RELIANOID if configured
-    #testing interface configured on the installation and gw
-    my $etc_network_interfaces = "/etc/network/interfaces";
-    if (-e $etc_network_interfaces) {
-        open my $fr, '<', $etc_network_interfaces;
-        my @file = <$fr>;
-        close $fr;
+    import_system_network_interfaces();
 
-        # FIXME: Make function of this procedure
-        if (!grep { /relianoid_modified/ } @file) {
-            my @blocks = &getInterfaceBlocks(@file);
-
-            for my $block (@blocks) {
-                my ($ifname, $ip, $netmask, $gateway);
-
-                for my $line (@{$block}) {
-                    chomp($line);
-
-                    if ($line =~ /iface.*inet static/i) {
-                        (undef, $ifname) = split(" ", $line);
-                    }
-                    elsif ($line =~ /\Waddress/i) {
-                        my (undef, $ip_n_mask) = split(" ", $line);
-                        my $mask;
-                        ($ip, $mask) = split("/", $ip_n_mask);
-
-                        if ($mask)    # only when bitmask is declared
-                        {
-                            use Net::Netmask;
-                            my $block = Net::Netmask->new2($ip_n_mask);
-
-                            if ($block) {
-                                $netmask = $block->mask;
-                            }
-                            else {
-                                &log_info($Net::Netmask::error);
-                                die $Net::Netmask::error;
-                            }
-                        }
-                    }
-                    elsif ($line =~ /netmask/i) {
-                        (undef, $netmask) = split(" ", $line);
-                    }
-                    elsif ($line =~ /gateway/i) {
-                        (undef, $gateway) = split(" ", $line);
-                    }
-                }
-
-                my %interface = (
-                    name    => $ifname,
-                    addr    => $ip,
-                    mask    => $netmask,
-                    gateway => $gateway,
-                    status  => "up",
-                );
-
-                # Write interface file
-                if ($interface{name}) {
-                    &log_info("Writing interface: $interface{name}");
-                    &setInterfaceConfig(\%interface);
-
-                    # gateway
-                    if ($interface{gateway}) {
-                        &log_info("Writing gateway: $interface{gateway}");
-                        setGlobalConfiguration('defaultgw',   $gateway);
-                        setGlobalConfiguration('defaultgwif', $ifname);
-                    }
-
-                    # route table
-                    &log_info("Writing route table: $interface{name}");
-                    &writeRoutes($interface{name});
-                }
-            }
-
-            # overwriting interfaces file
-            my $file_content =            #
-              "# relianoid_modified\n"    #
-              . "auto lo\n"               #
-              . "iface lo inet loopback\n";
-            open my $fh, '>', $etc_network_interfaces;
-            print $fh $file_content;
-            close $fh;
-        }
-    }
-
-    # enterprise hook
     if ($eload) {
         $print_msg = &eload(module => 'Relianoid::EE::Service', func => 'start_service');
         print $print_msg if $print_msg;

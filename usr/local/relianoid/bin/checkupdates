@@ -97,10 +97,16 @@ case "$1" in
 	$aptget_bin update
 	KNOIDVERSION=`apt-cache show linux-image-amd64 | grep "Version.*noid" | awk -F' ' '{ printf $2 }'`
 	if [ "$KNOIDVERSION" == "" ]; then
-		echo "RELIANOID Enterprise not detected. Please contact with support@relianoid.com"
+		echo "RELIANOID Enterprise kernel not detected. Please contact with support@relianoid.com"
 		exit 1
 	fi
 	DEBIAN_FRONTEND=noninteractive $aptget_bin -y install linux-image-amd64=$KNOIDVERSION --allow-downgrades
+	GUINOIDVERSION=`apt-cache show relianoid-gui | grep "relianoid (>= 8.0.0" -B 5 | grep Version | awk -F' ' '{ printf $2 }'`
+	if [ "$GUINOIDVERSION" == "" ]; then
+		echo "RELIANOID Enterprise web gui not detected. Please contact with support@relianoid.com"
+		exit 1
+	fi
+	DEBIAN_FRONTEND=noninteractive $aptget_bin -y install relianoid-gui=$GUINOIDVERSION --allow-downgrades
 	$aptget_bin -y full-upgrade
 	echo "RELIANOID Packages are up-to-date." > $apt_msg
 	echo "Please REBOOT the system."

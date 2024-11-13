@@ -246,7 +246,7 @@ sub deleteBackup ($file) {
 
 =pod
 
-=head1 applyBackup
+=head1 restoreBackup
 
 Restore files from a backup.
 
@@ -260,7 +260,7 @@ Returns:
 
 =cut
 
-sub applyBackup ($backup) {
+sub restoreBackup ($backup) {
     my $error;
     my $tar               = &getGlobalConfiguration('tar');
     my $file              = &getGlobalConfiguration('backupdir') . "/backup-$backup.tar.gz";
@@ -268,7 +268,7 @@ sub applyBackup ($backup) {
     my $systemctl         = &getGlobalConfiguration('systemctl');
 
     # get current version
-    my $version = &getGlobalConfiguration('version');
+    my $pre_restore_version = &getGlobalConfiguration('version');
 
     &log_info("Stopping Relianoid service", "SYSTEM");
     $error = &logAndRun("$systemctl stop $relianoid_service");
@@ -288,20 +288,33 @@ sub applyBackup ($backup) {
 
     &log_info("unpacked files: @{$eject}", "SYSTEM");
 
-    my $bck_version = &getGlobalConfiguration('version');
+    my $backup_version = &getGlobalConfiguration('version');
 
-    # it would overwrite version if it was different
-    require Relianoid::System;
-    &setGlobalConfiguration('version', $version);
+    # Reference: https://pmhahn.github.io/dpkg-compare-versions/
+    # From lower to greater version: 1.0~rc1 < 1.0 < 1.0-noid1 < 1.0+noid1
 
-    # set migration files process only if 
-    # backup version is less than the current version
-    require version;
-    if (version->parse($bck_version) < version->parse($version)) {
+    my $backup_is_previous = (system("dpkg --compare-versions $backup_version lt $pre_restore_version") == 0);
+
+    # Flag migration if the backup version is previous to the current version
+    if ($backup_is_previous) {
         my $migration_flag = &getGlobalConfiguration('migration_flag');
-        open(my $fh, '>', $migration_flag) or die "$!";
-        close($fh);
-        &log_info("Migration Flag enabled") if (-e $migration_flag);
+
+        if (open(my $fh, '>', $migration_flag)) {
+            close($fh);
+
+            if (-e $migration_flag) {
+                &log_info("Migration Flag enabled");
+            }
+        }
+        else {
+            log_error("Failed to open file $migration_flag: $!");
+        }
+    }
+
+    my $version_changed = (system("dpkg --compare-versions $backup_version ne $pre_restore_version") == 0);
+
+    if ($version_changed) {
+        &setGlobalConfiguration('version', $pre_restore_version);
     }
 
     unlink '/relianoid_version';

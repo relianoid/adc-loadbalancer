@@ -119,8 +119,10 @@ sub setSnmpdLaunchConfig ($snmp_conf) {
     my $changed = 0;
 
     require Tie::File;
+
     for my $file (@config) {
         tie my @config_file, 'Tie::File', $file;
+
         if (   defined $snmp_conf->{trapsess}
             && $snmp_conf->{trapsess} eq "true"
             && grep { /mteTrigger/ } @config_file)
@@ -139,6 +141,7 @@ sub setSnmpdLaunchConfig ($snmp_conf) {
             s/-L[^\s]+ /-LS6d / for @config_file;
             $changed = 1;
         }
+
         untie @config_file;
     }
 
@@ -169,7 +172,9 @@ Returns:
 sub setSnmpdFactoryReset () {
     my $default_snmp_conf = &getSnmpdDefaultConfig();
     my $snmpdconfig_file  = &getGlobalConfiguration('snmpdconfig_file');
+
     unlink($snmpdconfig_file);
+
     &_setSnmpdConfig($default_snmp_conf);
     &setSnmpdLaunchConfig($default_snmp_conf);
     return &setSnmpdStatus("false");
@@ -476,9 +481,11 @@ sub _setSnmpdConfig ($snmpd_conf) {
     # scope has to be network range definition
     require NetAddr::IP;
     my $network = NetAddr::IP->new($snmpd_conf->{scope})->network();
+
     return -1 if ($network ne $snmpd_conf->{scope});
 
     require Relianoid::Lock;
+
     my @contents;
     my $lock_file = &getLockFile("snmpd_conf");
     my $lock_fh   = &openlock($lock_file, 'w');
@@ -509,6 +516,7 @@ sub _setSnmpdConfig ($snmpd_conf) {
     }
 
     my $index = $default_index;
+
     if (defined $snmpd_conf->{proto}) {
         splice @contents, $index, 0, "agentAddress $snmpd_conf->{proto}:$ip:$snmpd_conf->{port}\n";
         $index++;

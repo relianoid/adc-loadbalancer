@@ -319,7 +319,7 @@ sub modify_http_farm ($json_obj, $farmname) {
                 &log_warn("The CPU does not support SSL offloading.", "system");
             }
 
-            if (&setFarmCipherList($farmname, $ciphers_lib) == -1) {
+            if (&setFarmCipherList($farmname, $ciphers_lib, $json_obj->{cipherc}) == -1) {
                 my $msg = "Error modifying ciphers.";
                 return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
             }

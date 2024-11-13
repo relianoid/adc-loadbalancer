@@ -481,7 +481,7 @@ $keygen_cmd="ssh-keygen -t rsa -f $key_path/$key_id -N '' -q";#update
 $backup_cmd="$bin_dir/noid-backup";#update
 
 #Do backup to
-$backupfor="$configdir $confhttp $rttables $sshConf $snmpdconfig_file /etc/hostname $filedns /etc/cron.d/relianoid $applianceVersionFile";#update
+$backupfor="$configdir $confhttp $rttables $sshConf $snmpdconfig_file /etc/hostname $filedns /etc/cron.d/relianoid";#update
 
 #Bonding interfaces
 $bonding_hwaddr_filename="bonding_slave/perm_hwaddr";

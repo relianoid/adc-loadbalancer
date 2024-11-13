@@ -77,33 +77,6 @@ You can contribute with the evolution of the RELIANOID Load Balancer in a wide v
 ### Reporting Bugs
 Please use the [GitHub project Issues](https://github.com/relianoid) to report any issue or bug with the software. Try to describe the problem and a way to reproduce it. It'll be useful to attach the service and network configurations as well as system and services logs.
 
-### Development & Resolving Bugs
-In order to commit any change, as new features, bug fix or improvement, just perform a `git clone` of the repository, `git add` when all the changes has been made and `git commit` when you're ready to send the change.
-
-During the submit, please ensure that every change is associated to a *logical change* in order to be easily identified every change.
-
-In the commit description please use the following format:
-```
-[CATEGORY] CHANGE_SHORT_DESCRIPTION
-
-OPTIONAL_LONGER_DESCRIPTION
-
-SIGNED_OFFS
-
-MODIFIED_FILES
-```
-
-Where:
-- `CATEGORY` is either: **Bugfix** for resolving bugs or issues, **Improvement** for enhancements of already implemented features or **New Feature** for new developments that provides a new feature not implemented before.
-- `CHANGE_SHORT_DESCRIPTION` is a brief description related with the change applied and allows to identify easily such modification. If it's related to a bug included in the Issues section it's recommended to include the identification reference for such bug.
-- `OPTIONAL_LONGER_DESCRIPTION` is an optional longer description to explain details about the change applied.
-- `SIGNED_OFFS` is the `Signed-off-by` entry where the username followed by the email can be placed.
-- `MODIFIED_FILES` are the list of files that hace been modified, created or deleted with the commit.
-
-Usually, executing `git commit -a -s` will create the fields described above.
-
-Finally, just execute a `git push` and request a pull of your changes. In addition, you can use `git format-patch` to create your patches and send them through the official distribution list.
-
 ### Creating & Updating Documentation or Translations
 In the official [GitHub wiki](https://github.com/relianoid) there is available a list of pages and it's translations. Please clone the wiki, apply your changes and request a pull in order to be applied.
 

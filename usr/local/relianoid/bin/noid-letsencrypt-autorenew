@@ -76,7 +76,7 @@ sub getLocalNodeClusterStatus() {
             args   => [],
         );
     }
-    if (!(!defined $cl_status or $cl_status eq "master")) {
+    if (!(!defined $cl_status || $cl_status eq "master")) {
         print "Error: This node is not the Master in the cluster\n";
         exit 1;
     }

@@ -349,22 +349,27 @@ sub httpResponse ($response) {
         %headers = (%headers, %{ $response->{headers} });
     }
 
+    if ($response->{body}) {
+        my $json_type = 'application/json';
+
+        use Data::Dumper;
+        log_debug("Response Headers: " . Dumper \%headers);
+
+        if (not $headers{-type}) {
+            $headers{-type} = $response->{type} || $json_type;
+        }
+
+        if ($headers{-type} eq $json_type) {
+            $headers{-charset} = 'utf-8';
+        }
+    }
+
     print $q->header(
         -status => "$response->{code} $http_status_codes{$response->{code}}",
         %headers,
     );
 
     if ($response->{body}) {
-        my $json_type = 'application/json';
-
-        if (not $headers{-type}) {
-            $headers{-type} = $response->{type} // $json_type;
-        }
-
-        if ($headers{-type} eq $json_type) {
-            $headers{-charset} = 'utf-8';
-        }
-
         if (ref $response->{body} eq 'HASH') {
             require JSON;
             require Relianoid::Debug;
@@ -536,7 +541,7 @@ sub httpDownloadResponse (@args) {
 
     my $fh;
 
-    unless (open($fh, "<", $path)) {
+    unless (open($fh, "<", $path)) { ## no critic (InputOutput::RequireBriefOpen)
         my $msg = "Could not open file $path: $!";
         return &httpErrorResponse({ code => 400, desc => $args->{desc}, msg => $msg });
     }

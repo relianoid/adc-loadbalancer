@@ -38,9 +38,10 @@ Relianoid::Log
 
 =cut
 
-sub warning_signal {    ## no critic Subroutines::RequireArgUnpacking
-    print STDERR @_;
-    log_warn("@_");
+sub warning_signal (@args) {
+    print STDERR @args;
+    log_warn("@args");
+    return;
 }
 
 # Get the program name for logs messages
