@@ -57,6 +57,16 @@ foreach my $farmfile (&getFarmList()) {
         $synconns    = $stats->{syn};
         $globalconns = $stats->{est};
     }
+    elsif ($farm_type eq 'eproxy' && $eload) {
+        my $stats = &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Stats',
+            func   => 'getEproxyFarmStats',
+            args   => [ { 'farm_name' => $farm_name }],
+        );
+
+        $synconns    = $stats->{pending};
+        $globalconns = $stats->{established};
+    }
     else {
         my $vip = &getFarmVip("vip", $farm_name);
         my $netstat;

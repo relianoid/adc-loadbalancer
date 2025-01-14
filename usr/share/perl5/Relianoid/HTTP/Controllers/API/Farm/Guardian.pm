@@ -302,7 +302,7 @@ sub add_fg_to_farm_controller ($json_obj, $farm, $srv = undef) {
 
     # check farm type
     my $type = &getFarmType($farm);
-    if ($type =~ /http|gslb/ and not $srv) {
+    if ($type =~ /http|gslb|eproxy/ and not $srv) {
         my $msg = "The farm guardian expects a service";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }

@@ -330,6 +330,13 @@ sub setFarmVirtualConf ($vip, $vip_port, $farm_name) {
             args   => [ $vip, $vip_port, $farm_name ],
         );
     }
+    elsif ($farm_type eq "eproxy" && $eload) {
+        $stat = &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Config',
+            func   => 'setEproxyFarmStruct',
+            args   => [ { 'farm_name' => $farm_name, 'vip' => $vip, 'vport' => $vip_port }],
+        );
+    }
 
     return $stat;
 }
@@ -478,11 +485,18 @@ sub getFarmStruct ($farmName) {
         require Relianoid::Farm::L4xNAT::Config;
         $farm = &getL4FarmStruct($farmName);
     }
-    elsif ($farmType =~ /gslb/) {
+    elsif ($farmType =~ /gslb/ && $eload) {
         $farm = &eload(
             module => 'Relianoid::EE::Farm::GSLB::Config',
             func   => 'getGSLBFarmStruct',
             args   => [$farmName],
+        );
+    }
+    elsif ($farmType =~ /eproxy/ && $eload) {
+        $farm = &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Config',
+            func   => 'getEproxyFarmStruct',
+            args   => [{ farm_name => $farmName}],
         );
     }
 

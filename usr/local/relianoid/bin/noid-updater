@@ -1,0 +1,475 @@
+#!/usr/bin/bash
+###############################################################################
+#
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
+#
+#    Copyright (C) 2014-today RELIANOID
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Affero General Public License as
+#    published by the Free Software Foundation, either version 3 of the
+#    License, or any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU Affero General Public License for more details.
+#
+#    You should have received a copy of the GNU Affero General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+REPO="repo.relianoid.com"
+mountpoint="/media/local_update_repo"
+
+if [ -f "/usr/local/relianoid/bin/load_global_conf" ]; then
+	source /usr/local/relianoid/bin/load_global_conf
+	load_global_conf
+else
+	echo "I can't find environment variable"
+	exit
+fi
+
+# TODO check edition ce/ee
+EDITION="ce"
+if [ `uname -r | grep -c noid` == 1 ]; then
+	EDITION="ee"
+fi
+
+if [ "$EDITION" == "ee" ]; then
+	# check if the activation certificate file exists
+	if [ ! -f /usr/local/relianoid/www/activation-cert.pem ]; then
+		echo "There isn't a valid activation certificate, once the activation certificate is applied execute 'noid-updater'" | tee $apt_msg
+		exit
+	fi
+	# check if APT config is done properly, if not, it tries to configure it
+	perl -MRelianoid::ELoad -e 'eload(module => "Relianoid::EE::Apt", func => "setUpdateAPTRepository")' >/dev/null
+fi
+
+function help()
+{
+	echo "noid-updater, relianoid's package manager."
+	echo ""
+	echo "Usage: noid-updater [options]"
+	echo ""
+	echo "Options:"
+	echo -e "     \t\t\t Updates the package list from the repository"
+	echo -e "  -n \t\t\t Displays the number of non-updated packages"
+	echo -e "  -l \t\t\t Displays the list of non-updated packages"
+	echo -e "  -i \t\t\t Installs the non-updated packages"
+	echo -e "  -U \t\t\t Upgrade to the latest major release"
+	echo -e "  -E \t\t\t Upgrade from Community to Enterprise"
+	echo -e "  -p, --package <name> \t Displays status of a package"
+	echo -e "  -h, --help \t\t Displays this help"
+	echo ""
+	exit
+}
+
+function ctrlC() {
+	logger "noid-updater: Warning! Control + C is pressed"
+	echo ""
+	if [ "$node_status" == "backup" ]; then
+		if ! $sed_bin -i "/$denyline/d" /etc/hosts.deny ; then
+			logger "noid-updater: Warning! Can not remove \"$denyline\" from /etc/hosts.deny"
+			echo "   Warning! Can not remove \"$denyline\" from /etc/hosts.deny"
+		else
+			logger "noid-updater: Removed \"$denyline\" from /etc/hosts.deny"
+			echo "   Removed \"$denyline\" from /etc/hosts.deny"
+		fi
+	fi
+	exit 0
+}
+
+function error {
+	# Input parameters:
+	# $1 = error message
+	echo "$1"
+	exit
+}
+
+function UmountMountPoint {
+	if ! mount | grep ${mountpoint} &> /dev/null; then
+		return
+	fi
+
+	umount "${mountpoint}" \
+		|| error "Error while trying to unmount drive the ${mountpoint}"
+
+	rm -rf "${mountpoint}"
+
+	if [ -f "${APT_SOURCES}.bak" ]; then
+		mv "${APT_SOURCES}.bak" "${APT_SOURCES}"
+	fi
+}
+
+function setAptOffline {
+	UmountMountPoint
+	echo "Checking local update system"
+	# create the directory if it does not exist
+	mkdir -p "${update_dir}"
+
+	# check if the directory is empty
+	if ! ls "${update_dir}"/* &> /dev/null; then
+		echo "No packages to update on ${update_dir}"
+		exit
+	fi
+
+	# get latest ISO update
+	last_update=$(find "${update_dir}" -type f | sort -V | tail -n1 | sed 's/.iso//g')
+
+	mkdir -p "${mountpoint}"
+	mount -o loop "${last_update}.iso" "${mountpoint}" 2>/dev/null \
+		|| error "Error trying to mount ISO ${last_update}.iso in ${mountpoint}"
+
+	if [ ! -f "${mountpoint}/${GPG_FILE}" ]; then
+		echo "No GPG found at ${mountpoint}/${GPG_FILE}"
+	fi
+
+	cp "${APT_SOURCES}" "${APT_SOURCES}.bak"
+	echo "deb [arch=amd64 signed-by=${mountpoint}/${GPG_FILE}] file://${mountpoint} ${DISTRO} main" > ${APT_SOURCES}
+
+	return 0
+}
+
+function enableClusterUpdate {
+	if [ -f "$node_status_file" ]; then
+		node_status=$($cat_bin $node_status_file)
+	fi
+	if [ "$node_status" == "backup" ]; then
+		localhost=$($hostname)
+		if [ ! -z "$filecluster" ]; then
+			hostlist=($(grep "\[" $filecluster | cut -d"[" -f2 | cut -d"]" -f1))
+			if [ "$localhost" == "${hostlist[0]}" ]; then
+				remotehost=${hostlist[1]};
+			else
+				remotehost=${hostlist[0]};
+			fi
+
+			remote_ip=$($grep_bin -A 1 $remotehost $filecluster | $tail -1 | $cut_bin -d= -f2)
+
+			denyline="sshd: $remote_ip"
+			if ! echo $denyline >> /etc/hosts.deny ; then
+				logger "noid-updater: Warning! Can not add \"$denyline\" to /etc/hosts.deny"
+				echo "   Warning! Can not add \"$denyline\" to /etc/hosts.deny"
+			else
+				logger "noid-updater: Added \"$denyline\" to /etc/hosts.deny"
+				echo "   Added \"$denyline\" to /etc/hosts.deny"
+				trap ctrlC INT
+			fi
+		else
+			error "Error: There is no cluster configuration at $filecluster"
+		fi
+	fi
+	if [ "$node_status" == "master" ]; then
+		echo "Warning! The system is in Master Mode. It should be in Maintenance Mode"
+		read -r -p "Are you sure? [y/N] " response
+		case "$response" in
+		[yY][eE][sS]|[yY])
+			upgrade=1
+		;;
+		*)
+			upgrade=0
+			echo "Abort."
+		;;
+		esac
+	fi
+}
+
+function disableClusterUpdate {
+	if [ "$node_status" == "backup" ]; then
+		if ! $sed_bin -i "/$denyline/d" /etc/hosts.deny ; then
+			logger "noid-updater: Warning! Can not remove \"$denyline\" from /etc/hosts.deny"
+			echo "   Warning! Can not remove \"$denyline\" from /etc/hosts.deny"
+		else
+			logger "noid-updater: Removed \"$denyline\" from /etc/hosts.deny"
+			echo "   Removed \"$denyline\" from /etc/hosts.deny"
+		fi
+	fi
+}
+
+function internetCheck {
+	proxy_credentials=""
+	if echo $https_proxy | grep "@" > /dev/null; then
+		# get proxy credentials
+		proxy_credentials=$(sed -E 's|https?://||g' <<< $https_proxy)
+		proxy_credentials=$(sed -E 's|\@.*||g' <<< $proxy_credentials)
+		proxy_user=$(sed -E 's|\:.*||g' <<< $proxy_credentials)
+		proxy_passwd=$(sed -E 's|.*\:||g' <<< $proxy_credentials)
+	fi
+
+	# test connection with the remote repository
+	if [ ! -z $proxy_credentials ]; then
+		# set https_proxy
+		https_proxy=$(sed -E 's|https?://.*@||g' <<< $https_proxy)
+		$expect_bin -c "spawn $netcat_bin -P $proxy_user -X connect -x $https_proxy -z ${REPO} 443 ; expect \"Proxy password*\" ; send \"${proxy_passwd}\r\" ; interact" > /dev/null
+	else
+		# to activate flag netcat SSL if https proxy is configured
+		https_proxy=$(sed -E 's|https?://||g' <<< $https_proxy)
+		https_proxy=( $(grep -Eo '.*\:[0-9]{1,5}' <<<"$https_proxy") )
+		if [ ! -z $https_proxy ]; then flag_netcatSSL="-X connect -x $https_proxy"; fi;
+		$netcat_bin $flag_netcatSSL -z $REPO 443 2>/dev/null
+	fi
+
+	if [ $? -ne 0 ]; then
+		return 1
+	else
+		return 0
+	fi
+}
+
+# function fulfillUpgradeConditions {
+# 	if [ ! conditions_to_comply ]; then
+# 		return 0
+# 	fi
+# 	return 1
+# }
+
+GPG_PATH="/usr/share/keyrings"
+
+case "$1" in
+'')
+	offline_mode=0
+	APT_SOURCES=${apt_source_relianoid}
+	GPG_FILE=${gpg_key_relianoid}
+	DISTRO="bookworm"
+
+	if ! internetCheck; then
+		echo "Error connecting to RELIANOID Update System, check connection to https://repo.relianoid.com"
+		logger "noid-updater: Error connecting to RELIANOID Update System, check connection to https://repo.relianoid.com"
+		logger "noid-updater: Flag netcat SSL = $flag_netcatSSL"
+		setAptOffline
+		offline_mode=1
+	else
+		UmountMountPoint
+	fi
+
+	if [ -z $DPKG_MAINTSCRIPT_NAME ]; then
+		$aptget_bin update > /dev/null
+	fi
+
+	# check if there are upgradable packages
+	packages=$($apt_bin list --upgradable 2>/dev/null | awk 'FNR > 1' | wc -l)
+	if [ $packages -gt 0 ]
+	then
+		echo "$packages package(s) require upgrade"
+		echo "last check at $(date) - $packages package(s) require upgrade, update this information with: noid-updater" > $apt_msg
+		echo "To upgrade, execute: noid-updater -i, or help with noid-updater -h" | tee -a $apt_msg
+		$apt_bin list --upgradable 2>/dev/null | cut -d"/" -f 1  | sed '1d' | tr  '\n' ' ' > $apt_outdated_list
+	else
+		echo "RELIANOID Packages are up-to-date." | tee $apt_msg
+		echo "" > $apt_outdated_list
+	fi
+
+	if [ $offline_mode -eq 1 ]
+	then
+		UmountMountPoint
+	fi
+;;
+
+'-n')
+	# Displays number non-updated packages
+	number=$($apt_bin list --upgradable 2>/dev/null | awk 'FNR > 1' | wc -l)
+	echo "$number"
+;;
+
+'-l')
+	# Displays a list of non-updated packages
+	$apt_bin list --upgradable 2>/dev/null | awk 'FNR > 1'
+;;
+
+'-i')
+	logger "noid-updater: Executing noid-updater -i"
+	echo "Executing noid-updater -i ..."
+	echo ""
+	upgrade=1
+	offline_mode=0
+	APT_SOURCES=${apt_source_relianoid}
+	GPG_FILE=${gpg_key_relianoid}
+	DISTRO="bookworm"
+
+	if [ "$EDITION" == "ee" ]; then
+		enableClusterUpdate
+	fi
+
+	if [ $upgrade -eq 1 ]; then
+		if ! internetCheck; then
+			echo "Error connecting to RELIANOID Update System, check connection to https://repo.relianoid.com"
+			logger "noid-updater: Error connecting to RELIANOID Update System, check connection to https://repo.relianoid.com"
+			logger "noid-updater: Flag netcat SSL = $flag_netcatSSL"
+			setAptOffline
+			offline_mode=1
+		else
+			UmountMountPoint
+		fi
+
+		$aptget_bin update > /dev/null
+		#do this in order to update the web GUI alerts after any installation
+		logger "noid-updater: Installing new RELIANOID Packages"
+		echo "   Installing new RELIANOID Packages"
+		echo ""
+		if ! DEBIAN_FRONTEND=noninteractive $apt_bin full-upgrade
+		then
+			logger "noid-updater: Error: Can not Install new RELIANOID Packages"
+			error "Error: Cannot Install new RELIANOID Packages"
+		else
+			logger "noid-updater: New RELIANOID Packages have been installed"
+			echo ""
+			echo "   New RELIANOID Packages have been installed"
+		fi
+		echo "RELIANOID Packages are up-to-date." > $apt_msg
+		$apt_bin list --upgradable 2>/dev/null | cut -d"/" -f 1  | sed '1d' | tr  '\n' ' ' > $apt_outdated_list
+		[ $offline_mode -eq 1 ] &&
+			UmountMountPoint
+	fi
+
+	if [ "$EDITION" == "ee" ]; then
+		disableClusterUpdate
+	fi
+
+	logger "noid-updater: noid-updater -i has been executed successfully."
+	echo ""
+	echo "noid-updater -i has been executed successfully."
+;;
+
+'-U') # Major Upgrade
+	logger "noid-updater: Warning: Already installed the latest version"
+	echo "Warning: Already installed the latest version"
+	echo ""
+	exit
+
+	# logger "noid-updater: Executing noid-updater -U"
+	# echo "Executing noid-updater -U ..."
+	# echo ""
+	# upgrade=1
+	# offline_mode=0
+	# APT_SOURCES=$apt_source_relianoid
+	# GPG_FILE=$gpg_key_relianoid
+	# DISTRO=""
+	# RELEASE=""
+
+	# if [ ! fulfillUpgradeConditions ] ; then
+	# 	exit
+	# fi
+
+	# if [ "$EDITION" == "ee" ]; then
+	# 	enableClusterUpdate
+	# fi
+
+	# if [ $upgrade -eq 1 ]; then
+
+	# 	if ! internetCheck; then
+	# 		echo "Error connecting to RELIANOID Update System, check connection to https://repo.relianoid.com"
+	# 		logger "noid-updater: Error connecting to RELIANOID Update System, check connection to https://repo.relianoid.com"
+	# 		logger "noid-updater: Flag netcat SSL = $flag_netcatSSL"
+	# 		setAptOffline
+	# 		offline_mode=1
+	# 	else
+	# 		UmountMountPoint
+
+	# 		if [ ! -f "${GPG_PATH}/${GPG_FILE}" ]; then
+	# 			echo "No GPG found at ${GPG_PATH}/${GPG_FILE}"
+	# 		fi
+	# 		echo "deb [arch=amd64 signed-by=${GPG_PATH}/${GPG_FILE}] https://repo.relianoid.com/ee/v${RELEASE} ${DISTRO} main" > ${APT_SOURCES}
+	# 	fi
+
+	# 	$aptget_bin update > /dev/null
+
+	# 	#do this in order to update the web GUI alerts after any installation
+	# 	logger "noid-updater: Upgrading to RELIANOID v${RELEASE}"
+	# 	echo "   Upgrading to RELIANOID v${RELEASE}"
+	# 	echo ""
+
+	# 	# "noninteractive" mode can't be used because the EULA acceptance will fail.
+	# 	if ! $apt_bin dist-upgrade
+	# 	then
+	# 		logger "noid-updater: Error: Can not upgrade to RELIANOID v${RELEASE}"
+	# 		error "Error: Can not upgrade to RELIANOID v${RELEASE}"
+	# 	else
+	# 		logger "noid-updater: Successfully upgraded to RELIANOID v${RELEASE}"
+	# 		echo ""
+	# 		echo "   Successfully upgraded to RELIANOID v${RELEASE}"
+	# 	fi
+	# 	echo "RELIANOID Packages are up-to-date." > $apt_msg
+	# 	$apt_bin list --upgradable 2>/dev/null | cut -d"/" -f 1  | sed '1d' | tr  '\n' ' ' > $apt_outdated_list
+	# 	if [ $offline_mode -eq 1 ]; then
+	# 		UmountMountPoint
+	# 	fi
+	# fi
+
+	# if [ "$EDITION" == "ee" ]; then
+	# 	disableClusterUpdate
+	# fi
+
+	# logger "noid-updater: noid-updater -U has been executed successfully."
+	# echo ""
+	# echo "noid-updater -U has been executed successfully."
+;;
+
+'-E') # Upgrade to Enterprise
+	if [ $EDITION == "ee" ]; then
+		logger "noid-updater: Warning: Only CE is able to upgrade to Enterprise"
+		echo "Warning: Only CE is able to upgrade to Enterprise"
+		exit
+	fi
+
+	systemctl stop relianoid-ce-cluster  2> /dev/null
+	systemctl disable relianoid-ce-cluster  2> /dev/null
+	sed -i "s/^deb/#deb/g" /etc/apt/sources.list
+	if [ ! -f "/etc/apt/apt.conf" ]; then
+		echo "APT configuration not detected. Please upload the file '/etc/apt/apt.conf' provided, or contact with support@relianoid.com"
+		exit 1
+	fi
+	echo "deb [arch=amd64 signed-by=/usr/share/keyrings/relianoid.gpg] https://repo.relianoid.com/ee/v8 bookworm main" > /etc/apt/sources.list.d/relianoid.list
+	$aptget_bin update
+	KNOIDVERSION=`apt-cache show linux-image-amd64 | grep "Version.*noid" | awk -F' ' '{ printf $2 }'`
+	if [ "$KNOIDVERSION" == "" ]; then
+		echo "RELIANOID Enterprise kernel not detected. Please contact with support@relianoid.com"
+		exit 1
+	fi
+	DEBIAN_FRONTEND=noninteractive $aptget_bin -y install linux-image-amd64=$KNOIDVERSION --allow-downgrades
+	GUINOIDVERSION=`apt-cache show relianoid-gui | grep "relianoid (>= 8.0.0" -B 5 | grep Version | awk -F' ' '{ printf $2 }'`
+	if [ "$GUINOIDVERSION" == "" ]; then
+		echo "RELIANOID Enterprise web gui not detected. Please contact with support@relianoid.com"
+		exit 1
+	fi
+	DEBIAN_FRONTEND=noninteractive $aptget_bin -y install relianoid-gui=$GUINOIDVERSION --allow-downgrades
+	$aptget_bin -y full-upgrade
+	echo "RELIANOID Packages are up-to-date." > $apt_msg
+	echo "Please REBOOT the system."
+;;
+
+-h|--help)
+	help
+;;
+
+-p|--package)
+	#Check the status of a package
+	if [ -z $2 ]; then
+		echo "Missing argument: <name>"
+		echo ""
+		help
+	fi
+	if $dpkg_bin -l | grep $2 | awk {'print $2'} | grep $2$ > /dev/null
+	then
+		installed=$($aptcache_bin policy $2 | head -2 | tail -1 | cut -d ":" -f2 | sed 's/ //g')
+		candidate=$($aptcache_bin policy $2 | head -3 | tail -1 | cut -d ":" -f2 | sed 's/ //g')
+		if [ "$installed" != "$candidate" ];
+		then
+			echo "There is a new version of $2"
+			echo "installed = $2 $installed"
+			echo "candidate = $2 $candidate"
+		else
+			echo "$2 is already in the newest version $installed"
+		fi
+	else
+		echo "$2 is not installed in the system"
+	fi
+;;
+*)
+	echo "unknown command: $1 "
+	echo ""
+	help
+;;
+esac

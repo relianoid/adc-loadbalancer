@@ -307,6 +307,13 @@ if ($PATH_INFO =~ qr{^/system/dns}) {
     POST qr{^/system/dns$} => \&set_dns_controller;
 }
 
+if ($ENV{PATH_INFO} =~ qr{^/system/proxy}) {
+    require Relianoid::HTTP::Controllers::API::System::Service::Proxy;
+
+    GET qr{^/system/proxy$} => \&get_proxy_controller;
+    POST qr{^/system/proxy$} => \&set_proxy_controller;
+}
+
 if ($PATH_INFO =~ qr{^/system/snmp}) {
     require Relianoid::HTTP::Controllers::API::System::Service::SNMP;
 
@@ -349,7 +356,7 @@ if ($PATH_INFO =~ qr{^/system/backup}) {
     GET qr{^/system/backup/($backup_re)$} => \&download_backup_controller;          #  GET download backups
     PUT qr{^/system/backup/($backup_re)$} => \&upload_backup_controller;            #  PUT  upload backups
     DELETE qr{^/system/backup/($backup_re)$} => \&delete_backup_controller;         #  DELETE  backups
-    POST qr{^/system/backup/($backup_re)/actions$} => \&apply_backup_controller;    #  POST  apply backups
+    POST qr{^/system/backup/($backup_re)/actions$} => \&restore_backup_controller;    #  POST  restore backups
 }
 
 if ($PATH_INFO =~ qr{^/system/(?:version|info|license|supportsave|language|packages)}) {

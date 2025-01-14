@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use strict;
-use warnings
+use warnings;
 use feature qw(signatures say);
 
 use Config::Tiny;

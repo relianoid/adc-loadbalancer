@@ -53,17 +53,6 @@ sed -i 's/^\# Required-Stop:.*/# Required-Stop:\t\$remote_fs \$syslog relianoid/
 # SNMP service
 perl -MRelianoid::SNMP -E "&setSnmpdDefaultConfig();"
 
-# Grub disk configuration
-GRUB_CONF='/tmp/grub-pc.debconf'
-GRUB_DISK=$(fdisk -l | grep 'Disk /dev/' | head -1 | awk '{ printf $2}' | tr -d ':')
-DEBCONF_DEVICES=$(debconf-show grub-pc | grep grub-pc/install_devices: | cut -d: -f2 | cut -d\  -f2-)
-
-if [ -e "$GRUB_DISK" ] && [ "$GRUB_DISK" != "$DEBCONF_DEVICES" ]; then
-    echo "grub-pc grub-pc/install_devices multiselect $GRUB_DISK" > $GRUB_CONF
-    debconf-set-selections $GRUB_CONF
-    rm $GRUB_CONF
-fi
-
 ## Create configuration files
 
 # create Web server
@@ -86,16 +75,12 @@ MIGRATIONS_DIR="/usr/local/relianoid/migrations"
 for SCRIPT in "$MIGRATIONS_DIR"/*; do $SCRIPT; done
 
 ## Migrations from Zevenet to Relianoid
+
+# Set the cron service
+cp /usr/local/relianoid/share/relianoid.cron /etc/cron.d/relianoid
+rm -f /etc/cron.d/zevenet
+
 RELIANOID_PATH=$zdir
-CRON_FILE=/etc/cron.d/relianoid
-if grep -q zenntp $CRON_FILE; then
-    sed -i 's/zenntp/noid-ntp/' $CRON_FILE
-fi
-
-if grep -q zenrrd $CRON_FILE; then
-    sed -i 's/zenrrd/noid-collector/' $CRON_FILE
-fi
-
 ZENRRD_DIR="${RELIANOID_PATH}/app/zenrrd"
 if [[ -d "${ZENRRD_DIR}" && ! -L "${ZENRRD_DIR}" ]]; then
     mv "${RELIANOID_PATH}/app/zenrrd/rrd"/* "${RELIANOID_PATH}/var/noid-collector/rrd/" 2> /dev/null
@@ -161,16 +146,18 @@ if grep 'Debian|Zevenet' /etc/issue &>/dev/null; then
     sed -i "s/.*Debian.*/RELIANOID Community Edition \\\n \\\l/g" /etc/issue
 fi
 
-# Set the cron service
-cp /usr/local/relianoid/share/relianoid.cron /etc/cron.d/relianoid
-rm -f /etc/cron.d/zevenet
-
 # Change prompt color
 sed -i "s/1;30m/0;37m/g" /etc/bash.bashrc 2> /dev/null
 
 # Cluster
 sed -i '/changed-by-relianoid/d' /root/.bashrc &>/dev/null || true
 sed -i '/^export PROMPT_COMMAND=.*zevenet-ce-cluster.status/d' /root/.bashrc &>/dev/null || true # Deprecate Zevenet
+# Migrate ucarp location
+old_ucarp_bin="\/usr\/local\/relianoid\/app\/ucarp\/sbin\/ucarp"
+ucarp_conf="/usr/local/relianoid/app/ucarp/etc/cluster.conf"
+if [ -f "$ucarp_conf" ]; then
+    sed -i "s/\$ucarp=\"$old_ucarp_bin\";/\$ucarp=\"\/usr\/sbin\/ucarp\";/" $ucarp_conf
+fi
 # Cluster
 
 # Configure apt repository

@@ -91,7 +91,7 @@ sub list_lslb_controller () {
     for my $file (@files) {
         my $name = &getFarmName($file);
         my $type = &getFarmType($name);
-        next unless $type =~ /^(?:https?|l4xnat)$/;
+        next unless $type =~ /^(?:https?|l4xnat|eproxy)$/;
         my $status = &getFarmVipStatus($name);
         my $vip    = &getFarmVip('vip',  $name);
         my $port   = &getFarmVip('vipp', $name);
@@ -203,18 +203,25 @@ sub get_farm_controller ($farmname) {
         require Relianoid::HTTP::Controllers::API::Farm::Get::HTTP;
         &farms_name_http($farmname);
     }
-    if ($type eq 'l4xnat') {
+    elsif ($type eq 'l4xnat') {
         require Relianoid::HTTP::Controllers::API::Farm::Get::L4xNAT;
         &farms_name_l4($farmname);
     }
-    if ($type eq 'datalink') {
+    elsif ($type eq 'datalink') {
         require Relianoid::EE::HTTP::Controllers::API::Farm::Get::Datalink;
         &farms_name_datalink($farmname);
     }
-    if ($type eq 'gslb' && $eload) {
+    elsif ($type eq 'gslb' && $eload) {
         &eload(
             module => 'Relianoid::EE::HTTP::Controllers::API::Farm::Get::GSLB',
             func   => 'farms_name_gslb',
+            args   => [$farmname],
+        );
+    }
+    elsif ($type eq 'eproxy' && $eload) {
+        &eload(
+            module => 'Relianoid::EE::HTTP::Controllers::API::Farm::Get::Eproxy',
+            func   => 'farms_name_eproxy',
             args   => [$farmname],
         );
     }

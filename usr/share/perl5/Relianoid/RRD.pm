@@ -837,7 +837,7 @@ Get list of graph names by type or all of them.
 
 Parameters:
 
-    graphtype - 'System', 'Network', 'Farm' or ... else?.
+    graphtype - 'System', 'Network', 'Farm' or 'VPN'.
 
 Returns: string list - List of graph names
 
@@ -846,15 +846,16 @@ Returns: string list - List of graph names
 #function that returns the graph list to show
 sub getGraphs2Show ($graphtype) {
     my $collector_rrd_dir = &getGlobalConfiguration('collector_rrd_dir');
-    my @results           = ();
     my @dir_list;
+    my @results = ();
 
     if (opendir(my $dir, $collector_rrd_dir)) {
         @dir_list = readdir($dir);
         closedir($dir);
     }
     else {
-        croak("Could not open directory '$collector_rrd_dir/'");
+        log_error("Could not open directory '$collector_rrd_dir/': $!");
+        return @results;
     }
 
     if ($graphtype eq 'System') {
@@ -863,20 +864,19 @@ sub getGraphs2Show ($graphtype) {
         @results = ("cpu", @disk, "load", "mem", "memsw");
     }
     elsif ($graphtype eq 'Network') {
-        @results = grep { /iface.rrd$/ } @dir_list;
+        @results = grep { /iface.rrd$/ } sort @dir_list;
         for (@results) { s/.rrd$//g }
     }
     elsif ($graphtype eq 'Farm') {
-        @results = grep { /farm.rrd$/ } @dir_list;
+        @results = grep { /farm.rrd$/ } sort @dir_list;
         for (@results) { s/.rrd$//g }
     }
     elsif ($graphtype eq 'VPN') {
-        @results = grep { /vpn.rrd$/ } @dir_list;
+        @results = grep { /vpn.rrd$/ } sort @dir_list;
         for (@results) { s/.rrd$//g }
     }
     else {
-        @results = grep { /.rrd$/ } @dir_list;
-        for (@results) { s/.rrd$//g }
+        log_error("Graph type not supported.");
     }
 
     return @results;

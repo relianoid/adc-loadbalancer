@@ -225,9 +225,8 @@ $apt_bin="/usr/bin/apt";
 $aptget_bin="/usr/bin/apt-get";
 #Where is apt-cache?
 $aptcache_bin="/usr/bin/apt-cache";
-#Where is checkupgrades?
-$checkupgrades_bin="/usr/local/relianoid/bin/checkupgrades";#update
-$checkupdates_bin="/usr/local/relianoid/bin/checkupdates";#update
+#Where is the updater?
+$updater_bin="/usr/local/relianoid/bin/noid-updater";#update
 #Where is openssl?
 $openssl="/usr/bin/openssl";
 #Where is unzip?
@@ -241,7 +240,6 @@ $awk="/usr/bin/awk";
 #Where is logger?
 $logger="/usr/bin/logger";
 #Where is sec?
-$sec="/usr/bin/sec";
 #Where is touch?
 $touch="/usr/bin/touch";
 #Where is sed?
@@ -568,5 +566,7 @@ $vm_user_role="Virtual Machine User Login";#update
 
 # docker
 $docker_flag="/.dockerenv";
+
+# eproxy
 
 #::END Global Section

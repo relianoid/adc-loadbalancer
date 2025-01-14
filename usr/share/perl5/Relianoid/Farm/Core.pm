@@ -77,6 +77,9 @@ sub getFarmType ($farm_name) {
     elsif ($farm_filename =~ /^$farm_name\_gslb.cfg/) {
         return "gslb";
     }
+    elsif ($farm_filename =~ /^$farm_name\_eproxy.yaml/) {
+        return "eproxy";
+    }
 
     return 1;
 }
@@ -102,7 +105,7 @@ sub getFarmFile ($farm_name) {
 
     my @farm_files =
       grep {
-             /^$farm_name\_(?:gslb|proxy|datalink|l4xnat)\.cfg$/
+             /^$farm_name\_(?:gslb|proxy|datalink|l4xnat)\.cfg$|^$farm_name\_eproxy\.yaml$/
           && !/^$farm_name\_.*guardian\.conf$/
           && !/^$farm_name\_status.cfg$/
       } readdir($dir);
@@ -154,14 +157,15 @@ Returns:
 
 sub getFarmList() {
     opendir(my $directory, $configdir);
-    my @cfgFiles = sort (grep { /\.cfg$/ } readdir($directory));
+    my @cfgFiles = sort (grep { /\.cfg$|\.yaml$/ } readdir($directory));
     closedir($directory);
 
     my @files1 = grep { /_proxy\.cfg$/ } @cfgFiles;
     my @files2 = grep { /_datalink\.cfg$/ } @cfgFiles;
     my @files3 = grep { /_l4xnat\.cfg$/ } @cfgFiles;
     my @files4 = grep { /_gslb\.cfg$/ } @cfgFiles;
-    my @files  = (@files1, @files2, @files3, @files4);
+    my @files5 = grep { /_eproxy\.yaml$/ } @cfgFiles;
+    my @files  = (@files1, @files2, @files3, @files4, @files5);
 
     return @files;
 }

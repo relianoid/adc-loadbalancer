@@ -134,9 +134,10 @@ sub runHTTPFarmCreate ($vip, $vip_port, $farm_name, $farm_type, $status = 'up') 
     my $piddir = &getGlobalConfiguration('piddir');
 
     if ($status eq 'up') {
-        &log_info("Running $proxy -f $configdir\/$farm_name\_proxy.cfg -p $piddir\/$farm_name\_proxy.pid", "LSLB");
+        my $cmd = "${proxy} -f ${configdir}/${farm_name}_proxy.cfg -p ${piddir}/${farm_name}_proxy.pid";
+        &log_info("Running: ${cmd}", "LSLB");
 
-        $output = &run_with_env("$proxy -f $configdir\/$farm_name\_proxy.cfg -p $piddir\/$farm_name\_proxy.pid 2>/dev/null");
+        $output = &run_with_env($cmd);
     }
     else {
         $output = &setHTTPFarmBootStatus($farm_name, 'down');

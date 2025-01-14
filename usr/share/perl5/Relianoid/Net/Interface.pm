@@ -718,11 +718,14 @@ sub getSystemInterfaceList () {
 
     my @configured_interfaces;
     my $interface_ref = &getInterfaceNameStruct("vlan");
+
     for my $vlan (@{$interface_ref}) {
         my $if_ref = &getInterfaceConfig($vlan);
         push @configured_interfaces, $if_ref if $if_ref;
     }
+
     $interface_ref = &getInterfaceNameStruct("virtual");
+
     for my $virtual (@{$interface_ref}) {
         my $if_ref = &getInterfaceConfig($virtual);
         push @configured_interfaces, $if_ref if $if_ref;
@@ -734,7 +737,7 @@ sub getSystemInterfaceList () {
     my $all_status = &getInterfaceSystemStatusAll();
 
     ## Build system device "tree"
-    for my $if_name (@system_interfaces) {
+    for my $if_name (sort @system_interfaces) {
         # ignore vlans and vinis
         next if $if_name =~ /\./;
         next if $if_name =~ /:/;

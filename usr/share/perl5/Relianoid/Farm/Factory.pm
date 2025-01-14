@@ -61,6 +61,7 @@ FIXME:
 
 sub runFarmCreate ($farm_type, $vip, $vip_port, $farm_name, $fdev) {
     my $output        = -1;
+
     my $farm_filename = &getFarmFile($farm_name);
 
     if ($farm_filename != -1) {
@@ -83,6 +84,13 @@ sub runFarmCreate ($farm_type, $vip, $vip_port, $farm_name, $fdev) {
     if ($farm_type =~ /^HTTPS?$/i) {
         require Relianoid::Farm::HTTP::Factory;
         $output = &runHTTPFarmCreate($vip, $vip_port, $farm_name, $farm_type, $status);
+    }
+    elsif ($farm_type =~ /^eproxy$/) {
+        $output = &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Factory',
+            func   => 'runEproxyFarmCreate',
+            args   => [ {vip => $vip, vport => $vip_port, farm_name => $farm_name, farm_type => $farm_type, status => $status} ],
+        );
     }
     elsif ($farm_type =~ /^L4xNAT$/i) {
         require Relianoid::Farm::L4xNAT::Factory;

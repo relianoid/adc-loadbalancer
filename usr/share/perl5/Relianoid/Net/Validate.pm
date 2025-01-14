@@ -107,7 +107,7 @@ sub getProtoTransport ($profile) {
     elsif ($profile =~ /^(?:amanda|tftp|netbios-ns|snmp)$/) {    # udp
         $proto = ["udp"];
     }
-    elsif ($profile =~ /^(?:ftp|irc|pptp|sane|https?)$/) {       # tcp
+    elsif ($profile =~ /^(?:ftp|irc|pptp|sane|https?|eproxy)$/) { # tcp
         $proto = ["tcp"];
     }
     elsif ($profile eq "all") {                                  # mix
@@ -120,7 +120,7 @@ sub getProtoTransport ($profile) {
         $proto = [ "tcp", "udp" ];
     }
     else {
-        &log_error("The funct 'getProfileProto' does not understand the parameter '$profile'", "networking");
+        &log_error("The funct 'getProtoTransport' does not understand the parameter '$profile'", "networking");
     }
 
     return $proto;
@@ -284,7 +284,7 @@ Returns: integer
 
 =cut
 
-sub validatePortUserSpace ($ip, $port, $proto, $farmname, $process = undef) {
+sub validatePortUserSpace ($ip, $port, $proto, $farmname = undef, $process = undef) {
     my $override;
 
     # skip if the running farm is itself
@@ -292,7 +292,7 @@ sub validatePortUserSpace ($ip, $port, $proto, $farmname, $process = undef) {
         require Relianoid::Farm::Base;
 
         my $type = &getFarmType($farmname);
-        if ($type =~ /http|gslb/) {
+        if ($type =~ /http|gslb|eproxy/) {
             my $cur_vip  = &getFarmVip('vip',  $farmname);
             my $cur_port = &getFarmVip('vipp', $farmname);
 
@@ -758,6 +758,37 @@ sub validateNetmask ($mask, $ipversion = undef) {
     }
 
     return $success;
+}
+
+=pod
+
+=head1 getNextAvailableLocalPort
+
+It validates if the port is being used for some process in the user space
+
+Parameters:
+
+    None.
+
+Returns:
+
+    integer - port to be used. Undefined if there is no port available.
+
+=cut
+
+sub getNextAvailableLocalPort () {
+    my $ip = "127.0.0.1";
+    my @protocol = ('tcp');
+    my $first_port = 100;
+    my $last_port = 10000;
+
+    for my $port ($first_port .. $last_port) {
+        if (&validatePortUserSpace($ip, $port, \@protocol)) {
+            return $port;
+        }
+    }
+
+    return;
 }
 
 1;

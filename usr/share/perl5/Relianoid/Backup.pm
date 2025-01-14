@@ -199,14 +199,20 @@ sub uploadBackup ($filename, $upload_filehandle) {
     $config_path =~ s/^\///;
 
     $error = &logAndRun("$tar -tf $filepath $config_path");
-
-    if ($error) {
-        &log_error("$filename looks being a not valid backup", 'backup');
-        unlink $filepath;
-        return 2;
+    if (! $error) {
+        return $error;
     }
 
-    return $error;
+    $error = &logAndRun("$tar -tf $filepath usr/local/zevenet/config/global.conf");
+    if (! $error) {
+        &log_info("Enable backup migration to RELIANOID", 'backup');
+        &logAndRun("ln -sf /usr/local/relianoid /usr/local/zevenet");
+        return $error;
+    }
+
+    &log_error("$filename looks being a not valid backup", 'backup');
+    unlink $filepath;
+    return 2;
 }
 
 =pod
@@ -293,7 +299,8 @@ sub restoreBackup ($backup) {
     # Reference: https://pmhahn.github.io/dpkg-compare-versions/
     # From lower to greater version: 1.0~rc1 < 1.0 < 1.0-noid1 < 1.0+noid1
 
-    my $backup_is_previous = (system("dpkg --compare-versions $backup_version lt $pre_restore_version") == 0);
+    system("dpkg --compare-versions $backup_version lt $pre_restore_version");
+    my $backup_is_previous = $?;
 
     # Flag migration if the backup version is previous to the current version
     if ($backup_is_previous) {
@@ -311,7 +318,8 @@ sub restoreBackup ($backup) {
         }
     }
 
-    my $version_changed = (system("dpkg --compare-versions $backup_version ne $pre_restore_version") == 0);
+    system("dpkg --compare-versions $backup_version ne $pre_restore_version");
+    my $version_changed = $?;
 
     if ($version_changed) {
         &setGlobalConfiguration('version', $pre_restore_version);
@@ -357,11 +365,15 @@ sub getBackupVersion ($backup) {
 
     my $cmd = "${tar} -xOf ${file} ${config_path}";
     log_debug("Running: $cmd");
-
     my @lines = `$cmd`;
-
     if ($?) {
         log_error("errno: $?");
+        $cmd = "${tar} -xOf ${file} usr/local/zevenet/config/global.conf";
+        log_debug("Running: $cmd");
+        @lines = `$cmd`;
+        if ($?) {
+            log_error("errno: $?");
+        }
     }
 
     my $version = "";

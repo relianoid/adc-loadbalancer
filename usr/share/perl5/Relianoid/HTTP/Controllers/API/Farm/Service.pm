@@ -112,9 +112,20 @@ sub add_farm_service_controller ($json_obj, $farmname) {
     };
 
     if (&getFarmStatus($farmname) ne 'down') {
-        require Relianoid::Farm::Action;
-        &setFarmRestart($farmname);
-        $body->{status} = 'needed restart';
+        if ($type eq "eproxy" && $eload) {
+            $body->{status} = &eload(
+                module => 'Relianoid::EE::Farm::Eproxy::Action',
+                func   => 'runEproxyFarmReload',
+                args   => [ { farm_name => $farmname } ],
+            );
+            require Relianoid::EE::Cluster;
+            &runClusterRemoteManager('farm', 'reload', $farmname);
+        }
+        else {
+            require Relianoid::Farm::Action;
+            &setFarmRestart($farmname);
+            $body->{status} = 'needed restart';
+        }
     }
 
     return &httpResponse({ code => 201, body => $body });
@@ -138,13 +149,21 @@ sub get_farm_service_controller ($farmname, $servicename) {
 
     my $type = &getFarmType($farmname);
 
-    # check the farm type is supported
-    if ($type !~ /http/i) {
-        my $msg = "This functionality only is available for HTTP farms.";
+    my @services;
+    if ($type =~ /http/i) {
+        @services = &getHTTPFarmServices($farmname);
+    }
+    elsif ($type eq "eproxy" && $eload) {
+        @services = @ { &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Service',
+            func   => 'getEproxyFarmServices',
+            args   => [ { farm_name => $farmname } ]
+        ) };
+    }
+    else {
+        my $msg = "This functionality only is available for HTTP or eproxy farms.";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
-
-    my @services = &getHTTPFarmServices($farmname);
 
     # check if the service is available
     if (!grep { $servicename eq $_ } @services) {
@@ -152,7 +171,18 @@ sub get_farm_service_controller ($farmname, $servicename) {
         return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
-    my $service = &getHTTPServiceStruct($farmname, $servicename);
+    my $service;
+    if ($type =~ /http/i) {
+        $service = &getHTTPServiceStruct($farmname, $servicename);
+    }
+    elsif ($type eq "eproxy" && $eload) {
+        $service = &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Service',
+            func   => 'getEproxyServiceStruct',
+            args   => [ { farm_name => $farmname, service_name => $servicename } ]
+        );
+    }
+
     my $body    = {
         description => $desc,
         params      => $service,
@@ -180,230 +210,250 @@ sub modify_farm_service_controller ($json_obj, $farmname, $service) {
     # validate FARM TYPE
     my $type = &getFarmType($farmname);
 
-    unless ($type eq 'gslb' || $type eq 'http' || $type eq 'https') {
+    unless ($type eq 'gslb' || $type eq 'http' || $type eq 'https' || $type eq 'eproxy') {
         my $msg = "The $type farm profile does not support services settings.";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
-    # validate SERVICE
-    unless (my $found_service = grep { $service eq $_ } &getFarmServices($farmname)) {
-        my $msg = "Could not find the requested service.";
-        return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
-    }
-
     # check if the farm profile gslb is supported
     if ($type eq "gslb") {
+        unless (my $found_service = grep { $service eq $_ } &getFarmServices($farmname)) {
+            my $msg = "Could not find the requested service.";
+            return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
+        }
+
         &eload(
             module => 'Relianoid::EE::HTTP::Controllers::API::Farm::GSLB',
             func   => 'modify_gslb_service',
             args   => [ $json_obj, $farmname, $service ]
         );
     }
-
-    # From here everything is about HTTP farms
-    require Relianoid::Farm::HTTP::Config;
-    require Relianoid::Farm::HTTP::Service;
-
-    my $params = &getAPIModel("farm_http_service-modify.json");
-
-    # Check allowed parameters
-    if (my $error_msg = &checkApiParams($json_obj, $params, $desc)) {
-        return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg });
+    elsif ($type eq "eproxy" && $eload) {
+        my $args = $json_obj;
+        $args->{ farm_name } = $farmname;
+        &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Service',
+            func   => 'setEproxyServiceStruct',
+            args   => [ $args ]
+        );
+        $output_params = &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Service',
+            func   => 'getEproxyServiceStruct',
+            args   => [ { farm_name => $farmname, service_name => $service } ]
+        );
+        delete $output_params->{ farm_filename };
     }
+    else {
+        unless (my $found_service = grep { $service eq $_ } &getFarmServices($farmname)) {
+            my $msg = "Could not find the requested service.";
+            return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
+        }
 
-    # translate params
-    if (exists $json_obj->{persistence} and $json_obj->{persistence} eq 'NONE') {
-        $json_obj->{persistence} = "";
-    }
+        # From here everything is about HTTP farms
+        require Relianoid::Farm::HTTP::Config;
+        require Relianoid::Farm::HTTP::Service;
 
-    # modifying params
-    if (exists $json_obj->{vhost}) {
-        &setHTTPFarmVS($farmname, $service, "vs", $json_obj->{vhost});
-    }
+        my $params = &getAPIModel("farm_http_service-modify.json");
 
-    if (exists $json_obj->{urlp}) {
-        &setHTTPFarmVS($farmname, $service, "urlp", $json_obj->{urlp});
-    }
+        # Check allowed parameters
+        if (my $error_msg = &checkApiParams($json_obj, $params, $desc)) {
+            return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg });
+        }
 
-    if (exists $json_obj->{redirect}) {
-        my $redirect = $json_obj->{redirect};
+        # translate params
+        if (exists $json_obj->{persistence} and $json_obj->{persistence} eq 'NONE') {
+            $json_obj->{persistence} = "";
+        }
 
-        &setHTTPFarmVS($farmname, $service, "redirect", $redirect);
+        # modifying params
+        if (exists $json_obj->{vhost}) {
+            &setHTTPFarmVS($farmname, $service, "vs", $json_obj->{vhost});
+        }
 
-        # delete service's backends if redirect has been configured
-        if ($redirect) {
-            require Relianoid::Farm::HTTP::Backend;
-            my $backends = scalar @{ &getHTTPFarmBackends($farmname, $service) };
+        if (exists $json_obj->{urlp}) {
+            &setHTTPFarmVS($farmname, $service, "urlp", $json_obj->{urlp});
+        }
 
-            if ($backends) {
-                $bk_msg = "The backends of $service have been deleted.";
+        if (exists $json_obj->{redirect}) {
+            my $redirect = $json_obj->{redirect};
 
-                for (my $id = $backends - 1 ; $id >= 0 ; $id--) {
-                    &runHTTPFarmServerDelete($id, $farmname, $service);
+            &setHTTPFarmVS($farmname, $service, "redirect", $redirect);
+
+            # delete service's backends if redirect has been configured
+            if ($redirect) {
+                require Relianoid::Farm::HTTP::Backend;
+                my $backends = scalar @{ &getHTTPFarmBackends($farmname, $service) };
+
+                if ($backends) {
+                    $bk_msg = "The backends of $service have been deleted.";
+
+                    for (my $id = $backends - 1 ; $id >= 0 ; $id--) {
+                        &runHTTPFarmServerDelete($id, $farmname, $service);
+                    }
                 }
             }
         }
-    }
 
-    if (exists $json_obj->{redirecttype}) {
-        my $redirecttype = $json_obj->{redirecttype};
-        &setHTTPFarmVS($farmname, $service, "redirecttype", $redirecttype);
-    }
-
-    if (exists $json_obj->{leastresp}) {
-        if ($json_obj->{leastresp} eq "true") {
-            &setHTTPFarmVS($farmname, $service, "dynscale", $json_obj->{leastresp});
-        }
-        elsif ($json_obj->{leastresp} eq "false") {
-            &setHTTPFarmVS($farmname, $service, "dynscale", "");
-        }
-    }
-
-    if (exists $json_obj->{persistence}) {
-        my $session = $json_obj->{persistence} || 'nothing';
-        my $old_persistence;
-
-        if ($eload) {
-            require Relianoid::Farm::Config;
-            $old_persistence = &getPersistence($farmname);
+        if (exists $json_obj->{redirecttype}) {
+            my $redirecttype = $json_obj->{redirecttype};
+            &setHTTPFarmVS($farmname, $service, "redirecttype", $redirecttype);
         }
 
-        if (my $error = &setHTTPFarmVS($farmname, $service, "session", $session)) {
-            my $msg = "It's not possible to change the persistence parameter.";
-            return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+        if (exists $json_obj->{leastresp}) {
+            if ($json_obj->{leastresp} eq "true") {
+                &setHTTPFarmVS($farmname, $service, "dynscale", $json_obj->{leastresp});
+            }
+            elsif ($json_obj->{leastresp} eq "false") {
+                &setHTTPFarmVS($farmname, $service, "dynscale", "");
+            }
         }
 
-        if ($eload) {
-            my $new_persistence = &getPersistence($farmname);
-            if (($new_persistence == 1) and ($old_persistence == 0)) {
-                &eload(
-                    module => 'Relianoid::EE::Ssyncd',
-                    func   => 'setSsyncdFarmDown',
-                    args   => [$farmname],
+        if (exists $json_obj->{persistence}) {
+            my $session = $json_obj->{persistence} || 'nothing';
+            my $old_persistence;
+
+            if ($eload) {
+                require Relianoid::Farm::Config;
+                $old_persistence = &getPersistence($farmname);
+            }
+
+            if (my $error = &setHTTPFarmVS($farmname, $service, "session", $session)) {
+                my $msg = "It's not possible to change the persistence parameter.";
+                return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+            }
+
+            if ($eload) {
+                my $new_persistence = &getPersistence($farmname);
+                if (($new_persistence == 1) and ($old_persistence == 0)) {
+                    &eload(
+                        module => 'Relianoid::EE::Ssyncd',
+                        func   => 'setSsyncdFarmDown',
+                        args   => [$farmname],
+                    );
+                }
+                elsif (($new_persistence == 0) and ($old_persistence == 1)) {
+                    &eload(
+                        module => 'Relianoid::EE::Ssyncd',
+                        func   => 'setSsyncdFarmUp',
+                        args   => [$farmname],
+                    );
+                }
+            }
+        }
+
+        my $session = &getHTTPFarmVS($farmname, $service, "sesstype");
+
+        # It is necessary evaluate first session, next ttl and later persistence
+        if (exists $json_obj->{sessionid}) {
+            if ($session =~ /^(URL|COOKIE|HEADER)$/) {
+                &setHTTPFarmVS($farmname, $service, "sessionid", $json_obj->{sessionid});
+            }
+        }
+
+        if (exists $json_obj->{ttl}) {
+            if ($session =~ /^(IP|BASIC|URL|PARM|COOKIE|HEADER)$/) {
+                my $error = &setHTTPFarmVS($farmname, $service, "ttl", "$json_obj->{ttl}");
+                if ($error) {
+                    my $msg = "Could not change the ttl parameter.";
+                    return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+                }
+            }
+        }
+
+        # Cookie insertion
+        if (scalar grep { /^cookie/ } keys %{$json_obj}) {
+            if ($eload) {
+                my $msg = &eload(
+                    module   => 'Relianoid::EE::HTTP::Controllers::API::Farm::Service::Ext',
+                    func     => 'modify_service_cookie_insertion',
+                    args     => [ $farmname, $service, $json_obj ],
+                    just_ret => 1,
                 );
+
+                if (defined $msg && length $msg) {
+                    return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+                }
             }
-            elsif (($new_persistence == 0) and ($old_persistence == 1)) {
-                &eload(
-                    module => 'Relianoid::EE::Ssyncd',
-                    func   => 'setSsyncdFarmUp',
-                    args   => [$farmname],
+            else {
+                my $msg = "Cookie insertion feature not available.";
+                return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+            }
+        }
+
+        if (exists $json_obj->{httpsb}) {
+            if ($json_obj->{httpsb} ne &getHTTPFarmVS($farmname, $service, 'httpsbackend')) {
+                if ($json_obj->{httpsb} eq "true") {
+                    &setHTTPFarmVS($farmname, $service, "httpsbackend", $json_obj->{httpsb});
+                }
+                elsif ($json_obj->{httpsb} eq "false") {
+                    &setHTTPFarmVS($farmname, $service, "httpsbackend", "");
+                }
+            }
+        }
+
+        # Redirect code
+        if (exists $json_obj->{redirect_code}) {
+            if ($eload) {
+                my $err = &eload(
+                    module => 'Relianoid::EE::Farm::HTTP::Service::Ext',
+                    func   => 'setHTTPServiceRedirectCode',
+                    args   => [ $farmname, $service, $json_obj->{redirect_code} ],
                 );
+
+                if ($err) {
+                    my $msg = "Error modifying redirect code.";
+                    return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+                }
             }
-        }
-    }
-
-    my $session = &getHTTPFarmVS($farmname, $service, "sesstype");
-
-    # It is necessary evaluate first session, next ttl and later persistence
-    if (exists $json_obj->{sessionid}) {
-        if ($session =~ /^(URL|COOKIE|HEADER)$/) {
-            &setHTTPFarmVS($farmname, $service, "sessionid", $json_obj->{sessionid});
-        }
-    }
-
-    if (exists $json_obj->{ttl}) {
-        if ($session =~ /^(IP|BASIC|URL|PARM|COOKIE|HEADER)$/) {
-            my $error = &setHTTPFarmVS($farmname, $service, "ttl", "$json_obj->{ttl}");
-            if ($error) {
-                my $msg = "Could not change the ttl parameter.";
+            else {
+                my $msg = "Redirect code feature not available.";
                 return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
             }
         }
-    }
 
-    # Cookie insertion
-    if (scalar grep { /^cookie/ } keys %{$json_obj}) {
         if ($eload) {
-            my $msg = &eload(
-                module   => 'Relianoid::EE::HTTP::Controllers::API::Farm::Service::Ext',
-                func     => 'modify_service_cookie_insertion',
-                args     => [ $farmname, $service, $json_obj ],
-                just_ret => 1,
-            );
+            # sts options
+            if (exists $json_obj->{sts_status}) {
+                # status
+                if ($type ne 'https') {
+                    my $msg = "The farms have to be HTTPS to modify STS";
+                    return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+                }
+                my $err = &eload(
+                    module => 'Relianoid::EE::Farm::HTTP::Service::Ext',
+                    func   => 'setHTTPServiceSTSStatus',
+                    args   => [ $farmname, $service, $json_obj->{sts_status} ],
+                );
 
-            if (defined $msg && length $msg) {
-                return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+                if ($err) {
+                    my $msg = "Error modifying STS status.";
+                    return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+                }
+            }
+
+            if (exists $json_obj->{sts_timeout}) {
+                if ($type ne 'https') {
+                    my $msg = "The farms have to be HTTPS to modify STS";
+                    return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+                }
+
+                my $err = &eload(
+                    module => 'Relianoid::EE::Farm::HTTP::Service::Ext',
+                    func   => 'setHTTPServiceSTSTimeout',
+                    args   => [ $farmname, $service, $json_obj->{sts_timeout} ],
+                );
+
+                if ($err) {
+                    my $msg = "Error modifying STS status.";
+                    return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+                }
             }
         }
-        else {
-            my $msg = "Cookie insertion feature not available.";
-            return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
-        }
+
+        # no error found, return succesful response
+        require Relianoid::HTTP::Controllers::API::Farm::Get::HTTP;
+        $output_params = &get_http_service_struct($farmname, $service);
     }
-
-    if (exists $json_obj->{httpsb}) {
-        if ($json_obj->{httpsb} ne &getHTTPFarmVS($farmname, $service, 'httpsbackend')) {
-            if ($json_obj->{httpsb} eq "true") {
-                &setHTTPFarmVS($farmname, $service, "httpsbackend", $json_obj->{httpsb});
-            }
-            elsif ($json_obj->{httpsb} eq "false") {
-                &setHTTPFarmVS($farmname, $service, "httpsbackend", "");
-            }
-        }
-    }
-
-    # Redirect code
-    if (exists $json_obj->{redirect_code}) {
-        if ($eload) {
-            my $err = &eload(
-                module => 'Relianoid::EE::Farm::HTTP::Service::Ext',
-                func   => 'setHTTPServiceRedirectCode',
-                args   => [ $farmname, $service, $json_obj->{redirect_code} ],
-            );
-
-            if ($err) {
-                my $msg = "Error modifying redirect code.";
-                return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
-            }
-        }
-        else {
-            my $msg = "Redirect code feature not available.";
-            return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
-        }
-    }
-
-    if ($eload) {
-        # sts options
-        if (exists $json_obj->{sts_status}) {
-            # status
-            if ($type ne 'https') {
-                my $msg = "The farms have to be HTTPS to modify STS";
-                return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
-            }
-            my $err = &eload(
-                module => 'Relianoid::EE::Farm::HTTP::Service::Ext',
-                func   => 'setHTTPServiceSTSStatus',
-                args   => [ $farmname, $service, $json_obj->{sts_status} ],
-            );
-
-            if ($err) {
-                my $msg = "Error modifying STS status.";
-                return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
-            }
-        }
-
-        if (exists $json_obj->{sts_timeout}) {
-            if ($type ne 'https') {
-                my $msg = "The farms have to be HTTPS to modify STS";
-                return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
-            }
-
-            my $err = &eload(
-                module => 'Relianoid::EE::Farm::HTTP::Service::Ext',
-                func   => 'setHTTPServiceSTSTimeout',
-                args   => [ $farmname, $service, $json_obj->{sts_timeout} ],
-            );
-
-            if ($err) {
-                my $msg = "Error modifying STS status.";
-                return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
-            }
-        }
-    }
-
-    # no error found, return succesful response
-    require Relianoid::HTTP::Controllers::API::Farm::Get::HTTP;
-    $output_params = &get_http_service_struct($farmname, $service);
 
     &log_info("Success, some parameters have been changed in service $service in farm $farmname.", "FARMS");
 
@@ -415,9 +465,20 @@ sub modify_farm_service_controller ($json_obj, $farmname, $service) {
     $body->{message} = $bk_msg ? $bk_msg : "The service $service has been updated successfully.";
 
     if (&getFarmStatus($farmname) ne 'down') {
-        require Relianoid::Farm::Action;
-        &setFarmRestart($farmname);
-        $body->{status} = 'needed restart';
+        if ($type eq "eproxy" && $eload) {
+            $body->{status} = &eload(
+                module => 'Relianoid::EE::Farm::Eproxy::Action',
+                func   => 'runEproxyFarmReload',
+                args   => [ { farm_name => $farmname } ],
+            );
+            require Relianoid::EE::Cluster;
+            &runClusterRemoteManager('farm', 'reload', $farmname);
+        }
+        else {
+            require Relianoid::Farm::Action;
+            &setFarmRestart($farmname);
+            $body->{status} = 'needed restart';
+        }
     }
 
     return &httpResponse({ code => 200, body => $body });
@@ -494,9 +555,20 @@ sub delete_farm_service_controller ($farmname, $service) {
     };
 
     if (&getFarmStatus($farmname) ne 'down') {
-        require Relianoid::Farm::Action;
-        &setFarmRestart($farmname);
-        $body->{status} = 'needed restart';
+        if ($type eq "eproxy" && $eload) {
+            $body->{status} = &eload(
+                module => 'Relianoid::EE::Farm::Eproxy::Action',
+                func   => 'runEproxyFarmReload',
+                args   => [ { farm_name => $farmname } ],
+            );
+            require Relianoid::EE::Cluster;
+            &runClusterRemoteManager('farm', 'reload', $farmname);
+        }
+        else {
+            require Relianoid::Farm::Action;
+            &setFarmRestart($farmname);
+            $body->{status} = 'needed restart';
+        }
     }
 
     return &httpResponse({ code => 200, body => $body });

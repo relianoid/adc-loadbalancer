@@ -305,6 +305,13 @@ sub runFarmServerDelete ($ids, $farm_name, $service = undef) {
             args   => [ $ids, $farm_name, $service ],
         );
     }
+    elsif ($farm_type eq "eproxy" && $eload) {
+        $output = &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Backend',
+            func   => 'delEproxyFarmBackend',
+            args   => [ { farm_name => $farm_name, service_name => $service, backend_id => $ids } ],
+        );
+    }
 
     return $output;
 }

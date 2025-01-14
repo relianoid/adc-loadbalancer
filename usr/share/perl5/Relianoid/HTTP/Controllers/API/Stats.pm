@@ -49,39 +49,49 @@ sub _get_all_farm_stats_controller () {
         my $name = &getFarmName($file);
         my $type = &getFarmType($name);
 
-        my $status      = &getFarmVipStatus($name);
-        my $vip         = &getFarmVip('vip',  $name);
-        my $port        = &getFarmVip('vipp', $name);
-        my $established = 0;
-        my $pending     = 0;
-
-        # datalink has no stats
-        if ($type eq 'datalink') {
-            $established = undef;
-            $pending     = undef;
+        if ($type eq 'eproxy' && $eload) {
+            my $farm_stats = &eload(
+                module => 'Relianoid::EE::Farm::Eproxy::Stats',
+                func   => 'getEproxyFarmStats',
+                args   => [ { 'farm_name' => $name } ],
+            );
+            push(@farms, $farm_stats);
         }
-        elsif ($status ne "down") {
-            require Relianoid::Net::ConnStats;
-            require Relianoid::Farm::Stats;
+        else {
+            my $status      = &getFarmVipStatus($name);
+            my $vip         = &getFarmVip('vip',  $name);
+            my $port        = &getFarmVip('vipp', $name);
+            my $established = 0;
+            my $pending     = 0;
 
-            my $netstat;
-            $netstat = &getConntrack('', $vip, '', '', '')
-              if $type !~ /^https?$/;
+            # datalink has no stats
+            if ($type eq 'datalink') {
+                $established = undef;
+                $pending     = undef;
+            }
+            elsif ($status ne "down") {
+                require Relianoid::Net::ConnStats;
+                require Relianoid::Farm::Stats;
 
-            $pending     = &getFarmSYNConns($name, $netstat);
-            $established = &getFarmEstConns($name, $netstat);
+                my $netstat;
+                $netstat = &getConntrack('', $vip, '', '', '')
+                if $type !~ /^https?$/;
+
+                $pending     = &getFarmSYNConns($name, $netstat);
+                $established = &getFarmEstConns($name, $netstat);
+            }
+
+            push @farms,
+            {
+                farmname    => $name,
+                profile     => $type,
+                status      => $status,
+                vip         => $vip,
+                vport       => $port,
+                established => $established,
+                pending     => $pending,
+            };
         }
-
-        push @farms,
-          {
-            farmname    => $name,
-            profile     => $type,
-            status      => $status,
-            vip         => $vip,
-            vport       => $port,
-            established => $established,
-            pending     => $pending,
-          };
     }
 
     if ($eload) {
@@ -225,6 +235,23 @@ sub get_farm_stats_controller ($farmname, $servicename = undef) {
 
         return &httpResponse({ code => 200, body => $body });
     }
+
+    if ($type eq "eproxy" && $eload) {
+        my $backend_stats = &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Stats',
+            func   => 'getEproxyFarmBackendsStats',
+            args   => [{ farm_name => $farmname, service_name => $servicename}],
+        );
+
+        my $body = {
+            description    => $desc,
+            backends       => $backend_stats,
+#            sessions       => $stats->{sessions},
+#            total_sessions => $#{ $stats->{sessions} } + 1,
+        };
+        return &httpResponse({ code => 200, body => $body });
+    }
+
 }
 
 #Get Farm Stats

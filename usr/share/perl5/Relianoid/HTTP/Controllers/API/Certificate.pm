@@ -222,6 +222,7 @@ sub create_csr_controller ($json_obj) {
 # POST /certificates/CERTIFICATE (Upload PEM)
 sub upload_certificate_controller ($upload_data, $filename) {
     require Relianoid::File;
+    require Relianoid::Certificate;
 
     my $desc      = "Upload PEM certificate";
     my $configdir = &getGlobalConfiguration('certdir');
@@ -238,6 +239,12 @@ sub upload_certificate_controller ($upload_data, $filename) {
 
     unless (&setFile("$configdir/$filename", $upload_data)) {
         my $msg = "Could not save the certificate file";
+        return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+    }
+
+    if (&checkCertPEMKeyEncrypted("$configdir/$filename") == 1) {
+        &delCert("$filename");
+        my $msg = "SSL certificates with passphrase are not supported";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
@@ -289,8 +296,9 @@ sub add_farm_certificate_controller ($json_obj, $farmname) {
     }
 
     # Check if the farm exists
-    if (&getFarmType($farmname) ne 'https') {
-        my $msg = "This feature is only available for 'https' farms";
+    my $farm_type = &getFarmType($farmname);
+    if ($farm_type !~ /https|eproxy/) {
+        my $msg = "This feature is only available for 'https' or 'eproxy' farms";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
@@ -309,13 +317,29 @@ sub add_farm_certificate_controller ($json_obj, $farmname) {
         return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
+    require Relianoid::Certificate;
+    my $error = &checkCertPEMValid($configdir . "/" . $json_obj->{file});
+    if ($error->{code}) {
+        &log_error("'Certificate $json_obj->{file}' for farm $farmname is not valid", "LSLB");
+        my $msg = "The certificate $json_obj->{file} is not valid.";
+        return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+    }
+
     my $cert_in_use;
     if ($eload) {
-        $cert_in_use = grep { $json_obj->{file} eq $_ } &eload(
-            module => 'Relianoid::EE::Farm::HTTP::HTTPS::Ext',
-            func   => 'getFarmCertificatesSNI',
-            args   => [$farmname]
-        );
+        if ($farm_type eq 'https') {
+            $cert_in_use = grep { $json_obj->{file} eq $_ } &eload(
+                module => 'Relianoid::EE::Farm::HTTP::HTTPS::Ext',
+                func   => 'getFarmCertificatesSNI',
+                args   => [$farmname]
+            );
+        } elsif ($farm_type eq 'eproxy') {
+            $cert_in_use = grep { $json_obj->{file} eq $_ } &eload(
+                module => 'Relianoid::EE::Farm::Eproxy::SSL',
+                func   => 'getEproxyFarmCertificates',
+                args   => [{ farm_name => $farmname }]
+            );
+        }
     }
     else {
         $cert_in_use = &getFarmCertificate($farmname) eq $json_obj->{file};
@@ -328,11 +352,19 @@ sub add_farm_certificate_controller ($json_obj, $farmname) {
 
     my $status;
     if ($eload) {
-        $status = &eload(
-            module => 'Relianoid::EE::Farm::HTTP::HTTPS::Ext',
-            func   => 'setFarmCertificateSNI',
-            args   => [ $json_obj->{file}, $farmname ],
-        );
+        if ($farm_type eq 'https') {
+            $status = &eload(
+                module => 'Relianoid::EE::Farm::HTTP::HTTPS::Ext',
+                func   => 'setFarmCertificateSNI',
+                args   => [ $json_obj->{file}, $farmname ],
+            );
+        } elsif ($farm_type eq 'eproxy') {
+            $status = &eload(
+                module => 'Relianoid::EE::Farm::Eproxy::SSL',
+                func   => 'setEproxyFarmCertificate',
+                args   => [ { farm_name => $farmname, ssl_cert_filename => $json_obj->{file} } ],
+            );
+        }
     }
     else {
         $status = &setFarmCertificate($json_obj->{file}, $farmname);
@@ -358,9 +390,20 @@ sub add_farm_certificate_controller ($json_obj, $farmname) {
     };
 
     if (&getFarmStatus($farmname) ne 'down') {
-        require Relianoid::Farm::Action;
-        &setFarmRestart($farmname);
-        $body->{status} = 'needed restart';
+        if ($farm_type eq 'https') {
+            require Relianoid::Farm::Action;
+            &setFarmRestart($farmname);
+            $body->{status} = 'needed restart';
+        }
+        elsif ($farm_type eq 'eproxy' && $eload) {
+            $body->{status} = &eload(
+                module => 'Relianoid::EE::Farm::Eproxy::Action',
+                func   => 'runEproxyFarmReload',
+                args   => [ { farm_name => $farmname } ],
+            );
+            require Relianoid::EE::Cluster;
+            &runClusterRemoteManager('farm', 'reload', $farmname);
+        }
     }
 
     return &httpResponse({ code => 200, body => $body });

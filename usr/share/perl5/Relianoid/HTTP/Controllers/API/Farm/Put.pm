@@ -53,20 +53,28 @@ sub modify_farm_controller ($json_obj, $farmname) {
         &modify_http_farm($json_obj, $farmname);
     }
 
-    if ($type eq "l4xnat") {
+    elsif ($type eq "l4xnat") {
         require Relianoid::HTTP::Controllers::API::Farm::Put::L4xNAT;
         &modify_l4xnat_farm($json_obj, $farmname);
     }
 
-    if ($type eq "datalink") {
+    elsif ($type eq "datalink") {
         require Relianoid::EE::HTTP::Controllers::API::Farm::Put::Datalink;
         &modify_datalink_farm($json_obj, $farmname);
     }
 
-    if ($type eq "gslb" && $eload) {
+    elsif ($type eq "gslb" && $eload) {
         &eload(
             module => 'Relianoid::EE::HTTP::Controllers::API::Farm::Put::GSLB',
             func   => 'modify_gslb_farm',
+            args   => [ $json_obj, $farmname ],
+        );
+    }
+
+    elsif ($type eq "eproxy" && $eload) {
+        &eload(
+            module => 'Relianoid::EE::HTTP::Controllers::API::Farm::Put::Eproxy',
+            func   => 'modify_eproxy_farm',
             args   => [ $json_obj, $farmname ],
         );
     }

@@ -61,12 +61,18 @@ sub getFarmServices ($farm_name) {
         require Relianoid::Farm::HTTP::Service;
         @output = &getHTTPFarmServices($farm_name);
     }
-
-    if ($farm_type eq "gslb") {
+    elsif ($farm_type eq "gslb" && $eload) {
         @output = &eload(
             module => 'Relianoid::EE::Farm::GSLB::Service',
             func   => 'getGSLBFarmServices',
             args   => [$farm_name],
+        ) if $eload;
+    }
+    elsif ($farm_type eq "eproxy" && $eload) {
+        @output = &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Service',
+            func   => 'getEproxyFarmServices',
+            args   => [{ farm_name => $farm_name }],
         ) if $eload;
     }
 

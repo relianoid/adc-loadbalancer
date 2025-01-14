@@ -59,7 +59,7 @@ my $action            = shift @ARGV // '';
 my $print_msg         = "";
 
 if ($action !~ /^(start|stop|restart)$/) {
-    print "Usage: /etc/init.d/relianoid start|stop|restart\n";
+    print "Usage: relianoid start|stop|restart\n";
     exit 0;
 }
 
@@ -705,9 +705,9 @@ if ($action eq "stop") {
     &logAndRun("$nftlb_svc stop");
 
     my $status  = &logAndGet("$nftlb_svc status");
-    my $running = not grep { /nftlb is not running/ } $status;
+    my $stopped = grep { /nftlb is not running/ } $status;
 
-    if   ($running) { print(" \033[1;32m OK \033[0m \n"); }
+    if   ($stopped) { print(" \033[1;32m OK \033[0m \n"); }
     else            { print(" \033[1;31m ERROR \033[0m \n"); }
 
     if ($eload) {

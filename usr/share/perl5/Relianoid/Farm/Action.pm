@@ -117,6 +117,13 @@ sub _runFarmStart ($farm_name, $writeconf = 0) {
             args   => [ $farm_name, $writeconf ],
         );
     }
+    elsif ($farm_type eq "eproxy" && $eload) {
+        $status = &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Action',
+            func   => '_runEproxyFarmStart',
+            args   => [ { 'farm_name' => $farm_name, 'write' => $writeconf } ],
+        );
+    }
 
     &setFarmNoRestart($farm_name);
 
@@ -270,6 +277,13 @@ sub _runFarmStop ($farm_name, $writeconf = 0) {
             args   => [ $farm_name, $writeconf ],
         );
     }
+    elsif ($farm_type eq "eproxy" && $eload) {
+        $status = &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Action',
+            func   => '_runEproxyFarmStop',
+            args   => [ { 'farm_name' => $farm_name, 'write' => $writeconf } ],
+        );
+    }
 
     &setFarmNoRestart($farm_name);
 
@@ -367,10 +381,18 @@ sub runFarmDelete ($farm_name) {
         &runL4FarmDelete($farm_name);
     }
 
-    unlink glob("$configdir/$farm_name\_*\.cfg");
+    if ($farm_type eq "eproxy" && $eload) {
+        $status = &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Factory',
+            func   => 'runEproxyFarmDelete',
+            args   => [{ farm_name => $farm_name }],
+        );
+    } else {
+        unlink glob("$configdir/$farm_name\_*\.cfg");
 
-    if (!-f "$configdir/$farm_name\_*\.cfg") {
-        $status = 0;
+        if (!-f "$configdir/$farm_name\_*\.cfg") {
+            $status = 0;
+        }
     }
 
     require Relianoid::RRD;
@@ -399,19 +421,27 @@ Returns:
 sub runFarmReload ($farm_name) {
     require Relianoid::Farm::Action;
 
-    if (&getFarmRestartStatus($farm_name)) {
-        &log_info("'Reload' on $farm_name is not executed. 'Restart' is needed.", "FARMS");
-        return 2;
-    }
+    my $farm_type = &getFarmType($farm_name);
     my $status = 0;
 
-    &log_info("running 'Reload' for $farm_name", "FARMS");
+    if ($farm_type eq "http" || $farm_type eq "https") {
+        if (&getFarmRestartStatus($farm_name)) {
+            &log_info("'Reload' on $farm_name is not executed. 'Restart' is needed.", "FARMS");
+            return 2;
+        }
 
-    $status = &_runFarmReload($farm_name);
+        &log_info("running 'Reload' for $farm_name", "FARMS");
 
-    # Reload Farm status from its cfg file
-    require Relianoid::Farm::HTTP::Backend;
-    &setHTTPFarmBackendStatusFromFile($farm_name);
+        $status = &_runFarmReload($farm_name);
+
+        # Reload Farm status from its cfg file
+        require Relianoid::Farm::HTTP::Backend;
+        &setHTTPFarmBackendStatusFromFile($farm_name);
+    }
+    elsif ($farm_type eq "eproxy") {
+        &log_info("running 'Reload' for $farm_name", "FARMS");
+        $status = &_runFarmReload($farm_name);
+    }
 
     return $status;
 }
@@ -438,11 +468,24 @@ sub _runFarmReload ($farm) {
     require Relianoid::Farm::Base;
     return 0 if (&getFarmStatus($farm) ne 'up');
 
-    require Relianoid::Farm::HTTP::Config;
-    my $proxy_ctl = &getGlobalConfiguration('proxyctl');
-    my $socket    = &getHTTPFarmSocket($farm);
+    my $farm_type = &getFarmType($farm);
 
-    $err = &logAndRun("$proxy_ctl -c $socket -R 0");
+    if ($farm_type eq "http" || $farm_type eq "https") {
+        require Relianoid::Farm::HTTP::Config;
+        my $proxy_ctl = &getGlobalConfiguration('proxyctl');
+        my $socket    = &getHTTPFarmSocket($farm);
+
+        $err = &logAndRun("$proxy_ctl -c $socket -R 0");
+    }
+    elsif ($farm_type eq "eproxy" && $eload) {
+        $err = &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Action',
+            func   => 'runEproxyFarmReload',
+            args   => [{ farm_name => $farm }],
+        );
+        require Relianoid::EE::Cluster;
+        &runClusterRemoteManager('farm', 'reload', $farm);
+    }
 
     return $err;
 }

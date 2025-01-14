@@ -150,10 +150,10 @@ sub delete_backup_controller ($backup) {
 }
 
 # POST /system/backup/BACKUP/actions
-sub apply_backup_controller ($json_obj, $backup) {
-    my $desc = "Apply a backup to the system";
+sub restore_backup_controller ($json_obj, $backup) {
+    my $desc = "Restore a backup to the system";
 
-    my $params = &getAPIModel("system_backup-apply.json");
+    my $params = &getAPIModel("system_backup-restore.json");
 
     # Check allowed parameters
     if (my $error_msg = &checkApiParams($json_obj, $params, $desc)) {
@@ -172,19 +172,19 @@ sub apply_backup_controller ($json_obj, $backup) {
             or (exists $json_obj->{force} and $json_obj->{force} ne 'true'))
         {
             my $msg =
-              "The backup version ($b_version) is different to the Relianoid version ($sys_version). The parameter 'force' must be used to force the backup applying.";
+              "The backup version ($b_version) is different to the Relianoid version ($sys_version). The parameter 'force' must be used to force the restore.";
             return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
         else {
-            &log_info("Applying The backup version ($b_version) is different to the Relianoid version ($sys_version).");
+            &log_info("Restoring The backup version ($b_version) is different to the Relianoid version ($sys_version).");
         }
     }
 
-    my $msg   = "The backup was properly applied. Some changes need a system reboot to work.";
+    my $msg   = "The restore was properly applied. Some changes need a system reboot to work.";
     my $error = &restoreBackup($backup);
 
     if ($error) {
-        $msg = "There was a error applying the backup.";
+        $msg = "There was a error restoring the backup.";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 

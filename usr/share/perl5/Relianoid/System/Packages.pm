@@ -95,7 +95,7 @@ Returns:
     Hash reference
 
     'message'    : message with the instructions to update the system
-    'last_check' : date of the last time that checkupgrades (or apt-get) was executed
+    'last_check' : date of the last time that nod-updater (or apt-get) was executed
     'status'     : information about if there is pending updates.
     'number'     : number of packages pending of updating
     'packages'   : list of packages pending of updating
@@ -111,13 +111,7 @@ sub getSystemPackagesUpdatesList () {
     my $msg;
     my $date        = "";
     my $status      = "unknown";
-    my $install_msg = "To upgrade the system, please, execute in a shell the following command:\n";
-    if ($eload) {
-        $install_msg .= "    'checkupgrades -i'";
-    }
-    else {
-        $install_msg .= "    'checkupdates -i'";
-    }
+    my $install_msg = "To upgrade the system, please, execute in a shell the following command:\n    'noid-updater -i'";
 
     my $fh = &openlock($package_list, 'r');
     if ($fh) {

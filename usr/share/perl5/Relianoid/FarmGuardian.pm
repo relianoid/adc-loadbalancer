@@ -310,7 +310,7 @@ sub getFGObject ($fg_name, $use_template = '') {
 
     $obj = Config::Tiny->read($file);
 
-    if (! defined $fg_name || $fg_name =~ /^$/) {
+    if (!defined $fg_name || $fg_name =~ /^$/) {
         return $obj;
     }
 
@@ -340,7 +340,7 @@ Returns: string|undef - Farmguardian name if found or undef if not found.
 
 sub getFGFarm ($farm, $service = undef) {
     my $farmguardian = undef;
-    my $farm_tag = $service ? "${farm}_${service}" : $farm;
+    my $farm_tag     = $service ? "${farm}_${service}" : $farm;
 
     if (!-f $fg_conf) {
         return $farmguardian;
@@ -402,7 +402,7 @@ Returns:
 
 sub createFGTemplate ($name, $template) {
     my $values = &getFGObject($template, 'template');
-    return if (! defined $values);
+    return if (!defined $values);
     $values->{template} = "false";
 
     &setFGObject($name, $values);
@@ -691,27 +691,25 @@ Returns:
 sub delFGFarm ($farm, $service = undef) {
     require Relianoid::Farm::Service;
 
-    my $fg;
     my $err  = &runFGFarmStop($farm, $service);
     my $type = &getFarmType($farm);
 
-    if ($type =~ /http/ or $type eq 'gslb') {
-        if (not $service) {
-            for my $srv (&getFarmServices($farm)) {
-                $fg = &getFGFarm($farm, $srv);
-                next if not $fg;
-                $err |= &setTinyObj($fg_conf, $fg, 'farms', "${farm}_$srv", 'del');
-            }
+    # NOT MATCH qw(http https gslb eproxy)
+    if (!grep { $type eq $_ } qw(http https gslb eproxy)) {
+        if (my $fg = &getFGFarm($farm)) {
+            $err |= &setTinyObj($fg_conf, $fg, 'farms', $farm, 'del');
         }
-        else {
-            $fg = &getFGFarm($farm, $service);
-            $err |= &setTinyObj($fg_conf, $fg, 'farms', "${farm}_$service", 'del')
-              if $fg;
-        }
+
+        return;
     }
-    else {
-        $fg = &getFGFarm($farm);
-        $err |= &setTinyObj($fg_conf, $fg, 'farms', $farm, 'del') if $fg;
+
+    # MATCH qw(http https gslb eproxy)
+    my @services = $service? ($service): &getFarmServices($farm);
+
+    for my $service (@services) {
+        if (my $fg = &getFGFarm($farm, $service)) {
+            $err |= &setTinyObj($fg_conf, $fg, 'farms', "${farm}_${service}", 'del');
+        }
     }
 
     return;
@@ -920,7 +918,7 @@ sub runFGFarmStop ($farm, $service = undef) {
     my $type = &getFarmType($farm);
 
     # Stop Farmguardian for every service
-    if ($type =~ /http/ and not defined $service) {
+    if ($type =~ /http|eproxy/ and not defined $service) {
         require Relianoid::Farm::Service;
         for my $srv (&getFarmServices($farm)) {
             $out |= &runFGFarmStop($farm, $srv);
@@ -983,7 +981,7 @@ sub runFGFarmStop ($farm, $service = undef) {
             }
         }
 
-        if ($type eq "l4xnat") {
+        elsif ($type eq "l4xnat") {
             require Relianoid::Farm::Backend;
 
             my $be = &getFarmServers($farm);
@@ -999,6 +997,10 @@ sub runFGFarmStop ($farm, $service = undef) {
                 }
                 $out |= $error_ref->{code};
             }
+        }
+
+        elsif ($type eq "eproxy") {
+            # TODO LGL
         }
     }
     my $srvtag = defined $service ? "${service}_" : '';
@@ -1058,18 +1060,14 @@ sub runFGFarmStart ($farm, $svice = undef) {
     $svice = '' if not defined $svice;
     &log_debug("Start fg for farm $farm, $svice", "FG");
 
-    if ($ftype =~ /http/ && $svice eq "") {
-        require Relianoid::Farm::Config;
+    if ($ftype =~ /http|eproxy/ && $svice eq "") {
+        require Relianoid::Farm::Service;
 
-        # Iterate over every farm service
-        my $services = &getFarmVS($farm, "", "");
-        my @servs    = split(" ", $services);
-
-        for my $service (@servs) {
+        for my $service (&getFarmServices($farm)) {
             $status |= &runFGFarmStart($farm, $service);
         }
     }
-    elsif ($ftype eq 'l4xnat' || $ftype =~ /http/) {
+    elsif ($ftype =~ /http|l4xnat|eproxy/) {
         my $fgname = &getFGFarm($farm, $svice);
 
         return 0 if not $fgname;

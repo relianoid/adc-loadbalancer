@@ -79,7 +79,7 @@ sub add_farm_controller ($json_obj) {
 
     # Check allowed parameters
     my $params = &getAPIModel("farm-create.json");
-    $params->{vport}{interval} = "1,65535" if (exists $json_obj->{profile} and $json_obj->{profile} =~ /(?:http|gslb)/);
+    $params->{vport}{interval} = "1,65535" if (exists $json_obj->{profile} and $json_obj->{profile} =~ /(?:http|gslb|eproxy)/);
     $params->{vport}{required} = "true"    if (exists $json_obj->{profile} and $json_obj->{profile} ne 'datalink');
     $params->{vip}{values}     = $ip_list;
 

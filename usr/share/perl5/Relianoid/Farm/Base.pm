@@ -89,6 +89,15 @@ sub getFarmVip ($info, $farm_name) {
             args   => [ $info, $farm_name ],
         );
     }
+    elsif ($farm_type eq "eproxy" && $eload) {
+        my $farm = &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Config',
+            func   => 'getEproxyFarmStruct',
+            args   => [{ farm_name => $farm_name }],
+        );
+        $output = $farm->{vip} if ($info eq "vip");
+        $output = $farm->{vport} if ($info eq "vipp");
+    }
 
     return $output;
 }
@@ -139,6 +148,13 @@ sub getFarmStatus ($farm_name) {
             module => 'Relianoid::EE::Farm::GSLB::Config',
             func   => 'getGSLBFarmStatus',
             args   => [$farm_name],
+        );
+    }
+    elsif ($farm_type eq "eproxy" && $eload) {
+        $output = &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Action',
+            func   => 'getEproxyFarmStatus',
+            args   => [{ farm_name => $farm_name }],
         );
     }
 
@@ -210,13 +226,13 @@ sub getFarmVipStatus ($farm_name) {
         return -1;
     }
 
-    # types: "http", "https", "datalink", "l4xnat", "gslb" or 1
+    # types: "http", "https", "datalink", "l4xnat", "gslb", "eproxy" or 1
     my $type = &getFarmType($farm_name);
 
     my $backends;
-    my $up_flag;
-    my $down_flag;
-    my $maintenance_flag;
+    my $up_flag = 0;
+    my $down_flag = 0;
+    my $maintenance_flag = 0;
 
     require Relianoid::Farm::Backend;
 
@@ -242,6 +258,15 @@ sub getFarmVipStatus ($farm_name) {
         );
         $backends = $stats->{backends};
     }
+
+    elsif ($type eq "eproxy" && $eload) {
+        $backends = &eload(
+           module => 'Relianoid::EE::Farm::Eproxy::Backend',
+           func   => 'getEproxyFarmBackends',
+           args   => [ { farm_name => $farm_name } ],
+        );
+    }
+
     else {
         $backends = &getFarmServers($farm_name);
     }
@@ -360,6 +385,13 @@ sub getFarmBootStatus ($farm_name) {
             module => 'Relianoid::EE::Farm::GSLB::Config',
             func   => 'getGSLBFarmBootStatus',
             args   => [$farm_name],
+        );
+    }
+    elsif ($farm_type eq "eproxy" && $eload) {
+        $output = &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Config',
+            func   => 'getEproxyFarmBootStatus',
+            args   => [{ farm_name => $farm_name }],
         );
     }
 

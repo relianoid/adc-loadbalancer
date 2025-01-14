@@ -1,5 +1,0 @@
-type=Single
-ptype=RegExp
-pattern	=^\w+\s+\d+\s+\d+:\d+:\d+\s+[\w-]+\s+(?:kernel|packetbl|pound).+ (?:\[BL,|\[DOS,|\[WAF,|\[WAF\] (?!ModSecurity: Warning\.)|\[(?:Found in cache|(?:(?:reject|accept) (?:dnsbl|blacklist|whitelist))) )
-desc=IPDSStatsCollector
-action=eval %logipds ( sub { my $log = qq($0); $log =~ s/`/'/g; $log =~ s/'/\\'/g; $log =~ s/\"/\\\"/g; return $log; } ); call %logparsed %logipds; shellcmd /usr/local/relianoid/bin/ipdsStatsCollector "%logparsed"

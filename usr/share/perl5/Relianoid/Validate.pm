@@ -410,7 +410,7 @@ Returns:
 =cut
 
 sub getValidPort ($port, $profile = undef) {
-    if ($profile =~ /^(?:HTTP|GSLB)$/i) {
+    if ($profile =~ /^(?:HTTP|GSLB|eproxy)$/i) {
         return &getValidFormat('port', $port);
     }
     elsif ($profile =~ /^(?:L4XNAT)$/i) {

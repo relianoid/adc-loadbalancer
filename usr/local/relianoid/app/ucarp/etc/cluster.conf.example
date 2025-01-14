@@ -5,7 +5,7 @@
 # Configuration section for relianoid-ce-cluster service UCARP SERVICE
 ######
 #binary for ucarp
-$ucarp="/usr/local/relianoid/app/ucarp/sbin/ucarp";
+$ucarp="/usr/sbin/ucarp";
 
 #deadratio value, for cloud 10 secs is recommended, for physical 2 secs commended.
 $dead_ratio="2";

@@ -581,8 +581,10 @@ sub getDateEpoc ($date_string) {
 
     my ($year, $month, $day, $hours, $min, $sec) = split /[ :-]+/, $date_string;
 
+    return 0 if (! defined $year || ! defined $month || ! defined $day || ! defined $hours || ! defined $min || !defined $sec);
+
     # the range of the month is from 0 to 11
-    $month--;
+    $month-- if ($month > 0);
 
     require Time::Local;
     return Time::Local::timegm($sec, $min, $hours, $day, $month, $year);
@@ -606,6 +608,7 @@ Returns:
 
 sub getCertDaysToExpire ($cert_ends) {
     my $end       = &getDateEpoc($cert_ends);
+    return 0 if ($end == 0);
     my $days_left = ($end - time()) / 86400;
 
     # leave only two decimals

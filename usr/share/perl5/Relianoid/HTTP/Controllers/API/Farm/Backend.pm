@@ -173,6 +173,13 @@ sub add_service_backend_controller ($json_obj, $farmname, $service) {
             args   => [ $json_obj, $farmname, $service ]
         );
     }
+    elsif ($type eq "eproxy" && $eload) {
+        &eload(
+            module => 'Relianoid::EE::HTTP::Controllers::API::Farm::Eproxy',
+            func   => 'new_eproxy_service_backend',
+            args   => [ $json_obj, $farmname, $service ]
+        );
+    }
     elsif ($type !~ /^https?$/) {
         my $msg = "The $type farm profile does not support services.";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
@@ -257,10 +264,20 @@ sub add_service_backend_controller ($json_obj, $farmname, $service) {
     };
 
     if (&getFarmStatus($farmname) eq 'up') {
-        require Relianoid::Farm::Action;
-
-        &setFarmRestart($farmname);
-        $body->{status} = 'needed restart';
+        if ($type eq "eproxy" && $eload) {
+            $body->{status} = &eload(
+                module => 'Relianoid::EE::Farm::Eproxy::Action',
+                func   => 'runEproxyFarmReload',
+                args   => [ { farm_name => $farmname } ],
+            );
+            require Relianoid::EE::Cluster;
+            &runClusterRemoteManager('farm', 'reload', $farmname);
+        }
+        else {
+            require Relianoid::Farm::Action;
+            &setFarmRestart($farmname);
+            $body->{status} = 'needed restart';
+        }
     }
 
     return &httpResponse({ code => 201, body => $body });
@@ -311,6 +328,7 @@ sub list_service_backends_controller ($farmname, $service) {
     }
 
     my $type = &getFarmType($farmname);
+    my $service_ref;
 
     if ($type eq 'gslb' && $eload) {
         &eload(
@@ -319,21 +337,25 @@ sub list_service_backends_controller ($farmname, $service) {
             args   => [ $farmname, $service ]
         );
     }
-
-    if ($type !~ /^https?$/) {
+    elsif ($type eq 'eproxy' && $eload) {
+        $service_ref->{backends} = &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Backend',
+            func   => 'getEproxyFarmBackends',
+            args   => [ { farm_name => $farmname, service_name => $service } ]
+        );
+    }
+    elsif ($type =~ /^https?$/) {
+        require Relianoid::Farm::HTTP::Service;
+        $service_ref = &getHTTPServiceStruct($farmname, $service);
+        # check if the requested service exists
+        if ($service_ref == -1) {
+            my $msg = "The service $service does not exist.";
+            return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
+        }
+    }
+    else {
         my $msg = "The farm profile $type does not support this request.";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
-    }
-
-    # HTTP
-    require Relianoid::Farm::HTTP::Service;
-
-    my $service_ref = &getHTTPServiceStruct($farmname, $service);
-
-    # check if the requested service exists
-    if ($service_ref == -1) {
-        my $msg = "The service $service does not exist.";
-        return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     my $body = {
@@ -466,79 +488,99 @@ sub modify_service_backends_controller ($json_obj, $farmname, $service, $id_serv
             args   => [ $json_obj, $farmname, $service, $id_server ]
         );
     }
-    elsif ($type !~ /^https?$/) {
-        my $msg = "The $type farm profile does not support services.";
-        return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
-    }
-
-    # HTTP
-    require Relianoid::Farm::Action;
-    require Relianoid::Farm::HTTP::Config;
-    require Relianoid::Farm::HTTP::Backend;
-    require Relianoid::Farm::HTTP::Service;
-
-    # validate SERVICE
-    my @services      = &getHTTPFarmServices($farmname);
-    my $found_service = grep { $service eq $_ } @services;
-
-    # check if the service exists
-    if (!$found_service) {
-        my $msg = "Could not find the requested service.";
-        return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
-    }
-
-    # validate BACKEND
-    my $be;
-    {
-        my @be_list = @{ &getHTTPFarmBackends($farmname, $service) };
-        $be = $be_list[$id_server];
-    }
-
-    # check if the backend was found
-    if (!$be) {
-        my $msg = "Could not find a service backend with such id.";
-        return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
-    }
-
-    my $params = &getAPIModel("farm_http_service_backend-modify.json");
-    undef $params->{connection_limit};
-
-    # Check allowed parameters
-    if (my $error_msg = &checkApiParams($json_obj, $params, $desc)) {
-        return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg });
-    }
-
-    # apply BACKEND change
-
-    $be->{ip}               = $json_obj->{ip}               // $be->{ip};
-    $be->{port}             = $json_obj->{port}             // $be->{port};
-    $be->{weight}           = $json_obj->{weight}           // $be->{weight};
-    $be->{priority}         = $json_obj->{priority}         // $be->{priority};
-    $be->{timeout}          = $json_obj->{timeout}          // $be->{timeout};
-    $be->{connection_limit} = $json_obj->{connection_limit} // $be->{connection_limit};
-
-    my $prio = 1;
-    if (defined $be->{priority} && $be->{priority} !~ /^$/) {
-        $prio = $be->{priority} + 0;
-    }
-
-    if ($type =~ /http/ && $prio > 1) {
-        my $priorities = &getHTTPFarmPriorities($farmname, $service);
-        if (scalar(@{$priorities}) >= 1 && !grep { $_->{id} == $id_server } @{$priorities}) {
-            my $msg = "Only one backend as second priority is allowed.";
+    if ($type eq "eproxy" && $eload) {
+        my $status = &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Backend',
+            func   => 'modifyEproxyFarmBackend',
+            args   => [ {
+                farm_name => $farmname,
+                service_name => $service,
+                backend_id => $id_server,
+                backend_ip => $json_obj->{ip},
+                backend_port => $json_obj->{port},
+                backend_weight => $json_obj->{weight},
+                backend_priority => $json_obj->{priority}
+            } ]
+        );
+        if ($status) {
+            my $msg = "It's not possible to modify the backend with IP $json_obj->{ip} in service $service.";
             return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }
+    elsif ($type =~ /^https?$/) {
+        # HTTP
+        require Relianoid::Farm::Action;
+        require Relianoid::Farm::HTTP::Config;
+        require Relianoid::Farm::HTTP::Backend;
+        require Relianoid::Farm::HTTP::Service;
 
-    my $status = &setHTTPFarmServer(
-        $id_server,     $be->{ip}, $be->{port}, $be->{weight},    #
-        $be->{timeout}, $farmname, $service,    $be->{priority}
-    );
+        # validate SERVICE
+        my @services      = &getHTTPFarmServices($farmname);
+        my $found_service = grep { $service eq $_ } @services;
 
-    # check if there was an error modifying the backend
-    if ($status == -1) {
-        my $msg = "It's not possible to modify the backend with IP $json_obj->{ip} in service $service.";
-        return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+        # check if the service exists
+        if (!$found_service) {
+            my $msg = "Could not find the requested service.";
+            return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
+        }
+
+        # validate BACKEND
+        my $be;
+        {
+            my @be_list = @{ &getHTTPFarmBackends($farmname, $service) };
+            $be = $be_list[$id_server];
+        }
+
+        # check if the backend was found
+        if (!$be) {
+            my $msg = "Could not find a service backend with such id.";
+            return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
+        }
+
+        my $params = &getAPIModel("farm_http_service_backend-modify.json");
+        undef $params->{connection_limit};
+
+        # Check allowed parameters
+        if (my $error_msg = &checkApiParams($json_obj, $params, $desc)) {
+            return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg });
+        }
+
+        # apply BACKEND change
+
+        $be->{ip}               = $json_obj->{ip}               // $be->{ip};
+        $be->{port}             = $json_obj->{port}             // $be->{port};
+        $be->{weight}           = $json_obj->{weight}           // $be->{weight};
+        $be->{priority}         = $json_obj->{priority}         // $be->{priority};
+        $be->{timeout}          = $json_obj->{timeout}          // $be->{timeout};
+        $be->{connection_limit} = $json_obj->{connection_limit} // $be->{connection_limit};
+
+        my $prio = 1;
+        if (defined $be->{priority} && $be->{priority} !~ /^$/) {
+            $prio = $be->{priority} + 0;
+        }
+
+        if ($type =~ /http/ && $prio > 1) {
+            my $priorities = &getHTTPFarmPriorities($farmname, $service);
+            if (scalar(@{$priorities}) >= 1 && !grep { $_->{id} == $id_server } @{$priorities}) {
+                my $msg = "Only one backend as second priority is allowed.";
+                return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+            }
+        }
+
+        my $status = &setHTTPFarmServer(
+            $id_server,     $be->{ip}, $be->{port}, $be->{weight},    #
+            $be->{timeout}, $farmname, $service,    $be->{priority}
+        );
+
+        # check if there was an error modifying the backend
+        if ($status == -1) {
+            my $msg = "It's not possible to modify the backend with IP $json_obj->{ip} in service $service.";
+            return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+        }
+    }
+    else {
+        my $msg = "The $type farm profile does not support services.";
+        return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     my $msg  = "Backend modified.";
@@ -550,9 +592,20 @@ sub modify_service_backends_controller ($json_obj, $farmname, $service, $id_serv
     };
 
     if (&getFarmStatus($farmname) eq "up") {
-        require Relianoid::Farm::Action;
-        &setFarmRestart($farmname);
-        $body->{status} = 'needed restart';
+        if ($type eq "eproxy" && $eload) {
+            $body->{status} = &eload(
+                module => 'Relianoid::EE::Farm::Eproxy::Action',
+                func   => 'runEproxyFarmReload',
+                args   => [ { farm_name => $farmname } ],
+            );
+            require Relianoid::EE::Cluster;
+            &runClusterRemoteManager('farm', 'reload', $farmname);
+        }
+        else {
+            require Relianoid::Farm::Action;
+            &setFarmRestart($farmname);
+            $body->{status} = 'needed restart';
+        }
     }
 
     return &httpResponse({ code => 200, body => $body });
@@ -649,46 +702,58 @@ sub delete_service_backend_controller ($farmname, $service, $id_server) {
             args   => [ $farmname, $service, $id_server ]
         );
     }
-    elsif ($type !~ /^https?$/) {
+    elsif ($type eq 'eproxy' && $eload) {
+        my $status = &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Backend',
+            func   => 'delEproxyFarmBackend',
+            args   => [ { farm_name => $farmname, service_name => $service, backend_id => $id_server } ]
+        );
+        if ($status) {
+            my $msg = "It hasn't been possible to delete the backend ID $id_server in the service $service from the eproxy farm $farmname";
+            &log_info($msg, "LSLB");
+            return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
+        }
+    }
+    elsif ($type =~ /^https?$/) {
+        require Relianoid::Farm::Action;
+        require Relianoid::Farm::HTTP::Config;
+        require Relianoid::Farm::HTTP::Backend;
+        require Relianoid::Farm::HTTP::Service;
+
+        # validate SERVICE
+        my @services = &getHTTPFarmServices($farmname);
+
+        # check if the SERVICE exists
+        unless (grep { $service eq $_ } @services) {
+            my $msg = "Could not find the requested service.";
+            return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
+        }
+
+        # check if the backend id is available
+        my $be_found;
+        {
+            my $be = &getHTTPFarmBackends($farmname, $service);
+            $be_found = defined @{$be}[$id_server];
+        }
+
+        unless ($be_found) {
+            my $msg = "Could not find the requested backend.";
+            return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+        }
+
+        my $status = &runHTTPFarmServerDelete($id_server, $farmname, $service);
+
+        # check if there was an error deleting the backend
+        if ($status == -1) {
+            &log_info("It's not possible to delete the backend.", "FARMS");
+
+            my $msg = "Could not find the backend with ID $id_server of the $farmname farm.";
+            return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
+        }
+    }
+    else {
         my $msg = "The $type farm profile does not support services.";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
-    }
-
-    # HTTP
-    require Relianoid::Farm::Action;
-    require Relianoid::Farm::HTTP::Config;
-    require Relianoid::Farm::HTTP::Backend;
-    require Relianoid::Farm::HTTP::Service;
-
-    # validate SERVICE
-    my @services = &getHTTPFarmServices($farmname);
-
-    # check if the SERVICE exists
-    unless (grep { $service eq $_ } @services) {
-        my $msg = "Could not find the requested service.";
-        return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
-    }
-
-    # check if the backend id is available
-    my $be_found;
-    {
-        my $be = &getHTTPFarmBackends($farmname, $service);
-        $be_found = defined @{$be}[$id_server];
-    }
-
-    unless ($be_found) {
-        my $msg = "Could not find the requested backend.";
-        return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
-    }
-
-    my $status = &runHTTPFarmServerDelete($id_server, $farmname, $service);
-
-    # check if there was an error deleting the backend
-    if ($status == -1) {
-        &log_info("It's not possible to delete the backend.", "FARMS");
-
-        my $msg = "Could not find the backend with ID $id_server of the $farmname farm.";
-        return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
     # no error found, return successful response
@@ -703,9 +768,20 @@ sub delete_service_backend_controller ($farmname, $service, $id_server) {
     };
 
     if (&getFarmStatus($farmname) eq 'up') {
-        require Relianoid::Farm::Action;
-        &setFarmRestart($farmname);
-        $body->{status} = 'needed restart';
+        if ($type eq "eproxy" && $eload) {
+            $body->{status} = &eload(
+                module => 'Relianoid::EE::Farm::Eproxy::Action',
+                func   => 'runEproxyFarmReload',
+                args   => [ { farm_name => $farmname } ],
+            );
+            require Relianoid::EE::Cluster;
+            &runClusterRemoteManager('farm', 'reload', $farmname);
+        }
+        else {
+            require Relianoid::Farm::Action;
+            &setFarmRestart($farmname);
+            $body->{status} = 'needed restart';
+        }
     }
 
     return &httpResponse({ code => 200, body => $body });

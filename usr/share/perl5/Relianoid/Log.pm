@@ -250,9 +250,9 @@ sub run_with_env (@command) {
     my $program = $basename;
 
     my @cmd_output = `. /etc/profile -notbui >/dev/null 2>&1 && @command 2>&1`;
-    my $out        = $?;
+    my $errno      = $?;
 
-    if ($out) {
+    if ($errno) {
         &log_error("${program} running: @command", "SYSTEM");
         &log_error("@cmd_output",                  "SYSTEM") if @cmd_output;
         &log_error("last command failed!",         "SYSTEM");
@@ -262,7 +262,7 @@ sub run_with_env (@command) {
         &log_debug2("out: @cmd_output", "SYSTEM");
     }
 
-    return $out;
+    return $errno;
 }
 
 =pod

@@ -28,7 +28,8 @@
             "http",
             "gslb",
             "l4xnat",
-            "datalink"
+            "datalink",
+            "eproxy"
          ]
       },
       "vip" : {
