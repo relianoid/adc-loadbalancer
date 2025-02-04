@@ -67,10 +67,10 @@ sub runHTTPFarmCreate ($vip, $vip_port, $farm_name, $farm_type, $status = 'up') 
     my $output = -1;
 
     #copy template modyfing values
-    my $proxytpl        = &getGlobalConfiguration('proxytpl');
+    my $poundtpl        = &getGlobalConfiguration('poundtpl');
     my $proxy_conf_file = "$configdir/${farm_name}_proxy.cfg";
-    &log_info("Copying proxy template ($proxytpl) to $proxy_conf_file", "LSLB");
-    copy($proxytpl, $proxy_conf_file);
+    &log_info("Copying proxy template ($poundtpl) to $proxy_conf_file", "LSLB");
+    copy($poundtpl, $proxy_conf_file);
 
     #modify strings with variables
     tie my @file, 'Tie::File', $proxy_conf_file;
@@ -130,11 +130,11 @@ sub runHTTPFarmCreate ($vip, $vip_port, $farm_name, $farm_type, $status = 'up') 
 
     #run farm
     require Relianoid::System;
-    my $proxy  = &getGlobalConfiguration('proxy');
+    my $pound  = &getGlobalConfiguration('pound');
     my $piddir = &getGlobalConfiguration('piddir');
 
     if ($status eq 'up') {
-        my $cmd = "${proxy} -f ${configdir}/${farm_name}_proxy.cfg -p ${piddir}/${farm_name}_proxy.pid";
+        my $cmd = "${pound} -f ${configdir}/${farm_name}_proxy.cfg -p ${piddir}/${farm_name}_proxy.pid";
         &log_info("Running: ${cmd}", "LSLB");
 
         $output = &run_with_env($cmd);

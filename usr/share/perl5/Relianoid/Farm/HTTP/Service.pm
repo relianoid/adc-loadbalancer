@@ -78,11 +78,11 @@ sub setFarmHTTPNewService ($farm_name, $service) {
         my @newservice;
         my $sw       = 0;
         my $count    = 0;
-        my $proxytpl = &getGlobalConfiguration('proxytpl');
+        my $poundtpl = &getGlobalConfiguration('poundtpl');
 
-        tie my @proxytpl, 'Tie::File', "$proxytpl";
+        tie my @poundtpl, 'Tie::File', "$poundtpl";
 
-        for my $line (@proxytpl) {
+        for my $line (@poundtpl) {
             if ($line =~ /Service \"\[DESC\]\"/) {
                 $sw = 1;
             }
@@ -100,7 +100,7 @@ sub setFarmHTTPNewService ($farm_name, $service) {
             }
         }
 
-        untie @proxytpl;
+        untie @poundtpl;
 
         $newservice[0]  =~ s/#//g;
         $newservice[-1] =~ s/#//g;
@@ -185,11 +185,11 @@ sub setFarmHTTPNewServiceFirst ($farm_name, $service) {
         my @newservice;
         my $sw       = 0;
         my $count    = 0;
-        my $proxytpl = &getGlobalConfiguration('proxytpl');
+        my $poundtpl = &getGlobalConfiguration('poundtpl');
 
-        tie my @proxytpl, 'Tie::File', "$proxytpl";
+        tie my @poundtpl, 'Tie::File', "$poundtpl";
 
-        for my $line (@proxytpl) {
+        for my $line (@poundtpl) {
             if ($line =~ /Service \"\[DESC\]\"/) {
                 $sw = 1;
             }
@@ -207,7 +207,7 @@ sub setFarmHTTPNewServiceFirst ($farm_name, $service) {
             }
         }
 
-        untie @proxytpl;
+        untie @poundtpl;
 
         $newservice[0]  =~ s/#//g;
         $newservice[-1] =~ s/#//g;

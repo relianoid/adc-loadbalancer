@@ -80,7 +80,7 @@ for SCRIPT in "$MIGRATIONS_DIR"/*; do $SCRIPT; done
 cp /usr/local/relianoid/share/relianoid.cron /etc/cron.d/relianoid
 rm -f /etc/cron.d/zevenet
 
-RELIANOID_PATH=$zdir
+RELIANOID_PATH=$lb_dir
 ZENRRD_DIR="${RELIANOID_PATH}/app/zenrrd"
 if [[ -d "${ZENRRD_DIR}" && ! -L "${ZENRRD_DIR}" ]]; then
     mv "${RELIANOID_PATH}/app/zenrrd/rrd"/* "${RELIANOID_PATH}/var/noid-collector/rrd/" 2> /dev/null

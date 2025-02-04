@@ -332,18 +332,18 @@ Parameters:
 
 Returns:
 
-    array - return the output of proxyctl command for a farm
+    array - return the output of poundctl command for a farm
 
 =cut
 
 sub getHTTPFarmBackendStatusCtl ($farm_name, $sessions = undef) {
-    my $proxyctl = &getGlobalConfiguration('proxyctl');
+    my $poundctl = &getGlobalConfiguration('poundctl');
 
     my $sessions_option = "-C";
     if (defined $sessions and $sessions = "true") {
         $sessions_option = "";
     }
-    return @{ &logAndGet("$proxyctl $sessions_option -c /tmp/$farm_name\_proxy.socket", "array") };
+    return @{ &logAndGet("$poundctl $sessions_option -c /tmp/$farm_name\_proxy.socket", "array") };
 }
 
 =pod
@@ -517,9 +517,9 @@ sub setHTTPFarmBackendStatus ($farm_name, $service, $backend_index, $status, $cu
 
     $cutmode = "" if &getHTTPFarmVS($farm_name, $service, "sesstype") eq "";
 
-    my $proxyctl = &getGlobalConfiguration('proxyctl');
+    my $poundctl = &getGlobalConfiguration('poundctl');
     if ($status eq 'maintenance' or $status eq 'fgDOWN') {
-        $output = &logAndRun("$proxyctl -c $socket_file -b 0 $service_id $backend_index");
+        $output = &logAndRun("$poundctl -c $socket_file -b 0 $service_id $backend_index");
         if ($output) {
             my $msg = "Backend '$backend_index' in service '$service' of farm '$farm_name' cannot be disabled";
             $error_ref->{code} = 1;
@@ -542,7 +542,7 @@ sub setHTTPFarmBackendStatus ($farm_name, $service, $backend_index, $status, $cu
         }
     }
     elsif ($status eq 'up') {
-        $output = &logAndRun("$proxyctl -c $socket_file -B 0 $service_id $backend_index");
+        $output = &logAndRun("$poundctl -c $socket_file -B 0 $service_id $backend_index");
         if ($output) {
             my $msg = "Backend '$backend_index' in service '$service' of farm '$farm_name' cannot be enabled";
             $error_ref->{code} = 1;
@@ -642,8 +642,8 @@ sub setHTTPFarmBackendStatusFile ($farm_name, $backend, $status, $idsv) {
     my $changed    = "false";
 
     unless (-e $statusfile) {
-        my $proxyctl = &getGlobalConfiguration('proxyctl');
-        my @run      = @{ &logAndGet("${proxyctl} -C -c /tmp/${farm_name}_proxy.socket", "array") };
+        my $poundctl = &getGlobalConfiguration('poundctl');
+        my @run      = @{ &logAndGet("${poundctl} -C -c /tmp/${farm_name}_proxy.socket", "array") };
         my @sw;
         my @bw;
         my @statusfile_ln;
@@ -848,7 +848,7 @@ sub setHTTPFarmBackendStatusFromFile ($farm_name) {
     &log_info("Setting backends status in farm $farm_name", "LSLB");
 
     my $be_status_filename = "$configdir\/$farm_name\_status.cfg";
-    my $proxyctl           = &getGlobalConfiguration('proxyctl');
+    my $poundctl           = &getGlobalConfiguration('poundctl');
 
     unless (-f $be_status_filename) {
         open my $fh, ">", $be_status_filename;
@@ -862,7 +862,7 @@ sub setHTTPFarmBackendStatusFromFile ($farm_name) {
 
         for my $line_aux (@lines) {
             my @line = split("\ ", $line_aux);
-            &logAndRun("$proxyctl -c /tmp/$farm_name\_proxy.socket $line[0] $line[1] $line[2] $line[3]");
+            &logAndRun("$poundctl -c /tmp/$farm_name\_proxy.socket $line[0] $line[1] $line[2] $line[3]");
         }
     }
     else {
@@ -902,8 +902,8 @@ sub setHTTPFarmBackendsSessionsRemove ($farm_name, $service, $backendid) {
 
     $serviceid = &getFarmVSI($farm_name, $service);
 
-    my $proxyctl = &getGlobalConfiguration('proxyctl');
-    my $cmd      = "$proxyctl -c /tmp/$farm_name\_proxy.socket -f 0 $serviceid $backendid";
+    my $poundctl = &getGlobalConfiguration('poundctl');
+    my $cmd      = "$poundctl -c /tmp/$farm_name\_proxy.socket -f 0 $serviceid $backendid";
     $err = &logAndRun($cmd);
 
     return $err;
@@ -969,7 +969,7 @@ sub getHTTPFarmBackendsStatusInfo ($farm_name) {
     my $service_re = &getValidFormat('service');
 
     # Get l7 proxy info
-    #i.e. of proxyctl:
+    #i.e. of poundctl:
 
     #Requests in queue: 0
     #0. http Listener 185.76.64.223:80 a
@@ -978,10 +978,10 @@ sub getHTTPFarmBackendsStatusInfo ($farm_name) {
     #1. Backend 172.16.110.14:80 active (1 0.878 sec) alive (90)
     #2. Backend 172.16.110.11:80 active (1 0.852 sec) alive (99)
     #3. Backend 172.16.110.12:80 active (1 0.826 sec) alive (75)
-    my @proxyctl = &getHTTPFarmBackendStatusCtl($farm_name);
+    my @poundctl = &getHTTPFarmBackendStatusCtl($farm_name);
 
     # Parse l7 proxy info
-    for my $line (@proxyctl) {
+    for my $line (@poundctl) {
         # i.e.
         #     0. Service "HTTP" active (10)
         if ($line =~ /(\d+)\. Service "($service_re)"/) {

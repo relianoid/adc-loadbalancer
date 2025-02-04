@@ -165,7 +165,7 @@ my $farm_st = &getFarmStruct($farmname);
 #Ask for the farm type
 $type = 'http' if $type eq 'https';
 
-my $proxyctl;
+my $poundctl;
 my $portadmin;
 my $usemark = 0;
 
@@ -178,7 +178,7 @@ elsif ($type eq 'http') {
     require Relianoid::Farm::HTTP::Config;
     require Relianoid::Farm::HTTP::Service;
 
-    $proxyctl  = &getGlobalConfiguration('proxyctl');
+    $poundctl  = &getGlobalConfiguration('poundctl');
     $portadmin = &getHTTPFarmSocket($farmname);
 
     $usemark = 0;

@@ -259,7 +259,7 @@ sub getHTTPFarmBackendsStats ($farm_name, $service_name = undef) {
     }
 
     # Get L7 proxy info
-    #i.e. of proxyctl:
+    #i.e. of poundctl:
 
     #Requests in queue: 0
     #0. http Listener 185.76.64.223:80 a
@@ -268,7 +268,7 @@ sub getHTTPFarmBackendsStats ($farm_name, $service_name = undef) {
     #1. Backend 172.16.110.14:80 active (1 0.878 sec) alive (90)
     #2. Backend 172.16.110.11:80 active (1 0.852 sec) alive (99)
     #3. Backend 172.16.110.12:80 active (1 0.826 sec) alive (75)
-    my @proxyctl = &getHTTPFarmGlobalStatus($farm_name);
+    my @poundctl = &getHTTPFarmGlobalStatus($farm_name);
 
     my $alias;
     $alias = &eload(
@@ -279,8 +279,8 @@ sub getHTTPFarmBackendsStats ($farm_name, $service_name = undef) {
 
     my $backend_info;
 
-    # Parse ly proxy info
-    for my $line (@proxyctl) {
+    # Parse L7 proxy info
+    for my $line (@poundctl) {
         # i.e.
         #     0. Service "HTTP" active (10)
         if ($line =~ /(\d+)\. Service "($service_re)"/) {

@@ -838,14 +838,14 @@ Parameters:
 
 Returns:
 
-    array - Return proxyctl output
+    array - Return poundctl output
 
 =cut
 
 sub getHTTPFarmGlobalStatus ($farm_name) {
-    my $proxyctl = &getGlobalConfiguration('proxyctl');
+    my $poundctl = &getGlobalConfiguration('poundctl');
 
-    return @{ &logAndGet("$proxyctl -c \"/tmp/$farm_name\_proxy.socket\"", "array") };
+    return @{ &logAndGet("$poundctl -c \"/tmp/$farm_name\_proxy.socket\"", "array") };
 }
 
 =pod
@@ -1332,10 +1332,10 @@ Returns:
 =cut
 
 sub getHTTPFarmConfigIsOK ($farm_name) {
-    my $proxy         = &getGlobalConfiguration('proxy');
+    my $pound         = &getGlobalConfiguration('pound');
     my $farm_filename = &getFarmFile($farm_name);
     my $farm_filepath = "${configdir}/${farm_filename}";
-    my $proxy_command = "${proxy} -f ${farm_filepath} -c";
+    my $proxy_command = "${pound} -f ${farm_filepath} -c";
 
     # do not use the function 'logAndGet' here is managing the error output and error code
     my $run = `$proxy_command 2>&1`;
@@ -1377,10 +1377,10 @@ Returns:
 =cut
 
 sub getHTTPFarmConfigErrorMessage ($farm_name) {
-    my $proxy         = &getGlobalConfiguration('proxy');
+    my $pound         = &getGlobalConfiguration('pound');
     my $farm_filename = &getFarmFile($farm_name);
     my $farm_filepath = "${configdir}/${farm_filename}";
-    my $proxy_command = "${proxy} -f ${farm_filepath} -c";
+    my $proxy_command = "${pound} -f ${farm_filepath} -c";
 
     # do not use the function 'logAndGet' here is managing the error output and error code
     my @run = `$proxy_command 2>&1`;

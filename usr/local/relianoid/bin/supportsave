@@ -178,8 +178,8 @@ do
 	echo "# ps -feww | grep ${farm}_proxy.cfg | grep -v grep" >> $fstatus
 	ps -feww | grep ${farm}_proxy.cfg | grep -v grep          >> $fstatus
 	echo ""                                                   >> $fstatus
-	echo "# $proxyctl -c $i"                                  >> $fstatus
-	$proxyctl -c $i                                           >> $fstatus
+	echo "# $poundctl -c $i"                                  >> $fstatus
+	$poundctl -c $i                                           >> $fstatus
 	echo ""                                                   >> $fstatus
 done
 

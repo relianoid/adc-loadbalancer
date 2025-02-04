@@ -472,10 +472,10 @@ sub _runFarmReload ($farm) {
 
     if ($farm_type eq "http" || $farm_type eq "https") {
         require Relianoid::Farm::HTTP::Config;
-        my $proxy_ctl = &getGlobalConfiguration('proxyctl');
+        my $poundctl = &getGlobalConfiguration('poundctl');
         my $socket    = &getHTTPFarmSocket($farm);
 
-        $err = &logAndRun("$proxy_ctl -c $socket -R 0");
+        $err = &logAndRun("$poundctl -c $socket -R 0");
     }
     elsif ($farm_type eq "eproxy" && $eload) {
         $err = &eload(

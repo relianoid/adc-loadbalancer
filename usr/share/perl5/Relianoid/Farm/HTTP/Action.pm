@@ -61,7 +61,7 @@ sub _runHTTPFarmStart ($farm_name, $writeconf = undef) {
 
     my $status        = -1;
     my $farm_filename = &getFarmFile($farm_name);
-    my $proxy         = &getGlobalConfiguration('proxy');
+    my $pound         = &getGlobalConfiguration('pound');
     my $piddir        = &getGlobalConfiguration('piddir');
 
     require Relianoid::Lock;
@@ -79,7 +79,7 @@ sub _runHTTPFarmStart ($farm_name, $writeconf = undef) {
         $args = '-s' if ($ssyncd_enabled eq 'true');
     }
 
-    my $cmd = "$proxy $args -f $configdir\/$farm_filename -p $piddir\/$farm_name\_proxy.pid";
+    my $cmd = "$pound $args -f $configdir\/$farm_filename -p $piddir\/$farm_name\_proxy.pid";
     $status = &run_with_env("$cmd");
 
     if ($status) {
@@ -273,8 +273,8 @@ sub checkFarmHTTPSystemStatus ($farm_name, $status, $fix = undef) {
         require Relianoid::Farm::Core;
         my $farm_file    = &getFarmFile($farm_name);
         my $config_dir   = &getGlobalConfiguration("configdir");
-        my $proxy        = &getGlobalConfiguration("proxy");
-        my @pids_running = @{ &logAndGet("$pgrep -f \"$proxy (-s )?-f $config_dir/$farm_file -p $pid_file\"", "array") };
+        my $pound        = &getGlobalConfiguration("pound");
+        my @pids_running = @{ &logAndGet("$pgrep -f \"$pound (-s )?-f $config_dir/$farm_file -p $pid_file\"", "array") };
 
         if (@pids_running) {
             kill 9, @pids_running if (defined $fix and $fix eq "true");

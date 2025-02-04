@@ -351,15 +351,6 @@ $poundctl="$base_pound/sbin/poundctl";#update
 #where is pound configuration template?
 $poundtpl="$templatedir/poundtpl.cfg";#update
 
-#where is l7 proxy dir?
-$base_proxy="$base_pound";
-#where is l7 proxy binary?
-$proxy="$pound";
-#where is l7 proxy ctl?
-$proxyctl="$poundctl";
-#l7 file configuration template?
-$proxytpl="$poundtpl";
-
 #maximum value of http body to pass to modsecurity
 $waf_max_body="32000";
 #Where is modsec rules check
