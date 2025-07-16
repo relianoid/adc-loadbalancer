@@ -213,9 +213,9 @@ sub getSpaceFormatHuman ($size) {
 
 =pod
 
-=head1 getSupportSaveSize
+=head1 getSupportFileSize
 
-It gets the aproximate size that the supportsave will need.
+It gets the aproximate size that the noid-support will need.
 The size is calculated using the config and log directories size and adding
 a offset of 20MB
 
@@ -225,12 +225,12 @@ Parameters:
 
 Returns:
 
-    Integer - Number of bytes that supportsave will use
+    Integer - Number of bytes that noid-support will use
 
 =cut
 
-sub getSupportSaveSize () {
-    my $offset = "20971520";                               # 20 MB
+sub getSupportFileSize () {
+    my $offset = 20 * 1024 * 1024;                         # 20 MB
     my $dirs   = "/usr/local/relianoid/config /var/log";
 
     my $tar_bin = &getGlobalConfiguration('tar');
@@ -242,32 +242,32 @@ sub getSupportSaveSize () {
 
 =pod
 
-=head1 checkSupportSaveSpace
+=head1 checkSupportFileSpace
 
-Check if the disk has enough space to create a supportsave
+Check if the disk has enough space to create a noid-support
 
 Parameters:
 
-    directory - Directory where the supportsave will be created
+    directory - Directory where the noid-support will be created
 
 Returns:
 
-    Integer - It returns 0 on success or the number of bytes needed to create a supportsave
+    Integer - It returns 0 on success or the number of bytes needed to create a noid-support
 
 =cut
 
-sub checkSupportSaveSpace ($dir = "/tmp") {
-    my $supp_size = &getSupportSaveSize();
+sub checkSupportFileSpace ($dir = "/tmp") {
+    my $supp_size = &getSupportFileSize();
     my $freeSpace = &getSpaceFree($dir);
 
     my $out = ($freeSpace > $supp_size) ? 0 : $supp_size;
 
     if ($out) {
-        &log_error("There is no enough free space ('$freeSpace') in the '$dir' partition. Supportsave needs '$supp_size' bytes",
+        &log_error("There is no enough free space ('$freeSpace') in the '$dir' partition. Support file needs '$supp_size' bytes",
             "system");
     }
     else {
-        &log_debug("Checking free space ('$freeSpace') in the '$dir' partition. Supportsave needs '$supp_size' bytes",
+        &log_debug("Checking free space ('$freeSpace') in the '$dir' partition. Support file needs '$supp_size' bytes",
             "system");
     }
 
@@ -276,7 +276,7 @@ sub checkSupportSaveSpace ($dir = "/tmp") {
 
 =pod
 
-=head1 getSupportSave
+=head1 getSupportFile
 
 It creates a support save file used for supporting purpose. It is created in the '/tmp/' directory
 
@@ -286,13 +286,13 @@ Parameters:
 
 Returns:
 
-    String - The supportsave file name is returned.
+    String - The noid-support file name is returned.
 
 =cut
 
-sub getSupportSave () {
+sub getSupportFile () {
     my $bin_dir   = &getGlobalConfiguration('bin_dir');
-    my @ss_output = @{ &logAndGet("${bin_dir}/supportsave", "array") };
+    my @ss_output = @{ &logAndGet("${bin_dir}/noid-support", "array") };
 
     # get the last "word" from the first line
     my $first_line = shift @ss_output;
@@ -344,38 +344,12 @@ Returns:
 =cut
 
 sub checkPidFileRunning ($pid_file) {
-    open my $fileh, '<', $pid_file;
-    my $pid = <$fileh>;
+    require Relianoid::File;
+
+    my $pid = getFile($pid_file);
     chomp $pid;
-    close $fileh;
+
     return &checkPidRunning($pid);
-}
-
-=pod
-
-=head1 setSshDefaultConfig
-
-Apply default SSH config if it was not changed by this service
-before. Then, reload the service generators.
-
-Parameters:
-
-    None.
-
-Returns:
-
-    ssh_config - Hash reference with SSH default configuration.
-
-=cut
-
-sub setSshDefaultConfig () {
-    my $output = 0;
-    $output = &eload(
-        module => 'Relianoid::EE::System::SSH',
-        func   => 'setSshDefaultConfigPriv',
-        soft   => 1
-    ) if ($eload);
-    return $output;
 }
 
 =pod
@@ -409,6 +383,7 @@ sub setSshFactoryReset () {
         func   => 'setSshFactoryResetPriv',
         soft   => 1
     ) if ($eload);
+
     return $output;
 }
 
@@ -429,28 +404,24 @@ Returns:
 =cut
 
 sub initHttpServer () {
-    my $httpFile          = &getGlobalConfiguration('confhttp');
-    my $httpFileTpl       = &getGlobalConfiguration('confhttp_tpl');
-    my $httpServerKey     = &getGlobalConfiguration('http_server_key');
-    my $httpServerKeyTpl  = &getGlobalConfiguration('http_server_key_tpl');
-    my $httpServerCert    = &getGlobalConfiguration('http_server_cert');
-    my $httpServerCertTpl = &getGlobalConfiguration('http_server_cert_tpl');
-    my $output            = 0;
-    my $cmd;
+    my $httpFile       = &getGlobalConfiguration('confhttp');
+    my $httpServerKey  = &getGlobalConfiguration('http_server_key');
+    my $httpServerCert = &getGlobalConfiguration('http_server_cert');
+    my $output         = 0;
 
-    if (!-f "$httpFile") {
-        $cmd = "cp -f $httpFileTpl $httpFile";
-        $output += &logAndRun($cmd);
+    if (!-f $httpFile) {
+        my $httpFileTpl = &getGlobalConfiguration('confhttp_tpl');
+        $output += &logAndRun("cp -f $httpFileTpl $httpFile");
     }
 
-    if (!-f "$httpServerKey") {
-        $cmd = "cp -f $httpServerKeyTpl $httpServerKey";
-        $output += &logAndRun($cmd);
+    if (!-f $httpServerKey) {
+        my $httpServerKeyTpl = &getGlobalConfiguration('http_server_key_tpl');
+        $output += &logAndRun("cp -f $httpServerKeyTpl $httpServerKey");
     }
 
-    if (!-f "$httpServerCert") {
-        $cmd = "cp -f $httpServerCertTpl $httpServerCert";
-        $output += &logAndRun($cmd);
+    if (!-f $httpServerCert) {
+        my $httpServerCertTpl = &getGlobalConfiguration('http_server_cert_tpl');
+        $output += &logAndRun("cp -f $httpServerCertTpl $httpServerCert");
     }
 
     $output += &eload(
@@ -458,6 +429,7 @@ sub initHttpServer () {
         func   => 'setHttpDefaultConfigPriv',
         soft   => 1
     ) if ($eload);
+
     return $output;
 }
 

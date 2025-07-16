@@ -46,9 +46,9 @@ Parameters:
     session ref - It is the session hash returned for nftlb. Example:
 
     session = {
-        'expiration' => '1h25m31s364ms',
-        'backend' => 'bck0',
-        'client' => '192.168.10.162'
+        expiration => '1h25m31s364ms',
+        backend    => 'bck0',
+        client     => '192.168.10.162'
     }
 
 Returns:
@@ -91,9 +91,9 @@ sub parseL4FarmSessions ($s) {
     $session =~ s/ \. /_/;
 
     my $obj = {
-        'session' => $session,
-        'type'    => (exists $s->{expiration}) ? 'dynamic'        : 'static',
-        'ttl'     => (exists $s->{expiration}) ? $s->{expiration} : undef,
+        session => $session,
+        type    => (exists $s->{expiration}) ? 'dynamic'        : 'static',
+        ttl     => (exists $s->{expiration}) ? $s->{expiration} : undef,
     };
 
     if ($s->{backend} =~ /bck(\d+)/) {
@@ -157,8 +157,8 @@ sub listL4FarmSessions ($farmname) {
     return [] if ($farm->{persist} eq "");
 
     my $session_tmp = "/tmp/session_$farmname.data";
-    my $lock_f      = &getLockFile($session_tmp);
-    my $lock_fd     = &openlock($lock_f, 'w');
+    my $lock_file   = &getLockFile($session_tmp);
+    my $lock_fd     = &openlock($lock_file, 'w');
     my $err         = &sendL4NlbCmd({
         method => "GET",
         uri    => "/farms/" . $farmname . '/sessions',
@@ -172,6 +172,7 @@ sub listL4FarmSessions ($farmname) {
     }
 
     close $lock_fd;
+    unlink $lock_file;
 
     if ($err or not defined $nftlb_resp) {
         return [];

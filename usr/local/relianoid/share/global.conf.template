@@ -497,14 +497,26 @@ $mfaWebSrvConf="$mfaPath/nginx_server.conf";#update
 
 # VPN Module
 #ipsec_ike_svc
+$ipsec_ike_svc="/lib/ipsec/charon";#update
 #ipsec_ike_ctl
+$ipsec_ike_ctl="/lib/ipsec/stroke";#update
 #ipsec_ike_table_route
+$ipsec_ike_table_route="199";#update
 #ipsec_ike_table_route_prio
+$ipsec_ike_table_route_prio="199";#update
 #where is ipsec binary?
+$ipsec_bin="/usr/sbin/ipsec";#update
+$ipsec_base="$lb_dir/app/strongswan";#update
+$ipsec_conf="$lb_dir/app/strongswan/etc/strongswan.conf";#update
+$ipsec_conf_tpl="$templatedir/strongswan.conf.template";#update
 #l2tp_ctl_dir
+$l2tp_ctl_dir="/tmp";#update
 #l2tp_bin
+$l2tp_bin="/usr/sbin/xl2tpd";#update
 #l2tp_ctl_bin
+$l2tp_ctl_bin="/usr/sbin/xl2tpd-control";#update
 #l2tp_ppp_secret
+$l2tp_ppp_secret="/etc/ppp/chap-secrets";#update
 
 # Ssyncd for pound
 #where is pound ssyncd base?
@@ -522,6 +534,7 @@ $l4sdcfg="$configdir/l4sd.cfg";#update
 
 # routing
 # VPN prio
+$routingRulePrioVPN="24000";
 # L4 farm prio
 $routingRulePrioFarmL4="25000";
 # datalink farm prio
@@ -554,6 +567,8 @@ $aws_config="$configdir/cloud/.aws/config";
 $az_bin="/usr/bin/az";
 $network_role="Network Contributor";#update
 $vm_user_role="Virtual Machine User Login";#update
+
+$gcp_bin="/usr/bin/gcloud";#update
 
 # docker
 $docker_flag="/.dockerenv";

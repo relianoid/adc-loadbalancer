@@ -189,6 +189,7 @@ sub runFarmCreateFrom ($params) {
 
     # unlock farm
     close $lock_fh;
+    unlink $lock_file;
 
     # modify vport, vip, interface
     if ($params->{profile} ne 'datalink') {

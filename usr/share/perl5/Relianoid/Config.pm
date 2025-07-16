@@ -44,16 +44,12 @@ Get the value of a configuration variable. The global.conf is parsed only the fi
 Parameters:
 
     parameter - Name of the global configuration variable. Optional.
-    Force_relad - This parameter is a flag that force a reload of the global.conf structure, useful to reload the struct when it has been modified. Optional
+    force_reload - This parameter is a flag that force a reload of the global.conf structure, useful to reload the struct when it has been modified. Optional
 
 Returns:
 
     scalar - Value of the configuration variable when a variable name is passed as an argument.
     scalar - Hash reference to all global configuration variables when no argument is passed.
-
-See Also:
-
-    Widely used.
 
 =cut
 
@@ -90,23 +86,21 @@ Parse the global.conf file. It expands the variables too.
 
 Parameters:
 
-    none
+    global_conf_filepath - string - Optional. Set the location of a global.conf file.
 
-Returns:
-
-    scalar - Hash reference to all global configuration variables when no argument is passed.
-
-See Also:
-
-    Widely used.
+Returns: hash ref
 
 =cut
 
-sub parseGlobalConfiguration () {
-    my $global_conf_filepath = "/usr/local/relianoid/config/global.conf";
+sub parseGlobalConfiguration ($global_conf_filepath = "/usr/local/relianoid/config/global.conf") {
     my $global_conf;
 
+    use Fcntl qw(:flock);
+
     if (open(my $global_conf_file, '<', $global_conf_filepath)) {
+        flock($global_conf_file, LOCK_SH)
+          or die "Cannot lock file ${global_conf_file}: $!\n";
+
         my @lines = <$global_conf_file>;
         close $global_conf_file;
 
@@ -147,18 +141,12 @@ Parameters:
     param - Configuration variable name.
     value - New value to be set on the configuration variable.
 
-Returns:
-
-    scalar - 0 on success, or -1 if the variable was not found.
+Returns: integer - errno
 
 FIXME:
 
 - Receive a hash, to be able to set a list of settings
 - Control file handling errors.
-
-See Also:
-
-    API v4: <set_ntp>
 
 =cut
 
@@ -203,12 +191,10 @@ Put a list of string parameters as array references
 
 Parameters:
 
-    object - reference to a hash
-    parameters - list of parameters to change from string to array
+    obj        - reference to a hash
+    param_list - list of parameters to change from string to array
 
-Returns:
-
-    hash ref - Object updated
+Returns: hash ref - Object updated
 
 =cut
 
@@ -244,9 +230,9 @@ Parameters:
     key_ref - Array of parameters to get. Empty means all parameters
     key_action - string define the action. Possible values are "ignored|undef|error".Empty means error.
 
-Returns:
+Returns: hash ref | undef
 
-    hash ref - a reference to Config::Tiny object when success, undef on failure.
+A reference to Config::Tiny object when success, undef on failure.
 
 =cut
 
@@ -254,8 +240,10 @@ sub getTinyObj ($filepath, $section = undef, $key_ref = undef, $key_action = "er
     if (!-f "$filepath") {
         return;
     }
+
     require Config::Tiny;
     my $conf = Config::Tiny->read($filepath);
+
     if (not defined $conf) {
         return;
     }
@@ -278,6 +266,7 @@ sub getTinyObj ($filepath, $section = undef, $key_ref = undef, $key_action = "er
 
     my $filtered_conf = {};
     $conf = $conf->{$section};
+
     for my $param (@{$key_ref}) {
         if (defined $conf->{$param}) {
             $filtered_conf->{$param} = $conf->{$param};
@@ -315,9 +304,7 @@ Parameters:
     action - This is a optional parameter. The possible values are: "add" to add
              a item to a list, or "del" to delete a item from a list, or "remove" to delete the key
 
-Returns:
-
-    Integer - Error code: 0 on success or other value on failure
+Returns: integer - errno
 
 =cut
 
@@ -383,11 +370,12 @@ sub setTinyObj ($path, $object = undef, $key = undef, $value = undef, $action = 
         }
     }
 
-    my $success = $fileHandle->write($path);
+    my $error = $fileHandle->write($path) ? 0 : 1;
+
     close $lock_fd;
     unlink $lock_file;
 
-    return ($success) ? 0 : 1;
+    return $error;
 }
 
 =pod
@@ -398,12 +386,10 @@ It deletes a object of a tiny file. The tiny file is locked before than set the 
 
 Parameters:
 
-    object - Group name
-    path   - Tiny file where the object will be deleted
+    path   - string - Tiny file name where the object will be deleted
+    object - string - Group name
 
-Returns:
-
-    Integer -  Error code: 0 on success or other value on failure
+Returns: integer - errno
 
 =cut
 
@@ -417,7 +403,8 @@ sub delTinyObj ($path, $object) {
 
     my $fileHandle = Config::Tiny->read($path);
     delete $fileHandle->{$object};
-    my $error = $fileHandle->write($path);
+
+    my $error = $fileHandle->write($path) ? 0 : 1;
 
     close $lock_fd;
     unlink $lock_file;
@@ -429,35 +416,31 @@ sub delTinyObj ($path, $object) {
 
 =head1 migrateConfigFiles
 
-Apply all migrating scripts to relianoid
+Apply migration scripts.
 
-Parameters:
+Parameters: none
 
-    none
-
-Returns:
-
-    none
+Returns: none
 
 =cut
 
 sub migrateConfigFiles () {
-    my $mig_dir = &getGlobalConfiguration('mig_dir');
+    # Avoid configuration dependency before migrations.
+    my $migrations_dir = '/usr/local/relianoid/migrations';
 
-    opendir(my $dh, $mig_dir);
-    my @files = grep { -f "${mig_dir}/$_" } sort readdir($dh);
+    opendir(my $dh, $migrations_dir);
+    my @files = grep { -f "${migrations_dir}/$_" } sort readdir($dh);
     closedir $dh;
 
     for my $file (@files) {
-        my $errno = system("${mig_dir}/${file} >/dev/null");
-        my $msg = "";
+        my $errno = system("${migrations_dir}/${file} >/dev/null");
+        my $msg   = "";
 
         if ($errno == 0) {
-            $msg = "[ OK ]  ${file} ($errno)";
-            log_info($msg);
-        } else {
-            $msg = "[ERROR] ${file} ($errno)";
-            log_error($msg);
+            log_info($file);
+        }
+        else {
+            log_error($file);
         }
     }
 

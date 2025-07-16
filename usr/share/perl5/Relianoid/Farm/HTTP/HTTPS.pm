@@ -131,6 +131,7 @@ sub setFarmCertificate ($cert_file, $farm_name) {
 
     untie @array;
     close $lock_fh;
+    unlink $lock_file;
 
     return $output;
 }
@@ -206,6 +207,7 @@ sub setFarmCipherList ($farm_name, $ciphers, $cipherc) {
 
     untie @array;
     close $lock_fh;
+    unlink $lock_file;
 
     return $output;
 }
@@ -380,6 +382,7 @@ sub setHTTPFarmDisableSSL ($farm_name, $protocol, $action) {
 
     untie @file;
     close $lock_fh;
+    unlink $lock_file;
 
     return $output;
 }

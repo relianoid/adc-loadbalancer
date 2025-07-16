@@ -59,18 +59,18 @@ sub get_license_controller ($format) {
     return &httpResponse({ code => 200, body => $file, type => 'text/plain' });
 }
 
-# GET /system/supportsave
-sub get_supportsave_controller () {
-    my $desc = "Get supportsave file";
+# GET /system/support
+sub get_support_file_controller () {
+    my $desc = "Get support file";
 
-    my $req_size = &checkSupportSaveSpace();
+    my $req_size = &checkSupportFileSpace();
     if ($req_size) {
         my $space = &getSpaceFormatHuman($req_size);
-        my $msg   = "Supportsave cannot be generated because '/tmp' needs '$space' Bytes of free space";
+        my $msg   = "Support file cannot be generated because '/tmp' needs '$space' Bytes of free space";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
-    my $ss_filename = &getSupportSave();
+    my $ss_filename = &getSupportFile();
 
     return &httpDownloadResponse(desc => $desc, dir => '/tmp', file => $ss_filename);
 }
@@ -82,11 +82,11 @@ sub get_version_controller () {
     my $desc = "Get version";
 
     my $params = {
-        'kernel_version'    => &getKernelVersion(),
-        'relianoid_version' => &getGlobalConfiguration('version'),
-        'hostname'          => &getHostname(),
-        'system_date'       => &getDate(),
-        'appliance_version' => &getApplianceVersion(),
+        kernel_version    => &getKernelVersion(),
+        relianoid_version => &getGlobalConfiguration('version'),
+        hostname          => &getHostname(),
+        system_date       => &getDate(),
+        appliance_version => &getApplianceVersion(),
     };
 
     # For compatibility with previous versions
@@ -101,26 +101,25 @@ sub get_version_controller () {
 sub get_system_info_controller () {
     require Relianoid::SystemInfo;
     require Relianoid::User;
-    require Relianoid::API;
 
     my $desc = "Get the system information";
 
-    my @api_versions = &getApiVersionsList();
+    my @api_versions = &get_api_versions_list();
 
     my $params = {
-        'system_date'             => &getDate(),
-        'appliance_version'       => &getApplianceVersion(),
-        'kernel_version'          => &getKernelVersion(),
-        'relianoid_version'       => &getGlobalConfiguration('version'),
-        'hostname'                => &getHostname(),
-        'user'                    => &getUser(),
-        'supported_zapi_versions' => \@api_versions,
-        'supported_api_versions'  => \@api_versions,
-        'last_zapi_version'       => $api_versions[-1],
-        'last_api_version'        => $api_versions[-1],
-        'edition'                 => $eload ? "enterprise" : "community",
-        'language'                => &getGlobalConfiguration('lang'),
-        'platform'                => &getGlobalConfiguration('cloud_provider'),
+        system_date             => &getDate(),
+        appliance_version       => &getApplianceVersion(),
+        kernel_version          => &getKernelVersion(),
+        relianoid_version       => &getGlobalConfiguration('version'),
+        hostname                => &getHostname(),
+        user                    => &getUser(),
+        supported_zapi_versions => \@api_versions,
+        supported_api_versions  => \@api_versions,
+        last_zapi_version       => $api_versions[-1],
+        last_api_version        => $api_versions[-1],
+        edition                 => $eload ? "enterprise" : "community",
+        language                => &getGlobalConfiguration('lang'),
+        platform                => &getGlobalConfiguration('cloud_provider'),
     };
 
     # For compatibility with previous versions

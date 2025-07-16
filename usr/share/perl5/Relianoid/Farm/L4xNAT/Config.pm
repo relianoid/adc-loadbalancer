@@ -165,8 +165,17 @@ sub setL4FarmParam ($param, $value, $farm_name) {
         $value      = "stlsdnat" if ($value eq "stateless_dnat");
         $parameters = qq(, "mode" : "$value" );
 
+        my $logs = &getL4FarmParam('logs', $farm_name);
+        if ($logs eq "true") {
+            my $log_value = "forward";
+            if ($value eq "dsr" || $value eq "stlsdnat") {
+                $log_value = "output";
+            }
+            $parameters .= qq(, "log" : "$log_value");
+        }
+
         # deactivate leastconn and persistence for ingress modes
-        if ($value eq "dsr" || $value eq "stateless_dnat") {
+        if ($value eq "dsr" || $value eq "stlsdnat") {
             require Relianoid::Farm::L4xNAT::L4sd;
             &setL4sdType($farm_name, "none");
 
@@ -313,8 +322,14 @@ sub setL4FarmParam ($param, $value, $farm_name) {
     }
     elsif ($param eq "logs") {
         $srvparam   = "log";
-        $value      = "forward" if ($value eq "true");
         $value      = "none"    if ($value eq "false");
+        if ($value eq "true") {
+            $value = "forward";
+            my $mode = &getL4FarmParam('mode', $farm_name);
+            if ($mode eq "dsr" || $mode eq "stateless_dnat") {
+                $value = "output";
+            }
+        }
         $parameters = qq(, "$srvparam" : "$value");
     }
     elsif ($param eq "log-prefix") {

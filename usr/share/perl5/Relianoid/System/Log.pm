@@ -50,8 +50,8 @@ Returns:
     Array element example:
 
     {
-        'file' => $line,
-        'date' => $datetime_string
+        file => $line,
+        date => $datetime_string
     }
 
 =cut
@@ -73,7 +73,11 @@ sub getLogs () {
         my $filepath = "$logdir/$line";
         chomp($filepath);
 
-        push @logs, { 'file' => $line, 'date' => &getFileDateGmt($filepath) };
+        push @logs,
+          {
+            file => $line,
+            date => &getFileDateGmt($filepath)
+          };
     }
 
     return \@logs;

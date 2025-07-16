@@ -299,7 +299,7 @@ sub getConntrackParams ($filter) {
         my $param = $filter_key;
         $param =~ s/_/-/g;
 
-        $conntrack_params = join(" ", $conntrack_params, "--$param $filter->{ $filter_key }");
+        $conntrack_params = join(" ", $conntrack_params, "--$param $filter->{$filter_key}");
     }
 
     return $conntrack_params;

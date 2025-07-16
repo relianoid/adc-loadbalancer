@@ -109,14 +109,14 @@ Returns:
 =cut
 
 sub startNlb () {
-    my $nftlbd         = &getGlobalConfiguration('bin_dir') . "/nftlbd";
+    my $systemctl      = &getGlobalConfiguration('systemctl');
     my $pidof          = &getGlobalConfiguration('pidof');
     my $nlbpidfile     = &getNlbPidFile();
     my $nlbpid         = &getNlbPid();
     my $nlbpid_current = &logAndGet("$pidof nftlb");
 
     if (($nlbpid eq "-1") or ($nlbpid_current eq "")) {
-        &logAndRun("$nftlbd start");
+        &logAndRun("$systemctl start nftlb");
 
         #required to wait at startup to ensure the process is up
         sleep 1;
@@ -228,10 +228,9 @@ sub httpNlbRequest ($self) {
     # filter ipds params into the configuration file
     if (   defined $self->{file}
         && $self->{file} ne ""
-        && !-z "$file"
+        && !-z $file
         && $file !~ /ipds/
         && $file !~ /policy/)
-
     {
         require Relianoid::Farm::L4xNAT::Config;
         &writeL4NlbConfigFile($file, $self->{file});
@@ -283,7 +282,7 @@ sub execNft ($action, $table, $chain_def, $rule) {
             my @rules = @{ &logAndGet("$nft -a list chain $table $chain", 'array') };
             for my $r (@rules) {
                 my ($handle) = $r =~ / $rule.* \# handle (\d)$/;
-                if ($handle ne "") {
+                if (defined $handle && $handle ne "") {
                     $output = &logAndRun("$nft delete rule $table $chain handle $handle");
                     last;
                 }

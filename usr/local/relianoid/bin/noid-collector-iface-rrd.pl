@@ -46,7 +46,7 @@ for (my $it = 0 ; $it < $net_size ; $it++) {
     my $in           = $row->{in} * 1000;
     my $out          = $row->{out} * 1000;
 
-    if (! defined $in || ! defined $out) {
+    if (!defined $in || !defined $out) {
         print STDERR "$0: Error: Unable to get the data\n";
         next;
     }

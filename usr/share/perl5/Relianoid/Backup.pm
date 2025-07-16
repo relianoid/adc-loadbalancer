@@ -74,9 +74,9 @@ sub getBackup () {
         chomp($datetime_string);
         push @backups,
           {
-            'name'    => $line,
-            'date'    => $datetime_string,
-            'version' => &getBackupVersion($line)
+            name    => $line,
+            date    => $datetime_string,
+            version => &getBackupVersion($line)
           };
     }
 
@@ -199,12 +199,12 @@ sub uploadBackup ($filename, $upload_filehandle) {
     $config_path =~ s/^\///;
 
     $error = &logAndRun("$tar -tf $filepath $config_path");
-    if (! $error) {
+    if (!$error) {
         return $error;
     }
 
     $error = &logAndRun("$tar -tf $filepath usr/local/zevenet/config/global.conf");
-    if (! $error) {
+    if (!$error) {
         &log_info("Enable backup migration to RELIANOID", 'backup');
         &logAndRun("ln -sf /usr/local/relianoid /usr/local/zevenet");
         return $error;
@@ -300,7 +300,7 @@ sub restoreBackup ($backup) {
     # From lower to greater version: 1.0~rc1 < 1.0 < 1.0-noid1 < 1.0+noid1
 
     system("dpkg --compare-versions $backup_version lt $pre_restore_version");
-    my $backup_is_previous = $?;
+    my $backup_is_previous = ($? == 0);
 
     # Flag migration if the backup version is previous to the current version
     if ($backup_is_previous) {
@@ -319,7 +319,7 @@ sub restoreBackup ($backup) {
     }
 
     system("dpkg --compare-versions $backup_version ne $pre_restore_version");
-    my $version_changed = $?;
+    my $version_changed = ($? == 0);
 
     if ($version_changed) {
         &setGlobalConfiguration('version', $pre_restore_version);

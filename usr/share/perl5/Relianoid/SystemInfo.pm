@@ -37,15 +37,13 @@ Relianoid::SystemInfo
 
 =head1 getDate
 
-Get date string
+Get string of the current date.
 
-Parameters:
+Parameters: none
 
-    none
+Returns: string - Date string.
 
-Returns:
-
-    string - Date string. Example: "Mon May 22 10:42:39 2017"
+ Example: "Mon May 22 10:42:39 2017"
 
 =cut
 
@@ -59,13 +57,9 @@ sub getDate() {
 
 Get system hostname, and it is saved all the process life time
 
-Parameters:
+Parameters: none
 
-    none - .
-
-Returns:
-
-    string - Hostname.
+Returns: string - Hostname.
 
 =cut
 
@@ -83,13 +77,9 @@ Returns a string with the description of the appliance.
 
 NOTE: This function uses Tie::File, this module should be used only for writing files.
 
-Parameters:
+Parameters: none
 
-    none - .
-
-Returns:
-
-    string - Version string.
+Returns: string - Version string.
 
 =cut
 
@@ -175,13 +165,9 @@ sub getApplianceVersion() {
 
 Get the number of CPU cores in the system.
 
-Parameters:
+Parameters: none
 
-    none
-
-Returns:
-
-    integer - Number of CPU cores.
+Returns: integer - Number of CPU cores.
 
 =cut
 
@@ -205,13 +191,9 @@ sub getCpuCores() {
 
 Set envorioment variables. Get variables from global.conf
 
-Parameters:
+Parameters: none
 
-    none
-
-Returns:
-
-    none
+Returns: nothing
 
 =cut
 
@@ -235,15 +217,11 @@ sub setEnv() {
 
 =head1 getKernelVersion
 
-Returns the kernel version
+Returns the kernel version.
 
-Parameters:
+Parameters: none
 
-    none
-
-Returns:
-
-    string - kernel version
+Returns: string - kernel version
 
 =cut
 
@@ -252,6 +230,22 @@ sub getKernelVersion() {
     my $uname   = &getGlobalConfiguration('uname');
     my $version = &logAndGet("$uname -r");
     return $version;
+}
+
+=pod
+
+=head1 get_api_versions_list
+
+Returns a list of strings with the API versions supported.
+
+Parameters: none
+
+Returns: string array
+
+=cut
+
+sub get_api_versions_list() {
+    return (sort split ' ', &getGlobalConfiguration("api_versions"));
 }
 
 1;

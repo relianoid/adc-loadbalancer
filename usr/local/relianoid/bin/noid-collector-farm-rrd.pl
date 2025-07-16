@@ -32,7 +32,7 @@ my $eload = eval { require Relianoid::ELoad; };
 
 my $collector_rrd_dir = &getGlobalConfiguration('collector_rrd_dir');
 
-foreach my $farmfile (&getFarmList()) {
+for my $farmfile (&getFarmList()) {
     my $farm_name   = &getFarmName($farmfile);
     my $farm_type   = &getFarmType($farm_name);
     my $farm_status = &getFarmStatus($farm_name);
@@ -61,7 +61,7 @@ foreach my $farmfile (&getFarmList()) {
         my $stats = &eload(
             module => 'Relianoid::EE::Farm::Eproxy::Stats',
             func   => 'getEproxyFarmStats',
-            args   => [ { 'farm_name' => $farm_name }],
+            args   => [ { farm_name => $farm_name } ],
         );
 
         $synconns    = $stats->{pending};

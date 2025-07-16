@@ -210,6 +210,7 @@ sub getInterfaceConfig ($if_name, $ip_v = '') {
     if ($iface->{type} eq 'vini') {
         my $if_parent = &getInterfaceConfig($iface->{parent});
         $iface->{mask}    = $if_parent->{mask};
+        $iface->{mac}     = $if_parent->{mac};
         $iface->{gateway} = $if_parent->{gateway};
     }
 
@@ -289,7 +290,8 @@ Returns:
 sub setInterfaceConfig ($if_ref) {
     require Config::Tiny;
 
-    my $fileHandle = Config::Tiny->new;
+    my $fileHandle = Config::Tiny->new();
+
     if (ref $if_ref ne 'HASH') {
         &log_warn("Input parameter is not a hash reference", "NETWORK");
         return;
@@ -297,7 +299,8 @@ sub setInterfaceConfig ($if_ref) {
 
     if (&debug() > 2) {
         require Data::Dumper;
-        &log_debug3("setInterfaceConfig: " . Data::Dumper->Dumper($if_ref), "NETWORK");
+        my $serialized_interface = Data::Dumper->Dumper($if_ref);
+        &log_debug3("setInterfaceConfig: $serialized_interface", "NETWORK");
     }
 
     my @if_params       = ('status', 'name', 'addr', 'mask', 'gateway', 'mac', 'dhcp', 'isolate');
@@ -576,7 +579,6 @@ sub getInterfaceSystemStatusAll () {
         }
     }
 
-    $ip_output = &logAndGet("$ip_bin -o addr", "array");
     my $addr_ref;
     for my $addr (@{$ip_output}) {
         if ($addr =~
@@ -1108,9 +1110,6 @@ sub getInterfaceTypeList ($list_type, $iface_name = undef) {
                 next if ($iface_name and ($iface_name ne $if_name));
                 my $iface = &getInterfaceConfig($if_name);
 
-                #$iface->{status} = &getInterfaceSystemStatus( $iface );
-
-                # put the mac, gateway and netmask of the parent interface
                 if (not defined $parents_list->{ $iface->{parent} }) {
                     $parents_list->{ $iface->{parent} } =
                       &getInterfaceConfig($iface->{parent});
@@ -1118,6 +1117,7 @@ sub getInterfaceTypeList ($list_type, $iface_name = undef) {
                 $iface->{mask}    = $parents_list->{ $iface->{parent} }{mask};
                 $iface->{mac}     = $parents_list->{ $iface->{parent} }{mac};
                 $iface->{gateway} = $parents_list->{ $iface->{parent} }{gateway};
+
                 push(@interfaces, $iface);
             }
         }
@@ -1516,7 +1516,7 @@ sub getInterfaceChild ($if_name) {
     # the other type of interfaces can have virtual interfaces as child
     # vlan, bond and nic
     else {
-        push @output, grep { "${if_name}:${virtual_tag}" eq $_ } &getVirtualInterfaceNameList();
+        push @output, grep { /^${if_name}:${virtual_tag}/ } &getVirtualInterfaceNameList();
     }
 
     return @output;
@@ -1615,9 +1615,10 @@ sub get_interface_list_struct () {
         next if $if_ref->{type} eq 'dummy';
 
         # Exclude no user's virtual interfaces, but pass the physical ones
-        next if ($rbac_mod
-             && ($if_ref->{type} ne 'virtual' || !grep { $if_ref->{name} eq $_ } @{$rbac_if_list})
-             && ($if_ref->{type} eq 'virtual'));
+        next
+          if ( $rbac_mod
+            && ($if_ref->{type} ne 'virtual' || !grep { $if_ref->{name} eq $_ } @{$rbac_if_list})
+            && ($if_ref->{type} eq 'virtual'));
 
         $if_ref->{status} = $all_status->{ $if_ref->{name} };
 
@@ -1988,8 +1989,10 @@ Returns:
 sub get_virtual_list_struct () {
     my @output_list = ();
     my $all_status  = &getInterfaceSystemStatusAll();
+
     for my $if_ref (&getInterfaceTypeList('virtual')) {
-        $if_ref->{status} = $all_status->{ $if_ref->{name} };
+        $if_ref->{status} = 'up'   if (defined $all_status->{ $if_ref->{addr} });
+        $if_ref->{status} = 'down' if ($all_status->{ $if_ref->{parent} } ne 'up');
 
         # Any key must cotain a value or "" but can't be null
         if (!defined $if_ref->{name})    { $if_ref->{name}    = ""; }

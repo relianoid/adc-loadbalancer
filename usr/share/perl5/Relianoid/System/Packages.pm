@@ -44,22 +44,15 @@ Relianoid::System::Packages
 
 It configures the system to connect with the APT.
 
-Parameters:
+Parameters: none
 
-    none
-
-Returns:
-
-    Integer - Error code, 0 on success or another value on failure
+Returns: integer - Errno.
 
 =cut
 
 sub setSystemPackagesRepo () {
     if ($eload) {
-        return &eload(
-            module => 'Relianoid::EE::Apt',
-            func   => 'setAPTRepo',
-        );
+        return &eload(module => 'Relianoid::EE::Apt', func => 'setAPTRepo');
     }
 
     require Relianoid::File;
@@ -86,19 +79,15 @@ sub setSystemPackagesRepo () {
 It returns information about the status of the system regarding updates.
 This information is parsed from a file
 
-Parameters:
+Parameters: none
 
-    none
+Returns: hash ref
 
-Returns:
-
-    Hash reference
-
-    'message'    : message with the instructions to update the system
-    'last_check' : date of the last time that nod-updater (or apt-get) was executed
-    'status'     : information about if there is pending updates.
-    'number'     : number of packages pending of updating
-    'packages'   : list of packages pending of updating
+    message    : message with the instructions to update the system
+    last_check : date of the last time that nod-updater (or apt-get) was executed
+    status     : information about if there is pending updates.
+    number     : number of packages pending of updating
+    packages   : list of packages pending of updating
 
 =cut
 
@@ -107,25 +96,27 @@ sub getSystemPackagesUpdatesList () {
     my $package_list = &getGlobalConfiguration('apt_outdated_list');
     my $message_file = &getGlobalConfiguration('apt_msg');
 
-    my @pkg_list = ();
-    my $msg;
+    my @pkg_list    = ();
     my $date        = "";
     my $status      = "unknown";
     my $install_msg = "To upgrade the system, please, execute in a shell the following command:\n    'noid-updater -i'";
 
-    my $fh = &openlock($package_list, 'r');
-    if ($fh) {
-        @pkg_list = split(' ', <$fh>);
+    if (my $fh = &openlock($package_list, 'r')) {
+        my $file_content = <$fh>;
         close $fh;
 
-        # remove the first item
-        shift @pkg_list
-          if ((exists $pkg_list[0]) and ($pkg_list[0] eq 'Listing...'));
+        if ($file_content) {
+            @pkg_list = split(' ', $file_content);
+        }
+
+        if (@pkg_list && $pkg_list[0] eq 'Listing...') {
+            # remove the first item
+            shift @pkg_list;
+        }
     }
 
-    $fh = &openlock($message_file, 'r');
-    if (defined $fh) {
-        $msg = <$fh>;
+    if (my $fh = &openlock($message_file, 'r')) {
+        my $msg = <$fh>;
         close $fh;
 
         if ($msg =~ /last check at (.+) -/) {
@@ -138,11 +129,11 @@ sub getSystemPackagesUpdatesList () {
     }
 
     return {
-        'message'    => $install_msg,
-        'last_check' => $date,
-        'status'     => $status,
-        'number'     => scalar @pkg_list,
-        'packages'   => \@pkg_list
+        message    => $install_msg,
+        last_check => $date,
+        status     => $status,
+        number     => scalar @pkg_list,
+        packages   => \@pkg_list
     };
 }
 

@@ -49,13 +49,9 @@ Relianoid::Certificate
 
 Returns a list of all .pem and .csr certificate files in the config directory.
 
-Parameters:
+Parameters: none
 
-    none
-
-Returns:
-
-    list - certificate files in config/ directory.
+Returns: string array - certificate files in config/ directory.
 
 =cut
 
@@ -81,13 +77,9 @@ sub getCertFiles () {
 
 Returns a list of only .pem certificate files in the config directory.
 
-Parameters:
+Parameters: none
 
-    none
-
-Returns:
-
-    list - certificate files in config/ directory.
+Returns: string array - certificate files in config/ directory.
 
 =cut
 
@@ -116,11 +108,9 @@ The certificate types are:
 
 Parameters:
 
-    String - Certificate filename.
+    certfile - Certificate filename.
 
-Returns:
-
-    String - Certificate type.
+Returns: string - Certificate type.
 
 =cut
 
@@ -141,15 +131,13 @@ sub getCertType ($certfile) {
 
 =head1 getCertExpiration
 
-Return the expiration date of a certificate file
+Return the expiration date of a certificate file.
 
 Parameters:
 
-    String - Certificate filename.
+    certfile - Certificate filename.
 
-Returns:
-
-    String - Expiration date.
+Returns: string - Expiration date.
 
 =cut
 
@@ -170,38 +158,20 @@ sub getCertExpiration ($certfile) {
 
 =pod
 
-=head1 getFarmCertUsed
+=head1 is_cert_used_by_farm
 
-Get if a certificate file is being used by an HTTP farm
+Get if a certificate file is being used by an HTTP farm.
 
 Parameters:
 
-    String - Certificate filename.
+    cert_file - string - Certificate file name.
 
-Returns:
-
-    Integer - 0 if the certificate is being used, or -1 if it is not.
+Returns: boolean
 
 =cut
 
-sub getFarmCertUsed ($cfile) {
-    require Relianoid::File;
-    require Relianoid::Farm::Core;
-
-    my $certdir   = &getGlobalConfiguration('certdir');
-    my $configdir = &getGlobalConfiguration('configdir');
-    my @farms     = &getFarmsByType("https");
-    my $output    = -1;
-
-    for my $fname (@farms) {
-        my $farm_filename = &getFarmFile($fname);
-
-        if (grep { /Cert \"$certdir\/\Q$cfile\E\"/ } readFileAsArray("$configdir/$farm_filename")) {
-            $output = 0;
-        }
-    }
-
-    return $output;
+sub is_cert_used_by_farm ($cert_file) {
+    return scalar(@{ getCertFarmsUsed($cert_file) }) > 0;
 }
 
 =pod
@@ -212,47 +182,44 @@ Get HTTPS Farms list using the certificate file.
 
 Parameters:
 
-    String - Certificate filename.
+    cert_file - string - Certificate file name.
 
-Returns:
-
-    Array ref - Farm list using the certificate.
+Returns: array ref - Farm list using the certificate.
 
 =cut
 
-sub getCertFarmsUsed ($cfile) {
+sub getCertFarmsUsed ($cert_file) {
     require Relianoid::File;
     require Relianoid::Farm::Core;
 
     my $certdir   = &getGlobalConfiguration('certdir');
     my $configdir = &getGlobalConfiguration('configdir');
     my @farms     = &getFarmsByType("https");
-    my $farms_ref = [];
+    my @farm_list = ();
 
     for my $farm_name (@farms) {
         my $farm_filename = &getFarmFile($farm_name);
+        my $farm_abs_path = "${configdir}/${farm_filename}";
 
-        if (grep { /Cert \"$certdir\/\Q$cfile\E\"/ } readFileAsArray("$configdir/$farm_filename")) {
-            push @{$farms_ref}, $farm_name;
+        if (grep { /Cert \"$certdir\/\Q$cert_file\E\"/ } readFileAsArray($farm_abs_path)) {
+            push @farm_list, $farm_name;
         }
     }
 
-    return $farms_ref;
+    return \@farm_list;
 }
 
 =pod
 
 =head1 checkFQDN
 
-Check if a FQDN is valid
+Check if a FQDN is valid.
 
 Parameters:
 
     certfqdn - FQDN.
 
-Returns:
-
-    String - Boolean 'true' or 'false'.
+Returns: string - Boolean 'true' or 'false'.
 
 =cut
 
@@ -279,15 +246,16 @@ sub checkFQDN ($certfqdn) {
 
 =head1 delCert
 
-Removes a certificate file
+Removes a certificate file.
 
 Parameters:
 
-    String - Certificate filename.
+    certname - Certificate filename.
 
-Returns:
+Returns: integer | undef
 
-    Integer - Number of files removed.
+- integer: Number of files removed.
+- undef:   The file was not found.
 
 Bugs:
 
@@ -328,8 +296,9 @@ sub delCert ($certname) {
         }
     }
 
-    &log_error("Error removing certificate '$certdir/$certname'", "LSLB")
-      if !$files_removed;
+    if (!$files_removed) {
+        &log_error("Error removing certificate '$certdir/$certname'", "LSLB");
+    }
 
     return $files_removed;
 }
@@ -346,26 +315,23 @@ certname.key and certname.csr.
 
 Parameters:
 
-    certname     - Certificate name, part of the certificate filename without the extension.
-    certfqdn     - FQDN.
-    certcountry  - Country.
-    certstate    - State.
-    certlocality - Locality.
-    certorganization - Organization.
-    certdivision - Division.
-    certmail     - E-Mail.
-    certkey      - Key. ?
-    certpassword - Password. Optional.
+    name         - Certificate name, part of the certificate filename without the extension.
+    fqdn         - FQDN.
+    country      - Country.
+    state        - State.
+    locality     - Locality.
+    organization - Organization.
+    division     - Division.
+    mail         - E-Mail.
+    key          - Key. ?
+    password     - Password. Optional.
 
-Returns:
-
-    Integer - Return code of openssl generating the CSR file..
+Returns: integer - Return code of openssl generating the CSR file..
 
 =cut
 
-sub createCSR ($name, $fqdn, $country, $state, $locality, $organization, $division, $mail, $key, $password) {
+sub createCSR ($name, $fqdn, $country, $state, $locality, $organization, $division, $mail, $key) {
     my $configdir = &getGlobalConfiguration('certdir');
-    my $output;
 
     my $subdomains = '';
 
@@ -382,31 +348,36 @@ sub createCSR ($name, $fqdn, $country, $state, $locality, $organization, $divisi
     }
 
     chop($subdomains);
-    $subdomains = "-addext \"subjectAltName = $subdomains\"";
+    $subdomains = qq(-addext "subjectAltName = $subdomains");
 
     return 1 if not $cn_found;
 
     ##sustituir los espacios por guiones bajos en el nombre de archivo###
-    if ($password eq "") {
-        $output =
-          &logAndRun(
-            "$openssl req -nodes -newkey rsa:$key -keyout $configdir/$name.key $subdomains -out $configdir/$name.csr -batch -subj \"/C=$country\/ST=$state/L=$locality/O=$organization/OU=$division/CN=$fqdn/emailAddress=$mail\"  2> /dev/null"
-          );
-        &log_info(
-            "Creating CSR: $openssl req -nodes -newkey rsa:$key -keyout $configdir/$name.key $subdomains -out $configdir/$name.csr -batch -subj \"/C=$country\/ST=$state/L=$locality/O=$organization/OU=$division/CN=$fqdn/emailAddress=$mail\"",
-            "LSLB"
-        ) if (not $output);
+    my $csr_file = "$configdir/$name.csr";
+    my $key_file = "$configdir/$name.key";
+    my %subject  = (
+        C            => $country,
+        ST           => $state,
+        L            => $locality,
+        O            => $organization,
+        OU           => $division,
+        CN           => $fqdn,
+        emailAddress => $mail,
+    );
+
+    my @fields  = map { "/$_=$subject{$_}" } sort keys %subject;
+    my $subject = join("", @fields);
+    # my $subject  = qq("/C=$country/ST=$state/L=$locality/O=$organization/OU=$division/CN=$fqdn/emailAddress=$mail");
+
+    my $command = qq($openssl req -nodes -batch $subdomains)    #
+      . qq( -newkey rsa:$key -keyout $key_file -out $csr_file -subj "$subject");
+
+    my $output = &logAndRun("$command 2> /dev/null");
+
+    if (not $output) {
+        &log_info("Created CSR: $command", "LSLB");
     }
-    else {
-        $output =
-          &logAndRun(
-            "$openssl req -passout pass:$password -newkey rsa:$key -keyout $configdir/$name.key $subdomains -out $configdir/$name.csr $configdir/openssl.cnf -batch -subj \"/C=$country/ST=$state/L=$locality/O=$organization/OU=$division/CN=$fqdn/emailAddress=$mail\""
-          );
-        &log_info(
-            "Creating CSR: $openssl req -passout pass:$password -newkey rsa:$key -keyout $configdir/$name.key $subdomains -out $configdir/$name.csr $configdir/openssl.cnf -batch -subj \"/C=$country\/ST=$state/L=$locality/O=$organization/OU=$division/CN=$fqdn/emailAddress=$mail\"",
-            "LSLB"
-        ) if (not $output);
-    }
+
     return $output;
 }
 
@@ -418,12 +389,10 @@ Returns the information stored in a certificate.
 
 Parameters:
 
-    String - Certificate path.
-    String - "true" for checking the Certificate.
+    filepath - string - Certificate path.
+    check    - string - "true" for checking the Certificate.
 
-Returns:
-
-    string - It returns a string with the certificate content. It contains new line characters.
+Returns: string - Certificate content. It contains new line characters.
 
 =cut
 
@@ -458,15 +427,15 @@ sub getCertData ($filepath, $check = undef) {
 
 =head1 getCertInfo
 
-It returns an object with the certificate information parsed
+It returns an object with the certificate information parsed.
 
 Parameters:
 
-    certificate path - path to the certificate
+    filepath - path to the certificate.
 
-Returns:
+Returns: hash ref
 
-    hash ref - The hash contains the following keys:
+The hash contains the following keys:
 
     file:       name of the certificate with extension and without path. "zert.pem"
     type:       type of file. CSR or Certificate
@@ -568,11 +537,9 @@ It converts a human date (2018-05-17 15:04:52 UTC) in a epoc date (1594459893)
 
 Parameters:
 
-    date - string with the date. The string has to be as "2018-05-17 15:04:52"
+    date_string - string - Date string with the format "2018-05-17 15:04:52".
 
-Returns:
-
-    Integer - Time in epoc time. "1594459893"
+Returns: integer - Time in epoc time. "1594459893"
 
 =cut
 
@@ -581,10 +548,14 @@ sub getDateEpoc ($date_string) {
 
     my ($year, $month, $day, $hours, $min, $sec) = split /[ :-]+/, $date_string;
 
-    return 0 if (! defined $year || ! defined $month || ! defined $day || ! defined $hours || ! defined $min || !defined $sec);
+    unless (defined $year && defined $month && defined $day && defined $hours && defined $min && defined $sec) {
+        return 0;
+    }
 
     # the range of the month is from 0 to 11
-    $month-- if ($month > 0);
+    if ($month > 0) {
+        $month--;
+    }
 
     require Time::Local;
     return Time::Local::timegm($sec, $min, $hours, $day, $month, $year);
@@ -598,17 +569,19 @@ It calculates the number of days to expire the certificate.
 
 Parameters:
 
-    ending date - String with the ending date with the following format "2018-05-17 15:04:52 UTC"
+    cert_ends - string - Ending date string with the format "2018-05-17 15:04:52 UTC".
 
-Returns:
-
-    Integer - Number of days to expire the certificate
+Returns: integer - Number of days to expire the certificate.
 
 =cut
 
 sub getCertDaysToExpire ($cert_ends) {
-    my $end       = &getDateEpoc($cert_ends);
-    return 0 if ($end == 0);
+    my $end = &getDateEpoc($cert_ends);
+
+    if ($end == 0) {
+        return 0;
+    }
+
     my $days_left = ($end - time()) / 86400;
 
     # leave only two decimals
@@ -634,9 +607,7 @@ Parameters:
 
     cert_path - path to the certificate
 
-Returns:
-
-    hash ref - List of certificates : key, fullchain
+Returns: hash ref - List of certificates : key, fullchain
 
 =cut
 
@@ -692,9 +663,7 @@ Parameters:
 
     cert_path - path to the certificate
 
-Returns:
-
-    Integer - 0 if it is not encrypted, 1 if encrypted, -1 on error.
+Returns: integer - 0 if it is not encrypted, 1 if encrypted, -1 on error.
 
 =cut
 
@@ -734,13 +703,14 @@ sub checkCertPEMKeyEncrypted ($cert_path) {
 =head1 checkCertPEMValid
 
 Checks if a certificate is in PEM format and has a valid structure.
+
 The certificates must be in PEM format and must be sorted starting with the subject's certificate (actual client or server certificate), followed by intermediate CA certificates if applicable, and ending at the highest level (root) CA. The Private key has to be unencrypted.
 
 Parameters:
 
     cert_path - path to the certificate
 
-Returns: hash reference
+Returns: hash ref
 
 Error object.
 
@@ -856,17 +826,17 @@ Create a valid PEM file.
 
 Parameters:
 
-    certname - Certificate name, part of the certificate filename without the extension.
-    key      - String. Private Key.
-    ca       - String. CA Certificate or fullchain certificates.
-    intermediates - CA Intermediates Certificates.
+    cert_name          - string - Certificate name, part of the certificate filename without the extension.
+    cert_key           - string - Private Key.
+    cert_ca            - string - CA Certificate or fullchain certificates.
+    cert_intermediates - string - CA Intermediates Certificates.
 
-Returns: hash reference
+Returns: hash ref
 
 Error object.
 
-    code - integer - Error code. 0 if the PEM file is created.
-    desc - string - Description of the error.
+    code - integer - Errno. 0 if the PEM file is created.
+    desc - string  - Description of the error.
 
 =cut
 
@@ -903,6 +873,7 @@ sub createPEM ($cert_name, $cert_key, $cert_ca, $cert_intermediates) {
 
     unless (-T $tmp_cert) {
         close $lock_fh;
+        unlink $lock_file;
         my $error_msg = "Error creating Temp Certificate File";
         $error_ref->{code} = 3;
         $error_ref->{desc} = $error_msg;
@@ -914,6 +885,7 @@ sub createPEM ($cert_name, $cert_key, $cert_ca, $cert_intermediates) {
     if (!$cert_conf->{key}) {
         unlink $tmp_cert;
         close $lock_fh;
+        unlink $lock_file;
         my $error_msg = "No Private Key in PEM format found";
         $error_ref->{code} = 4;
         $error_ref->{desc} = $error_msg;
@@ -922,6 +894,7 @@ sub createPEM ($cert_name, $cert_key, $cert_ca, $cert_intermediates) {
     if (!$cert_conf->{fullchain}) {
         unlink $tmp_cert;
         close $lock_fh;
+        unlink $lock_file;
         my $error_msg = "No Certificate in PEM format found";
         $error_ref->{code} = 4;
         $error_ref->{desc} = $error_msg;
@@ -932,6 +905,7 @@ sub createPEM ($cert_name, $cert_key, $cert_ca, $cert_intermediates) {
     if ($error->{code}) {
         unlink $tmp_cert;
         close $lock_fh;
+        unlink $lock_file;
         $error_ref->{code} = 5;
         $error_ref->{desc} = $error->{desc} . " in generated PEM";
         return $error_ref;
@@ -941,6 +915,7 @@ sub createPEM ($cert_name, $cert_key, $cert_ca, $cert_intermediates) {
     if (&copyLock($tmp_cert, $cert_file)) {
         unlink $tmp_cert;
         close $lock_fh;
+        unlink $lock_file;
         my $error_msg = "Error creating Certificate File";
         $error_ref->{code} = 5;
         $error_ref->{desc} = $error_msg;
@@ -949,6 +924,8 @@ sub createPEM ($cert_name, $cert_key, $cert_ca, $cert_intermediates) {
 
     unlink $tmp_cert;
     close $lock_fh;
+    unlink $lock_file;
+
     return $error_ref;
 }
 

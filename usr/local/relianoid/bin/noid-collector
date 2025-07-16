@@ -42,7 +42,6 @@ if (-e $lockfile) {
 }
 else {
     open my $lock, '>', $lockfile;
-    print $lock "lock rrd";
     close $lock;
 }
 

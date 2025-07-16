@@ -44,13 +44,7 @@ Parameters:
     if_name - interface name.
     type - "vini" or "vlan".
 
-Returns:
-
-    list - list of interface references.
-
-See Also:
-
-    Only used in: <setIfacesUp>
+Returns: array - list of interface references.
 
 =cut
 
@@ -90,9 +84,7 @@ Parameters:
     if_name - Name of interface.
     type - "vini" or "vlan".
 
-Returns:
-
-    undef - .
+Returns: nothing
 
 Bugs:
 
@@ -139,9 +131,7 @@ Parameters:
 
     pif - ping interface name.
 
-Returns:
-
-    none
+Returns: nothing
 
 See Also:
 
@@ -162,6 +152,7 @@ sub sendGPing ($pif) {
         &log_info("Sending $pingc ping(s) to gateway $gw from $if_conf->{addr}", "NETWORK");
         &logAndRunBG("$ping_cmd");
     }
+
     return;
 }
 
@@ -179,13 +170,7 @@ Parameters:
     if - interface name.
     ip - ip address.
 
-Returns:
-
-    none
-
-See Also:
-
-    <broadcastInterfaceDiscovery>, <sendGPing>
+Returns: nothing
 
 =cut
 
@@ -224,13 +209,9 @@ sub sendGArp ($if, $ip) {
 
 Set a cron task to cast a ARP packet each minute
 
-Parameters:
+Parameters: none
 
-    none
-
-Returns:
-
-    Integer - Error code: 0 on success or another value on failure
+Returns: integer - Errno.
 
 =cut
 
@@ -256,13 +237,9 @@ sub setArpAnnounce () {
 
 Remove the cron task to cast a ARP packet each minute
 
-Parameters:
+Parameters: none
 
-    none
-
-Returns:
-
-    Integer - Error code: 0 on success or another value on failure
+Returns: integer - Errno.
 
 =cut
 
@@ -290,19 +267,12 @@ A copy of this function is in noid-cluster-notify.
 
 Parameters:
 
-    if - interface namm.
+    if - interface name.
 
-Returns:
-
-    scalar - string with IP address.
-
-See Also:
-
-    <getInterfaceOfIp>, <_runDatalinkFarmStart>, <_runDatalinkFarmStop>, <noid-cluster-notify>
+Returns: string - IP address.
 
 =cut
 
-#know if and return ip
 sub iponif ($if) {
     require IO::Socket;
     require Relianoid::Net::Interface;
@@ -327,19 +297,12 @@ Get the network mask of an network interface (primary) address.
 
 Parameters:
 
-    if - interface namm.
+    if - interface name.
 
-Returns:
-
-    scalar - string with network address.
-
-See Also:
-
-    <_runDatalinkFarmStart>, <_runDatalinkFarmStop>
+Returns: string - Network address.
 
 =cut
 
-# return the mask of an if
 sub maskonif ($if) {
     require IO::Socket;
 
@@ -355,13 +318,9 @@ sub maskonif ($if) {
 
 List all IPs used for interfaces
 
-Parameters:
+Parameters: none
 
-    none - .
-
-Returns:
-
-    list - All IP addresses.
+Returns: string array - All IP addresses.
 
 Bugs:
 
@@ -387,23 +346,16 @@ sub listallips () {
 
 =head1 setIpForward
 
-Set IP forwarding on/off
+Set IP forwarding on/off.
 
 Parameters:
 
     arg - "true" to turn it on or other to turn it off.
 
-Returns:
-
-    scalar - return
-
-See Also:
-
-    <_runDatalinkFarmStart>
+Returns: integer - Errno.
 
 =cut
 
-# Enable(true) / Disable(false) IP Forwarding
 sub setIpForward ($arg) {
     my $status = 0;
     my $switch = $arg eq 'true';
@@ -428,13 +380,10 @@ Parameters:
 
     ip - string with IP address.
 
-Returns:
+Returns: string | undef
 
-    scalar - Name of interface, if found, undef otherwise.
-
-See Also:
-
-    <enable_cluster>, <new_farm>, <modify_datalink_farm>
+- Name of interface if found.
+- undef if not found.
 
 =cut
 

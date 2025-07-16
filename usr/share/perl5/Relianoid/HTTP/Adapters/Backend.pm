@@ -67,7 +67,7 @@ sub getBackendsResponse ($backend_ref, $type, $api_keys = []) {
         push @{$api_keys}, qw(id ip);
     }
 
-    my $translate->{status} = { "fgdown" => "down", "undefined" => "up" };
+    my $translate->{status} = { fgdown => "down", undefined => "up" };
 
     if (ref $backend_ref eq "ARRAY") {
         for my $backend (@{$backend_ref}) {

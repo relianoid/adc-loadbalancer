@@ -54,11 +54,11 @@ while (my $file = readdir($dir)) {
         my @check_command     = split(/ /, $command);
         my $farmguardian_name = "migrated" . $index++ . "_" . $check_command[0];
         my $farmguardian_ref  = {
-            "description" => "check migrated from community backup",
-            "interval"    => $interval,
-            "command"     => "$command",
-            "cut_conns"   => "$cut",
-            "log"         => "$log"
+            description => "check migrated from community backup",
+            interval    => $interval,
+            command     => "$command",
+            cut_conns   => "$cut",
+            log         => "$log"
         };
 
         print "      Create Farmguardian $farmguardian_name ... ";

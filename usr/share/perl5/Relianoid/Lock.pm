@@ -44,7 +44,15 @@ Relianoid::Lock
 
 =head1 getLockFile
 
-Write a lock file based on a input path
+Get a lock file from a resource or file path.
+
+The lock file will be a path in /tmp/ and will have the extension '.lock'.
+
+Parameters:
+
+    lock - string - Resource name.
+
+Returns: string - File name of lock file for the input resource.
 
 =cut
 
@@ -92,9 +100,7 @@ Parameters:
     path - Absolute or relative path to the file to be opened.
     mode - Mode used to open the file.
 
-Returns:
-
-    scalar - File handle
+Returns: file handle ref - Referent to the file handle.
 
 =cut
 
@@ -150,28 +156,23 @@ sub openlock ($path, $mode) {
 
 =head1 ztielock
 
-tie aperture with lock
+tie a file and lock it.
 
-    Usage:
+Usage:
 
-        $handleArray = &tielock($file);
+    $handleArray = &tielock($file);
 
-    Examples:
+Examples:
 
-        $handleArray = &tielock("test.dat");
-        $handleArray = &tielock($filename);
+    $handleArray = &tielock("test.dat");
+    $handleArray = &tielock($filename);
 
 Parameters:
 
+    array_ref - array ref - Reference to the array to contain the file.
     file_name - Path to File.
 
-Returns:
-
-    scalar - Reference to the array with the content of the file.
-
-Bugs:
-
-    Not used yet.
+Returns: array ref - content of the file.
 
 =cut
 
@@ -186,18 +187,34 @@ sub ztielock ($array_ref, $file_name) {
 
 =head1 copyLock
 
+Copy a lock file.
+
+Parameters:
+
+    origin      - string - Path to file to be copied.
+    destination - string - Path to copy of file.
+
+Returns: nothing
+
 =cut
 
-sub copyLock ($ori, $dst) {
-    my $fhOri = &openlock($ori, 'r') or return 1;
-    my $fhDst = &openlock($dst, 'w') or do { close $fhOri; return 1; };
+sub copyLock ($origin, $destination) {
+    my $fh_origin = &openlock($origin, 'r')
+      or return 1;
 
-    while (my $line = <$fhOri>) {
-        print $fhDst $line;
+    my $fh_destination;
+
+    unless ($fh_destination = &openlock($destination, 'w')) {
+        close $fh_origin;
+        return 1;
     }
 
-    close $fhOri;
-    close $fhDst;
+    while (my $line = <$fh_origin>) {
+        print $fh_destination $line;
+    }
+
+    close $fh_origin;
+    close $fh_destination;
 
     return 0;
 }
@@ -206,34 +223,32 @@ sub copyLock ($ori, $dst) {
 
 =head1 lockResource
 
-    lock or release an API resource.
+Lock or release an API resource.
+
+TODO: Define here the available resources
+bonding
+crl
+...
 
 Parameters:
 
     resource - Path to file.
     operation - l (lock), u (unlock), ud (unlock, delete the lock file), r (read)
 
-Bugs:
-
-    Not used yet.
+Returns: nothing
 
 =cut
 
-sub lockResource ($resource, $oper) {
-    # TODO: Define here the available resources
-    # bonding
-    # crl
-    # ...
-
-    if ($oper =~ /l/) {
+sub lockResource ($resource, $operation) {
+    if ($operation =~ /l/) {
         $lock_file = &getLockFile($resource);
         $lock_fh   = &openlock($lock_file, 'w');
     }
-    elsif ($oper =~ /u/) {
+    elsif ($operation =~ /u/) {
         close $lock_fh;
-        unlink $lock_file if ($oper =~ /d/);
+        unlink $lock_file if ($operation =~ /d/);
     }
-    elsif ($oper =~ /r/) {
+    elsif ($operation =~ /r/) {
         $lock_file = &getLockFile($resource);
         $lock_fh   = &openlock($lock_file, 'r');
     }

@@ -63,7 +63,7 @@ sub set_snmp_controller ($json_obj) {
     if (defined $json_obj->{scope}) {
         my $network = NetAddr::IP->new($json_obj->{scope})->network();
         if ($network ne $json_obj->{scope}) {
-            my $msg = "The value '$json_obj->{ 'scope' }' is not a valid network value for the parameter 'scope'.";
+            my $msg = "The value '$json_obj->{scope}' is not a valid network value for the parameter 'scope'.";
             return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }

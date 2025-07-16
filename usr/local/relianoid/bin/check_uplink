@@ -58,8 +58,7 @@ if (-e "$configdir/$filename" and $type eq "datalink") {
             my $output = &logAndRunCheck("ping -c $count $backend");
 
             if ($output ne 0 and $status eq "up") {
-                &log_info(
-                    "disabling datalink backend $index with ip $backend for the $farmname farm");
+                &log_info("disabling datalink backend $index with ip $backend for the $farmname farm");
                 &setFarmBackendStatus($farmname, $index, "down");    # disable backend
                 &runFarmStop($farmname, "true");
                 &runFarmStart($farmname, "true");

@@ -1,4 +1,5 @@
 #!/usr/bin/bash
+# shellcheck disable=SC2016
 ###############################################################################
 #
 #    RELIANOID Software License
@@ -21,53 +22,75 @@
 #
 ###############################################################################
 
-set -e
+set -eu
 trap 'echo Failed at ${LINENO}: $BASH_COMMAND' ERR
 
 [ ! "$1" == "configure" ] && echo "Installation aborted $1 $2" && exit 1
-[   "$1" == "configure" ] && echo "Completing the RELIANOID installation..."
 
-# upgrading global.conf
-/usr/local/relianoid/bin/checkglobalconf
+_global_conf="/usr/local/relianoid/config/global.conf"
 
-# load LB variables
-source /usr/local/relianoid/bin/load_global_conf
-load_global_conf
+if [ ! -f $_global_conf ]; then
+    # install global.conf
+    _global_conf_template="/usr/local/relianoid/share/global.conf.template"
+    tag='#update'
 
-## System services
+    cp $_global_conf_template $_global_conf
 
-# Enable root access through SSH
-SSHDCONFIG="/etc/ssh/sshd_config"
+    # remove #update tag
+    /usr/bin/sed -E "s/;$tag\$/;/g" -i $_global_conf
+else
+    #
+    # run migration
+    #
+    # perl -MRelianoid::Config -e "migrateConfigFiles()"
 
-if ! grep "^PermitRootLogin.*yes" $SSHDCONFIG &>/dev/null; then
-    sed -i -e 's/^.*PermitRootLogin\s.*/PermitRootLogin yes/' $SSHDCONFIG
-    if [[ "$(systemctl status sshd.service | grep -c 'sshd is not running')" == '0' ]]; then
-        systemctl reload sshd.service 2> /dev/null
-    fi
+    # upgrading global.conf
+    /usr/local/relianoid/bin/checkglobalconf
 fi
 
-# Start ssh server after relianoid service
-sed -i 's/^\# Required-Start:.*/# Required-Start:\t\$remote_fs \$syslog relianoid/g' /etc/init.d/ssh
-sed -i 's/^\# Required-Stop:.*/# Required-Stop:\t\$remote_fs \$syslog relianoid/g'   /etc/init.d/ssh
+# load global variables
+. /usr/local/relianoid/bin/load_global_conf
+load_global_conf
+
+# Create the GUI system group
+groupadd -f webgui
+usermod -a -G webgui root
+
+## System services
+if [ "$(systemctl get-default)" != "multi-user.target" ]; then
+    systemctl set-default multi-user.target
+fi
+
+# Remove relianoid from /etc/init.d/ssh required services
+if grep --quiet relianoid /etc/init.d/ssh; then
+    sed -i 's/relianoid//g' /etc/init.d/ssh
+fi
+
+if systemctl -q is-active sshd.service; then
+    systemctl reload sshd.service
+fi
 
 # SNMP service
 perl -MRelianoid::SNMP -E "&setSnmpdDefaultConfig();"
 
 ## Create configuration files
 
+# Install or update Relianoid cron file
+cp /usr/local/relianoid/share/relianoid.cron /etc/cron.d/relianoid
+
 # create Web server
 if [ ! -f "$http_server_cert" ]; then
-    cp -rf $http_server_cert_tpl $http_server_cert
+    cp -rf "$http_server_cert_tpl" "$http_server_cert"
 fi
 if [ ! -f "$http_server_key" ]; then
-    cp -rf $http_server_key_tpl $http_server_key
+    cp -rf "$http_server_key_tpl" "$http_server_key"
 fi
 
 # Install check_uplink
 BIN_PATH="/usr/local/relianoid/bin"
 LIBEXEC_PATH="/usr/lib/nagios/plugins"
-if [ ! -L ${LIBEXEC_PATH}/check_uplink ]; then
-    ln -s ${BIN_PATH}/check_uplink ${LIBEXEC_PATH}/check_uplink
+if [ ! -L $LIBEXEC_PATH/check_uplink ]; then
+    ln -s $BIN_PATH/check_uplink $LIBEXEC_PATH/check_uplink
 fi
 
 # Apply all migrating scripts to RELIANOID
@@ -76,8 +99,6 @@ for SCRIPT in "$MIGRATIONS_DIR"/*; do $SCRIPT; done
 
 ## Migrations from Zevenet to Relianoid
 
-# Set the cron service
-cp /usr/local/relianoid/share/relianoid.cron /etc/cron.d/relianoid
 rm -f /etc/cron.d/zevenet
 
 RELIANOID_PATH=$lb_dir
@@ -106,12 +127,52 @@ fi
 ## End of: Migrations from Zevenet to Relianoid
 
 # Create noid-start and noid-stop if they don't exist yet
-if [ ! -f $start_script ]; then
-    cp $start_template $start_script
+if [ ! -f "$start_script" ]; then
+    cp "$start_template" "$start_script"
 fi
-if [ ! -f $stop_script ]; then
-    cp $stop_template $stop_script
+if [ ! -f "$stop_script" ]; then
+    cp "$stop_template" "$stop_script"
 fi
+
+stop_vpn_services () {
+    # strongswan service for RELIANOID vpn
+    systemctl stop ipsec 2>/dev/null
+    systemctl --quiet --no-reload disable ipsec 2>/dev/null
+
+    # add strongswan config dir to apparmor local configuration
+    if [ -f /etc/apparmor.d/local/usr.lib.ipsec.charon ]; then
+        {
+            echo "/usr/local/relianoid/app/strongswan/etc/ r,"
+            echo "/usr/local/relianoid/app/strongswan/etc/* r,"
+            echo "/usr/local/relianoid/config/vpn/ r,"
+            echo "/usr/local/relianoid/config/vpn/* r,"
+        } > /etc/apparmor.d/local/usr.lib.ipsec.charon
+    fi
+
+    if [ -f /etc/apparmor.d/local/usr.lib.ipsec.stroke ]; then
+        {
+            echo "/usr/local/relianoid/app/strongswan/etc/ r,"
+            echo "/usr/local/relianoid/app/strongswan/etc/* r,"
+            echo "/usr/local/relianoid/config/vpn/ r,"
+            echo "/usr/local/relianoid/config/vpn/* r,"
+        } > /etc/apparmor.d/local/usr.lib.ipsec.stroke
+    fi
+
+    # reload profile if apparmor is installed
+    if [ -f /sbin/apparmor_parser ]; then
+        /sbin/apparmor_parser -R /etc/apparmor.d/usr.lib.ipsec.charon > /dev/null 2>&1 || true
+        /sbin/apparmor_parser -R /etc/apparmor.d/usr.lib.ipsec.stroke > /dev/null 2>&1 || true
+    fi
+
+    # xl2tp service for RELIANOID vpn
+    systemctl stop xl2tpd 2>/dev/null
+    systemctl --quiet --no-reload disable xl2tpd 2>/dev/null
+}
+
+stop_vpn_services
+
+# Initialize VPN
+perl -MRelianoid::VPN::Action -e 'initVPNModule()' >/dev/null
 
 # Restarting RELIANOID service
 echo "RELIANOID will be unavailable while the service is restarting."
@@ -142,8 +203,12 @@ www.relianoid.com
 
 EOF
 
-if grep 'Debian|Zevenet' /etc/issue &>/dev/null; then
-    sed -i "s/.*Debian.*/RELIANOID Community Edition \\\n \\\l/g" /etc/issue
+if ! grep --quiet RELIANOID /etc/issue; then
+    sh -c "echo 'RELIANOID Community Edition \\\n \l\n' >/etc/issue"
+fi
+
+if ! grep -q RELIANOID /etc/issue.net; then
+    echo "RELIANOID Community Edition" >/etc/issue.net
 fi
 
 # Change prompt color
@@ -152,6 +217,7 @@ sed -i "s/1;30m/0;37m/g" /etc/bash.bashrc 2> /dev/null
 # Cluster
 sed -i '/changed-by-relianoid/d' /root/.bashrc &>/dev/null || true
 sed -i '/^export PROMPT_COMMAND=.*zevenet-ce-cluster.status/d' /root/.bashrc &>/dev/null || true # Deprecate Zevenet
+
 # Migrate ucarp location
 old_ucarp_bin="\/usr\/local\/relianoid\/app\/ucarp\/sbin\/ucarp"
 ucarp_conf="/usr/local/relianoid/app/ucarp/etc/cluster.conf"
@@ -159,6 +225,25 @@ if [ -f "$ucarp_conf" ]; then
     sed -i "s/\$ucarp=\"$old_ucarp_bin\";/\$ucarp=\"\/usr\/sbin\/ucarp\";/" $ucarp_conf
 fi
 # Cluster
+
+#
+# Setup for cloud providers
+#
+if grep --quiet "amazon" /sys/devices/virtual/dmi/id/bios_version; then
+    /usr/local/relianoid/share/cloud/aws/setup.sh
+elif grep --quiet "Google" /sys/devices/virtual/dmi/id/bios_version; then
+    /usr/local/relianoid/share/cloud/gcp/setup.sh
+elif grep --quiet "Microsoft Corporation" /sys/devices/virtual/dmi/id/sys_vendor; then
+    # Check for Azure-specific fingerprint
+    if grep -qi "azure" /sys/devices/virtual/dmi/id/product_uuid \
+        || grep -qi "azure" /sys/devices/virtual/dmi/id/bios_version \
+        || curl -H Metadata:true --noproxy "*" -s --max-time 2 \
+            http://169.254.169.254/metadata/instance?api-version=2021-02-01 \
+            | grep -q "compute"; then
+
+        /usr/local/relianoid/share/cloud/azure/setup.sh
+    fi
+fi
 
 # Configure apt repository
 perl -E "require Relianoid::System::Packages; exit &setSystemPackagesRepo();"

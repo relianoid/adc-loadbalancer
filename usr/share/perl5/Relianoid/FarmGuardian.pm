@@ -79,29 +79,29 @@ Returns:
 
     example:
 
-    hash => {
-        'description' => "",       # Tiny description about the check
-        'command'     => "",       # Command to check. The check must return 0 on sucess
-        'farms'       => [],       # farm list where the farm guardian is applied
-        'log'         => "false",  # logg farm guardian
-        'interval'    => "10",     # Time between checks
-        'cut_conns' => "false",    # cut the connections with the backend is marked as down
-        'template'  => "false",    # it is a template. The fg cannot be deleted, only reset its configuration
-        'backend_alias'     => "false",    # Use the backend alias to do the farmguardian check. The load balancer must resolve the alias
-    };
+    {
+        description   => "",       # Tiny description about the check
+        command       => "",       # Command to check. The check must return 0 on sucess
+        farms         => [],       # farm list where the farm guardian is applied
+        log           => "false",  # logg farm guardian
+        interval      => "10",     # Time between checks
+        cut_conns     => "false",  # cut the connections with the backend is marked as down
+        template      => "false",  # it is a template. The fg cannot be deleted, only reset its configuration
+        backend_alias => "false",  # Use the backend alias to do the farmguardian check. The load balancer must resolve the alias
+    }
 
 =cut
 
 sub getFGStruct() {
     return {
-        'description'   => "",         # Tiny description about the check
-        'command'       => "",         # Command to check. The check must return 0 on sucess
-        'farms'         => [],         # farm list where the farm guardian is applied
-        'log'           => "false",    # logg farm guardian
-        'interval'      => "10",       # Time between checks
-        'cut_conns'     => "false",    # cut the connections with the backend is marked as down
-        'template'      => "false",
-        'backend_alias' => "false",
+        description   => "",         # Tiny description about the check
+        command       => "",         # Command to check. The check must return 0 on sucess
+        farms         => [],         # farm list where the farm guardian is applied
+        log           => "false",    # logg farm guardian
+        interval      => "10",       # Time between checks
+        cut_conns     => "false",    # cut the connections with the backend is marked as down
+        template      => "false",
+        backend_alias => "false",
     };
 }
 
@@ -258,8 +258,8 @@ Get the configuration of a farmguardian
 
 Parameters:
 
-    Farmguardian - Farmguardian name
-    template - If this parameter has the value "template", the function returns the object from the template file
+    fg_name - Farmguardian name
+    use_template - If this parameter has the value "template", the function returns the object from the template file
 
 Returns:
 
@@ -268,14 +268,14 @@ Returns:
     example:
 
     hash => {
-        'description' => "",       # Tiny description about the check
-        'command'     => "",       # Command to check. The check must return 0 on sucess
-        'farms'       => [],       # farm list where the farm guardian is applied
-        'log'         => "false",  # log farm guardian
-        'interval'    => "10",     # Time between checks
-        'cut_conns' => "false",    # cut the connections with the backend is marked as down
-        'template'  => "false",    # it is a template. The fg cannot be deleted, only reset its configuration
-        'backend_alias'     => "false",    # Use the backend alias to do the farmguardian check. The load balancer must resolve the alias
+        description   => "",       # Tiny description about the check
+        command       => "",       # Command to check. The check must return 0 on sucess
+        farms         => [],       # farm list where the farm guardian is applied
+        log           => "false",  # log farm guardian
+        interval      => "10",     # Time between checks
+        cut_conns     => "false",  # cut the connections with the backend is marked as down
+        template      => "false",  # it is a template. The fg cannot be deleted, only reset its configuration
+        backend_alias => "false",  # Use the backend alias to do the farmguardian check. The load balancer must resolve the alias
     };
 
 =cut
@@ -586,9 +586,10 @@ Parameters:
     Farm         - Farm name
     Service      - Service name. It is used for GSLB and HTTP farms
 
-Returns:
+Returns: integer - errno
 
-    Integer - 0 on success or another value on failure
+- 0: success
+- !0: error
 
 =cut
 
@@ -640,9 +641,10 @@ Parameters:
     Farm         - Farm name
     Service      - Service name. It is used for GSLB and HTTP farms
 
-Returns:
+Returns: integer - errno
 
-    Integer - 0 on success or another value on failure
+- 0: success
+- !0: error
 
 =cut
 
@@ -704,7 +706,7 @@ sub delFGFarm ($farm, $service = undef) {
     }
 
     # MATCH qw(http https gslb eproxy)
-    my @services = $service? ($service): &getFarmServices($farm);
+    my @services = $service ? ($service) : &getFarmServices($farm);
 
     for my $service (@services) {
         if (my $fg = &getFGFarm($farm, $service)) {
@@ -806,9 +808,10 @@ Parameters:
 
     Farmguardian - Farmguardian name
 
-Returns:
+Returns: integer - errno
 
-    Integer - 0 on failure, or another value on success
+- 0: success
+- !0: error
 
 =cut
 
@@ -841,9 +844,10 @@ Parameters:
 
     Farmguardian - Farmguardian name
 
-Returns:
+Returns: integer - errno
 
-    Integer - 0 on failure, or another value on success
+- 0: success
+- !0: error
 
 =cut
 
@@ -901,9 +905,10 @@ Parameters:
     Farm - Farm name
     Service - Service name. This parameter is for HTTP and GSLB farms. If the farm has not services, this parameter expect 'undef'
 
-Returns:
+Returns: integer - errno
 
-    Integer - 0 on failure, or another value on success
+- 0: success
+- !0: error
 
 =cut
 
@@ -920,9 +925,11 @@ sub runFGFarmStop ($farm, $service = undef) {
     # Stop Farmguardian for every service
     if ($type =~ /http|eproxy/ and not defined $service) {
         require Relianoid::Farm::Service;
+
         for my $srv (&getFarmServices($farm)) {
             $out |= &runFGFarmStop($farm, $srv);
         }
+
         return $out;
     }
 
@@ -935,6 +942,7 @@ sub runFGFarmStop ($farm, $service = undef) {
         # kill returns the number of process affected
         $out = kill 9, $fgpid;
         $out = (not $out);
+
         if ($out) {
             &log_error("running 'kill 9, $fgpid' stopping FarmGuardian $farm $service_str", "FG");
         }
@@ -976,6 +984,7 @@ sub runFGFarmStop ($farm, $service = undef) {
 
                     $out |= $error_ref->{code};
                 }
+
                 @filelines = @fileAux;
                 untie @filelines;
             }
@@ -1003,6 +1012,7 @@ sub runFGFarmStop ($farm, $service = undef) {
             # TODO LGL
         }
     }
+
     my $srvtag = defined $service ? "${service}_" : '';
     unlink "$configdir/${farm}_${srvtag}status.cfg";
 
@@ -1013,25 +1023,32 @@ sub runFGFarmStop ($farm, $service = undef) {
 
 =head1 runFGFarmStart
 
-It starts the farmguardian process used by the farm. If the farm is GSLB or HTTP
-and is not passed the service name, all farmguardians will be run.
+It starts the farmguardian process used by the farm.
+
 The pid file is created by the farmguardian process.
+
+If the farm is GSLB or HTTP and is not passed the service name,
+all farmguardians will be run.
+
+- Supported farm types without farmguardian support return 0.
+- Unknown farm types return 1.
 
 Parameters:
 
     Farm - Farm name
     Service - Service name. This parameter is for HTTP and GSLB farms.
 
-Returns:
+Returns: integer - errno
 
-    Integer - 0 on failure, or another value on success
+- 0: success
+- !0: error
 
 =cut
 
 sub runFGFarmStart ($farm, $svice = undef) {
-    my $status = 0;
-    my $log    = "";
-    my $sv     = "";
+    my $errno = 0;
+    my $log   = "";
+    my $sv    = "";
 
     require Relianoid::Farm::Core;
     require Relianoid::Farm::Base;
@@ -1048,11 +1065,9 @@ sub runFGFarmStart ($farm, $svice = undef) {
 
     # check if the node is master
     if ($eload) {
-        my $node = "";
-        $node = &eload(
+        my $node = &eload(
             module => 'Relianoid::EE::Cluster',
             func   => 'getClusterNodeStatus',
-            args   => [],
         );
         return 0 unless (not $node or $node eq 'master');
     }
@@ -1064,7 +1079,7 @@ sub runFGFarmStart ($farm, $svice = undef) {
         require Relianoid::Farm::Service;
 
         for my $service (&getFarmServices($farm)) {
-            $status |= &runFGFarmStart($farm, $service);
+            $errno |= &runFGFarmStart($farm, $service);
         }
     }
     elsif ($ftype =~ /http|l4xnat|eproxy/) {
@@ -1087,17 +1102,17 @@ sub runFGFarmStart ($farm, $svice = undef) {
         my $fg_cmd       = "$farmguardian $farm $sv $log";
 
         require Relianoid::Log;
-        $status = &logAndRunBG("$fg_cmd");
+        &logAndRunBG($fg_cmd);
 
         # necessary for waiting that fg process write its process
         use Time::HiRes qw(usleep);
-        $status = 1;
+        $errno = 1;
         my $pid_file = &getFGPidFile($farm, $svice);
 
         # wait for 2 seconds
         for (my $it = 0 ; $it < 4000 ; $it += 1) {
             if (-f $pid_file) {
-                $status = 0;
+                $errno = 0;
                 last;
             }
 
@@ -1105,19 +1120,20 @@ sub runFGFarmStart ($farm, $svice = undef) {
             usleep(500);
         }
 
-        if ($status) {
+        if ($errno) {
             my $msg = "The farmguardian for the farm '$farm'";
             $msg .= " and the service '$svice'" if ($svice);
             $msg .= " could not start properly";
             &log_error($msg, "fg");
         }
     }
-    elsif ($ftype ne 'gslb') {
-        # WARNING: farm types not supported by farmguardian return 0.
-        $status = 1;
+    elsif ($ftype eq 'gslb')     { }
+    elsif ($ftype eq 'datalink') { }
+    else {
+        $errno = 1;
     }
 
-    return $status;
+    return $errno;
 }
 
 =pod
@@ -1132,9 +1148,10 @@ Parameters:
     Farm    - Farm name
     Service - Service name. This parameter is for HTTP and GSLB farms.
 
-Returns:
+Returns: integer - errno
 
-    Integer - 0 on failure, or another value on success
+- 0: success
+- !0: error
 
 =cut
 
@@ -1165,9 +1182,11 @@ sub getFGRunningFarms ($fg) {
     require Relianoid::Farm::Core;
     require Relianoid::Farm::Base;
 
-    my @runfarm;
+    my @runfarm = ();
+
     for my $farm (@{ &getFGObject($fg)->{farms} }) {
         my $srv;
+
         if ($farm =~ /([^_]+)_(.+)/) {
             $farm = $1;
             $srv  = $2;
@@ -1177,6 +1196,7 @@ sub getFGRunningFarms ($fg) {
             push @runfarm, $farm;
         }
     }
+
     return \@runfarm;
 }
 
@@ -1228,13 +1248,13 @@ sub setOldFarmguardian ($obj) {
 
     # default object
     my $def = {
-        'description' => "This farmguardian was created automatically to migrate to Relianoid 5.2 version or higher",
-        'command'     => $obj->{command},
-        'log'         => $obj->{log},
-        'interval'    => $obj->{interval},
-        'cut_conns'   => ($type =~ /http/) ? "true" : "false",
-        'template'    => "false",
-        'farms'       => [],
+        description => "This farmguardian was created automatically to migrate to Relianoid 5.2 version or higher",
+        command     => $obj->{command},
+        log         => $obj->{log},
+        interval    => $obj->{interval},
+        cut_conns   => ($type =~ /http/) ? "true" : "false",
+        template    => "false",
+        farms       => [],
     };
 
     &runFGFarmStop($farm, $srv);
@@ -1275,8 +1295,10 @@ Start FarmGuardian rutine
 
 Parameters:
 
-    fname - Farm name.
-    svice - Service name. Only apply if the farm profile has services. Leave undefined for farms without services.
+    farm_name - string - Farm name.
+    service   - string - Optional. Service name.
+                         Only apply if the farm profile has services.
+                         Leave undefined for farms without services.
 
 Returns: integer
 
@@ -1285,8 +1307,8 @@ Returns: integer
 
 =cut
 
-sub runFarmGuardianStart ($fname, $svice) {
-    return &runFGFarmStart($fname, $svice);
+sub runFarmGuardianStart ($farm_name, $service = undef) {
+    return &runFGFarmStart($farm_name, $service);
 }
 
 =pod
@@ -1297,17 +1319,20 @@ Stop FarmGuardian rutine
 
 Parameters:
 
-    fname - Farm name.
-    svice - Service name. Only apply if the farm profile has services. Leave undefined for farms without services.
+    farm_name - string - Farm name.
+    service   - string - Optional. Service name.
+                         Only apply if the farm profile has services.
+                         Leave undefined for farms without services.
 
-Returns:
+Returns: integer - errno
 
-    Integer - 0 on success, or greater than 0 on failure.
+- 0: success
+- !0: error
 
 =cut
 
-sub runFarmGuardianStop ($fname, $svice) {
-    return &runFGFarmStop($fname, $svice);
+sub runFarmGuardianStop ($farm_name, $service = undef) {
+    return &runFGFarmStop($farm_name, $service);
 }
 
 =pod
@@ -1327,7 +1352,7 @@ Parameters:
     fglog - 'true' to enable farmguardian verbosity in logs, or 'false' to disable it.
     svice - Service name.
 
-Returns: integer
+Returns: integer - errno
 
 - -1 - If ttcheck or script is not defined or empty and farmguardian is enabled.
 -  0 - If farmguardian configuration was created.
@@ -1342,12 +1367,12 @@ sub runFarmGuardianCreate ($fname, $ttcheck, $script, $usefg, $fglog, $svice) {
 
     # get default name and check not exist
     my $obj = {
-        'service'  => $svice,
-        'farm'     => $fname,
-        'command'  => $script,
-        'log'      => $fglog,
-        'interval' => $ttcheck,
-        'enable'   => $usefg,
+        service  => $svice,
+        farm     => $fname,
+        command  => $script,
+        log      => $fglog,
+        interval => $ttcheck,
+        enable   => $usefg,
     };
 
     $output = &setOldFarmguardian($obj);

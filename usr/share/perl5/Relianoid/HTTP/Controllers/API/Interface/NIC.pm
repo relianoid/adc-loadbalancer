@@ -111,11 +111,8 @@ sub delete_nic_controller ($nic) {
 
     if ($eload && $if_ref->{addr}) {
         # check if some VPN is using this ip
-        my $vpns = &eload(
-            module => 'Relianoid::EE::VPN::Util',
-            func   => 'getVpnByIp',
-            args   => [ $if_ref->{addr} ],
-        );
+        require Relianoid::VPN::Util;
+        my $vpns = getVpnByIp($if_ref->{addr});
 
         if (@{$vpns}) {
             my $str = join(', ', @{$vpns});
@@ -123,11 +120,7 @@ sub delete_nic_controller ($nic) {
             return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
 
-        $vpns = &eload(
-            module => 'Relianoid::EE::VPN::Util',
-            func   => 'getVpnByNet',
-            args   => [ $if_ref->{net} ],
-        );
+        $vpns = getVpnByNet($if_ref->{net});
 
         if (@{$vpns}) {
             my $str = join(', ', @{$vpns});
@@ -477,26 +470,22 @@ sub modify_nic_controller ($json_obj, $nic) {
                 @farms = &getFarmListByVip($if_ref->{addr});
             }
 
-            $vpns_localgw = &eload(
-                module => 'Relianoid::EE::VPN::Util',
-                func   => 'getVpnByIp',
-                args   => [ $if_ref->{addr} ],
-            ) if $eload;
+            require Relianoid::VPN::Util;
+            $vpns_localgw = getVpnByIp($if_ref->{addr});
         }
 
         # check if its a new network and a vpn using old network
         if (exists $json_obj->{ip} or exists $json_obj->{netmask}) {
             # check if network is changed
             my $mask = $json_obj->{netmask} // $if_ref->{mask};
+
             if (not &validateGateway($if_ref->{addr}, $if_ref->{mask}, $json_obj->{ip})
                 or $if_ref->{mask} ne $mask)
             {
                 my $net = NetAddr::IP->new($if_ref->{addr}, $if_ref->{mask})->cidr();
-                $vpns_localnet = &eload(
-                    module => 'Relianoid::EE::VPN::Util',
-                    func   => 'getVpnByNet',
-                    args   => [$net],
-                ) if $eload;
+
+                require Relianoid::VPN::Util;
+                $vpns_localnet = getVpnByNet($net);
             }
         }
 
@@ -689,23 +678,23 @@ sub modify_nic_controller ($json_obj, $nic) {
                 &setAllFarmByVip($json_obj->{ip}, \@farms);
                 &reloadFarmsSourceAddress();
             }
+
             if (@{$vpns_localgw}) {
-                my $error = &eload(
-                    module => 'Relianoid::EE::VPN::Config',
-                    func   => 'setAllVPNLocalGateway',
-                    args   => [ $if_ref->{addr}, $vpns_localgw ],
-                );
-                $warning_msg .= $error->{desc} if ($error->{code});
+                require Relianoid::VPN::Config;
+                my $error = setAllVPNLocalGateway($if_ref->{addr}, $vpns_localgw);
+
+                $warning_msg .= $error->{desc}
+                  if $error->{code};
             }
+
             if (@{$vpns_localnet}) {
-                my $net =
-                  NetAddr::IP->new($if_ref->{net}, $if_ref->{mask})->cidr();
-                my $error = &eload(
-                    module => 'Relianoid::EE::VPN::Config',
-                    func   => 'setAllVPNLocalNetwork',
-                    args   => [ $net, $vpns_localnet ],
-                );
-                $warning_msg .= $error->{desc} if ($error->{code});
+                my $net = NetAddr::IP->new($if_ref->{net}, $if_ref->{mask})->cidr();
+
+                require Relianoid::VPN::Config;
+                my $error = setAllVPNLocalNetwork($net, $vpns_localnet);
+
+                $warning_msg .= $error->{desc}
+                  if $error->{code};
             }
         };
 

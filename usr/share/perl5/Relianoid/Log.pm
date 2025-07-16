@@ -85,9 +85,7 @@ Parametes:
     type    - Log level. info, error, debug, debug2, warn. Default: info
     tag     - RBAC, LSLB, GSLB, DSLB, IPDS, FG, NOTIF, NETWORK, MONITOR, SYSTEM, CLUSTER, AWS
 
-Returns:
-
-    none - .
+Returns: nothing
 
 =cut
 
@@ -159,19 +157,13 @@ sub log_debug5 ($message, $tag = '') {
 
 =head1 logAndRun
 
-Log and run the command string input parameter returning execution error code.
+Runs a command, logging stdout and stderr, and returning the errno.
 
 Parameters:
 
     command - String with the command to be run.
 
-Returns:
-
-    integer - Return code.
-
-See Also:
-
-    Widely used.
+Returns: integer - Errno.
 
 =cut
 
@@ -203,9 +195,7 @@ Parameters:
 
     command - String with the command to be run.
 
-Returns:
-
-    boolean - true on error, false on success launching the command.
+Returns: boolean - true on error, false on success launching the command.
 
 =cut
 
@@ -234,15 +224,9 @@ Run a command with the environment parameters customized.
 
 Parameters:
 
-    exec - Command to run.
+    @command - string array - Command to run.
 
-Returns:
-
-    integer - Returns 0 on success or another value on failure
-
-See Also:
-
-    <runFarmGuardianStart>, <_runHTTPFarmStart>, <runHTTPFarmCreate>, <_runGSLBFarmStart>, <_runGSLBFarmStop>, <runGSLBFarmReload>, <runGSLBFarmCreate>
+Returns: integer - Errno.
 
 =cut
 
@@ -275,14 +259,13 @@ It returns only the standard output, it does not return stderr.
 
 Parameters:
 
-    command - String with the command to be run in order to get info from the system.
-    output format - Force that the output will be convert to 'string' or 'array'. String by default
-    stderr flag - If this parameter is different of 0, the stderr will be added to the command output '2>&1'
+    cmd        - string  - Command to be run in order to get info from the system.
+    type       - string  - Force that the output will be convert to 'string' or 'array'. 'string' by default
+    add_stderr - integer - If this parameter is different of 0, the stderr will be added to the command output '2>&1'
 
-Returns:
+Returns: string | array ref
 
-    Array ref or string - data obtained from the system. The type of output is specified
-    in the type input param
+The type of output is specified in the type input parameter.
 
 See Also:
 
@@ -295,26 +278,33 @@ TODO:
 =cut
 
 sub logAndGet ($cmd, $type = 'string', $add_stderr = 0) {
-    my $tmp_err  = ($add_stderr) ? '&1' : "/tmp/err.log";
-    my $out      = `$cmd 2>$tmp_err` // '';
-    my $err_code = $? >> 8;
+    my $stderr_file = "/tmp/err.log";
+    my $tmp_err     = ($add_stderr) ? '&1' : $stderr_file;
+    my $out         = `$cmd 2>$tmp_err`;
+    my $err_code    = $? >> 8;
 
     if (&debug() >= 2) {
         &log_debug2("Executed (out: $err_code): $cmd", "system");
     }
 
-    if ($err_code and not $add_stderr) {
-        # execute again, removing stdout and getting stderr
-        if (open(my $fh, '<', $tmp_err)) {
+    # - !$add_stderr - stderr is not captured with stdout
+    #                  stderr is captured on $stderr_file
+    # - &debug() <= 2 - stderr is sent to log when debugging
+    if ($err_code && !$add_stderr && -f $stderr_file && &debug() <= 2) {
+        if (open(my $fh, '<', $stderr_file)) {
             local $/ = undef;
-            my $err_str = <$fh>;
-            &log_debug2("sterr: $err_str", "SYSTEM");
+            my $stderr_str = <$fh>;
             close $fh;
+
+            &log_debug2("stderr: $stderr_str", "SYSTEM");
         }
         else {
-            &log_error("file '$tmp_err' not found", "SYSTEM");
+            &log_error("Could not open file '$stderr_file': $!", "SYSTEM");
         }
     }
+
+    unlink $stderr_file
+      if -f $stderr_file;
 
     chomp($out);
 
@@ -340,11 +330,9 @@ log the error output if the loglevel is greater than 2.
 
 Parameters:
 
-    command - String with the command to be run.
+    command - string - Command to be run.
 
-Returns:
-
-    integer - error code of the command. 0 on success or another value on failure
+Returns: integer - errno.
 
 See Also:
 
@@ -365,7 +353,6 @@ sub logAndRunCheck ($command) {
         &log_debug3("${program} output: @cmd_output", "SYSTEM");
     }
 
-    # returning error code of the execution
     return $return_code;
 }
 
@@ -377,13 +364,13 @@ Execute a command in the system to get both the standard output and the stderr.
 
 Parameters:
 
-    command - String with the command to be run in order to get info from the system.
-    format - Force that the output will be convert to 'string' or 'array'. String by default.
-    outflush - Flush standard output. If true, the standard output will be sent to null.
+    command  - string  - Command to be run in order to get info from the system.
+    format   - string  - Force that the output will be convert to 'string' or 'array'. String by default.
+    outflush - integer - Flush standard output. If true, the standard output will be sent to null.
 
-Returns:
+Returns: hash ref
 
-    Hash ref - hash reference with the items:
+Hash reference with the items:
 
     stdout - standard output of the command executed in the given format. If 'array'
              format is selected, then a hash array is provided. 'string' by default.
@@ -420,15 +407,15 @@ Execute a command and returns errno, stdout and stderr of such command.
 
 Parameters:
 
-    command - String with the command to be run.
+    command - string - Command to be run.
 
-Returns:
+Returns: ($errno, \@stdout, \@stderr)
 
-    ($errno, \@stdout, \@stderr) - Array with:
+Array with:
 
-    errno  - Scalar integer. The value is the error number returned.
-    stdout - Array reference. Each element of the array is a line of stdout.
-    stderr - Array reference. Each element of the array is a line of stderr.
+    errno  - integer   - The value is the error number returned.
+    stdout - array ref - Each element of the array is a line of stdout.
+    stderr - array ref - Each element of the array is a line of stderr.
 
 =cut
 

@@ -69,6 +69,7 @@ sub _runHTTPFarmStart ($farm_name, $writeconf = undef) {
     my $lock_fh   = &openlock($lock_file, 'w');
 
     close $lock_fh;
+    unlink $lock_file;
 
     &log_info("Checking $farm_name farm configuration", "LSLB");
     return -1 if (&getHTTPFarmConfigIsOK($farm_name));
@@ -115,7 +116,7 @@ sub _runHTTPFarmStop ($farm_name, $writeconf = undef) {
     require Relianoid::FarmGuardian;
     my $time = &getGlobalConfiguration("http_farm_stop_grace_time");
 
-    &runFarmGuardianStop($farm_name, "");
+    &runFarmGuardianStop($farm_name);
 
     require Relianoid::Farm::HTTP::Config;
     &setHTTPFarmBootStatus($farm_name, "down") if ($writeconf);

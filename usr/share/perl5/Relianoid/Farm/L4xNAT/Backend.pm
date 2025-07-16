@@ -256,7 +256,6 @@ Parameters:
 
     farm_name - Farm name
     backend_ref - Hash ref of Backend 
-    farm_mode - Farm Mode
 
 Returns:
 
@@ -264,69 +263,24 @@ Returns:
 
 =cut
 
-sub setL4FarmBackendsSessionsRemove ($farm_name, $backend_ref = undef, $farm_mode = undef) {
+sub setL4FarmBackendsSessionsRemove ($farm_name, $backend_ref = undef) {
     my $output = -1;
     if (not defined $backend_ref) {
         &log_warn("Warning removing sessions for backend id farm '$farm_name': Backend id not found", "lslb");
         return $output;
     }
 
-    my $table;
-    my $value_check;
-    my $value_regex;
-    if (defined $farm_mode and $farm_mode eq "dsr") {
-        $table = "netdev";
-        my $ip_bin    = &getGlobalConfiguration('ip_bin');
-        my $mac       = &logAndRun("$ip_bin neigh show $backend_ref->{ip}");
-        my @mac_split = split(' ', $mac);
-        $value_check = $mac_split[4];
-        $value_regex = qr/([a-fA-F0-9:]{1,})/;
+    $output = &sendL4NlbCmd({
+        method => "DELETE",
+        uri    => "/farms/" . $farm_name . "/backends/bck" . $backend_ref->{id} . "/sessions",
+    });
+
+    if ($output) {
+        &log_error("Error removing sessions for backend id '$backend_ref->{id}' in farm '$farm_name'", "lslb");
+        $output = 1;
     }
     else {
-        $table = "ip";
-        require Relianoid::Net::Validate;
-        if (&ipversion($backend_ref->{ip}) == 6) {
-            $table .= "6";
-        }
-        ($value_check = $backend_ref->{tag}) =~ s/0x//g;
-        $value_regex = qr/0x0*(\d+)/;
-    }
-
-    my $nft_bin    = &getGlobalConfiguration('nft_bin');
-    my $map_name   = "persist-$farm_name";
-    my @persistmap = @{ &logAndGet("$nft_bin list map $table nftlb $map_name", "array") };
-    my $data       = 0;
-
-    my $sessions;
-    my $n_sessions_deleted;
-    for my $line (@persistmap) {
-        $data = 1 if ($line =~ /elements = /);
-        next      if (!$data);
-
-        my ($key, $value) = ($line =~ /,?\s+([\w\.\s\:]+) expires \w+ : $value_regex[\s,]/);
-        if ($value eq $value_check) {
-            $sessions .= " $key,";
-            $n_sessions_deleted++;
-        }
-
-        last if ($data and $line =~ /\}/);
-    }
-
-    if (defined $sessions) {
-        chop $sessions;
-        my $error = &logAndRun("$nft_bin delete element $table nftlb $map_name { $sessions }");
-        if ($error) {
-            &log_error("Error removing '$n_sessions_deleted' sessions for backend id '$backend_ref->{id}' in farm '$farm_name'",
-                "lslb");
-            $output = 1;
-        }
-        else {
-            &log_info("Removing '$n_sessions_deleted' sessions for backend id '$backend_ref->{id}' in farm '$farm_name'", "lslb");
-            $output = 0;
-        }
-    }
-    else {
-        # no sessions found
+        &log_info("Removed sessions for backend id '$backend_ref->{id}' in farm '$farm_name'", "lslb");
         $output = 0;
     }
 
@@ -433,7 +387,7 @@ sub setL4FarmBackendStatus ($farm_name, $backend, $status, $cutmode = undef) {
             if (@{ $farm->{servers} }[$i]->{status} eq 'up') {
                 if ($farm->{persist} ne '') {
                     # delete backend session
-                    $output = &setL4FarmBackendsSessionsRemove($farm_name, @{ $farm->{servers} }[$i], $farm->{mode});
+                    $output = &setL4FarmBackendsSessionsRemove($farm_name, @{ $farm->{servers} }[$i]);
                     if ($output) {
                         $error_ref->{code} = 2;
                     }
@@ -446,26 +400,6 @@ sub setL4FarmBackendStatus ($farm_name, $backend, $status, $cutmode = undef) {
                     $msg               = "Connections for unused backends in farm '$farm_name' were not deleted";
                     $error_ref->{code} = 3;
                     $error_ref->{desc} = $msg;
-                }
-
-                if ($farm->{persist} ne '') {
-                    # delete backend session again in case new connections are created
-                    $output = &setL4FarmBackendsSessionsRemove($farm_name, @{ $farm->{servers} }[$i], $farm->{mode});
-                    if ($output) {
-                        if ($error_ref->{code} == 3) {
-                            $msg               = "Connections and sessions of unused backends in farm '$farm_name' were not deleted";
-                            $error_ref->{code} = 4;
-                            $error_ref->{desc} = $msg;
-                        }
-                        else {
-                            $msg               = "Sessions for unused backends in farm '$farm_name' were not deleted";
-                            $error_ref->{code} = 2;
-                            $error_ref->{desc} = $msg;
-                        }
-                    }
-                    else {
-                        $error_ref->{code} = 0 if $error_ref->{code} == 2;
-                    }
                 }
             }
         }
@@ -484,7 +418,7 @@ sub setL4FarmBackendStatus ($farm_name, $backend, $status, $cutmode = undef) {
 
         if ($farm->{persist} ne '') {
             #delete backend session
-            $output = &setL4FarmBackendsSessionsRemove($farm_name, $server, $farm->{mode});
+            $output = &setL4FarmBackendsSessionsRemove($farm_name, $server);
             if ($output) {
                 $error_ref->{code} = 2;
             }
@@ -496,26 +430,6 @@ sub setL4FarmBackendStatus ($farm_name, $backend, $status, $cutmode = undef) {
             $msg               = "Connections for backend $server->{ip}:$server->{port} in farm '$farm_name' were not deleted";
             $error_ref->{code} = 3;
             $error_ref->{desc} = $msg;
-        }
-
-        if ($farm->{persist} ne '') {
-            # delete backend session again in case new connections are created
-            $output = &setL4FarmBackendsSessionsRemove($farm_name, $server, $farm->{mode});
-            if ($output) {
-                if ($error_ref->{code} == 3) {
-                    $msg = "Error deleting connections and sessions on backend $server->{ip}:$server->{port} in farm '$farm_name'";
-                    $error_ref->{code} = 4;
-                    $error_ref->{desc} = $msg;
-                }
-                else {
-                    $msg               = "Sessions for backend $server->{ip}:$server->{port} in farm '$farm_name' were not deleted";
-                    $error_ref->{code} = 2;
-                    $error_ref->{desc} = $msg;
-                }
-            }
-            else {
-                $error_ref->{code} = 0 if $error_ref->{code} == 2;
-            }
         }
     }
     if ($farm->{lbalg} eq 'leastconn') {

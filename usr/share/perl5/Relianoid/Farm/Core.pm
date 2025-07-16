@@ -45,7 +45,7 @@ Get the farm type for a farm
 
 Parameters:
 
-    farmname - Farm name
+    farm_name - Farm name
 
 Returns:
 
@@ -58,26 +58,26 @@ FIXME: Return undefined, or "", or throw an exception on failure.
 sub getFarmType ($farm_name) {
     my $farm_filename = &getFarmFile($farm_name);
 
-    if ($farm_filename =~ /^$farm_name\_proxy.cfg/) {
+    if ($farm_filename =~ /^${farm_name}_proxy.cfg/) {
         require Relianoid::File;
 
-        if (grep { /ListenHTTPS/ } readFileAsArray("$configdir/$farm_filename")) {
+        if (grep { /ListenHTTPS/ } readFileAsArray("${configdir}/${farm_filename}")) {
             return "https";
         }
         else {
             return "http";
         }
     }
-    elsif ($farm_filename =~ /^$farm_name\_datalink.cfg/) {
+    elsif ($farm_filename =~ /^${farm_name}_datalink.cfg/) {
         return "datalink";
     }
-    elsif ($farm_filename =~ /^$farm_name\_l4xnat.cfg/) {
+    elsif ($farm_filename =~ /^${farm_name}_l4xnat.cfg/) {
         return "l4xnat";
     }
-    elsif ($farm_filename =~ /^$farm_name\_gslb.cfg/) {
+    elsif ($farm_filename =~ /^${farm_name}_gslb.cfg/) {
         return "gslb";
     }
-    elsif ($farm_filename =~ /^$farm_name\_eproxy.yaml/) {
+    elsif ($farm_filename =~ /^${farm_name}_eproxy.yaml/) {
         return "eproxy";
     }
 
@@ -92,7 +92,7 @@ Returns farm file name
 
 Parameters:
 
-    farmname - Farm name
+    farm_name - Farm name
 
 Returns:
 
@@ -101,13 +101,13 @@ Returns:
 =cut
 
 sub getFarmFile ($farm_name) {
-    opendir(my $dir, "$configdir") || return -1;
+    opendir(my $dir, $configdir) || return -1;
 
     my @farm_files =
       grep {
-             /^$farm_name\_(?:gslb|proxy|datalink|l4xnat)\.cfg$|^$farm_name\_eproxy\.yaml$/
-          && !/^$farm_name\_.*guardian\.conf$/
-          && !/^$farm_name\_status.cfg$/
+             /^${farm_name}\_(?:gslb|proxy|datalink|l4xnat)\.cfg$|^${farm_name}\_eproxy\.yaml$/
+          && !/^${farm_name}\_.*guardian\.conf$/
+          && !/^${farm_name}\_status.cfg$/
       } readdir($dir);
 
     closedir $dir;
@@ -128,11 +128,9 @@ Returns farms configuration filename list
 
 Parameters:
 
-    file - Farm file
+    farm_filename - Farm file
 
-Returns:
-
-    String - farm name
+Returns: string - farm name.
 
 =cut
 
@@ -145,13 +143,11 @@ sub getFarmName ($farm_filename) {
 
 =head1 getFarmList
 
-Returns farms configuration filename list
+Returns farms configuration file name list.
 
-Parameters: None
+Parameters: none
 
-Returns:
-
-    Array - List of configuration files
+Returns: string array - List of configuration file names.
 
 =cut
 

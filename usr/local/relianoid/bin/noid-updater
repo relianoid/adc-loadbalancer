@@ -1,4 +1,5 @@
 #!/usr/bin/bash
+# shellcheck disable=SC2154
 ###############################################################################
 #
 #    RELIANOID Software License
@@ -34,7 +35,7 @@ fi
 
 # TODO check edition ce/ee
 EDITION="ce"
-if [ `uname -r | grep -c noid` == 1 ]; then
+if [ "$(uname -r | grep -c noid)" == 1 ]; then
 	EDITION="ee"
 fi
 
@@ -139,7 +140,7 @@ function enableClusterUpdate {
 	fi
 	if [ "$node_status" == "backup" ]; then
 		localhost=$($hostname)
-		if [ ! -z "$filecluster" ]; then
+		if [ -n "$filecluster" ]; then
 			hostlist=($(grep "\[" $filecluster | cut -d"[" -f2 | cut -d"]" -f1))
 			if [ "$localhost" == "${hostlist[0]}" ]; then
 				remotehost=${hostlist[1]};
@@ -200,7 +201,7 @@ function internetCheck {
 	fi
 
 	# test connection with the remote repository
-	if [ ! -z $proxy_credentials ]; then
+	if [ -n "$proxy_credentials" ]; then
 		# set https_proxy
 		https_proxy=$(sed -E 's|https?://.*@||g' <<< $https_proxy)
 		$expect_bin -c "spawn $netcat_bin -P $proxy_user -X connect -x $https_proxy -z ${REPO} 443 ; expect \"Proxy password*\" ; send \"${proxy_passwd}\r\" ; interact" > /dev/null
@@ -208,7 +209,11 @@ function internetCheck {
 		# to activate flag netcat SSL if https proxy is configured
 		https_proxy=$(sed -E 's|https?://||g' <<< $https_proxy)
 		https_proxy=( $(grep -Eo '.*\:[0-9]{1,5}' <<<"$https_proxy") )
-		if [ ! -z $https_proxy ]; then flag_netcatSSL="-X connect -x $https_proxy"; fi;
+
+		if [ -n "$https_proxy" ]; then
+			flag_netcatSSL="-X connect -x $https_proxy"
+		fi
+
 		$netcat_bin $flag_netcatSSL -z $REPO 443 2>/dev/null
 	fi
 
@@ -225,8 +230,6 @@ function internetCheck {
 # 	fi
 # 	return 1
 # }
-
-GPG_PATH="/usr/share/keyrings"
 
 case "$1" in
 '')
@@ -309,7 +312,7 @@ case "$1" in
 		logger "noid-updater: Installing new RELIANOID Packages"
 		echo "   Installing new RELIANOID Packages"
 		echo ""
-		if ! DEBIAN_FRONTEND=noninteractive $apt_bin full-upgrade
+		if ! DEBIAN_FRONTEND=noninteractive $aptget_bin full-upgrade
 		then
 			logger "noid-updater: Error: Can not Install new RELIANOID Packages"
 			error "Error: Cannot Install new RELIANOID Packages"
@@ -320,8 +323,10 @@ case "$1" in
 		fi
 		echo "RELIANOID Packages are up-to-date." > $apt_msg
 		$apt_bin list --upgradable 2>/dev/null | cut -d"/" -f 1  | sed '1d' | tr  '\n' ' ' > $apt_outdated_list
-		[ $offline_mode -eq 1 ] &&
+		
+		if [ $offline_mode -eq 1 ]; then
 			UmountMountPoint
+		fi
 	fi
 
 	if [ "$EDITION" == "ee" ]; then
@@ -333,7 +338,8 @@ case "$1" in
 	echo "noid-updater -i has been executed successfully."
 ;;
 
-'-U') # Major Upgrade
+'-U')
+	# Major Upgrade
 	logger "noid-updater: Warning: Already installed the latest version"
 	echo "Warning: Already installed the latest version"
 	echo ""
@@ -367,6 +373,8 @@ case "$1" in
 	# 		offline_mode=1
 	# 	else
 	# 		UmountMountPoint
+
+	#		GPG_PATH="/usr/share/keyrings"
 
 	# 		if [ ! -f "${GPG_PATH}/${GPG_FILE}" ]; then
 	# 			echo "No GPG found at ${GPG_PATH}/${GPG_FILE}"
@@ -407,7 +415,8 @@ case "$1" in
 	# echo "noid-updater -U has been executed successfully."
 ;;
 
-'-E') # Upgrade to Enterprise
+'-E')
+	# Upgrade to Enterprise
 	if [ $EDITION == "ee" ]; then
 		logger "noid-updater: Warning: Only CE is able to upgrade to Enterprise"
 		echo "Warning: Only CE is able to upgrade to Enterprise"
@@ -423,13 +432,13 @@ case "$1" in
 	fi
 	echo "deb [arch=amd64 signed-by=/usr/share/keyrings/relianoid.gpg] https://repo.relianoid.com/ee/v8 bookworm main" > /etc/apt/sources.list.d/relianoid.list
 	$aptget_bin update
-	KNOIDVERSION=`apt-cache show linux-image-amd64 | grep "Version.*noid" | awk -F' ' '{ printf $2 }'`
+	KNOIDVERSION=$(apt-cache show linux-image-amd64 | grep "Version.*noid" | awk -F' ' '{ printf $2 }')
 	if [ "$KNOIDVERSION" == "" ]; then
 		echo "RELIANOID Enterprise kernel not detected. Please contact with support@relianoid.com"
 		exit 1
 	fi
 	DEBIAN_FRONTEND=noninteractive $aptget_bin -y install linux-image-amd64=$KNOIDVERSION --allow-downgrades
-	GUINOIDVERSION=`apt-cache show relianoid-gui | grep "relianoid (>= 8.0.0" -B 5 | grep Version | awk -F' ' '{ printf $2 }'`
+	GUINOIDVERSION=$(apt-cache show relianoid-gui | grep "relianoid (>= 8.0.0" -B 5 | grep Version | awk -F' ' '{ printf $2 }')
 	if [ "$GUINOIDVERSION" == "" ]; then
 		echo "RELIANOID Enterprise web gui not detected. Please contact with support@relianoid.com"
 		exit 1
@@ -451,7 +460,7 @@ case "$1" in
 		echo ""
 		help
 	fi
-	if $dpkg_bin -l | grep $2 | awk {'print $2'} | grep $2$ > /dev/null
+	if $dpkg_bin -l | grep $2 | awk '{print $2}' | grep $2$ > /dev/null
 	then
 		installed=$($aptcache_bin policy $2 | head -2 | tail -1 | cut -d ":" -f2 | sed 's/ //g')
 		candidate=$($aptcache_bin policy $2 | head -3 | tail -1 | cut -d ":" -f2 | sed 's/ //g')

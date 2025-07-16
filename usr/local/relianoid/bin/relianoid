@@ -23,7 +23,7 @@
 
 use strict;
 use warnings;
-use feature qw(say signatures);
+use feature qw(signatures);
 
 use Relianoid::Log;
 use Relianoid::Farm::Core;
@@ -56,18 +56,6 @@ my $cherokee_srv      = &getGlobalConfiguration('http_server_service');
 my $cron_service      = &getGlobalConfiguration('cron_service');
 my $relianoid_service = &getGlobalConfiguration('relianoid_service');
 my $action            = shift @ARGV // '';
-my $print_msg         = "";
-
-if ($action !~ /^(start|stop|restart)$/) {
-    print "Usage: relianoid start|stop|restart\n";
-    exit 0;
-}
-
-sub printAndLog (@params) {
-    print("@params\n");
-    log_info("@params");
-    return;
-}
 
 # Read interfaces data blocks
 sub getInterfaceBlocks (@file_lines) {
@@ -107,8 +95,9 @@ sub getInterfaceBlocks (@file_lines) {
 }
 
 sub local_http_service ($command) {
-    die "local_http_service '$command' command not recognized"
-      unless $command =~ /^(?:start|stop|restart)$/;
+    if (!grep { $command eq $_ } qw(start stop restart)) {
+        die "local_http_service '$command' command not recognized";
+    }
 
     &logAndRunBG("$systemctl $command $cherokee_srv");
     return;
@@ -132,7 +121,7 @@ sub import_system_network_interfaces () {
     }
     else {
         my $msg = "Could not open file $etc_network_interfaces: $!";
-        printAndLog($msg);
+        log_error($msg);
     }
 
     if (grep { /relianoid_modified/ } @file) {
@@ -209,97 +198,72 @@ sub import_system_network_interfaces () {
       . "auto lo\n"               #
       . "iface lo inet loopback\n";
 
-    if (open my $fh, '>', $etc_network_interfaces) {
-        print $fh $file_content;
-        close $fh;
-    }
-    else {
-        my $msg = "Could not open file $etc_network_interfaces: $!";
-        printAndLog($msg);
-    }
+    require Relianoid::File;
+    setFile($etc_network_interfaces, $file_content);
 
     return;
 }
 
-if ($action eq "restart") {
-    # do not use 'logAndRun' function, it is necessary to print the stdoutput
-    system("$systemctl restart $relianoid_service");
-    &local_http_service('restart');    # force a cherokee restart
-}
-
 if ($action eq "start") {
-    # do not use 'logAndRun' function, it is necessary to print the stdoutput
-    system('/usr/local/relianoid/bin/checkglobalconf');
-
     # Configure NIC interfaces in docker.
     if (-f $docker_flag) {
-        &logAndRun("$bin_dir/check-nic-dhcp");
+        &logAndRun("${bin_dir}/check-nic-dhcp");
     }
 
     # ZNA firmware upgrade
     my $migration_flag = &getGlobalConfiguration('migration_flag', 1);
     if (-e $migration_flag) {
-        my $rm = &getGlobalConfiguration('rm');
-
         if ($eload) {
-            &eload(module => 'Relianoid::EE::Hw', func => 'setHwZNAVersion',);
+            &eload(module => 'Relianoid::EE::Hw', func => 'setHwVersion');
         }
 
         # Migrating config files
         &migrateConfigFiles();
+        my $rm = &getGlobalConfiguration('rm');
         &logAndRun("$rm $migration_flag");
     }
 
     my $version = &getGlobalConfiguration('version');
-
-    &printAndLog("Starting RELIANOID Load Balancer v$version");
+    &log_info("Starting RELIANOID Load Balancer v${version}");
 
     if ($eload) {
-        $print_msg = &eload(
-            module => 'Relianoid::EE::Service',
-            func   => 'service_cert_message',
-        );
-        print $print_msg . "\n" if $print_msg;
+        &eload(module => 'Relianoid::EE::Service', func => 'service_cert_message');
     }
 
     # Load required modules
+    &log_info("Loading Layer 4 modules");
     require Relianoid::Farm::L4xNAT::Service;
     &loadL4FarmModules();
-
-    &log_info("RELIANOID: Modules loaded");
 
     import_system_network_interfaces();
 
     if ($eload) {
-        $print_msg = &eload(module => 'Relianoid::EE::Service', func => 'start_service');
-        print $print_msg if $print_msg;
+        &eload(module => 'Relianoid::EE::Service', func => 'start_service');
     }
 
-    print("* Starting Interfaces:\n");
+    log_info("Starting network interfaces...");
 
     my $ip_bin            = &getGlobalConfiguration('ip_bin');
     my @interfaces        = @{ &getConfigInterfaceList() };
     my @system_interfaces = &getInterfaceList();
 
-    &log_info("RELIANOID: Setting up NIC interfaces...");
+    &log_info("Setting up NIC interfaces...");
+
     require Relianoid::Net::Core;
+    require Relianoid::VPN::Core;
 
     # first real interfaces
     for my $iface (@interfaces) {
         if ($eload) {
             next if (defined $iface->{type} and $iface->{type} eq 'bond');
-            next unless &eload(
-                module => 'Relianoid::EE::VPN::Core',
-                func   => 'getVpnExists',
-                args   => [ $$iface{name} ]
-            );
+            next unless getVpnExists($$iface{name});
         }
 
         # interfaces as eth0 for example
         if ($$iface{name} eq $$iface{dev}) {
             # check if it is an existent device
             if (!grep { $$iface{name} eq $_ } @system_interfaces) {
-                &log_info("RELIANOID: Nonexistent NIC interface $$iface{name} Config found!.");
+                &log_info("Nonexistent NIC interface $$iface{name} Config found!.");
 
                 # skip ethX types, ethA1 for example
                 next if ($$iface{name} =~ /eth(?:[a-z]|[A-Z])+/);
@@ -307,7 +271,7 @@ if ($action eq "start") {
                 # remove interface config
                 my $if_file = &getInterfaceConfigFile($$iface{name});
                 if (-f $if_file) {
-                    &log_info("RELIANOID: Deleting Nonexistent NIC interface Config File $if_file.");
+                    &log_info("Deleting Nonexistent NIC interface Config File $if_file.");
                     unlink $if_file;
                 }
 
@@ -317,11 +281,7 @@ if ($action eq "start") {
 
                 # remove routing config
                 if ($eload) {
-                    eload(
-                        module => 'Relianoid::EE::Net::Routing',
-                        func   => 'delRoutingDependIface',
-                        args   => ["$$iface{name}"]
-                    );
+                    eload(module => 'Relianoid::EE::Net::Routing', func => 'delRoutingDependIface', args => [ $$iface{name} ]);
                 }
 
                 # remove gw entry
@@ -333,47 +293,45 @@ if ($action eq "start") {
                     &setGlobalConfiguration('defaultgw6',   '');
                     &setGlobalConfiguration('defaultgwif6', '');
                 }
+
                 next;
             }
 
             use IO::Interface ':flags';
 
             if ($$iface{status} eq "up") {
-                print("  * Starting interface $$iface{name}\n");
+                my $log_msg = "Starting ethernet: $$iface{name}";
                 &upIf($iface);
 
                 if (exists $$iface{addr} and length $$iface{addr}) {
-                    print("    Ip:$$iface{addr} Netmask:$$iface{mask} ");
+                    $log_msg .= ", address: $$iface{addr}/$$iface{mask}";
 
                     if (defined $$iface{gateway} and $$iface{gateway} ne '') {
-                        print("Gateway:$$iface{gateway} ");
+                        $log_msg .= ", gateway: $$iface{gateway}";
                     }
 
-                    my $return_code = &addIp($iface);
+                    my $errno = &addIp($iface);
 
-                    if ($return_code) {
+                    if ($errno) {
                         my @ip_output = @{ &logAndGet("$ip_bin address show dev $$iface{name}", "array") };
 
                         if (grep { /$$iface{addr}/ } @ip_output) {
-                            $return_code = 0;
+                            $errno = 0;
                         }
                     }
 
                     # kept in case it is required for first interface
                     &writeRoutes($$iface{name});
-
                     &applyRoutes("local", $iface);
 
-                    if ($return_code == 0) {
-                        print("\033[1;32m OK \033[0m\n");
-                    }
-                    else {
-                        print("\033[1;31m ERROR \033[0m\n");
+                    $errno ? log_error($log_msg) : log_info($log_msg);
+
+                    if (defined $$iface{ip_v} and $$iface{ip_v} == 4) {
+                        &sendGPing($$iface{name});
                     }
                 }
-
-                if (defined $$iface{ip_v} and $$iface{ip_v} == 4) {
-                    &sendGPing($$iface{name});
+                else {
+                    log_info($log_msg);
                 }
             }
         }
@@ -383,7 +341,7 @@ if ($action eq "start") {
     &logAndRun("$systemctl start $ssh_srv");
     &logAndRun("$systemctl start $cherokee_srv");
 
-    &log_info("RELIANOID: Setting up VLAN interfaces...");
+    &log_info("Setting up VLAN interfaces...");
 
     # vlans interfaces (ie. eth0.20)
     for my $iface (@interfaces) {
@@ -393,38 +351,28 @@ if ($action eq "start") {
             }
 
             if ($eload) {
-                eload(
-                    module => 'Relianoid::EE::Net::Mac',
-                    func   => 'addMAC',
-                    args   => [ $iface->{name}, $iface->{mac} ]
-                );
+                eload(module => 'Relianoid::EE::Net::Mac', func => 'addMAC', args => [ $iface->{name}, $iface->{mac} ]);
             }
 
-            my $return_code = &addIp($iface);
+            my $errno = &addIp($iface);
 
             if ($$iface{status} eq "up") {
-                print("  * Starting interface $$iface{name}\n");
-                print("    Ip:$$iface{addr} Netmask:$$iface{mask} ");
+                my $log_msg = "Starting VLAN: $$iface{name}, address: $$iface{addr}/$$iface{mask}";
 
                 if ($$iface{gateway}) {
-                    print("Gateway:$$iface{gateway} ");
+                    $log_msg .= ", gateway: $$iface{gateway}";
                 }
 
                 &upIf($iface);
 
-                if ($return_code) {
+                if ($errno) {
                     my @ip_output = @{ &logAndGet("$ip_bin address show dev $$iface{name}", "array") };
                     if (grep { /$$iface{addr}/ } @ip_output) {
-                        $return_code = 0;
+                        $errno = 0;
                     }
                 }
 
-                if ($return_code == 0) {
-                    print("\033[1;32m OK \033[0m\n");
-                }
-                else {
-                    print("\033[1;31m ERROR \033[0m\n");
-                }
+                $errno ? log_error($log_msg) : log_info($log_msg);
 
                 &applyRoutes("local", $iface);
 
@@ -435,55 +383,41 @@ if ($action eq "start") {
         }
     }
 
-    # Hook to enable cluster and modules
     if ($eload) {
-        &log_info("RELIANOID: Setting up Cluster...");
-
-        $print_msg = &eload(module => 'Relianoid::EE::Service', func => 'start_cluster');
-        print $print_msg . "\n" if $print_msg;
-
-        $print_msg = &eload(module => 'Relianoid::EE::Service', func => 'enable_cluster');
-        print $print_msg . "\n" if $print_msg;
-
-        $print_msg = &eload(module => 'Relianoid::EE::Service', func => 'start_modules');
-        print $print_msg . "\n" if $print_msg;
+        &eload(module => 'Relianoid::EE::Service', func => 'start_cluster_and_modules');
     }
 
-    &log_info("RELIANOID: Setting up virtual interfaces...");
+    &log_info("Relianoid service: Starting VPN...", "VPN");
+    require Relianoid::VPN::Action;
+    &initVPNModule();
+
+    &log_info("Setting up virtual interfaces...");
 
     # virtual interfaces (ie. eth0:20, eth0.20:2)
     for my $iface (@interfaces) {
         next unless defined $$iface{vini};
         next unless $$iface{status} eq "up";
 
-        print("  * Starting interface $$iface{name}\n");
-        print("    Ip:$$iface{addr} Netmask:$$iface{mask}");
+        my $log_msg = "Starting virtual interface: $$iface{name}, address: $$iface{addr}/$$iface{mask}";
+        my $errno   = &addIp($iface);
 
-        my $return_code = &addIp($iface);
-
-        if ($return_code) {
+        if ($errno) {
             my $toif = &getParentInterfaceName($$iface{name});
-            &log_info("failed addIp");
+            &log_error("Error at addIp for $$iface{name}");
             my @ip_output = @{ &logAndGet("$ip_bin -$$iface{ip_v} address list dev $toif", "array") };
+
             if (grep { /$$iface{addr}/ } @ip_output) {
-                $return_code = 0;
+                $errno = 0;
             }
         }
 
         &applyRoutes("local", $iface);
 
-        &eload(
-            module => 'Relianoid::EE::Net::Routing',
-            func   => 'applyRoutingDependIfaceVirt',
-            args   => [ 'add', $iface ]
-        ) if $eload;
+        if ($eload) {
+            &eload(module => 'Relianoid::EE::Net::Routing', func => 'applyRoutingDependIfaceVirt', args => [ 'add', $iface ]);
+        }
 
-        if ($return_code == 0) {
-            print(" \033[1;32m OK \033[0m \n");
-        }
-        else {
-            print(" \033[1;31m ERROR \033[0m \n");
-        }
+        $errno ? log_error($log_msg) : log_info($log_msg);
 
         if ($$iface{ip_v} == 4) {
             my ($parent_if) = split(":", $$iface{name});
@@ -493,128 +427,60 @@ if ($action eq "start") {
 
     &configureDefaultGW();
 
-    if ($eload) {
-        print("* Starting VPNs:\n");
-        my $vpns = &eload(module => 'Relianoid::EE::VPN::Core', func => 'getVpnList');
-
-        &log_info("RELIANOID: Setting up vpns...");
-        for my $vpn_name (@{$vpns}) {
-            my $bstatus = &eload(
-                module => 'Relianoid::EE::VPN::Core',
-                func   => 'getVpnBootstatus',
-                args   => ["$vpn_name"]
-            );
-            if ($bstatus and $bstatus eq "up") {
-                print("  * Starting VPN $vpn_name:");
-                my $status = &eload(
-                    module => 'Relianoid::EE::VPN::Action',
-                    func   => 'runVPNStart',
-                    args   => [ "$vpn_name", "false" ]
-                );
-
-                if ($status == 0) {
-                    print(" \033[1;32m OK \033[0m \n");
-                }
-                else {
-                    print(" \033[1;31m ERROR \033[0m \n");
-                }
-            }
-            else {
-                print("  VPN $vpn_name configured DOWN\n");
-            }
-        }
-    }
+    require Relianoid::VPN::Action;
+    start_vpn_service();
 
     if (not $eload or not &eload(module => 'Relianoid::EE::Service', func => 'service_start_farms')) {
-        print("* Starting Farms:\n");
+        log_info("Starting farms...");
         &getGlobalConfiguration(undef, 1);
 
         my @farmsf    = &getFarmList();
         my $enable_fg = 1;
 
-        $enable_fg = &eload(module => 'Relianoid::EE::Service', func => 'getEnableFarmGuardian')
-          if $eload;
+        $enable_fg = &eload(module => 'Relianoid::EE::Service', func => 'getEnableFarmGuardian') if $eload;
 
-        &log_info("RELIANOID: Setting up farms...");
+        log_info("Setting up farms...");
 
         for my $ffile (@farmsf) {
             my $farmname = &getFarmName($ffile);
             my $bstatus  = &getFarmBootStatus($farmname);
 
             if ($bstatus eq "up") {
-                print("  * Starting Farm $farmname:");
-                my $status = &runFarmStart($farmname, "false");
+                my $errno = &runFarmStart($farmname, "false");
+                my $msg   = "Starting farm: $farmname";
 
-                if ($status == 0) {
-                    print(" \033[1;32m OK \033[0m \n");
-                }
-                else {
-                    print(" \033[1;31m ERROR \033[0m \n");
-                }
+                $errno ? log_error($msg) : log_info($msg);
 
                 #farmguardian configured and up?
-                if ($status == 0) {
-                    print("  * Starting FarmGuardian for $farmname:");
-                    my $stat = &runFGFarmStart($farmname);
-                    if ($stat == 0) {
-                        print(" \033[1;32m OK \033[0m \n");
-                    }
-                    else {
-                        print(" \033[1;31m ERROR \033[0m \n");
-                    }
+                if ($errno == 0) {
+                    my $errno = &runFGFarmStart($farmname);
+                    my $msg   = "Starting FarmGuardian for: $farmname";
+
+                    $errno ? log_error($msg) : log_info($msg);
                 }
             }
             else {
-                print("  Farm $farmname configured DOWN\n");
+                log_info("Farm: $farmname configured DOWN");
             }
         }
-    }
-
-    # Reload cron file
-    my $cron_conf = &getGlobalConfiguration('cron_conf');
-    if (!-e $cron_conf) {
-        my $cron_tpl = &getGlobalConfiguration('cron_tpl');
-
-        use File::Copy;
-        copy($cron_tpl, $cron_conf);
     }
 
     # Reload the notifications cron file
     if ($eload) {
-        my $notif_license_status = &eload(
-            module => "Relianoid::EE::Notify",
-            func   => "getNotifData",
-            args   => [ 'alerts', 'License', 'Status' ],
-        );
-        my $notif_package_status = &eload(
-            module => "Relianoid::EE::Notify",
-            func   => "getNotifData",
-            args   => [ 'alerts', 'Package', 'Status' ],
-        );
-        my $notif_certificate_status = &eload(
-            module => "Relianoid::EE::Notify",
-            func   => "getNotifData",
-            args   => [ 'alerts', 'Certificate', 'Status' ],
-        );
-        if (   $notif_license_status eq 'on'
-            || $notif_package_status eq 'on'
-            || $notif_certificate_status eq 'on')
-        {
-            &eload(module => "Relianoid::EE::Notify", func => "setNotifCronConfig");
-        }
+        &eload(module => "Relianoid::EE::Notify", func => "schedule_notifications");
     }
 
     # At this point every relianoid interface and farm is running
     # now a personalized script can be executed
     my $start_script = &getGlobalConfiguration('start_script');
 
-    &printAndLog("Running $start_script ...");
+    &log_info("Running $start_script");
     my @ownscript = `$start_script 2>&1`;
-    &printAndLog(@ownscript) if (@ownscript);
-    &printAndLog("End of $start_script");
+    &log_info(@ownscript) if (@ownscript);
+    &log_info("End of $start_script");
 
     # make sure related system services are running
-    if (&logAndRunCheck("$systemctl status $ssh_srv")) {
+    if (my $errno = &logAndRunCheck("$systemctl --quiet is-active $ssh_srv")) {
         &logAndRun("$systemctl start $ssh_srv");
     }
 
@@ -628,38 +494,21 @@ if ($action eq "start") {
 
     # Check the failback configuration
     if ($eload) {
-        if (&eload(module => 'Relianoid::EE::Cluster', func => 'checkClusterLocalIsPrimary')) {
-            &log_debug("Local node detected as primary", "cluster");
-            &eload(module => 'Relianoid::EE::Cluster', func => 'enableCluster');
-        }
-
-        my $node_status = &eload(module => 'Relianoid::EE::Cluster', func => 'getClusterNodeStatus');
-
-        if (defined $node_status and $node_status eq "backup") {
-            &log_info("conntrackd Synchronization against master");
-            my $primary_backup = &getGlobalConfiguration('primary_backup');
-            &logAndRun("$primary_backup backup");
-        }
+        &eload(module => 'Relianoid::EE::Service', func => 'check_cluster_failback_conf');
     }
 
-    &printAndLog("Start process finished.");
+    &log_info("Start process finished");
 }
+elsif ($action eq "stop") {
 
-if ($action eq "stop") {
-    &printAndLog("Stopping RELIANOID Load Balancer...");
+    &log_info("Stopping RELIANOID Load Balancer");
 
     if ($eload) {
-        $print_msg = &eload(
-            module => 'Relianoid::EE::Service',
-            func   => 'service_cert_message',
-        );
-        print $print_msg . "\n" if $print_msg;
-
-        $print_msg = &eload(module => 'Relianoid::EE::Service', func => 'stop_service');
-        print $print_msg . "\n" if $print_msg;
+        &eload(module => 'Relianoid::EE::Service', func => 'service_cert_message');
+        &eload(module => 'Relianoid::EE::Service', func => 'stop_service');
     }
 
-    print("* Stopping Farms:\n");
+    log_info("Stopping farms...");
 
     for my $ffile (getFarmList()) {
         my $farmname = &getFarmName($ffile);
@@ -670,26 +519,16 @@ if ($action eq "stop") {
             my $fgstatus = &getFarmGuardianPid($farmname);
 
             if ($fgstatus != -1) {
-                print("  * Stopping Farm Guardian for $farmname:");
-                my $stat = &runFarmGuardianStop($farmname, "");
+                my $errno = &runFarmGuardianStop($farmname);
+                my $msg   = "Stopping FarmGuardian for: $farmname";
 
-                if ($stat == 0) {
-                    print(" \033[1;32m OK \033[0m \n");
-                }
-                else {
-                    print(" \033[1;31m ERROR \033[0m \n");
-                }
+                $errno ? log_error($msg) : log_info($msg);
             }
 
-            print("  * Stopping Farm $farmname:");
-            my $status = &runFarmStop($farmname, "false");
+            my $errno = &runFarmStop($farmname);
+            my $msg   = "Stopping farm: $farmname";
 
-            if ($status == 0) {
-                print(" \033[1;32m OK \033[0m \n");
-            }
-            else {
-                print(" \033[1;31m ERROR \033[0m \n");
-            }
+            $errno ? log_error($msg) : log_info($msg);
         }
         elsif ($status eq "down") {
             if (&getFarmType($farmname) =~ "^http") {
@@ -699,65 +538,34 @@ if ($action eq "stop") {
         }
     }
 
-    print("* Stopping nftlb service:");
+    log_info("Stopping nftlb service...");
 
-    my $nftlb_svc = &getGlobalConfiguration('nftlb_svc');
-    &logAndRun("$nftlb_svc stop");
+    &logAndRun("$systemctl stop nftlb");
 
-    my $status  = &logAndGet("$nftlb_svc status");
-    my $stopped = grep { /nftlb is not running/ } $status;
+    my $status  = &logAndGet("$systemctl status nftlb");
+    my $active  = system("$systemctl is-active --quiet nftlb");
+    my $msg     = "Stopping service: nftlb";
 
-    if   ($stopped) { print(" \033[1;32m OK \033[0m \n"); }
-    else            { print(" \033[1;31m ERROR \033[0m \n"); }
+    $active != 0 ? log_info($msg) : log_error($msg);
 
-    if ($eload) {
-        print("* Stopping VPNs:\n");
-        my $vpns = &eload(module => 'Relianoid::EE::VPN::Core', func => 'getVpnList');
+    require Relianoid::VPN::Action;
+    stop_vpn_service();
 
-        for my $vpn_name (@{$vpns}) {
-            my $status = &eload(
-                module => 'Relianoid::EE::VPN::Core',
-                func   => 'getVpnStatus',
-                args   => ["$vpn_name"]
-            );
-            if ($status and $status eq "up") {
-                print("  * Stopping VPN $vpn_name:");
-                my $status = &eload(
-                    module => 'Relianoid::EE::VPN::Action',
-                    func   => 'runVPNStop',
-                    args   => [ "$vpn_name", "false" ]
-                );
-
-                if ($status == 0) {
-                    print(" \033[1;32m OK \033[0m \n");
-                }
-                else {
-                    print(" \033[1;31m ERROR \033[0m \n");
-                }
-            }
-        }
-    }
-
-    print("* Stopping Virtual Interfaces:\n");
+    log_info("Stopping virtual interfaces...");
 
     # Virtual Network Interfaces
     for my $iface (@{ &getConfigInterfaceList() }) {
         if (defined $$iface{vini}) {
-            print("  * Down interface $$iface{name}\n");
-            print("    Ip:$$iface{addr} Netmask:$$iface{mask}");
+            my $log_msg = "Stopping virtual interface: $$iface{name}, address: $$iface{addr}/$$iface{mask}";
+            my $errno   = &stopIf($iface);
 
-            my $return_code = &stopIf($iface);
-
-            if ($return_code == 0) {
-                print(" \033[1;32m OK \033[0m \n");
-            }
-            else {
-                print(" \033[1;31m ERROR \033[0m \n");
-            }
+            $errno ? log_error($log_msg) : log_info($log_msg);
         }
     }
 
-    &eload(module => 'Relianoid::EE::Service', func => 'disable_cluster') if $eload;
+    if ($eload) {
+        &eload(module => 'Relianoid::EE::Service', func => 'disable_cluster');
+    }
 
     &configureDefaultGW();
 
@@ -765,11 +573,14 @@ if ($action eq "stop") {
     # now a personalized script can be executed
     my $stop_script = &getGlobalConfiguration('stop_script');
 
-    &printAndLog("Running $stop_script ...");
+    &log_info("Running $stop_script");
     my @ownscript = `$stop_script 2>&1`;
-    &printAndLog(@ownscript) if @ownscript;
-    &printAndLog("End of $stop_script");
+    &log_info(@ownscript) if @ownscript;
+    &log_info("End of $stop_script");
 
-    &printAndLog("Stop process finished...");
+    &log_info("Stop process finished");
 }
-
+else {
+    print "Usage: relianoid {start|stop}\n";
+    exit 1;
+}

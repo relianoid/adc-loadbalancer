@@ -41,16 +41,16 @@ my $eload = eval { require Relianoid::ELoad };
 sub get_farmguardian_response ($fg_name) {
     my $fg  = &getFGObject($fg_name);
     my $out = {
-        'name'          => $fg_name,
-        'backend_alias' => $fg->{backend_alias} // 'false',
-        'description'   => $fg->{description},
-        'command'       => $fg->{command},
-        'farms'         => $fg->{farms},
-        'log'           => $fg->{log} // 'false',
-        'interval'      => $fg->{interval} + 0,
-        'cut_conns'     => $fg->{cut_conns},
-        'template'      => $fg->{template},
-        'timeout'       => ($fg->{timeout} // $fg->{interval}) + 0,
+        name          => $fg_name,
+        backend_alias => $fg->{backend_alias} // 'false',
+        description   => $fg->{description},
+        command       => $fg->{command},
+        farms         => $fg->{farms},
+        log           => $fg->{log} // 'false',
+        interval      => $fg->{interval} + 0,
+        cut_conns     => $fg->{cut_conns},
+        template      => $fg->{template},
+        timeout       => ($fg->{timeout} // $fg->{interval}) + 0,
     };
 
     return $out;

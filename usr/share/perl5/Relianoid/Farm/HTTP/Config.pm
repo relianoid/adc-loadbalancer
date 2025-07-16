@@ -84,6 +84,7 @@ sub setHTTPFarmClientTimeout ($client, $farm_name) {
 
     untie @filefarmhttp;
     close $lock_fh;
+    unlink $lock_file;
 
     return $output;
 }
@@ -213,6 +214,7 @@ sub setHTTPFarmSessionType ($session, $farm_name) {
 
     untie @contents;
     close $lock_fh;
+    unlink $lock_file;
 
     return $output;
 }
@@ -262,6 +264,7 @@ sub setHTTPFarmBlacklistTime ($blacklist_time, $farm_name) {
 
     untie @filefarmhttp;
     close $lock_fh;
+    unlink $lock_file;
 
     return $output;
 }
@@ -354,6 +357,7 @@ sub setHTTPFarmHttpVerb ($verb, $farm_name) {
 
     untie @filefarmhttp;
     close $lock_fh;
+    unlink $lock_file;
 
     return $output;
 }
@@ -519,6 +523,7 @@ sub setHTTPFarmListen ($farm_name, $listener) {
 
     untie @filefarmhttp;
     close $lock_fh;
+    unlink $lock_file;
 
     return;
 }
@@ -569,6 +574,7 @@ sub setHTTPFarmRewriteL ($farm_name, $rewritelocation, $path = undef) {
 
     untie @filefarmhttp;
     close $lock_fh;
+    unlink $lock_file;
 
     return $output;
 }
@@ -662,6 +668,7 @@ sub setHTTPFarmConnTO ($tout, $farm_name) {
 
     untie @filefarmhttp;
     close $lock_fh;
+    unlink $lock_file;
 
     return $output;
 }
@@ -744,6 +751,7 @@ sub setHTTPFarmTimeout ($timeout, $farm_name) {
 
     untie @filefarmhttp;
     close $lock_fh;
+    unlink $lock_file;
 
     return $output;
 }
@@ -822,6 +830,7 @@ sub setHTTPFarmMaxClientTime ($track, $farm_name) {
 
     untie @filefarmhttp;
     close $lock_fh;
+    unlink $lock_file;
 
     return $output;
 }
@@ -1078,6 +1087,7 @@ sub setHTTPFarmBootStatus ($farm_name, $value) {
 
     untie @configfile;
     close $lock_fh;
+    unlink $lock_file;
 
     return;
 }
@@ -1311,6 +1321,7 @@ sub setHTTPFarmVirtualConf ($vip, $vip_port, $farm_name) {
 
     untie @array;
     close $lock_fh;
+    unlink $lock_file;
 
     return $stat;
 }
@@ -2340,29 +2351,29 @@ sub getHTTPFarmHeadersStruct ($farmname, $farm_st = {}) {
         elsif ($line =~ /^[#\s]*AddHeader\s+"(.+)"/) {
             push @{ $farm_st->{addheader} },
               {
-                "id"     => $add_req_header_index++,
-                "header" => $1
+                id     => $add_req_header_index++,
+                header => $1
               };
         }
         elsif ($line =~ /^[#\s]*HeadRemove\s+"(.+)"/) {
             push @{ $farm_st->{headremove} },
               {
-                "id"      => $rem_req_header_index++,
-                "pattern" => $1
+                id      => $rem_req_header_index++,
+                pattern => $1
               };
         }
         elsif ($line =~ /^[#\s]*AddResponseHeader\s+"(.+)"/) {
             push @{ $farm_st->{addresponseheader} },
               {
-                "id"     => $add_res_header_index++,
-                "header" => $1
+                id     => $add_res_header_index++,
+                header => $1
               };
         }
         elsif ($line =~ /^[#\s]*RemoveResponseHead\s+"(.+)"/) {
             push @{ $farm_st->{removeresponseheader} },
               {
-                "id"      => $rem_res_header_index++,
-                "pattern" => $1
+                id      => $rem_res_header_index++,
+                pattern => $1
               };
         }
         elsif ($line =~ /Ignore100Continue (\d).*/) {

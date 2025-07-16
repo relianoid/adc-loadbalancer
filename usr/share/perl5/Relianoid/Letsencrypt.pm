@@ -142,13 +142,17 @@ sub getLetsencryptCertificates ($le_cert_name = undef) {
         push @{$certs}, "$le_cert_name";
     }
     else {
-        opendir(my $directory, "$le_live_path");
-        while (defined(my $file = readdir $directory)) {
-            next if $file eq ".";
-            next if $file eq "..";
-            push @{$certs}, $file if -d "$le_live_path/$file";
+        if (opendir(my $directory, $le_live_path)) {
+            while (defined(my $file = readdir $directory)) {
+                next if $file eq ".";
+                next if $file eq "..";
+                push @{$certs}, $file if -d "$le_live_path/$file";
+            }
+            closedir($directory);
         }
-        closedir($directory);
+        else {
+            log_warn("Could not open directory $le_live_path: $!");
+        }
     }
 
     require Crypt::OpenSSL::X509;
@@ -369,12 +373,12 @@ sub setLetsencryptFarmService ($farm_name, $vip) {
     # Restart the farm
     require Relianoid::Farm::Action;
 
-    if ($error = &runFarmStop($farm_name, "")) {
+    if ($error = &runFarmStop($farm_name)) {
         &log_error("Error stopping the farm $farm_name", "letsencrypt");
         return 5;
     }
 
-    $error = &runFarmStart($farm_name, "");
+    $error = &runFarmStart($farm_name);
     if ($error) {
         &log_error("Error starting the farm $farm_name", "letsencrypt");
         return 6;
@@ -434,12 +438,12 @@ sub unsetLetsencryptFarmService ($farm_name) {
             # Restart the farm
             require Relianoid::Farm::Action;
 
-            if (my $error = &runFarmStop($farm_name, "")) {
+            if (my $error = &runFarmStop($farm_name)) {
                 &log_error("Error stopping the farm $farm_name", "letsencrypt");
                 return 1;
             }
 
-            if (my $error = &runFarmStart($farm_name, "")) {
+            if (my $error = &runFarmStart($farm_name)) {
                 &log_error("Error starting the farm $farm_name", "letsencrypt");
                 return 4;
             }
@@ -773,7 +777,7 @@ sub runLetsencryptDestroy ($le_cert_name) {
     my $opts          = "--reason unspecified";
 
     my $cmd = "$le_binary delete $certname_opt $configdir_opt $opts";
-    &log_info("Executing Letsencrypt obtain command : $cmd", "letsencrypt");
+    &log_info("Executing Letsencrypt delete command : $cmd", "letsencrypt");
 
     my $status = &logRunAndGet($cmd, "array");
     if ($status->{stderr}) {
@@ -828,9 +832,10 @@ sub runLetsencryptRenew ($le_cert_name, $farm_name, $vip, $force, $lock_fh) {
     $farm_name = $le_farm if (!$farm_name);
 
     # Lock process
+    my $lock_le_renew = "/tmp/letsencrypt-renew.lock";
     my $lock_le_renew_fh;
+
     if (not $lock_fh) {
-        my $lock_le_renew = "/tmp/letsencrypt-renew.lock";
         if (not -f $lock_le_renew) {
             my $touch = &getGlobalConfiguration('touch');
             &logAndRun("$touch $lock_le_renew");
@@ -848,6 +853,7 @@ sub runLetsencryptRenew ($le_cert_name, $farm_name, $vip, $force, $lock_fh) {
         $error_ref->{code} = 1;
         $error_ref->{desc} = "Letsencrypt Local Webserver can not be created.";
         close $lock_le_renew_fh;
+        unlink $lock_le_renew;
         return $error_ref;
     }
 
@@ -857,6 +863,7 @@ sub runLetsencryptRenew ($le_cert_name, $farm_name, $vip, $force, $lock_fh) {
         $error_ref->{code} = 2;
         $error_ref->{desc} = "Letsencrypt Service can not be created.";
         close $lock_le_renew_fh;
+        unlink $lock_le_renew;
         return $error_ref;
     }
 
@@ -924,6 +931,8 @@ sub runLetsencryptRenew ($le_cert_name, $farm_name, $vip, $force, $lock_fh) {
     &runLetsencryptLocalWebserverStop();
 
     close $lock_le_renew_fh;
+    unlink $lock_le_renew;
+
     return $error_ref;
 }
 

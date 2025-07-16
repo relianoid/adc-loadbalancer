@@ -1,14 +1,4 @@
-#! /usr/bin/perl
-### BEGIN INIT INFO
-# Provides:          relianoid
-# Required-Start:    $local_fs $remote_fs $syslog
-# Required-Stop:     $local_fs $remote_fs $syslog
-# Default-Start:     2 3 4 5
-# Default-Stop:      0 1 6
-# Short-Description: relianoid
-# Description:
-#
-### END INIT INFO
+#!/bin/bash
 ###############################################################################
 #
 #    RELIANOID Software License
@@ -31,24 +21,17 @@
 #
 ###############################################################################
 
-use strict;
-use warnings;
+if [ -f /etc/firstbootsetpw ]; then
+    # Get Azure VM Instance ID
+    passwd=$(curl -s -H Metadata:true "http://169.254.169.254/metadata/instance/compute?api-version=2021-02-01" | jq -r '.vmId')
 
-my $bin    = "/usr/local/relianoid/bin/relianoid";
-my $action = $ARGV[0];
+    if [ $? -eq 0 ] && [ -n "$passwd" ]; then
+        echo -e "${passwd}\n${passwd}" | sudo passwd root 2>/dev/null
+        rm -f /etc/firstbootsetpw
+    fi
+fi
 
-if ("$action" eq "start" || "$action" eq "reload") {
-    exit system "$bin start > /dev/console";
-}
+# initialize nics configuration
+/etc/network/if-up.d/configure_nics
 
-if ("$action" eq "stop") {
-    exit system "$bin stop > /dev/console";
-}
-
-if ("$action" eq "restart") {
-    system "$bin stop > /dev/console";
-    sleep 5;
-    exit system "$bin start > /dev/console";
-}
-
-print "Usage: /etc/init.d/relianoid ( stop | start | restart | reload )\n";
+exit 0

@@ -248,6 +248,7 @@ sub setHTTPFarmServer ($ids, $rip, $port, $weight, $timeout, $farm_name, $servic
 
     untie @contents;
     close $lock_fh;
+    unlink $lock_file;
 
     return $output;
 }
@@ -311,6 +312,7 @@ sub runHTTPFarmServerDelete ($ids, $farm_name, $service) {
     untie @contents;
 
     close $lock_fh;
+    unlink $lock_file;
 
     if ($output != -1) {
         &runRemoveHTTPBackendStatus($farm_name, $ids, $service);
@@ -944,15 +946,15 @@ Returns:
     hash ref - hash with backends farm status
 
     services => [
-        "id" => $service_id,            # index in the service array
-        "name" => $service_name,
-        "backends" => [
+        id       => $service_id,            # index in the service array
+        name     => $service_name,
+        backends => [
             {
-                "id" = $backend_id      # index in the backend array
-                "ip" = $backend_ip
-                "port" = $backend_port
-                "status" = $backend_status
-                "service" = $service_name
+                id = $backend_id      # index in the backend array
+                ip = $backend_ip
+                port = $backend_port
+                status = $backend_status
+                service = $service_name
             }
         ]
     ]

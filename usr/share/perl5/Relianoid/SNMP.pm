@@ -494,6 +494,7 @@ sub _setSnmpdConfig ($snmpd_conf) {
         @contents = <$config_file>;
         close $config_file;
         close $lock_fh;
+        unlink $lock_file;
 
         @contents = grep { !/^agentAddress/ } @contents;
         @contents = grep { !/^..community/ } @contents             if (defined $snmpd_conf->{community_mode});
@@ -513,6 +514,7 @@ sub _setSnmpdConfig ($snmpd_conf) {
     }
     else {
         close $lock_fh;
+        unlink $lock_file;
     }
 
     my $index = $default_index;
@@ -621,9 +623,11 @@ sub _setSnmpdConfig ($snmpd_conf) {
         print $config_file @contents;
         close $config_file;
         close $lock_fh;
+        unlink $lock_file;
     }
     else {
         close $lock_fh;
+        unlink $lock_file;
         &log_warn("Could not open ${snmpdconfig_file}: $!", "SYSTEM");
         return -1;
     }
@@ -649,11 +653,11 @@ Returns:
 
 sub translateSNMPConfigToApi ($config_ref) {
     my %params = (
-        'ip'        => 'ip',
-        'community' => 'community',
-        'port'      => 'port',
-        'scope'     => 'scope',
-        'status'    => 'status',
+        ip        => 'ip',
+        community => 'community',
+        port      => 'port',
+        scope     => 'scope',
+        status    => 'status',
     );
 
     for my $key (keys %{$config_ref}) {

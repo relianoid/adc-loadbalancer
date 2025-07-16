@@ -25,10 +25,6 @@ use strict;
 use warnings;
 use feature qw(signatures);
 
-my $eload = eval { require Relianoid::ELoad };
-
-my $configdir = &getGlobalConfiguration('configdir');
-
 =pod
 
 =head1 Module
@@ -55,26 +51,9 @@ Returns:
 
 sub loadL4FarmModules () {
     my $modprobe_bin = &getGlobalConfiguration("modprobe");
-    my $error        = 0;
-    if ($eload) {
-        my $cmd = "$modprobe_bin nf_conntrack enable_hooks=1";
-        $error += &logAndRun("$cmd");
-    }
-    else {
-        $error += &logAndRun("$modprobe_bin nf_conntrack");
 
-        # Initialize conntrack
-        my $nftbin = &getGlobalConfiguration("nft_bin");
-
-        # Flush nft tables
-        &logAndRun("$nftbin flush table ip dummyTable");
-
-        my $nftCmd =
-          "$nftbin add table ip dummyTable; $nftbin add chain ip dummyTable dummyChain { type nat hook input priority 0 \\; }; $nftbin add rule ip dummyTable dummyChain ct state established accept";
-
-        $error += &logAndRun("$nftCmd")
-          if (&logAndRunCheck("$nftbin list table dummyTable"));
-    }
+    my $cmd   = "$modprobe_bin nf_conntrack enable_hooks=1";
+    my $error = &logAndRun("$cmd");
 
     return $error;
 }

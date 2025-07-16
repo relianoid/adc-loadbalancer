@@ -178,8 +178,8 @@ sub actions_farm_controller ($json_obj, $farmname) {
     my $body = {
         description => "Set a new action in $farmname",
         params      => {
-            "action" => $json_obj->{action},
-            "status" => &getFarmVipStatus($farmname),
+            action => $json_obj->{action},
+            status => &getFarmVipStatus($farmname),
         },
         message => $msg
     };

@@ -91,233 +91,237 @@ my $email = qr/(?:[a-zA-Z][\w\_\.]+)\@(?:[a-zA-Z0-9.-]+)\.(?:[a-zA-Z]{2,4})/;
 my %format_re = (
 
     # generic types
-    'integer'     => $integer,
-    'natural_num' => $natural,
-    'boolean'     => $boolean,
-    'ipv4v6'      => $ipv4v6,
-    'rrd_time'    => $rrdTime,
+    integer     => $integer,
+    natural_num => $natural,
+    boolean     => $boolean,
+    ipv4v6      => $ipv4v6,
+    rrd_time    => $rrdTime,
 
     # hostname
-    'hostname' => $hostname,
+    hostname => $hostname,
 
     # license
-    'license_format' => qr/(?:txt|html)/,
+    license_format => qr/(?:txt|html)/,
 
     # log
-    'log' => qr/[\.\-\w]+/,
+    log => qr/[\.\-\w]+/,
 
     # api
-    'zapi_key'      => qr/[a-zA-Z0-9]+/,
-    'zapi_status'   => $enable,
-    'zapi_password' => qr/.+/,
+    zapi_key      => qr/[a-zA-Z0-9]+/,
+    zapi_status   => $enable,
+    zapi_password => qr/.+/,
 
     # common
-    'port'      => $port_range,
-    'multiport' => qr/(?:\*|(?:$port_range|$port_range\:$port_range)(?:,$port_range|,$port_range\:$port_range)*)/,
+    port      => $port_range,
+    multiport => qr/(?:\*|(?:$port_range|$port_range\:$port_range)(?:,$port_range|,$port_range\:$port_range)*)/,
 
-    'user'     => qr/[\w]+/,
-    'password' => qr/.+/,
+    user     => qr/[\w]+/,
+    password => qr/.+/,
 
     # system
-    'dns_nameserver' => $ipv4v6,
-    'dns'            => qr/(?:primary|secondary)/,
-    'ssh_port'       => $port_range,
-    'ssh_listen'     => qr/(?:$ipv4v6|\*)/,
-    'snmp_status'    => $boolean,
-    'snmp_ip'        => qr/(?:$ipv4v6|\*)/,
-    'snmp_community' => qr{.+},
-    'snmp_port'      => $port_range,
-    'snmp_scope'     => qr{(?:\d{1,3}\.){3}\d{1,3}\/\d{1,2}},    # ip/mask
-    'ntp'            => qr{[\w\.\-]+},
-    'http_proxy'     => qr{\S*},                                 # use any character except the spaces
+    dns_nameserver => $ipv4v6,
+    dns            => qr/(?:primary|secondary)/,
+    ssh_port       => $port_range,
+    ssh_listen     => qr/(?:$ipv4v6|\*)/,
+    snmp_status    => $boolean,
+    snmp_ip        => qr/(?:$ipv4v6|\*)/,
+    snmp_community => qr{.+},
+    snmp_port      => $port_range,
+    snmp_scope     => qr{(?:\d{1,3}\.){3}\d{1,3}\/\d{1,2}},    # ip/mask
+    ntp            => qr{[\w\.\-]+},
+    http_proxy     => qr{\S*},                                 # use any character except the spaces
 
     # farms
-    'farm_name'             => qr/[a-zA-Z0-9\-]+/,
-    'farm_profile'          => qr/HTTP|GSLB|L4XNAT|DATALINK/,
-    'backend'               => qr/\d+/,
-    'service'               => $service,
-    'http_service'          => qr/[a-zA-Z0-9\-]+/,
-    'gslb_service'          => qr/[a-zA-Z0-9][\w\-]*/,
-    'farm_modules'          => qr/(?:gslb|dslb|lslb)/,
-    'service_position'      => qr/\d+/,
-    'l4_session'            => qr/[ \._\:\w]+/,
-    'l7_session'            => qr/[ \._\:\w]+/,
-    'farm_maintenance_mode' => qr/(?:drain|cut)/,               # not used from API 4
+    farm_name             => qr/[a-zA-Z0-9\-]+/,
+    farm_profile          => qr/HTTP|GSLB|L4XNAT|DATALINK/,
+    backend               => qr/\d+/,
+    service               => $service,
+    http_service          => qr/[a-zA-Z0-9\-]+/,
+    gslb_service          => qr/[a-zA-Z0-9][\w\-]*/,
+    farm_modules          => qr/(?:gslb|dslb|lslb)/,
+    service_position      => qr/\d+/,
+    l4_session            => qr/[ \._\:\w]+/,
+    l7_session            => qr/[ \._\:\w]+/,
+    farm_maintenance_mode => qr/(?:drain|cut)/,               # not used from API 4
 
     # cipher
-    'ciphers' => qr/(?:all|highsecurity|customsecurity|ssloffloading)/,    # not used from API 4
+    ciphers => qr/(?:all|highsecurity|customsecurity|ssloffloading)/,    # not used from API 4
 
     # backup
-    'backup'        => qr/[\w-]+/,
-    'backup_action' => qr/apply/,
+    backup        => qr/[\w-]+/,
+    backup_action => qr/apply/,
 
     # graphs
-    'graphs_frequency' => $graphsFrequency,
-    'graphs_system_id' => qr/(?:cpu|load|ram|swap)/,
-    'mount_point'      => qr/root[\w\-\.\/]*/,
+    graphs_frequency => $graphsFrequency,
+    graphs_system_id => qr/(?:cpu|load|ram|swap)/,
+    mount_point      => qr/root[\w\-\.\/]*/,
 
     # http
-    'redirect_code'    => qr/(?:301|302|307)/,                             # not used from API 4
-    'http_sts_status'  => qr/(?:true|false)/,                              # not used from API 4
-    'http_sts_timeout' => qr/(?:\d+)/,
+    redirect_code    => qr/(?:301|302|307)/,                             # not used from API 4
+    http_sts_status  => qr/(?:true|false)/,                              # not used from API 4
+    http_sts_timeout => qr/(?:\d+)/,
 
     # GSLB
-    'zone'                => qr/(?:$hostname\.)+[a-z]{2,}/,
-    'resource_id'         => qr/\d+/,
-    'resource_name'       => qr/(?:[\w\-\.]+|\@)/,
-    'resource_ttl'        => qr/$natural/,                                            # except zero
-    'resource_type'       => qr/(?:NS|A|AAAA|CNAME|DYNA|MX|SRV|TXT|PTR|NAPTR)/,       # not used from API 4
-    'resource_data'       => qr/.+/,                                                  # allow anything (TXT type needs it)
-    'resource_data_A'     => $ipv4_addr,
-    'resource_data_AAAA'  => $ipv6_addr,
-    'resource_data_DYNA'  => $service,
-    'resource_data_NS'    => qr/[a-zA-Z0-9\-]+/,
-    'resource_data_CNAME' => qr/[a-z\.]+/,
-    'resource_data_MX'    => qr/[a-z\.\ 0-9]+/,
-    'resource_data_TXT'   => qr/.+/,                                                  # all characters allow
-    'resource_data_SRV'   => qr/[0-9]+ [0-9]+ [0-9]+ .+/,                             # https://www.ietf.org/rfc/rfc2782
-    'resource_data_PTR'   => qr/[a-z\.]+/,
-    'resource_data_NAPTR' => qr/[0-9]+ [0-9]+\|[a-zA-Z]?\|[a-zA-Z0-9\+]*\|.*\|.+/,    # https://www.ietf.org/rfc/rfc2915
+    zone                => qr/(?:$hostname\.)+[a-z]{2,}/,
+    resource_id         => qr/\d+/,
+    resource_name       => qr/(?:[\w\-\.]+|\@)/,
+    resource_ttl        => qr/$natural/,                                            # except zero
+    resource_type       => qr/(?:NS|A|AAAA|CNAME|DYNA|MX|SRV|TXT|PTR|NAPTR)/,       # not used from API 4
+    resource_data       => qr/.+/,                                                  # allow anything (TXT type needs it)
+    resource_data_A     => $ipv4_addr,
+    resource_data_AAAA  => $ipv6_addr,
+    resource_data_DYNA  => $service,
+    resource_data_NS    => qr/[a-zA-Z0-9\-]+/,
+    resource_data_CNAME => qr/[a-z\.]+/,
+    resource_data_MX    => qr/[a-z\.\ 0-9]+/,
+    resource_data_TXT   => qr/.+/,                                                  # all characters allow
+    resource_data_SRV   => qr/[0-9]+ [0-9]+ [0-9]+ .+/,                             # https://www.ietf.org/rfc/rfc2782
+    resource_data_PTR   => qr/[a-z\.]+/,
+    resource_data_NAPTR => qr/[0-9]+ [0-9]+\|[a-zA-Z]?\|[a-zA-Z0-9\+]*\|.*\|.+/,    # https://www.ietf.org/rfc/rfc2915
 
     # interfaces ( WARNING: length in characters < 16  )
-    'mac_addr'         => $mac_addr,
-    'interface'        => $interface,
-    'nic_interface'    => $nic_if,
-    'bond_interface'   => $bond_if,
-    'vlan_interface'   => $vlan_if,
-    'virt_interface'   => qr/(?:$bond_if|$nic_if)(?:\.$vlan_tag)?:$virtual_tag/,
-    'routed_interface' => qr/(?:$nic_if|$bond_if|$vlan_if)/,
-    'interface_type'   => qr/(?:nic|vlan|virtual|bond)/,
-    'vlan_tag'         => qr/$vlan_tag/,
-    'virtual_tag'      => qr/$virtual_tag/,
-    'bond_mode_num'    => qr/[0-6]/,
-    'bond_mode_short'  =>
+    mac_addr         => $mac_addr,
+    interface        => $interface,
+    nic_interface    => $nic_if,
+    bond_interface   => $bond_if,
+    vlan_interface   => $vlan_if,
+    virt_interface   => qr/(?:$bond_if|$nic_if)(?:\.$vlan_tag)?:$virtual_tag/,
+    routed_interface => qr/(?:$nic_if|$bond_if|$vlan_if)/,
+    interface_type   => qr/(?:nic|vlan|virtual|bond)/,
+    vlan_tag         => qr/$vlan_tag/,
+    virtual_tag      => qr/$virtual_tag/,
+    bond_mode_num    => qr/[0-6]/,
+    bond_mode_short  =>
       qr/(?:balance-rr|active-backup|balance-xor|broadcast|802.3ad|balance-tlb|balance-alb)/,    # not used from API 4
 
     # notifications
-    'notif_alert'  => qr/(?:backends|cluster|license|interface|package|certificate)/,
-    'notif_method' => qr/(?:email)/,
-    'notif_tls'    => $boolean,
-    'notif_action' => $enable,
-    'notif_time'   => $natural,                                                                  # this value can't be 0
+    notif_alert  => qr/(?:backends|cluster|license|interface|package|certificate)/,
+    notif_method => qr/(?:email)/,
+    notif_tls    => $boolean,
+    notif_action => $enable,
+    notif_time   => $natural,                                                                    # this value can't be 0
 
     # IPDS
     # blacklists
-    'day_of_month'         => qr{$dayofmonth},
-    'weekdays'             => qr{$weekdays},
-    'blacklists_name'      => qr{\w+},
-    'blacklists_source'    => qr{$blacklists_source},
-    'blacklists_source_id' => qr{(?:\d+|$blacklists_source(?:,$blacklists_source)*)},
+    day_of_month         => qr{$dayofmonth},
+    weekdays             => qr{$weekdays},
+    blacklists_name      => qr{\w+},
+    blacklists_source    => qr{$blacklists_source},
+    blacklists_source_id => qr{(?:\d+|$blacklists_source(?:,$blacklists_source)*)},
 
-    'blacklists_url'            => qr{.+},
-    'blacklists_hour'           => $hours,
-    'blacklists_minutes'        => $minutes,
-    'blacklists_period'         => $natural,
-    'blacklists_day'            => qr{(:?$dayofmonth|$weekdays)},
-    'blacklists_policy'         => qr{(:?allow|deny)},              # not used from API 4
-    'blacklists_type'           => qr{(:?local|remote)},            # not used from API 4
-    'blacklists_unit'           => qr{(:?hours|minutes)},           # not used from API 4
-    'blacklists_frequency'      => qr{(:?daily|weekly|monthly)},    # not used from API 4
-    'blacklists_frequency_type' => qr{(:?period|exact)},            # not used from API 4
+    blacklists_url            => qr{.+},
+    blacklists_hour           => $hours,
+    blacklists_minutes        => $minutes,
+    blacklists_period         => $natural,
+    blacklists_day            => qr{(:?$dayofmonth|$weekdays)},
+    blacklists_policy         => qr{(:?allow|deny)},              # not used from API 4
+    blacklists_type           => qr{(:?local|remote)},            # not used from API 4
+    blacklists_unit           => qr{(:?hours|minutes)},           # not used from API 4
+    blacklists_frequency      => qr{(:?daily|weekly|monthly)},    # not used from API 4
+    blacklists_frequency_type => qr{(:?period|exact)},            # not used from API 4
 
     # DoS
-    'dos_name'        => qr/[\w]+/,
-    'dos_rule'        => qr/(?:$dos_global|$dos_all|$dos_tcp)/,
-    'dos_rule_farm'   => qr/(?:$dos_all|$dos_tcp)/,
-    'dos_rule_global' => $dos_global,
-    'dos_rule_all'    => $dos_all,
-    'dos_rule_tcp'    => $dos_tcp,
-    'dos_time'        => $natural,
-    'dos_limit_conns' => $natural,
-    'dos_limit'       => $natural,
-    'dos_limit_burst' => $natural,
-    'dos_port'        => $port_range,
-    'dos_hits'        => $natural,
+    dos_name        => qr/[\w]+/,
+    dos_rule        => qr/(?:$dos_global|$dos_all|$dos_tcp)/,
+    dos_rule_farm   => qr/(?:$dos_all|$dos_tcp)/,
+    dos_rule_global => $dos_global,
+    dos_rule_all    => $dos_all,
+    dos_rule_tcp    => $dos_tcp,
+    dos_time        => $natural,
+    dos_limit_conns => $natural,
+    dos_limit       => $natural,
+    dos_limit_burst => $natural,
+    dos_port        => $port_range,
+    dos_hits        => $natural,
 
     # RBL
-    'rbl_name'          => qr/[\w]+/,
-    'rbl_domain'        => qr/[\w\.\-]+/,
-    'rbl_log_level'     => qr/[0-7]/,
-    'rbl_only_logging'  => $boolean,
-    'rbl_cache_size'    => $natural,
-    'rbl_cache_time'    => $natural,
-    'rbl_queue_size'    => $natural,
-    'rbl_thread_max'    => $natural,
-    'rbl_local_traffic' => $boolean,
-    'rbl_actions'       => $run_actions,    # not used from API 4
+    rbl_name          => qr/[\w]+/,
+    rbl_domain        => qr/[\w\.\-]+/,
+    rbl_log_level     => qr/[0-7]/,
+    rbl_only_logging  => $boolean,
+    rbl_cache_size    => $natural,
+    rbl_cache_time    => $natural,
+    rbl_queue_size    => $natural,
+    rbl_thread_max    => $natural,
+    rbl_local_traffic => $boolean,
+    rbl_actions       => $run_actions,    # not used from API 4
 
     # WAF
-    'http_code'      => qr/[0-9]{3}/,
-    'waf_set_name'   => qr/[\.\w-]+/,
-    'waf_rule_id'    => qr/\d+/,
-    'waf_chain_id'   => qr/\d+/,
-    'waf_severity'   => qr/[0-9]/,
-    'waf_phase'      => qr/(?:[1-5]|request|response|logging)/,
-    'waf_log'        => qr/(?:$boolean|)/,
-    'waf_audit_log'  => qr/(?:$boolean|)/,
-    'waf_skip'       => qr/[0-9]+/,
-    'waf_skip_after' => qr/\w+/,
-    'waf_set_status' => qr/(?:$boolean|detection)/,
-    'waf_file'       => qr/(?:[\s+\w-]+)/,
+    http_code      => qr/[0-9]{3}/,
+    waf_set_name   => qr/[\.\w-]+/,
+    waf_rule_id    => qr/\d+/,
+    waf_chain_id   => qr/\d+/,
+    waf_severity   => qr/[0-9]/,
+    waf_phase      => qr/(?:[1-5]|request|response|logging)/,
+    waf_log        => qr/(?:$boolean|)/,
+    waf_audit_log  => qr/(?:$boolean|)/,
+    waf_skip       => qr/[0-9]+/,
+    waf_skip_after => qr/\w+/,
+    waf_set_status => qr/(?:$boolean|detection)/,
+    waf_file       => qr/(?:[\s+\w-]+)/,
 
     # certificates filenames
-    'certificate_name'    => $cert_name,
-    'certificate'         => qr/$cert_name\.(?:pem|csr)/,
-    'cert_pem'            => qr/$cert_name\.pem/,
-    'cert_name'           => qr/[a-zA-Z0-9\-]+/,
-    'cert_csr'            => qr/\w[\w\.\-]*\.csr/,
-    'cert_dh2048'         => qr/\w[\w\.\-]*_dh2048\.pem/,
-    'le_certificate_name' => $cert_name,
-    'le_mail'             => $email,
+    certificate_name    => $cert_name,
+    certificate         => qr/$cert_name\.(?:pem|csr)/,
+    cert_pem            => qr/$cert_name\.pem/,
+    cert_name           => qr/[a-zA-Z0-9\-]+/,
+    cert_csr            => qr/\w[\w\.\-]*\.csr/,
+    cert_dh2048         => qr/\w[\w\.\-]*_dh2048\.pem/,
+    le_certificate_name => $cert_name,
+    le_mail             => $email,
 
     # IPS
-    'IPv4_addr' => qr/$ipv4_addr/,
-    'IPv4_mask' => qr/(?:$ipv4_addr|3[0-2]|[1-2][0-9]|[0-9])/,
+    IPv4_addr => qr/$ipv4_addr/,
+    IPv4_mask => qr/(?:$ipv4_addr|3[0-2]|[1-2][0-9]|[0-9])/,
 
-    'IPv6_addr' => qr/$ipv6_addr/,
-    'IPv6_mask' => $UNSIGNED7BITS,
+    IPv6_addr => qr/$ipv6_addr/,
+    IPv6_mask => $UNSIGNED7BITS,
 
-    'ip_addr'       => $ipv4v6,
-    'ip_mask'       => qr/(?:$ipv4_addr|$UNSIGNED7BITS)/,
-    'ip_addr_range' => qr/$ipv4_addr-$ipv4_addr/,
+    ip_addr       => $ipv4v6,
+    ip_mask       => qr/(?:$ipv4_addr|$UNSIGNED7BITS)/,
+    ip_addr_range => qr/$ipv4_addr-$ipv4_addr/,
 
     # farm guardian
-    'fg_name'    => qr/[\w-]+/,
-    'fg_type'    => qr/(?:http|https|l4xnat|gslb)/,    # not used from API 4
-    'fg_enabled' => $boolean,
-    'fg_log'     => $boolean,
-    'fg_time'    => qr/$natural/,                      # this value can't be 0
+    fg_name    => qr/[\w-]+/,
+    fg_type    => qr/(?:http|https|l4xnat|gslb)/,    # not used from API 4
+    fg_enabled => $boolean,
+    fg_log     => $boolean,
+    fg_time    => qr/$natural/,                      # this value can't be 0
 
     # RBAC
-    'user_name'     => qr/[a-z0-9][-a-z0-9_.]+/,
-    'rbac_password' => qr/(?=.*[0-9])(?=.*[a-zA-Z]).{8,512}/,
-    'group_name'    => qr/[\w-]+/,
-    'role_name'     => qr/[\w-]+/,
+    user_name     => qr/[a-z0-9][-a-z0-9_.]+/,
+    rbac_password => qr/(?=.*[0-9])(?=.*[a-zA-Z]).{8,512}/,
+    group_name    => qr/[\w-]+/,
+    role_name     => qr/[\w-]+/,
 
     # alias
-    'alias_id'        => qr/(?:$ipv4v6|$interface)/,
-    'alias_backend'   => qr/$ipv4v6/,
-    'alias_interface' => qr/$interface/,
-    'alias_name'      => qr/(?:$zone|[\w-]+)/,
-    'alias_type'      => qr/(?:backend|interface)/,
+    alias_id        => qr/(?:$ipv4v6|$interface)/,
+    alias_backend   => qr/$ipv4v6/,
+    alias_interface => qr/$interface/,
+    alias_name      => qr/(?:$zone|[\w-]+)/,
+    alias_type      => qr/(?:backend|interface)/,
 
     # routing
-    'route_rule_id'  => qr/$natural/,
-    'route_table_id' => qr/[\w\.\-]+/,
-    'route_entry_id' => qr/$natural/,
+    route_rule_id  => qr/$natural/,
+    route_table_id => qr/[\w\.\-]+/,
+    route_entry_id => qr/$natural/,
 
     # vpn
-    'vpn_name' => qr/[a-zA-Z][a-zA-Z0-9\-]*/,
-    'vpn_user' => qr/[a-zA-Z][a-zA-Z0-9\-]*/,
+    vpn_name => qr/[a-zA-Z][a-zA-Z0-9\-]*/,
+    vpn_user => qr/[a-zA-Z][a-zA-Z0-9\-]*/,
 
 );
+
+sub _get_api_version () {
+    return $ENV{API_VERSION} // "";
+}
 
 sub getAPIModel ($file_name) {
     require JSON;
     require Relianoid::API;
     require Relianoid::File;
 
-    my $api_version = &getApiVersion();
+    my $api_version = &_get_api_version();
     my $dir_name    = &getGlobalConfiguration("api_model_path") . "/v${api_version}/json";
     my $content     = getFile("${dir_name}/${file_name}");
 
@@ -372,16 +376,16 @@ sub getValidFormat ($format_name, $value = undef, %new_format_re) {
     #~ print "getValidFormat type:$format_name value:$value\n"; # DEBUG
     if (exists $format_re{$format_name}) {
         if (defined $value) {
-            #~ print "$format_re{ $format_name }\n"; # DEBUG
+            #~ print "$format_re{$format_name}\n"; # DEBUG
             if (ref($value) eq "ARRAY") {
-                return !grep { !/^$format_re{ $format_name }$/ } @{$value} > 0;
+                return !grep { !/^$format_re{$format_name}$/ } @{$value} > 0;
             }
             else {
-                return $value =~ /^$format_re{ $format_name }$/;
+                return $value =~ /^$format_re{$format_name}$/;
             }
         }
         else {
-            #~ print "$format_re{ $format_name }\n"; # DEBUG
+            #~ print "$format_re{$format_name}\n"; # DEBUG
             return $format_re{$format_name};
         }
     }
@@ -553,12 +557,12 @@ sub checkApiParams ($json_obj, $param_obj, $description) {
         my $r = ref $json_obj->{$param} // '';
         if (exists $param_obj->{$param}{ref}) {
             if ($r eq '') {
-                if ('none' !~ /$param_obj->{ $param }{ 'ref' }/) {
-                    return "The parameter '$param' expects a '$param_obj->{ $param }{ref}' reference as input";
+                if ('none' !~ /$param_obj->{$param}{ref}/) {
+                    return "The parameter '$param' expects a '$param_obj->{$param}{ref}' reference as input";
                 }
             }
-            elsif ($r !~ /^$param_obj->{ $param }{ 'ref' }$/i) {
-                return "The parameter '$param' expects a '$param_obj->{ $param }{ref}' reference as input";
+            elsif ($r !~ /^$param_obj->{$param}{ref}$/i) {
+                return "The parameter '$param' expects a '$param_obj->{$param}{ref}' reference as input";
             }
         }
         elsif ($r eq 'ARRAY' or $r eq 'HASH') {
@@ -595,7 +599,7 @@ sub checkApiParams ($json_obj, $param_obj, $description) {
         if (exists $param_obj->{$param}{length}) {
             my $data_length = length($json_obj->{$param});
             if ($data_length > $param_obj->{$param}{length}) {
-                return "The maximum length for '$param' is '$param_obj->{ $param }{ 'length' }'";
+                return "The maximum length for '$param' is '$param_obj->{$param}{length}'";
             }
         }
 
@@ -608,9 +612,9 @@ sub checkApiParams ($json_obj, $param_obj, $description) {
 
         # exceptions
         if (    (exists $param_obj->{$param}{exceptions})
-            and (grep { /^$json_obj->{ $param }$/ } @{ $param_obj->{$param}{exceptions} }))
+            and (grep { /^$json_obj->{$param}$/ } @{ $param_obj->{$param}{exceptions} }))
         {
-            return "The value '$json_obj->{ $param }' is a reserved word of the parameter '$param'.";
+            return "The value '$json_obj->{$param}' is a reserved word of the parameter '$param'.";
         }
 
         # regex
@@ -620,12 +624,12 @@ sub checkApiParams ($json_obj, $param_obj, $description) {
                 if (ref($json_obj->{$param}) eq "ARRAY") {
                     for my $value (@{ $json_obj->{$param} }) {
                         return "The value '$value' is not valid for the parameter '$param'."
-                          if (grep { !/^$param_obj->{ $param }{ 'regex' }$/ } $value);
+                          if (grep { !/^$param_obj->{$param}{regex}$/ } $value);
                     }
                 }
                 else {
-                    return "The value '$json_obj->{ $param }' is not valid for the parameter '$param'."
-                      if ($json_obj->{$param} !~ /^$param_obj->{ $param }{ 'regex' }$/);
+                    return "The value '$json_obj->{$param}' is not valid for the parameter '$param'."
+                      if ($json_obj->{$param} !~ /^$param_obj->{$param}{regex}$/);
                 }
             }
         }
@@ -637,12 +641,12 @@ sub checkApiParams ($json_obj, $param_obj, $description) {
                 if (ref($json_obj->{$param}) eq "ARRAY") {
                     for my $value (@{ $json_obj->{$param} }) {
                         return "The value '$value' is not valid for the parameter '$param'."
-                          if (grep { /^$param_obj->{ $param }{ 'regex' }$/ } $value);
+                          if (grep { /^$param_obj->{$param}{regex}$/ } $value);
                     }
                 }
                 else {
-                    return "The value '$json_obj->{ $param }' is not valid for the parameter '$param'."
-                      if ($json_obj->{$param} =~ /$param_obj->{ $param }{ 'negated_regex' }/);
+                    return "The value '$json_obj->{$param}' is not valid for the parameter '$param'."
+                      if ($json_obj->{$param} =~ /$param_obj->{$param}{negated_regex}/);
                 }
             }
         }
@@ -652,7 +656,7 @@ sub checkApiParams ($json_obj, $param_obj, $description) {
             and $param_obj->{$param}{is_regex} eq 'true')
         {
             if (defined $json_obj->{$param}) {
-                my $regex = eval { qr/$json_obj->{ $param }/ };
+                my $regex = eval { qr/$json_obj->{$param}/ };
                 return "The value of field $param is an invalid regex" if $@;
             }
         }

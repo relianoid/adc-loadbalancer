@@ -62,7 +62,7 @@ require Relianoid::API;
 require Relianoid::HTTP::Auth;
 
 # Verify authentication
-unless ((get_http_api_key() && &isApiKeyValid())
+unless ((get_http_api_key() && is_api_key_valid())
     or (exists $ENV{HTTP_COOKIE} && &validCGISession()))
 {
     &httpResponse({ code => 401, body => { message => 'Authorization required' } });

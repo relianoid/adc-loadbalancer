@@ -1,0 +1,14 @@
+[Unit]
+Description=RELIANOID Load Balancer nftlb service
+After=network.target
+
+[Service]
+Type=forking
+ExecStart=/usr/local/relianoid/bin/nftlbd start
+ExecStop=/usr/local/relianoid/bin/nftlbd stop
+ExecReload=/usr/local/relianoid/bin/nftlbd reload
+PIDFile=/run/nftlb.pid
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

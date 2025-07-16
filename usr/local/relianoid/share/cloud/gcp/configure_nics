@@ -1,0 +1,59 @@
+#!/bin/bash
+###############################################################################
+#
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
+#
+#    Copyright (C) 2014-today RELIANOID
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Affero General Public License as
+#    published by the Free Software Foundation, either version 3 of the
+#    License, or any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU Affero General Public License for more details.
+#
+#    You should have received a copy of the GNU Affero General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+for iface in $(ip -o link show | awk -F': ' '{print $2}'); do
+    # Skip loopback interface
+    if [[ "$iface" == "lo" ]]; then
+        continue
+    fi
+    OUTPUT_FILE="/usr/local/relianoid/config/if_${iface}_conf"
+    > "$OUTPUT_FILE"  # Clear the file before writing
+
+    lineaddr=$(ip -4 addr show "$iface" | grep "inet.*${iface}$")
+    if [[ "$lineaddr" == "" ]]; then
+        continue
+    fi
+    linelink=$(ip link show "$iface")
+    addr=$(echo $lineaddr | awk '/inet / {print $2}' | cut -d'/' -f1)
+    mask=$(echo $lineaddr | awk '/inet / {print $2}' | cut -d'/' -f2)
+    mac=$(echo $linelink | awk '/ether/ {print $17}')
+    status=$(echo $linelink | awk '/state/ {print $9}' | tr '[:upper:]' '[:lower:]')
+    dhcp=false
+    if grep -q "$iface" /var/lib/dhcp/dhclient.leases 2>/dev/null || \
+       (systemctl is-active systemd-networkd &>/dev/null && \
+	grep -q "DHCP=yes" "/etc/systemd/network/$iface.network" 2>/dev/null); then
+        dhcp=true
+    fi
+
+    echo "[$iface]" >> "$OUTPUT_FILE"
+    echo "addr=$addr" >> "$OUTPUT_FILE"
+    echo "dhcp=$dhcp" >> "$OUTPUT_FILE"
+    echo "gateway=" >> "$OUTPUT_FILE"
+    echo "mac=$mac" >> "$OUTPUT_FILE"
+    echo "mask=$mask" >> "$OUTPUT_FILE"
+    echo "name=$iface" >> "$OUTPUT_FILE"
+    echo "status=$status" >> "$OUTPUT_FILE"
+    echo "" >> "$OUTPUT_FILE"
+done
+
+exit 0

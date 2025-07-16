@@ -76,12 +76,13 @@ sub add_virtual_controller ($json_obj) {
     # validate PARENT
     # virtual interfaces require a configured parent interface
     my $parent_exist = &ifexist($json_obj->{parent});
-    my $if_parent =
-      &getInterfaceConfig($json_obj->{parent}, $json_obj->{ip_v});
+    my $if_parent    = &getInterfaceConfig($json_obj->{parent}, $json_obj->{ip_v});
+
     unless ($parent_exist eq "true" && $if_parent) {
         my $msg = "The parent interface $json_obj->{parent} doesn't exist.";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
+
     if ($if_parent->{type} eq 'nic' and not $if_parent->{addr}) {
         my $msg = "The parent interface $json_obj->{parent} must be configured.";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
@@ -121,10 +122,12 @@ sub add_virtual_controller ($json_obj) {
     $if_ref->{type}    = 'virtual';
     $if_ref->{dhcp}    = 'false';
 
-    unless (&validateGateway($if_parent->{addr}, $if_ref->{mask}, $if_ref->{addr})) {
-        my $msg = "IP Address $json_obj->{ip} must be same net than the parent interface.";
-        return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
-    }
+    # GCP and other services will create /32 parent and virtual interfaces
+    # so do not limit this if the system allows it
+    # unless (&validateGateway($if_parent->{addr}, $if_ref->{mask}, $if_ref->{addr})) {
+    #     my $msg = "IP Address $json_obj->{ip} must be same net than the parent interface.";
+    #     return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+    # }
 
     require Relianoid::Net::Core;
     require Relianoid::Net::Route;
@@ -339,26 +342,31 @@ sub actions_virtual_controller ($json_obj, $virtual) {
         }
 
         my $state = &upIf($if_ref, 'writeconf');
+
         if (!$state) {
             require Relianoid::Net::Route;
             &applyRoutes("local", $if_ref);
 
-            &eload(
-                module => 'Relianoid::EE::Net::Routing',
-                func   => 'applyRoutingDependIfaceVirt',
-                args   => [ 'add', $if_ref ]
-            ) if $eload;
+            if ($eload) {
+                &eload(
+                    module => 'Relianoid::EE::Net::Routing',
+                    func   => 'applyRoutingDependIfaceVirt',
+                    args   => [ 'add', $if_ref ]
+                );
+            }
         }
         else {
             my $msg = "The interface could not be set UP";
             return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
 
-        &eload(
-            module => 'Relianoid::EE::Cluster',
-            func   => 'runClusterRemoteManager',
-            args   => [ 'interface', 'start', $if_ref->{name} ],
-        ) if ($eload);
+        if ($eload) {
+            &eload(
+                module => 'Relianoid::EE::Cluster',
+                func   => 'runClusterRemoteManager',
+                args   => [ 'interface', 'start', $if_ref->{name} ],
+            );
+        }
     }
     elsif ($json_obj->{action} eq "down") {
         require Relianoid::Net::Core;
@@ -395,7 +403,6 @@ sub modify_virtual_controller ($json_obj, $virtual) {
     my $desc   = "Modify virtual interface";
     my $if_ref = &getInterfaceConfig($virtual);
     my $old_ip = $if_ref->{addr};
-    my @farms;
 
     my $params = &getAPIModel("virtual-modify.json");
 
@@ -409,9 +416,7 @@ sub modify_virtual_controller ($json_obj, $virtual) {
         return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
-    my @child = &getInterfaceChild($virtual);
-
-    if (@child) {
+    if (my @child = &getInterfaceChild($virtual)) {
         my $child_string = join(', ', @child);
         my $msg          = "Before modifying $virtual interface, disable the floating IPs: $child_string.";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
@@ -419,7 +424,7 @@ sub modify_virtual_controller ($json_obj, $virtual) {
 
     require Relianoid::Farm::Base;
 
-    @farms = &getFarmListByVip($if_ref->{addr});
+    my @farms = &getFarmListByVip($if_ref->{addr});
 
     # check if ip exists in other interface
     if ($json_obj->{ip}) {
@@ -434,8 +439,8 @@ sub modify_virtual_controller ($json_obj, $virtual) {
 
         if (@farms and $json_obj->{force} ne 'true') {
             my $str = join(', ', @farms);
-            my $msg =
-              "The IP is being used as farm vip in the farm(s): $str. If you are sure, repeat with parameter 'force'. All farms using this interface will be restarted.";
+            my $msg = "The IP is being used as farm vip in the farm(s): $str."    #
+              . " If you are sure, repeat with parameter 'force'. All farms using this interface will be restarted.";
             return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
     }

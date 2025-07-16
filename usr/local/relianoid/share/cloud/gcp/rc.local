@@ -1,0 +1,37 @@
+#!/bin/bash
+###############################################################################
+#
+#    RELIANOID Software License
+#    This file is part of the RELIANOID Load Balancer software package.
+#
+#    Copyright (C) 2014-today RELIANOID
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Affero General Public License as
+#    published by the Free Software Foundation, either version 3 of the
+#    License, or any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU Affero General Public License for more details.
+#
+#    You should have received a copy of the GNU Affero General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+if [ -f /etc/firstbootsetpw ]; then
+    # Get GCP VM Instance ID
+    passwd=$(curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/id)
+
+    if [ $? -eq 0 ] && [ -n "$passwd" ]; then
+        echo -e "${passwd}\n${passwd}" | sudo passwd root 2>/dev/null
+        rm -f /etc/firstbootsetpw
+    fi
+fi
+
+# initialize nics configuration
+/etc/network/if-up.d/configure_nics
+
+exit 0

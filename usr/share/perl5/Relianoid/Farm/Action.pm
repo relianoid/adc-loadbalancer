@@ -121,7 +121,7 @@ sub _runFarmStart ($farm_name, $writeconf = 0) {
         $status = &eload(
             module => 'Relianoid::EE::Farm::Eproxy::Action',
             func   => '_runEproxyFarmStart',
-            args   => [ { 'farm_name' => $farm_name, 'write' => $writeconf } ],
+            args   => [ { farm_name => $farm_name, write => $writeconf } ],
         );
     }
 
@@ -158,7 +158,7 @@ sub runFarmStart ($farm_name, $writeconf = 0) {
     return $status if ($status != 0);
 
     require Relianoid::FarmGuardian;
-    my $fg_status = &runFarmGuardianStart($farm_name, "");
+    my $fg_status = &runFarmGuardianStart($farm_name);
     &log_info("Farm guardian start status: $fg_status");
 
     if ($eload) {
@@ -191,13 +191,10 @@ Parameters:
     farm_name - Farm name
     writeconf - write this change in configuration status "writeconf" for true or omit it for false
 
-Returns:
+Returns: integer - errno
 
-    Integer - return 0 on success or different of 0 on failure
-
-NOTE:
-
-    Generic function
+- 0: success
+- !0: error
 
 =cut
 
@@ -281,7 +278,7 @@ sub _runFarmStop ($farm_name, $writeconf = 0) {
         $status = &eload(
             module => 'Relianoid::EE::Farm::Eproxy::Action',
             func   => '_runEproxyFarmStop',
-            args   => [ { 'farm_name' => $farm_name, 'write' => $writeconf } ],
+            args   => [ { farm_name => $farm_name, write => $writeconf } ],
         );
     }
 
@@ -385,9 +382,10 @@ sub runFarmDelete ($farm_name) {
         $status = &eload(
             module => 'Relianoid::EE::Farm::Eproxy::Factory',
             func   => 'runEproxyFarmDelete',
-            args   => [{ farm_name => $farm_name }],
+            args   => [ { farm_name => $farm_name } ],
         );
-    } else {
+    }
+    else {
         unlink glob("$configdir/$farm_name\_*\.cfg");
 
         if (!-f "$configdir/$farm_name\_*\.cfg") {
@@ -422,7 +420,7 @@ sub runFarmReload ($farm_name) {
     require Relianoid::Farm::Action;
 
     my $farm_type = &getFarmType($farm_name);
-    my $status = 0;
+    my $status    = 0;
 
     if ($farm_type eq "http" || $farm_type eq "https") {
         if (&getFarmRestartStatus($farm_name)) {
@@ -473,7 +471,7 @@ sub _runFarmReload ($farm) {
     if ($farm_type eq "http" || $farm_type eq "https") {
         require Relianoid::Farm::HTTP::Config;
         my $poundctl = &getGlobalConfiguration('poundctl');
-        my $socket    = &getHTTPFarmSocket($farm);
+        my $socket   = &getHTTPFarmSocket($farm);
 
         $err = &logAndRun("$poundctl -c $socket -R 0");
     }
@@ -481,7 +479,7 @@ sub _runFarmReload ($farm) {
         $err = &eload(
             module => 'Relianoid::EE::Farm::Eproxy::Action',
             func   => 'runEproxyFarmReload',
-            args   => [{ farm_name => $farm }],
+            args   => [ { farm_name => $farm } ],
         );
         require Relianoid::EE::Cluster;
         &runClusterRemoteManager('farm', 'reload', $farm);
@@ -565,11 +563,12 @@ NOTE:
 sub setFarmRestart ($farm_name) {
     # do nothing if the farm is not running
     require Relianoid::Farm::Base;
+
     return if &getFarmStatus($farm_name) ne 'up';
 
     require Relianoid::Lock;
-    my $lf = &getFarmRestartFile($farm_name);
-    my $fh = &openlock($lf, 'w');
+    my $farm_restart_file = &getFarmRestartFile($farm_name);
+    my $fh                = &openlock($farm_restart_file, 'w');
     close $fh;
 
     return;
@@ -596,8 +595,10 @@ NOTE:
 =cut
 
 sub setFarmNoRestart ($farm_name) {
-    my $lf = &getFarmRestartFile($farm_name);
-    unlink($lf) if -e $lf;
+    my $farm_restart_file = &getFarmRestartFile($farm_name);
+
+    unlink($farm_restart_file)
+      if -e $farm_restart_file;
 
     return;
 }
@@ -613,14 +614,15 @@ Parameters:
     farmname    - Farm name
     newfarmname - New farm name
 
-Returns:
+Returns: integer - errno
 
-    Integer - return 0 on success or -1 on failure
+- 0: success
+- !0: error
 
 =cut
 
 sub setNewFarmName ($farm_name, $new_farm_name) {
-    my $collector_rrd_dir   = &getGlobalConfiguration('collector_rrd_dir');
+    my $collector_rrd_dir = &getGlobalConfiguration('collector_rrd_dir');
 
     my $farm_type = &getFarmType($farm_name);
     my $output    = -1;
@@ -661,7 +663,7 @@ sub setNewFarmName ($farm_name, $new_farm_name) {
 
     # farmguardian renaming
     if ($output == 0) {
-        &log_info("restarting farmguardian", 'FG') if &debug();
+        &log_debug("restarting farmguardian", 'FG');
         &runFGFarmStart($farm_name);
     }
 

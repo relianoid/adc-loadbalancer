@@ -40,7 +40,7 @@ sub get_ntp_controller () {
 
     return &httpResponse({
         code => 200,
-        body => { description => $desc, params => { "server" => $ntp } }
+        body => { description => $desc, params => { server => $ntp } }
     });
 }
 

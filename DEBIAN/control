@@ -1,12 +1,12 @@
 Package: relianoid
-Version: 7.6.1
+Version: 7.7.0
 Maintainer: RELIANOID <admin@relianoid.com>
 Architecture: amd64
 Section: admin
 Priority: optional
 Description: RELIANOID Load Balancer Community Edition
  RELIANOID is a high performance load balancer with an easy configuration, usability and user-friendly web GUI for layer 4 and 7 networking management.
-Depends: nftables (>= 0.9.1), rrdtool, libnet-netmask-perl, libproc-daemon-perl, libnetwork-ipv4addr-perl, librrds-perl, libio-interface-perl, libdata-validate-ip-perl, libpcap0.8, ntpdate, iputils-arping, openssl, unzip, libev4, libjson-perl, libjson-xs-perl, libcgi-session-perl, libauthen-simple-perl, libauthen-simple-passwd-perl, conntrack, liburi-perl, libtimedate-perl, libconfig-tiny-perl, snmpd, libnet-ssleay-perl, libnetaddr-ip-perl, libcgi-simple-perl, libunix-syslog-perl, monitoring-plugins, monitoring-plugins-common, net-tools, cherokee, pound, libregexp-ipv6-perl, nftlb, curl, libcrypt-openssl-x509-perl, certbot, openssh-server, rsyslog, liblinux-inotify2-perl, rsync, cron, ucarp, relianoid-archive-keyring
+Depends: nftables (>= 0.9.1), rrdtool, libnet-netmask-perl, libproc-daemon-perl, libnetwork-ipv4addr-perl, librrds-perl, libio-interface-perl, libdata-validate-ip-perl, libpcap0.8, ntpdate, iputils-arping, openssl, unzip, libev4, libjson-perl, libjson-xs-perl, libcgi-session-perl, libauthen-simple-perl, libauthen-simple-passwd-perl, conntrack, liburi-perl, libtimedate-perl, libconfig-tiny-perl, snmpd, libnet-ssleay-perl, libnetaddr-ip-perl, libcgi-simple-perl, libunix-syslog-perl, monitoring-plugins, monitoring-plugins-common, net-tools, cherokee, pound, libregexp-ipv6-perl, nftlb, curl, libcrypt-openssl-x509-perl, certbot, openssh-server, rsyslog, liblinux-inotify2-perl, rsync, cron, ucarp, relianoid-archive-keyring, strongswan-charon, xl2tpd
 Provides: zevenet
 Replaces: zevenet
 Conflicts: zevenet

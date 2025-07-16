@@ -45,15 +45,16 @@ Parameters:
 
     file_name - string with the location of the file
 
-Returns:
+Returns: string | undef
 
-    string - Content of the file.
+- string - Content of the file.
+- undef  - Error opening the file.
 
 =cut
 
 sub getFile ($file_name) {
     unless (-f $file_name) {
-        &log_info("Could not find file '$file_name'");
+        &log_error("Could not find file '$file_name'");
         return;
     }
 
@@ -67,7 +68,7 @@ sub getFile ($file_name) {
         close $fh;
     }
     else {
-        &log_info("Could not open file '$file_name': $!");
+        &log_error("Could not open file '$file_name': $!");
         return;
     }
 
@@ -86,9 +87,7 @@ Parameters:
 
     content - content to write to the files
 
-Returns:
-
-    integer
+Returns: integer
 
     1 - success
     0 - failure
@@ -97,7 +96,7 @@ Returns:
 
 sub setFile ($path, $content) {
     unless (defined $content) {
-        &log_info("Trying to save undefined content");
+        &log_error("Trying to save undefined content");
         return 0;
     }
 
@@ -107,7 +106,7 @@ sub setFile ($path, $content) {
         close $fh;
     }
     else {
-        &log_info("Could not open file '$path': $!");
+        &log_error("Could not open file '$path': $!");
         return 0;
     }
 
@@ -157,9 +156,7 @@ Parameters:
 
     filename
 
-Returns:
-
-    integer
+Returns: integer
 
     0 - success
     1 - file already exists

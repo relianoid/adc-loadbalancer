@@ -49,9 +49,7 @@ Parameters:
 
     if_ref - Network interface hash reference.
 
-Returns:
-
-    integer - ip command return code.
+Returns: integer - errno if ip command.
 
 =cut
 
@@ -80,13 +78,7 @@ Parameters:
     if_ref - network interface hash reference.
     writeconf - true value to apply change in interface configuration file. Optional.
 
-Returns:
-
-    integer - return code of ip command.
-
-See Also:
-
-    <downIf>
+Returns: integer - errno of ip command.
 
 =cut
 
@@ -102,13 +94,15 @@ sub upIf ($if_ref, $writeconf = 0) {
 
     # not check virtual interfaces
     if ($if_ref->{type} ne "virtual") {
+        require Relianoid::File;
+
         #check if link is up after ip link up; checks /sys/class/net/$$if_ref{name}/operstate
-        my $cat       = &getGlobalConfiguration('cat_bin');
-        my $status_if = &logAndGet("$cat /sys/class/net/$$if_ref{name}/operstate");
+        my $status_if = &getFile("/sys/class/net/$$if_ref{name}/operstate") // '';
+        chomp($status_if);
 
         &log_info("Link status for $$if_ref{name} is $status_if", "NETWORK");
 
-        if ($status_if =~ /down/) {
+        if ($status_if eq 'down') {
             use Time::HiRes qw(usleep);
 
             &log_info("Waiting link up for $$if_ref{name}", "NETWORK");
@@ -116,10 +110,11 @@ sub upIf ($if_ref, $writeconf = 0) {
             my $max_retry = 50;
             my $retry     = 0;
 
-            while ($status_if =~ /down/ and $retry < $max_retry) {
-                $status_if = &logAndGet("$cat /sys/class/net/$$if_ref{name}/operstate");
+            while ($status_if eq 'down' and $retry < $max_retry) {
+                $status_if = &getFile("/sys/class/net/$$if_ref{name}/operstate") // '';
+                chomp($status_if);
 
-                if ($status_if !~ /down/) {
+                if ($status_if eq 'up') {
                     &log_info("Link up for $$if_ref{name}", "NETWORK");
                     last;
                 }
@@ -128,10 +123,10 @@ sub upIf ($if_ref, $writeconf = 0) {
                 usleep 100_000;
             }
 
-            if ($status_if =~ /down/) {
+            if ($status_if eq 'down') {
                 $status = 1;
                 &log_warn("No link up for $$if_ref{name}", "NETWORK");
-                &downIf({ name => $if_ref->{name} }, '');
+                &downIf({ name => $if_ref->{name} });
             }
         }
     }
@@ -149,9 +144,9 @@ sub upIf ($if_ref, $writeconf = 0) {
 
     if (not $status and $eload and $if_ref->{dhcp} eq 'true') {
         $status = &eload(
-            'module' => 'Relianoid::EE::Net::DHCP',
-            'func'   => 'startDHCP',
-            'args'   => [ $if_ref->{name} ],
+            module => 'Relianoid::EE::Net::DHCP',
+            func   => 'startDHCP',
+            args   => [ $if_ref->{name} ],
         );
     }
 
@@ -171,11 +166,9 @@ Bring down network interface in system and optionally in configuration file
 Parameters:
 
     if_ref - network interface hash reference.
-
-Returns:
-
-    integer - return code of ip command.
     writeconf - true value to apply change in interface configuration file. Optional.
+
+Returns: integer - errno of ip command.
 
 =cut
 
@@ -190,9 +183,9 @@ sub downIf ($if_ref, $writeconf = 0) {
 
     if ($eload and $if_ref->{dhcp} and $if_ref->{dhcp} eq 'true') {
         $status = &eload(
-            'module' => 'Relianoid::EE::Net::DHCP',
-            'func'   => 'stopDHCP',
-            'args'   => [ $if_ref->{name} ],
+            module => 'Relianoid::EE::Net::DHCP',
+            func   => 'stopDHCP',
+            args   => [ $if_ref->{name} ],
         );
     }
 
@@ -253,19 +246,11 @@ Parameters:
 
     if_ref - network interface hash reference.
 
-Returns:
-
-    integer - return code of ip command.
+Returns: integer - errno of ip command.
 
 Bugs:
 
     Remove VLAN interface and bring it up.
-
-See Also:
-
-    <downIf>
-
-    Only used in: relianoid
 
 =cut
 
@@ -339,9 +324,7 @@ Parameters:
 
     if_ref - network interface hash reference.
 
-Returns:
-
-    integer - return code ofip command.
+Returns: integer - errno of ip command.
 
 =cut
 
@@ -375,7 +358,7 @@ sub delIf ($if_ref) {
         else {
             my $is_dhcp = defined $if_ref->{dhcp} && $if_ref->{dhcp} eq 'true';
 
-            if (! $is_dhcp && $$if_ref{addr}) {
+            if (!$is_dhcp && $$if_ref{addr}) {
                 # If $if is a Interface, delete that IP
                 my $ip_cmd = "$ip_bin addr del $$if_ref{addr}/$$if_ref{mask} dev $$if_ref{name}";
 
@@ -448,17 +431,11 @@ Deletes an IP address from an interface
 
 Parameters:
 
-    if - Name of interface.
-    ip - IP address.
-    netmask - Network mask.
+    if      - string - Name of interface.
+    ip      - string - IP address.
+    netmask - string - Network mask.
 
-Returns:
-
-    integer - ip command return code.
-
-See Also:
-
-    <addIp>
+Returns: integer - errno of ip command.
 
 =cut
 
@@ -486,19 +463,16 @@ sub delIp ($if, $ip, $netmask) {
 
 =head1 isIp
 
-It checks if an IP is already applied in the dev
+It checks if an IP is already applied to the network interface.
 
 Parameters:
 
     if_ref - network interface hash reference.
 
-Returns:
+Returns: integer
 
-    integer - 0 if the IP is not applied or 1 if it is
-
-See Also:
-
-    <delIp>, <setIfacesUp>
+- 0: if the IP is not configured on the interface.
+- 1: if the IP is configured on the interface.
 
 =cut
 
@@ -527,13 +501,7 @@ Parameters:
 
     if_ref - network interface hash reference.
 
-Returns:
-
-    integer - ip command return code.
-
-See Also:
-
-    <delIp>, <setIfacesUp>
+Returns: integer - errno of ip command.
 
 =cut
 
@@ -594,9 +562,15 @@ sub addIp ($if_ref) {
                 func   => 'getClusterNodeStatus',
                 args   => [],
             );
+            my $cl_maintenance = &eload(
+                module => 'Relianoid::EE::Cluster',
+                func   => 'getClMaintenanceManual',
+                args   => [],
+            );
 
             if (   &getGlobalConfiguration('arp_announce') eq "true"
-                && $cl_status ne "backup")
+                && ($cl_status and $cl_status eq "master")
+                && $cl_maintenance ne "true")
             {
                 require Relianoid::Net::Util;
 
@@ -620,13 +594,11 @@ it only applies if global param $duplicated_net is true
 
 Parameters:
 
-    iface:  Main interface, nic, bond o vlan
-    IP:     main IP or VIP
-    action: add / del
+    iface  - string - Main interface, nic, bond o vlan
+    ip     - string - main IP or VIP
+    action - string - add / del
 
-Returns:
-
-    0 if ok, 1 if failed
+Returns: integer - errno. 0 if ok, 1 if failed
 
 =cut
 
@@ -652,16 +624,18 @@ sub setRuleIPtoTable ($iface, $ip, $action) {
 
 =head1 execIpCmd
 
-    This function replaces to logAndRun to exec ip commands. It does not print
-    error message if the command already was applied or removed.
+This function replaces to logAndRun to exec ip commands. It does not print
+error message if the command already was applied or removed.
 
 Parameters:
 
-    Ip Command: command line with the ip command
+    command - string - command line with the ip command
 
-Returns:
+Returns: integer - errno.
 
-    Integer - It returns 0 on success, -1 if the command is already applied or 1 if there was an error
+- 0: on success.
+- -1: the command is already applied.
+- 1: there was an error.
 
 =cut
 

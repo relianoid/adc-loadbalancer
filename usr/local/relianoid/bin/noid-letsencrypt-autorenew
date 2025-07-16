@@ -212,14 +212,19 @@ if (not defined $error_ref) {
     if ($error) {
         &log_error("Error in $action Farm '$farm_name'", "letsencrypt");
     }
+
     &runLetsencryptLocalWebserverStop();
     &log_info("$action Farm '$farm_name' was succesfully", "letsencrypt");
+
     close $lock_le_renew_fh;
+    unlink $lock_le_renew;
+
     exit 1;
 }
 elsif (defined $error_ref and $error_ref->{code}) {
     &log_error($error_ref->{desc}, "letsencrypt");
     close $lock_le_renew_fh;
+    unlink $lock_le_renew;
     exit $error_ref->{code};
 }
 
@@ -241,21 +246,21 @@ if (defined $restart) {
         # restart farm used and up
         if (&getFarmStatus($farm) ne 'down') {
             &log_info("Restarting farm '$farm' using certificate '$cert_name'.", "letsencrypt");
-            $error = &runFarmStop($farm, "");
+            $error = &runFarmStop($farm);
             if ($error) {
                 &log_info("Error Stopping farm '$farm', trying again", "letsencrypt");
                 sleep $retry_to;
-                $error = &runFarmStop($farm, "");
+                $error = &runFarmStop($farm);
                 if ($error) {
                     push @farms_restarted_error, $farm;
                     next;
                 }
             }
-            $error = &runFarmStart($farm, "");
+            $error = &runFarmStart($farm);
             if ($error) {
                 &log_info("Error Starting farm '$farm', trying again", "letsencrypt");
                 sleep $retry_to;
-                $error = &runFarmStart($farm, "");
+                $error = &runFarmStart($farm);
                 if ($error) {
                     push @farms_restarted_error, $farm;
                     next;

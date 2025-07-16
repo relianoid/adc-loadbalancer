@@ -59,3 +59,17 @@ close @fh;
 	'
 fi
 
+# verify that the ssl cert configured in cherokee really exists
+CERT_PATH="/usr/local/relianoid/config/certificates"
+CERT_FILE=`grep -r "vserver.*ssl_certificate_file = " $http_conf | awk -F' ' '{ print $3 }'`
+if [ ! -f "$CERT_FILE" ]; then
+	CERT_NAME=`basename $CERT_FILE`
+	CERT_OFFICIAL_FILE="$CERT_PATH/$CERT_NAME"
+	if [ -f "$CERT_OFFICIAL_FILE" ]; then
+		cp "$CERT_OFFICIAL_FILE" "/usr/local/relianoid/app/cherokee/etc/cherokee/$CERT_NAME"
+		sed -i "s/vserver.*ssl_certificate_file .*/vserver\!1\!ssl_certificate_file = \/usr\/local\/relianoid\/app\/cherokee\/etc\/cherokee\/$CERT_NAME/g" $http_conf
+		sed -i "s/vserver.*ssl_certificate_key_file .*/vserver\!1\!ssl_certificate_key_file = \/usr\/local\/relianoid\/app\/cherokee\/etc\/cherokee\/$CERT_NAME/g" $http_conf
+	else
+		echo "Cert file missing, cannot be found: $CERT_FILE"
+	fi
+fi

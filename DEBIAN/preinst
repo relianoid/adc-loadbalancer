@@ -62,8 +62,4 @@ if (-f "${old_cluster_status}") {
 }
 ### Zevenet to Relianoid
 
-# Create the new GUI system group
-system "groupadd -f webgui";
-system "usermod -a -G webgui root";
-
 exit 0;

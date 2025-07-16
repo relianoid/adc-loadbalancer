@@ -352,19 +352,24 @@ if ($PATH_INFO =~ qr{^/system/backup}) {
     GET qr{^/system/backup$} => \&list_backups_controller;      #  GET list backups
     POST qr{^/system/backup$} => \&create_backup_controller;    #  POST create backups
 
-    my $backup_re = &getValidFormat('backup');
-    GET qr{^/system/backup/($backup_re)$} => \&download_backup_controller;          #  GET download backups
-    PUT qr{^/system/backup/($backup_re)$} => \&upload_backup_controller;            #  PUT  upload backups
-    DELETE qr{^/system/backup/($backup_re)$} => \&delete_backup_controller;         #  DELETE  backups
-    POST qr{^/system/backup/($backup_re)/actions$} => \&restore_backup_controller;    #  POST  restore backups
+    GET qr{^/system/backup/(.+)$} => \&download_backup_controller;            #  GET download backups
+    PUT qr{^/system/backup/(.+)$} => \&upload_backup_controller;              #  PUT  upload backups
+    DELETE qr{^/system/backup/(.+)$} => \&delete_backup_controller;           #  DELETE  backups
+    POST qr{^/system/backup/(.+)/actions$} => \&restore_backup_controller;    #  POST  restore backups
 }
 
-if ($PATH_INFO =~ qr{^/system/(?:version|info|license|supportsave|language|packages)}) {
+if ($PATH_INFO =~ qr{^/system/(?:version|info|license|support|supportsave|language|packages)}) {
     require Relianoid::HTTP::Controllers::API::System::Info;
 
     GET qr{^/system/version$}     => \&get_version_controller;
     GET qr{^/system/info$}        => \&get_system_info_controller;
-    GET qr{^/system/supportsave$} => \&get_supportsave_controller;
+    GET qr{^/system/support$}     => \&get_support_file_controller;
+    GET qr{^/system/supportsave$} => \&get_support_file_controller;
+    # Using a non-capturing group as support(?:save)? to avoid repeating the 
+    # call to get_support_file_controller will send a count of matches to 
+    # get_support_file_controller, but this function accepts no arguments.
+    # This repetition can be removed when the compatibility with
+    # /system/supportsave is droped.
 
     my $license_re = &getValidFormat('license_format');
     GET qr{^/system/license/($license_re)$} => \&get_license_controller;
@@ -398,6 +403,47 @@ if ($PATH_INFO =~ qr{^/farms/$farm_re/(?:addheader|headremove|addresponseheader|
     POST qr{^/farms/($farm_re)/removeresponseheader$} => \&add_delResHeader_controller;
     PUT qr{^/farms/($farm_re)/removeresponseheader/(\d+)$} => \&modify_delResHeader_controller;
     DELETE qr{^/farms/($farm_re)/removeresponseheader/(\d+)$} => \&del_delResHeader_controller;
+}
+
+if ($ENV{PATH_INFO} =~ qr{^/vpns}) {
+    require Relianoid::HTTP::Controllers::API::VPN::Core;
+    my $vpn_re  = &getValidFormat('vpn_name');
+    my $user_re = &getValidFormat('vpn_user');
+
+    GET qr{^/vpns$},                 \&list_vpn_controller;
+    GET qr{^/vpns/modules/summary$}, \&list_vpn_bymodule_controller;
+
+    POST qr{^/vpns$}, \&add_vpn_controller;
+    GET qr{^/vpns/($vpn_re)$}, \&get_vpn_controller;
+    DELETE qr{^/vpns/($vpn_re)$}, \&delete_vpn_controller;
+    PUT qr{^/vpns/($vpn_re)$}, \&modify_vpn_controller;
+    POST qr{^/vpns/($vpn_re)/actions$}, \&actions_vpn_controller;
+
+    if ($ENV{PATH_INFO} =~ qr{^/vpns/($vpn_re)/users}) {
+        require Relianoid::HTTP::Controllers::API::VPN::User;
+
+        POST qr{^/vpns/($vpn_re)/users$}, \&add_vpn_user_controller;
+        DELETE qr{^/vpns/($vpn_re)/users/($user_re)$}, \&delete_vpn_user_controller;
+        PUT qr{^/vpns/($vpn_re)/users/($user_re)$}, \&modify_vpn_user_controller;
+    }
+
+    if ($ENV{PATH_INFO} =~ qr{^/vpns/modules/(zss|site_to_site)$}) {
+        require Relianoid::HTTP::Controllers::API::VPN::SiteToSite;
+
+        GET qr{^/vpns/modules/(zss|site_to_site)$}, \&list_vpn_site_to_site_controller;
+    }
+
+    if ($ENV{PATH_INFO} =~ qr{^/vpns/modules/(ztn|tunnel)$}) {
+        require Relianoid::HTTP::Controllers::API::VPN::Tunnel;
+
+        GET qr{^/vpns/modules/(ztn|tunnel)$}, \&list_vpn_tunnel_controller;
+    }
+
+    # if ($ENV{PATH_INFO} =~ qr{^/vpns/modules/(zrs|remote_access)$}) {
+    #     require Relianoid::HTTP::Controllers::API::VPN::RemoteAccess;
+
+    #     GET qr{^/vpns/modules/(zrs|remote_access)$}, \&list_vpn_remote_site_controller;
+    # }
 }
 
 ##### Load modules dynamically #######################################

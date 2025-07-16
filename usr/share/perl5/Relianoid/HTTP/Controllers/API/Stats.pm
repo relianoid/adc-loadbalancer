@@ -49,13 +49,15 @@ sub _get_all_farm_stats_controller () {
         my $name = &getFarmName($file);
         my $type = &getFarmType($name);
 
-        if ($type eq 'eproxy' && $eload) {
-            my $farm_stats = &eload(
-                module => 'Relianoid::EE::Farm::Eproxy::Stats',
-                func   => 'getEproxyFarmStats',
-                args   => [ { 'farm_name' => $name } ],
-            );
-            push(@farms, $farm_stats);
+        if ($type eq 'eproxy') {
+            if ($eload) {
+                my $farm_stats = &eload(
+                    module => 'Relianoid::EE::Farm::Eproxy::Stats',
+                    func   => 'getEproxyFarmStats',
+                    args   => [ { farm_name => $name } ],
+                );
+                push(@farms, $farm_stats);
+            }
         }
         else {
             my $status      = &getFarmVipStatus($name);
@@ -75,14 +77,14 @@ sub _get_all_farm_stats_controller () {
 
                 my $netstat;
                 $netstat = &getConntrack('', $vip, '', '', '')
-                if $type !~ /^https?$/;
+                  if $type !~ /^https?$/;
 
                 $pending     = &getFarmSYNConns($name, $netstat);
                 $established = &getFarmEstConns($name, $netstat);
             }
 
             push @farms,
-            {
+              {
                 farmname    => $name,
                 profile     => $type,
                 status      => $status,
@@ -90,7 +92,7 @@ sub _get_all_farm_stats_controller () {
                 vport       => $port,
                 established => $established,
                 pending     => $pending,
-            };
+              };
         }
     }
 
@@ -124,7 +126,7 @@ sub get_farm_stats_controller ($farmname, $servicename = undef) {
     my $type = &getFarmType($farmname);
 
     if (defined $servicename
-        && ($type ne 'http' && $type ne 'https' && $type ne 'gslb'))
+        && ($type ne 'http' && $type ne 'https' && $type ne 'gslb' && $type ne 'eproxy'))
     {
         my $msg = "The $type farm profile does not support services.";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
@@ -240,14 +242,14 @@ sub get_farm_stats_controller ($farmname, $servicename = undef) {
         my $backend_stats = &eload(
             module => 'Relianoid::EE::Farm::Eproxy::Stats',
             func   => 'getEproxyFarmBackendsStats',
-            args   => [{ farm_name => $farmname, service_name => $servicename}],
+            args   => [ { farm_name => $farmname, service_name => $servicename } ],
         );
 
         my $body = {
-            description    => $desc,
-            backends       => $backend_stats,
-#            sessions       => $stats->{sessions},
-#            total_sessions => $#{ $stats->{sessions} } + 1,
+            description => $desc,
+            backends    => $backend_stats,
+            #            sessions       => $stats->{sessions},
+            #            total_sessions => $#{ $stats->{sessions} } + 1,
         };
         return &httpResponse({ code => 200, body => $body });
     }
@@ -277,8 +279,8 @@ sub get_stats_controller () {
     my @data_cpu  = &getCPU();
 
     my $out = {
-        'hostname' => &getHostname(),
-        'date'     => &getDate(),
+        hostname => &getHostname(),
+        date     => &getDate(),
     };
 
     for my $x (0 .. @data_mem - 1) {

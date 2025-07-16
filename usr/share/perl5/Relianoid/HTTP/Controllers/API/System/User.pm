@@ -46,15 +46,12 @@ sub get_system_user_controller () {
     if ('root' eq $user) {
         require Relianoid::API;
 
-        my $api_status = &getAPI("status");
+        my $api_status = &is_api_enabled() ? "true" : "false";
         my $params     = {
             user             => $user,
             api_permissions  => $api_status,
             zapi_permissions => $api_status,
-            service          => 'local'
-
-            # it is configured if the status is up
-            # 'api_key'	=> &getAPI( "api_key" ),
+            service          => 'local',
         };
 
         return &httpResponse({
@@ -62,7 +59,6 @@ sub get_system_user_controller () {
             body => { description => $desc, params => $params }
         });
     }
-
     elsif ($eload) {
         my $params = &eload(
             module => 'Relianoid::EE::HTTP::Controllers::API::RBAC::User',
@@ -102,17 +98,18 @@ sub set_system_user_controller ($json_obj) {
             my $msg = "The parameter password is required.";
             return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
-
         elsif ($json_obj->{newpassword} eq $json_obj->{password}) {
             my $msg = "The new password must be different to the current password.";
             return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
+
         if ($eload) {
             my $local_user = &eload(
                 module => 'Relianoid::EE::RBAC::User::Core',
                 func   => 'getRBACUserLocal',
                 args   => [$user],
             );
+
             if (!$local_user) {
                 my $msg = "The $user User is not valid to change password.";
                 return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
@@ -143,7 +140,7 @@ sub set_system_user_controller ($json_obj) {
             }
         }
 
-        # modify api_key. change this parameter before than API permissions
+        # modify api_key. change this parameter before changing API permissions
         if (exists $json_obj->{api_key}) {
             if ($eload) {
                 my $api_user = &eload(
@@ -157,27 +154,27 @@ sub set_system_user_controller ($json_obj) {
                     return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
                 }
             }
-            &setAPI('key', $json_obj->{api_key});
+
+            &set_api_key($json_obj->{api_key});
         }
 
         # modify API permissions
         my $json_api_permissions = $json_obj->{api_permissions} // $json_obj->{zapi_permissions};
 
         if (defined $json_api_permissions) {
-            if ($json_api_permissions eq 'true' && !&getAPI('api_key')) {
+            if ($json_api_permissions eq 'true' && !&get_api_key()) {
                 my $msg = "It is necessary a api_key to enable the API permissions.";
                 return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
             }
 
-            if ($json_api_permissions eq 'true' && &getAPI("status") eq 'false') {
-                &setAPI("enable");
+            if ($json_api_permissions eq 'true' && !is_api_enabled()) {
+                &enable_api();
             }
-            elsif ($json_api_permissions eq 'false' && &getAPI("status") eq 'true') {
-                &setAPI("disable");
+            elsif ($json_api_permissions eq 'false' && is_api_enabled()) {
+                &disable_api();
             }
         }
     }
-
     elsif ($eload) {
         $error = &eload(
             module => 'Relianoid::EE::HTTP::Controllers::API::RBAC::User',
@@ -185,7 +182,6 @@ sub set_system_user_controller ($json_obj) {
             args   => [$json_obj],
         );
     }
-
     else {
         my $msg = "The user is not found";
         return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });

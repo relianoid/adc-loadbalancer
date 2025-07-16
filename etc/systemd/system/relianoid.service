@@ -1,13 +1,13 @@
 [Unit]
-Description=RELIANOID Load Balancer
-
-[Install]
-WantedBy=multi-user.target
+Description=RELIANOID ADC Load Balancer
 
 [Service]
 Type=oneshot
-ExecStart=/etc/init.d/relianoid start
-ExecStop=/etc/init.d/relianoid stop
-ExecReload=/etc/init.d/relianoid reload
+ExecStart=sh -c '/usr/local/relianoid/bin/relianoid start'
+ExecStop=sh -c '/usr/local/relianoid/bin/relianoid stop'
+ExecReload=sh -c '/usr/local/relianoid/bin/relianoid start'
 RemainAfterExit=true
 StandardOutput=journal
+
+[Install]
+WantedBy=multi-user.target

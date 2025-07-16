@@ -26,16 +26,11 @@ load_global_conf() {
 	local GLOBALCONF="/usr/local/relianoid/config/global.conf"
 
 	if [ -f "$GLOBALCONF" ]; then
-
 		# remove the characters '$'
 		# remove spaces between variable and value in the assignments
 		sed -e 's/^\$//' -e 's/\s*=\s*/=/' $GLOBALCONF > $TMP_CONF
 
-		if [ -n "$BASH_VARIABLE" ]; then
-			source $TMP_CONF
-		else
-			. $TMP_CONF
-		fi
+		. $TMP_CONF
 		rm $TMP_CONF
 	fi
 }

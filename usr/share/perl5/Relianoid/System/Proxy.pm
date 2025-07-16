@@ -44,8 +44,8 @@ Parameters: None
 Returns: hash reference
 
     {
-        "http_proxy" => "https://10.10.21.13:8080",
-        "https_proxy" => "https://10.10.21.12:8080",
+        http_proxy  => "https://10.10.21.13:8080",
+        https_proxy => "https://10.10.21.12:8080",
     }
 
 =cut
@@ -55,8 +55,8 @@ sub getProxy () {
     my $https_proxy = &getGlobalConfiguration('https_proxy') // '';
 
     return {
-        'http_proxy'  => $http_proxy,
-        'https_proxy' => $https_proxy,
+        http_proxy  => $http_proxy,
+        https_proxy => $https_proxy,
     };
 }
 
@@ -71,8 +71,8 @@ Parameters: hash reference
 proxy structure
 
     {
-        "http_proxy" => "https://10.10.21.13:8080",
-        "https_proxy" => "https://10.10.21.12:8080",
+        http_proxy  => "https://10.10.21.13:8080",
+        https_proxy => "https://10.10.21.12:8080",
     }
 
 Returns: integer
@@ -89,7 +89,7 @@ sub setProxy ($proxy_conf) {
         next if not exists $proxy_conf->{$key};
 
         if ($error = &setGlobalConfiguration($key, $proxy_conf->{$key})) {
-            &log_error("Error setting '$key' with the value '$proxy_conf->{ $key }'", "System");
+            &log_error("Error setting '$key' with the value '$proxy_conf->{$key}'", "System");
         }
     }
 

@@ -374,16 +374,16 @@ sub modify_http_farm ($json_obj, $farmname) {
         # Disable security protocol
         # API parameter => l7 proxy parameter
         my %ssl_proto_hash = (
-            "disable_sslv2"   => "SSLv2",
-            "disable_sslv3"   => "SSLv3",
-            "disable_tlsv1"   => "TLSv1",
-            "disable_tlsv1_1" => "TLSv1_1",
-            "disable_tlsv1_2" => "TLSv1_2",
+            disable_sslv2   => "SSLv2",
+            disable_sslv3   => "SSLv3",
+            disable_tlsv1   => "TLSv1",
+            disable_tlsv1_1 => "TLSv1_1",
+            disable_tlsv1_2 => "TLSv1_2",
         );
 
         my %bool_to_int = (
-            "false" => 0,
-            "true"  => 1,
+            false => 0,
+            true  => 1,
         );
 
         my $action;
@@ -427,9 +427,9 @@ sub modify_http_farm ($json_obj, $farmname) {
     require Relianoid::HTTP::Controllers::API::Farm::Output::HTTP;
 
     #~ my $farm_upd = &getFarmStruct( $farmname );
-    #~ for my $key ( keys %{ $json_obj } )
+    #~ for my $key ( keys %{$json_obj} )
     #~ {
-    #~ $json_obj->{ $key } = $farm_upd->{ $key };
+    #~ $json_obj->{$key} = $farm_upd->{$key};
     #~ }
 
     my $out_obj = &getHTTPOutFarm($farmname);

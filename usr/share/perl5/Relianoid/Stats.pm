@@ -234,9 +234,9 @@ Returns:
 
     @data = (
         {
-            'in' => '46.12',
-            'interface' => 'eth0',
-            'out' => '63.04'
+            in        => '46.12',
+            interface => 'eth0',
+            out       => '63.04'
         },
         ...
     );
@@ -247,7 +247,7 @@ sub getNetworkStats ($format = "") {
     my $netinfo_filename = '/proc/net/dev';
 
     unless (-f $netinfo_filename) {
-        print "$0: Error: File $netinfo_filename not exist ...\n";
+        print "$0: Error: File $netinfo_filename not found.\n";
         exit 1;
     }
 
@@ -279,30 +279,30 @@ sub getNetworkStats ($format = "") {
 
     my $i = -1;
 
+    my @skip_interfaces = ();
+    push @skip_interfaces, qw(gre0 gretap0 erspan0);    # fallback devices from ip_gre module
+    push @skip_interfaces, qw(ip6gre0 ip6tnl0);         # fallback devices from ip6_gre module
+    push @skip_interfaces, qw(sit0);                    # fallback devices from sit module
+    push @skip_interfaces, qw(cl_maintenance);          # cluster interface
+    push @skip_interfaces, qw(lo);                      # loopback interface
+
     for my $line (@lines) {
-        unless ($line =~ /\:/ && $line !~ /^\s*lo\:/) {
+        unless ($line =~ /:/) {
+            next;
+        }
+
+        my @iface = split(":", $line);
+        my $if    = $iface[0];
+        $if =~ s/ //g;
+
+        # ignore skipped interfaces
+        if (grep { $if eq $_ } @skip_interfaces) {
             next;
         }
 
         $i++;
-        my @iface = split(":", $line);
-        my $if    = $iface[0];
-        $if =~ s/\ //g;
 
-        # not show cluster maintenance interface
-        $i = $i - 1 if $if eq 'cl_maintenance';
-        next        if $if eq 'cl_maintenance';
-
-        # ignore fallback device from ip_gre module
-        ($i-- && next) if $if =~ /^gre0$|^gretap0$|^erspan0$/;
-
-        # ignore fallback device from ip6_gre module
-        ($i-- && next) if $if =~ /^ip6gre0$|^ip6tnl0$/;
-
-        # ignore fallback device from sit module
-        ($i-- && next) if $if =~ /^sit0$/;
-
-        if ($line =~ /:\ /) {
+        if ($line =~ /: /) {
             ($in, $out) = (split /\s+/, $iface[1])[ 1, 9 ];
         }
         else {
@@ -320,13 +320,15 @@ sub getNetworkStats ($format = "") {
         push @interface,    $if;
         push @interfacein,  $in;
         push @interfaceout, $out;
-        push @outHash, { 'interface' => $if, 'in' => $in, 'out' => $out };
+        push @outHash, { interface => $if, in => $in, out => $out };
 
         $outHash[-1]->{alias} = $alias->{$if} if $eload;
     }
 
     for (my $j = 0 ; $j <= $i ; $j++) {
-        push @data, [ $interface[$j] . ' in', $interfacein[$j] ], [ $interface[$j] . ' out', $interfaceout[$j] ];
+        my $label_in  = $interface[$j] . ' in';
+        my $label_out = $interface[$j] . ' out';
+        push @data, [ $label_in, $interfacein[$j] ], [ $label_out, $interfaceout[$j] ];
     }
 
     if ($format eq 'hash') {
@@ -587,20 +589,20 @@ Returns:
 
     $partitions = {
         '/dev/dm-0' => {
-            'mount_point' => '/',
-            'rrd_id' => 'dev-dm-0hd'
+            mount_point => '/',
+            rrd_id      => 'dev-dm-0hd'
         },
         '/dev/mapper/zva64-config' => {
-            'mount_point' => '/usr/local/relianoid/config',
-            'rrd_id' => 'dev-mapper-zva64-confighd'
+            mount_point => '/usr/local/relianoid/config',
+            rrd_id      => 'dev-mapper-zva64-confighd'
         },
         '/dev/mapper/zva64-log' => {
-            'mount_point' => '/var/log',
-            'rrd_id' => 'dev-mapper-zva64-loghd'
+            mount_point => '/var/log',
+            rrd_id      => 'dev-mapper-zva64-loghd'
         },
         '/dev/xvda1' => {
-            'mount_point' => '/boot',
-            'rrd_id' => 'dev-xvda1hd'
+            mount_point => '/boot',
+            rrd_id      => 'dev-xvda1hd'
         }
     };
 

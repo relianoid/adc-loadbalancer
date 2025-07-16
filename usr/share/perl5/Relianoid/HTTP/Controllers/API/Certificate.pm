@@ -103,21 +103,18 @@ sub delete_certificate_controller ($cert_filename) {
     my $cert_dir = &getGlobalConfiguration('certdir');
 
     # check is the certificate file exists
-    if (!-f "$cert_dir\/$cert_filename") {
+    if (!-f "${cert_dir}/${cert_filename}") {
         my $msg = "Certificate file not found.";
         return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
-    my $status = &getFarmCertUsed($cert_filename);
-
-    # check is the certificate is being used
-    if ($status == 0) {
+    if (my $is_used = &is_cert_used_by_farm($cert_filename)) {
         my $msg = "File can't be deleted because it's in use by a farm.";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     if ($eload) {
-        $status = &eload(
+        my $status = &eload(
             module => 'Relianoid::EE::System::HTTP',
             func   => 'getHttpsCertUsed',
             args   => [$cert_filename]
@@ -199,9 +196,9 @@ sub create_csr_controller ($json_obj) {
     }
 
     my $error = &createCSR(
-        $json_obj->{name},     $json_obj->{fqdn},         $json_obj->{country},  $json_obj->{state},
-        $json_obj->{locality}, $json_obj->{organization}, $json_obj->{division}, $json_obj->{mail},
-        $CSR_KEY_SIZE,         ""
+        $json_obj->{name},     $json_obj->{fqdn},     $json_obj->{country},
+        $json_obj->{state},    $json_obj->{locality}, $json_obj->{organization},
+        $json_obj->{division}, $json_obj->{mail},     $CSR_KEY_SIZE
     );
 
     if ($error) {
@@ -264,9 +261,9 @@ sub get_ciphers_controller () {
     my $desc = "Get the ciphers available";
 
     my @out = (
-        { 'ciphers' => "all",            "description" => "All" },
-        { 'ciphers' => "highsecurity",   "description" => "High security" },
-        { 'ciphers' => "customsecurity", "description" => "Custom security" }
+        { ciphers => "all",            description => "All" },
+        { ciphers => "highsecurity",   description => "High security" },
+        { ciphers => "customsecurity", description => "Custom security" }
     );
 
     if ($eload) {
@@ -333,11 +330,12 @@ sub add_farm_certificate_controller ($json_obj, $farmname) {
                 func   => 'getFarmCertificatesSNI',
                 args   => [$farmname]
             );
-        } elsif ($farm_type eq 'eproxy') {
+        }
+        elsif ($farm_type eq 'eproxy') {
             $cert_in_use = grep { $json_obj->{file} eq $_ } &eload(
                 module => 'Relianoid::EE::Farm::Eproxy::SSL',
                 func   => 'getEproxyFarmCertificates',
-                args   => [{ farm_name => $farmname }]
+                args   => [ { farm_name => $farmname } ]
             );
         }
     }
@@ -358,10 +356,11 @@ sub add_farm_certificate_controller ($json_obj, $farmname) {
                 func   => 'setFarmCertificateSNI',
                 args   => [ $json_obj->{file}, $farmname ],
             );
-        } elsif ($farm_type eq 'eproxy') {
+        }
+        elsif ($farm_type eq 'eproxy') {
             $status = &eload(
                 module => 'Relianoid::EE::Farm::Eproxy::SSL',
-                func   => 'setEproxyFarmCertificate',
+                func   => 'addEproxyFarmCertificate',
                 args   => [ { farm_name => $farmname, ssl_cert_filename => $json_obj->{file} } ],
             );
         }
@@ -434,11 +433,24 @@ sub delete_farm_certificate_controller ($farmname, $certfilename) {
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
-    my @certSNI = &eload(
-        module => 'Relianoid::EE::Farm::HTTP::HTTPS::Ext',
-        func   => 'getFarmCertificatesSNI',
-        args   => [$farmname],
-    );
+    my $farm_type = &getFarmType($farmname);
+    my @certSNI;
+    if ($farm_type eq "eproxy") {
+        @certSNI = @{
+            &eload(
+                module => 'Relianoid::EE::Farm::Eproxy::SSL',
+                func   => 'getEproxyFarmCertificates',
+                args   => [ { farm_name => $farmname } ],
+            )
+        };
+    }
+    else {
+        @certSNI = &eload(
+            module => 'Relianoid::EE::Farm::HTTP::HTTPS::Ext',
+            func   => 'getFarmCertificatesSNI',
+            args   => [$farmname],
+        );
+    }
 
     my $number = scalar grep ({ $_ eq $certfilename } @certSNI);
     if (!$number) {
@@ -452,15 +464,23 @@ sub delete_farm_certificate_controller ($farmname, $certfilename) {
     }
 
     my $status;
-
-    # This is a BUGFIX: delete the certificate all times that it appears in config file
-    for (my $it = 0 ; $it < $number ; $it++) {
+    if ($farm_type eq "eproxy") {
         $status = &eload(
-            module => 'Relianoid::EE::Farm::HTTP::HTTPS::Ext',
-            func   => 'setFarmDeleteCertNameSNI',
-            args   => [ $certfilename, $farmname ],
+            module => 'Relianoid::EE::Farm::Eproxy::SSL',
+            func   => 'delEproxyFarmCertificate',
+            args   => [ { farm_name => $farmname, ssl_cert_filename => $certfilename } ],
         );
-        last if ($status == -1);
+    }
+    else {
+        # This is a BUGFIX: delete the certificate all times that it appears in config file
+        for (my $it = 0 ; $it < $number ; $it++) {
+            $status = &eload(
+                module => 'Relianoid::EE::Farm::HTTP::HTTPS::Ext',
+                func   => 'setFarmDeleteCertNameSNI',
+                args   => [ $certfilename, $farmname ],
+            );
+            last if ($status == -1);
+        }
     }
 
     # check if the certificate could not be removed
@@ -488,9 +508,20 @@ sub delete_farm_certificate_controller ($farmname, $certfilename) {
     };
 
     if (&getFarmStatus($farmname) ne 'down') {
-        require Relianoid::Farm::Action;
-        &setFarmRestart($farmname);
-        $body->{status} = 'needed restart';
+        if ($farm_type eq 'https') {
+            require Relianoid::Farm::Action;
+            &setFarmRestart($farmname);
+            $body->{status} = 'needed restart';
+        }
+        elsif ($farm_type eq 'eproxy') {
+            $body->{status} = &eload(
+                module => 'Relianoid::EE::Farm::Eproxy::Action',
+                func   => 'runEproxyFarmReload',
+                args   => [ { farm_name => $farmname } ],
+            );
+            require Relianoid::EE::Cluster;
+            &runClusterRemoteManager('farm', 'reload', $farmname);
+        }
     }
 
     &log_info("Success trying to delete a certificate to the SNI list.", "LSLB");

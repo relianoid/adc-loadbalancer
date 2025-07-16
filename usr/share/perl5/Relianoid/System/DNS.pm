@@ -57,7 +57,7 @@ Returns:
 =cut
 
 sub getDns () {
-    my $dns     = { 'primary' => '', 'secondary' => '' };
+    my $dns     = { primary => '', secondary => '' };
     my $dnsFile = &getGlobalConfiguration('filedns');
 
     if (!-f $dnsFile) {
@@ -91,7 +91,7 @@ Set a primary or secondary dns server.
 Parameters:
 
     dns - 'primary' or 'secondary'.
-    value - ip addres of dns server.
+    value - ip address of dns server.
 
 Returns:
 
@@ -123,6 +123,8 @@ sub setDns ($dns, $value) {
               if ($index == 1 and $dns eq 'primary' and $value ne '');
             $line = "nameserver $value"
               if ($index == 2 and $dns eq 'secondary' and $value ne '');
+            splice @dnsArr, ($line_index - 1)
+              if ($index == 1 and $dns eq 'primary' and $value eq '');
             splice @dnsArr, ($line_index - 1)
               if ($index == 2 and $dns eq 'secondary' and $value eq '');
             $index++;

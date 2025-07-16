@@ -341,14 +341,16 @@ sub isRoute ($route, $ipv = undef) {
     else {
         require Relianoid::Validate;
         my $ip_re = &getValidFormat('ipv4v6');
-        $exists = 0
-          if ($exists && $route !~ /src $ip_re/ && $out =~ /src $ip_re/);
+
+        if ($exists && $route !~ /src $ip_re/ && $out =~ /src $ip_re/) {
+            $exists = 0;
+        }
     }
 
     if (&debug() > 1) {
         my $msg = ($exists) ? "(Already exists)" : "(Not found)";
         $msg .= " $ip_cmd";
-        &log_debug($msg, "net");
+        &log_debug2($msg, "net");
     }
 
     return $exists;
@@ -460,20 +462,28 @@ sub isRule ($conf) {
     my $ipv  = (exists $conf->{ip_v}) ? "-$conf->{ip_v}" : "";
     my $cmd  = "$ip_bin $ipv rule list";
     my $rule = "";
-    $rule .= " not" if (exists $conf->{not} and $conf->{not} eq 'true');
+
+    if (exists $conf->{not} and $conf->{not} eq 'true') {
+        $rule .= " not";
+    }
+
     my ($net, $netmask) = split /\//, $conf->{from};
-    if (defined $netmask
-        and ($netmask eq "32" or $netmask eq "255.255.255.255"))
-    {
+
+    if (defined $netmask and ($netmask eq "32" or $netmask eq "255.255.255.255")) {
         $rule .= " from $net";
     }
     else {
         $rule .= " from $conf->{from}";
     }
-    $rule .= " to $conf->{to}"
-      if (exists $conf->{to} && $conf->{to} ne "");
-    $rule .= " fwmark $conf->{fwmark}"
-      if (exists $conf->{fwmark} && $conf->{fwmark} ne "");
+
+    if (exists $conf->{to} && $conf->{to} ne "") {
+        $rule .= " to $conf->{to}";
+    }
+
+    if (exists $conf->{fwmark} && $conf->{fwmark} ne "") {
+        $rule .= " fwmark $conf->{fwmark}";
+    }
+
     $rule .= " lookup $conf->{table}";
     $rule =~ s/^\s+//;
     $rule =~ s/\s+$//;
@@ -514,7 +524,9 @@ Bugs:
 =cut
 
 sub applyRule ($action, $rule) {
-    return -1 if ($rule->{table} eq "");
+    if ($rule->{table} eq "") {
+        return -1;
+    }
 
     if ($action eq 'add' and ((!defined $rule->{priority}) || $rule->{priority} eq '')) {
         $rule->{priority} = &genRoutingRulesPrio($rule->{type});
@@ -846,7 +858,10 @@ sub applyRoutes ($table, $if_ref, $gateway = undef) {
                 args   => [],
             );
 
-            if (($cl_status and $cl_status ne "backup") and $cl_maintenance ne "true") {
+            if (   &getGlobalConfiguration('arp_announce') eq "true"
+                && ($cl_status and $cl_status eq "master")
+                && $cl_maintenance ne "true")
+            {
                 require Relianoid::Net::Util;
                 &log_info("Announcing garp $if_announce and $$if_ref{addr} ");
                 &sendGArp($if_announce, $$if_ref{addr});
@@ -1373,6 +1388,130 @@ sub getRoutingOutgoing ($ip, $mark = undef) {
     }
 
     return $outgoing_ref;
+}
+
+=pod
+
+=head1 getRoutingTableExists
+
+It checks if a routing table exists in the system
+
+Parameters:
+
+    table - It is the table to check
+
+Returns:
+
+    Integer - It returns 1 if the table exists or 0 if it does not exist
+
+=cut
+
+sub getRoutingTableExists ($table) {
+    my $rc = 1;
+
+    if (grep { $table eq $_ } &listRoutingTablesNames()) {
+        $rc = &logAndRunCheck("$ip_bin route list table $table");
+    }
+
+    return ($rc) ? 0 : 1;
+}
+
+=pod
+
+=head1 listRoutingTableSys
+
+    List all the system routing entries of a table. The entries were created by the user are not returned.
+
+Parameters:
+
+    table - table name
+
+Returns:
+
+    Array ref - list of the routing entries
+
+=cut
+
+sub listRoutingTableSys ($table) {
+    my $data        = &logAndGet("$ip_bin route list table $table", 'array');
+    my $routeparams = &getGlobalConfiguration("routeparams");
+
+    my @routes = ();
+    for my $cmd (@{$data}) {
+        # it is not a system rule
+        next if ($cmd !~ /$routeparams/);
+
+        my $r = {};
+        $r->{type} = 'system';
+        $r->{raw}  = "$cmd table $table";
+
+        &splitRoutingCmd($r);
+
+        push @routes, $r;
+    }
+
+    return \@routes;
+}
+
+=pod
+
+=head1 splitRoutingCmd
+
+    It parser a routing command line and it creates an struct with the data parsed from command
+
+    The command is passed in a hash reference, with the key 'raw'. This hash will be update with the parsed values.
+    The hash after this function will look like:
+
+    {
+        "raw"  is the routing command line
+        "to" is the destination IP or networking segment
+        "interface" is the interface used to take out the packet
+        "source" is the IP used as source when the packet is going out
+        "via" is the IP of the next routing item
+        "priority" is the priority for the routing entry in the table
+    }
+
+Parameters:
+
+    routing conf - It is a hash that has to contains the key 'raw'. This hash will be update with the get values
+
+Returns: undef - Nothing.
+
+=cut
+
+sub splitRoutingCmd ($route_conf) {
+    my $r   = $route_conf;
+    my $cmd = $r->{raw};
+
+    # reset values
+    $r->{to}        = '';
+    $r->{via}       = '';
+    $r->{source}    = '';
+    $r->{interface} = '';
+
+    if ($cmd =~ /^(\S+)/) {
+        $r->{to} = $1;
+    }
+
+    if ($cmd =~ /via\s(\S+)/) {
+        $r->{via} = $1;
+    }
+
+    if ($cmd =~ /src\s(\S+)/) {
+        $r->{source} = $1;
+    }
+
+    if ($cmd =~ /dev\s(\S+)/) {
+        $r->{interface} = $1;
+    }
+
+    if ($cmd =~ /(?:metric|preference)\s(\S+)/) {
+        $r->{priority} = $1;
+    }
+
+    $route_conf = $r;
+
+    return;
 }
 
 1;

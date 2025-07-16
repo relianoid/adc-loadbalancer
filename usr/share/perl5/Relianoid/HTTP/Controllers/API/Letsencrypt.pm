@@ -390,12 +390,12 @@ sub actions_le_cert_controller ($json_obj, $le_cert_name) {
         for my $farm (@{ getCertFarmsUsed($cert_name) }) {
             # restart farm used and up
             if (&getFarmStatus($farm) ne 'down') {
-                $error = &runFarmStop($farm, "");
+                $error = &runFarmStop($farm);
                 if ($error) {
                     push @farms_restarted_error, $farm;
                     next;
                 }
-                $error = &runFarmStart($farm, "");
+                $error = &runFarmStart($farm);
                 if ($error) {
                     push @farms_restarted_error, $farm;
                     next;

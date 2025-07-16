@@ -180,7 +180,7 @@ sub add_service_backend_controller ($json_obj, $farmname, $service) {
             args   => [ $json_obj, $farmname, $service ]
         );
     }
-    elsif ($type !~ /^https?$/) {
+    elsif ($type !~ /^https?$|eproxy/) {
         my $msg = "The $type farm profile does not support services.";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }

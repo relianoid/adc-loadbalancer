@@ -78,8 +78,8 @@ sub getProxyResponse () {
     my $proxy = &getProxy();
 
     return {
-        "http_proxy"  => $proxy->{http_proxy},
-        "https_proxy" => $proxy->{https_proxy}
+        http_proxy  => $proxy->{http_proxy},
+        https_proxy => $proxy->{https_proxy}
     };
 }
 

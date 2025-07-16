@@ -56,8 +56,14 @@ sub set_dns_controller ($json_obj) {
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg });
     }
 
-    for my $key (keys %{$json_obj}) {
-        my $msg = &setDns($key, $json_obj->{$key});
+    # the order is important to avoid to be the secondary
+    # overriden if the primary is set afterwards
+    if (exists $json_obj->{primary}) {
+        my $msg = &setDns('primary', $json_obj->{primary});
+        return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg }) if $msg;
+    }
+    if (exists $json_obj->{secondary}) {
+        my $msg = &setDns('secondary', $json_obj->{secondary});
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg }) if $msg;
     }
 

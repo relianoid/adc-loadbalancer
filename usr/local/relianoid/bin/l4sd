@@ -251,7 +251,7 @@ while () {
                     next if (defined $connsperfarm{$farm}{$back});
 
                     # do not use 'logAndRun' function, it is managing the error output
-                    my @cmd_output = `$conntrack -L -m $farms{ $farm }{ $back }/0x7fffffff 2>&1 >/dev/null`;
+                    my @cmd_output = `$conntrack -L -m $farms{$farm}{$back}/0x7fffffff 2>&1 >/dev/null`;
                     my $nestab     = (split(' ', $cmd_output[-1]))[3];
 
                     @cmd_output = ();

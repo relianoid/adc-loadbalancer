@@ -65,7 +65,7 @@ sub create_backup_controller ($json_obj) {
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
-    my $msg  = "Backup $json_obj->{ 'name' } was created successfully.";
+    my $msg  = "Backup $json_obj->{name} was created successfully.";
     my $body = {
         description => $desc,
         params      => $json_obj->{name},

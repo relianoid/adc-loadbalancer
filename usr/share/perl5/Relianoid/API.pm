@@ -37,126 +37,118 @@ Relianoid::API
 
 =pod
 
-=head1 getAPI
+=head1 is_api_enabled
 
-Get API status
+Get if the API is enabled.
 
-Parameters:
+Parameters: none
 
-    name - 'status' to get if the user 'api' is enabled, or 'api_key' to get the 'api_key'.
-
-Returns:
-
-    For 'status': Boolean. 'true' if the API user is enabled, or 'false' if it is disabled.
-
-    For 'api_key': Returns the current api_key.
+Returns: boolean
 
 =cut
 
-sub getAPI ($name) {
+sub is_api_enabled() {
     require Relianoid::File;
 
-    my $result = "false";
-
-    if ($name eq "status") {
-        if (grep { /^api:/ } readFileAsArray(&getGlobalConfiguration('htpass'))) {
-            $result = "true";
-        }
-    }
-    elsif ($name eq "api_key") {
-        $result = &getGlobalConfiguration('api_key');
-    }
+    my $filename = &getGlobalConfiguration('htpass');
+    my @lines    = readFileAsArray($filename);
+    my $result   = scalar(grep { /^api:/ } @lines) > 0;
 
     return $result;
 }
 
 =pod
 
-=head1 setAPI
+=head1 get_api_key
 
-Set API values
+Returns a string with the API key.
 
-Parameters:
+Parameters: none
 
-    name - Actions to be taken: 'enable', 'disable', 'randomkey' to set a random key, or 'key' to set the key specified in value.
-
-        enable    - Enables the user 'api'.
-        disable   - Disables the user 'api'.
-        randomkey - Generates a random key.
-        key       - Sets $value a the api_key.
-
-    value - New key to be used. Only apply when the action 'key' is used.
-
-Returns:
-
-    none
+Returns: string
 
 =cut
 
-sub setAPI ($action, $value = undef) {
-    if ($action eq "enable") {
-        my $cmd = "adduser --system --shell /bin/false --no-create-home api";
+sub get_api_key() {
+    return &getGlobalConfiguration('api_key');
+}
 
-        return &logAndRun($cmd);
+=pod
+
+=head1 enable_api
+
+Enable API.
+
+Parameters: none
+
+Returns: integer - errno
+
+=cut
+
+sub enable_api () {
+    my $cmd = "adduser --system --shell /bin/false --no-create-home api";
+
+    return &logAndRun($cmd);
+}
+
+=pod
+
+=head1 disable_api
+
+Disable API.
+
+Parameters: none
+
+Returns: integer - errno
+
+=cut
+
+sub disable_api() {
+    setGlobalConfiguration('api_key', "");
+
+    # Update api_key global configuration
+    &getGlobalConfiguration('api_key', 1);
+
+    my $deluser_bin = &getGlobalConfiguration('deluser_bin');
+    my $cmd         = "$deluser_bin api";
+
+    return &logAndRun($cmd);
+}
+
+=pod
+
+=head1 set_api_key
+
+Set API key.
+
+Parameters:
+
+    key - string - API key.
+
+Returns: nothing
+
+=cut
+
+sub set_api_key ($key) {
+    if ($eload) {
+        $key = &eload(
+            module => 'Relianoid::EE::Code',
+            func   => 'setCryptString',
+            args   => [$key],
+        );
     }
-    elsif ($action eq "disable") {
-        setGlobalConfiguration('api_key', "");
 
-        # Update api_key global configuration
-        &getGlobalConfiguration('api_key', 1);
+    setGlobalConfiguration('api_key', $key);
 
-        my $deluser_bin = &getGlobalConfiguration('deluser_bin');
-        my $cmd         = "$deluser_bin api";
-
-        return &logAndRun($cmd);
-    }
-    elsif ($action eq "randomkey") {
-        my $random = &getAPIRandomKey(64);
-
-        setGlobalConfiguration('api_key', $random);
-    }
-    elsif ($action eq "key") {
-        if ($eload) {
-            $value = &eload(
-                module => 'Relianoid::EE::Code',
-                func   => 'setCryptString',
-                args   => [$value],
-            );
-        }
-
-        setGlobalConfiguration('api_key', $value);
-
-        # Update api_key global configuration
-        &getGlobalConfiguration('api_key', 1);
-    }
+    # Update api_key global configuration
+    &getGlobalConfiguration('api_key', 1);
 
     return;
 }
 
 =pod
 
-=head1 getAPIRandomKey
-
-Generate random key for API user.
-
-Parameters:
-
-    length - Number of characters in the new key.
-
-Returns: string - Random key.
-
-=cut
-
-sub getAPIRandomKey ($length) {
-    my @alphanumeric = ('a' .. 'z', 'A' .. 'Z', 0 .. 9);
-    my $randpassword = join '', map { $alphanumeric[ rand @alphanumeric ] } 0 .. $length;
-
-    return $randpassword;
-}
-
-=pod
-
-=head1 isApiKeyValid
+=head1 is_api_key_valid
 
 Validates the API key received with the HTTP header API_KEY
 
@@ -166,63 +158,34 @@ Returns: integer - integer used as boolean
 
 =cut
 
-sub isApiKeyValid () {
+sub is_api_key_valid () {
+    my $key = get_http_api_key();
+
+    if (!$key) {
+        return 0;
+    }
+
     require Relianoid::User;
-
     my $is_valid = 0;
-    my $key      = get_http_api_key();
 
-    if ($key) {
-        if (&getAPI("status") eq "true" && &getAPI("api_key") eq $key) {
-            &setUser('root');
+    if (&is_api_enabled() && &get_api_key() eq $key) {
+        &setUser('root');
+        $is_valid = 1;
+    }
+    elsif ($eload) {
+        my $user = &eload(
+            module => 'Relianoid::EE::RBAC::User::Core',
+            func   => 'validateRBACUserAPIKey',
+            args   => [$key],
+        );
+
+        if (my $user = &validateRBACUserAPIKey($key)) {
+            &setUser($user);
             $is_valid = 1;
-        }
-        elsif ($eload) {
-            my $user = &eload(
-                module => 'Relianoid::EE::RBAC::User::Core',
-                func   => 'validateRBACUserAPIKey',
-                args   => [$key],
-            );
-            if ($user) {
-                &setUser($user);
-                $is_valid = 1;
-            }
         }
     }
 
     return $is_valid;
-}
-
-=pod
-
-=head1 getApiVersionsList
-
-Parameters: None
-
-Returns: string array - list of API versions (as strings)
-
-=cut
-
-sub getApiVersionsList () {
-    return (sort split ' ', &getGlobalConfiguration("api_versions"));
-}
-
-=pod
-
-=head1 getApiVersion
-
-Parameters:
-
-    none
-
-Returns:
-
-    string - API version or empty string.
-
-=cut
-
-sub getApiVersion () {
-    return $ENV{API_VERSION} // "";
 }
 
 sub get_http_api_key () {

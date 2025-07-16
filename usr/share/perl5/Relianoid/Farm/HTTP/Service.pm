@@ -139,6 +139,7 @@ sub setFarmHTTPNewService ($farm_name, $service) {
 
         untie @fileconf;
         close $lock_fh;
+        unlink $lock_file;
     }
     else {
         $output = 1;
@@ -249,6 +250,7 @@ sub setFarmHTTPNewServiceFirst ($farm_name, $service) {
 
         untie @fileconf;
         close $lock_fh;
+        unlink $lock_file;
     }
     else {
         $output = 1;
@@ -328,6 +330,7 @@ sub delHTTPFarmService ($farm_name, $service) {
 
     untie @fileconf;
     close $lock_fh;
+    unlink $lock_file;
 
     # delete service's backends  in status file
     if ($counter > -1) {
@@ -376,7 +379,7 @@ Returns:
 
 Variable: $service_ref
 
-    $service_ref->{ $service_name } - Service index
+    $service_ref->{$service_name} - Service index
 
 FIXME:
 
@@ -468,10 +471,6 @@ Returns:
         "cookiettl" : 0,
         ...
     };
-
-Notes:
-
-    Similar to the function get_http_service_struct
 
 =cut
 
@@ -1072,6 +1071,7 @@ sub setHTTPFarmVS ($farm_name, $service, $tag, $string = '') {
 
     untie @fileconf;
     close $lock_fh;
+    unlink $lock_file;
 
     return $output;
 }
@@ -1113,51 +1113,6 @@ sub getFarmVSI ($farm_name, $target_service) {
 
 =pod
 
-=head1 get_http_service_struct
-
-FIXME:
-
-    This function is only used in API 3.2. getHTTPServiceStruct should be used.
-
-=cut
-
-sub get_http_service_struct ($farmname, $service_name) {
-    require Relianoid::FarmGuardian;
-    require Relianoid::Farm::HTTP::Backend;
-
-    my $service_ref = &getHTTPServiceStruct($farmname, $service_name);
-
-    # Backends
-    my $backends = &getHTTPFarmBackends($farmname, $service_name);
-
-    # Remove backend status 'undefined', it is for news api versions
-    for my $be (@{$backends}) {
-        $be->{status} = 'up' if $be->{status} eq 'undefined';
-    }
-
-    # Add FarmGuardian
-    $service_ref->{farmguardian} = &getFGFarm($farmname, $service_name);
-
-    # Add STS
-    if ($eload) {
-        $service_ref->{sts_status} = &eload(
-            module => 'Relianoid::EE::Farm::HTTP::Service::Ext',
-            func   => 'getHTTPServiceSTSStatus',
-            args   => [ $farmname, $service_name ],
-        );
-
-        $service_ref->{sts_timeout} = &eload(
-            module => 'Relianoid::EE::Farm::HTTP::Service::Ext',
-            func   => 'getHTTPServiceSTSTimeout',
-            args   => [ $farmname, $service_name ],
-        );
-    }
-
-    return $service_ref;
-}
-
-=pod
-
 =head1 get_http_all_services_summary_struct
 
 =cut
@@ -1167,7 +1122,7 @@ sub get_http_all_services_summary_struct ($farmname) {
     my @services_list = ();
 
     for my $service (&getHTTPFarmServices($farmname)) {
-        push @services_list, { 'id' => $service };
+        push @services_list, { id => $service };
     }
 
     return \@services_list;

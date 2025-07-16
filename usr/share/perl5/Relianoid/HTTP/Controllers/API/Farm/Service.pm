@@ -57,32 +57,40 @@ sub add_farm_service_controller ($json_obj, $farmname) {
 
     my $type = &getFarmType($farmname);
 
+    my $result = 0;
     # validate farm profile
-    if ($type eq "gslb") {
+    if ($type eq "eproxy") {
+        $result = &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Service',
+            func   => 'setEproxyServiceStruct',
+            args   => [ {farm_name => $farmname, service_name => $json_obj->{id}} ]
+        );
+    }
+    elsif ($type eq "gslb") {
         &eload(
             module => 'Relianoid::EE::HTTP::Controllers::API::Farm::GSLB',
             func   => 'new_gslb_farm_service',
             args   => [ $json_obj, $farmname ]
         );
     }
-    elsif ($type !~ /^https?$/) {
+    elsif ($type =~ /^https?$/) {
+        my $params = &getAPIModel("farm_http_service-create.json");
+
+        # Check allowed parameters
+        if (my $error_msg = &checkApiParams($json_obj, $params, $desc)) {
+            return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg });
+        }
+
+        # HTTP profile
+        require Relianoid::HTTP::Controllers::API::Farm::Get::HTTP;
+        require Relianoid::Farm::HTTP::Service;
+
+        $result = &setFarmHTTPNewService($farmname, $json_obj->{id});
+    }
+    else {
         my $msg = "The farm profile $type does not support services actions.";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
-
-    my $params = &getAPIModel("farm_http_service-create.json");
-
-    # Check allowed parameters
-    if (my $error_msg = &checkApiParams($json_obj, $params, $desc)) {
-        return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg });
-    }
-
-    # HTTP profile
-    require Relianoid::HTTP::Controllers::API::Farm::Get::HTTP;
-    require Relianoid::Farm::Base;
-    require Relianoid::Farm::HTTP::Service;
-
-    my $result = &setFarmHTTPNewService($farmname, $json_obj->{id});
 
     # check if a service with such name already exists
     if ($result == 1) {
@@ -111,6 +119,7 @@ sub add_farm_service_controller ($json_obj, $farmname) {
         message     => "A new service has been created in farm $farmname with id $json_obj->{id}."
     };
 
+    require Relianoid::Farm::Base;
     if (&getFarmStatus($farmname) ne 'down') {
         if ($type eq "eproxy" && $eload) {
             $body->{status} = &eload(
@@ -231,6 +240,7 @@ sub modify_farm_service_controller ($json_obj, $farmname, $service) {
     elsif ($type eq "eproxy" && $eload) {
         my $args = $json_obj;
         $args->{ farm_name } = $farmname;
+        $args->{ service_name } = $service;
         &eload(
             module => 'Relianoid::EE::Farm::Eproxy::Service',
             func   => 'setEproxyServiceStruct',
@@ -362,8 +372,9 @@ sub modify_farm_service_controller ($json_obj, $farmname, $service) {
 
         # Cookie insertion
         if (scalar grep { /^cookie/ } keys %{$json_obj}) {
+            my $msg;
             if ($eload) {
-                my $msg = &eload(
+                $msg = &eload(
                     module   => 'Relianoid::EE::HTTP::Controllers::API::Farm::Service::Ext',
                     func     => 'modify_service_cookie_insertion',
                     args     => [ $farmname, $service, $json_obj ],
@@ -375,7 +386,7 @@ sub modify_farm_service_controller ($json_obj, $farmname, $service) {
                 }
             }
             else {
-                my $msg = "Cookie insertion feature not available.";
+                $msg = "Cookie insertion feature not available.";
                 return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
             }
         }
@@ -452,7 +463,7 @@ sub modify_farm_service_controller ($json_obj, $farmname, $service) {
 
         # no error found, return succesful response
         require Relianoid::HTTP::Controllers::API::Farm::Get::HTTP;
-        $output_params = &get_http_service_struct($farmname, $service);
+        $output_params = &getHTTPServiceStruct($farmname, $service);
     }
 
     &log_info("Success, some parameters have been changed in service $service in farm $farmname.", "FARMS");
@@ -464,6 +475,7 @@ sub modify_farm_service_controller ($json_obj, $farmname, $service) {
 
     $body->{message} = $bk_msg ? $bk_msg : "The service $service has been updated successfully.";
 
+    require Relianoid::Farm::Base;
     if (&getFarmStatus($farmname) ne 'down') {
         if ($type eq "eproxy" && $eload) {
             $body->{status} = &eload(
@@ -499,38 +511,45 @@ sub delete_farm_service_controller ($farmname, $service) {
     # check the farm type is supported
     my $type = &getFarmType($farmname);
 
-    if ($type eq "gslb" && $eload) {
+    my $error = 0;
+    if ($type eq "eproxy" && $eload) {
+        $error = &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Service',
+            func   => 'delEproxyServiceStruct',
+            args   => [ {farm_name => $farmname, service_name => $service} ]
+        );
+    }
+    elsif ($type eq "gslb" && $eload) {
         &eload(
             module => 'Relianoid::EE::HTTP::Controllers::API::Farm::GSLB',
             func   => 'delete_gslb_service',
             args   => [ $farmname, $service ]
         );
     }
-    elsif ($type !~ /^https?$/) {
+    elsif ($type =~ /^https?$/) {
+        require Relianoid::Farm::HTTP::Service;
+
+        # Check that the provided service is configured in the farm
+        my @services = &getHTTPFarmServices($farmname);
+        my $found    = 0;
+
+        for my $farmservice (@services) {
+            if ($service eq $farmservice) {
+                $found = 1;
+                last;
+            }
+        }
+
+        unless ($found) {
+            my $msg = "Invalid service name, please insert a valid value.";
+            return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+        }
+
+        $error = &delHTTPFarmService($farmname, $service);
+    } else {
         my $msg = "The farm profile $type does not support services actions.";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
-
-    require Relianoid::Farm::Base;
-    require Relianoid::Farm::HTTP::Service;
-
-    # Check that the provided service is configured in the farm
-    my @services = &getHTTPFarmServices($farmname);
-    my $found    = 0;
-
-    for my $farmservice (@services) {
-        if ($service eq $farmservice) {
-            $found = 1;
-            last;
-        }
-    }
-
-    unless ($found) {
-        my $msg = "Invalid service name, please insert a valid value.";
-        return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
-    }
-
-    my $error = &delHTTPFarmService($farmname, $service);
 
     # check if the service is in use
     if ($error == -2) {
@@ -554,6 +573,7 @@ sub delete_farm_service_controller ($farmname, $service) {
         message     => $message,
     };
 
+    require Relianoid::Farm::Base;
     if (&getFarmStatus($farmname) ne 'down') {
         if ($type eq "eproxy" && $eload) {
             $body->{status} = &eload(

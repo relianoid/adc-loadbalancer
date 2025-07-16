@@ -334,7 +334,7 @@ sub setFarmVirtualConf ($vip, $vip_port, $farm_name) {
         $stat = &eload(
             module => 'Relianoid::EE::Farm::Eproxy::Config',
             func   => 'setEproxyFarmStruct',
-            args   => [ { 'farm_name' => $farm_name, 'vip' => $vip, 'vport' => $vip_port }],
+            args   => [ { farm_name => $farm_name, vip => $vip, vport => $vip_port }],
         );
     }
 
