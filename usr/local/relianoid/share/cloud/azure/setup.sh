@@ -42,7 +42,7 @@ cp $clouddir/azure-cli.sources /etc/apt/sources.list.d/
 dpkg=`dpkg -l waagent`
 if [ $? -eq 1 ]; then
     echo "Azure detected: After the installation, please run:"
-    echo "apt-get update && apt-get install cloud-init waagent azure-cli"
+    echo "apt-get update && apt-get install cloud-init waagent azure-cli dnsmasq"
 fi
 
 exit 0

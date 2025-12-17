@@ -204,7 +204,7 @@ Parameters:
     farm_name -  Farm name
     service   -  Optional. service name. For HTTP farms
     ids       -  Backend id, if this id doesn't exist, it will create a new backend
-    bk        -  hash with backend configuration. 
+    bk        -  hash with backend configuration.
                  Depend on the type of farms, the backend can have the following keys:
                  ip, port, weight, priority, timeout, max_conns or interface
 
@@ -407,7 +407,7 @@ Calculates the Priroty algorithm status of the backend list
 Parameters:
 
     $backends_ref - list of backend_ref
-    $bk_index     - backend index if defined, only returns this index values. Optional. 
+    $bk_index     - backend index if defined, only returns this index values. Optional.
 
     $backend_ref->{status}   - Status of the backend. Possibles values:"up","down".
     $backend_ref->{priority} - Priority of the backend

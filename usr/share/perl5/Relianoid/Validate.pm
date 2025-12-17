@@ -260,6 +260,9 @@ my %format_re = (
     waf_set_status => qr/(?:$boolean|detection)/,
     waf_file       => qr/(?:[\s+\w-]+)/,
 
+    # MFA
+    mfa_name   => qr/[\.\w-]+/,
+
     # certificates filenames
     certificate_name    => $cert_name,
     certificate         => qr/$cert_name\.(?:pem|csr)/,
@@ -445,7 +448,7 @@ It check a list of parameters, and apply it some checks:
 
 Also, it checks: getValidFormat funcion, if black is allowed, intervals, aditionals regex, excepts regex and a list with the possbile values
 
-It is possible add a error message with the correct format. 
+It is possible add a error message with the correct format.
 
 For example: $parameter . "must have letters and digits"
 

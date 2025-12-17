@@ -218,7 +218,7 @@ A hash reference with the daemon status
     up           - Total vpn established.
     connecting   - Total vpn connecting.
     listen       - IP Listening.
-    conns => vpn - Connections Info for vpns. 
+    conns => vpn - Connections Info for vpns.
     sa => vpn    - Security Associations Info for vpns.
 
 =cut

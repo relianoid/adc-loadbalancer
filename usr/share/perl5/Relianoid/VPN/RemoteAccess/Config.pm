@@ -50,7 +50,7 @@ Parameters: hash reference
     localtunip -
     localtunmask -
     remotetunrange -
-    password - 
+    password -
     auth -
     p1encrypt - Defines the encryption of Phase1.
     p1authen - Defines the authentication of Phase1.

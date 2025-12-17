@@ -255,7 +255,7 @@ Remove all the active sessions enabled to a backend
 Parameters:
 
     farm_name - Farm name
-    backend_ref - Hash ref of Backend 
+    backend_ref - Hash ref of Backend
 
 Returns:
 
@@ -271,6 +271,7 @@ sub setL4FarmBackendsSessionsRemove ($farm_name, $backend_ref = undef) {
     }
 
     $output = &sendL4NlbCmd({
+        farm   => $farm_name,
         method => "DELETE",
         uri    => "/farms/" . $farm_name . "/backends/bck" . $backend_ref->{id} . "/sessions",
     });
@@ -302,7 +303,7 @@ Parameters:
 
 Returns:
 
-    hash reference 
+    hash reference
 
     $error_ref->{code}
 
@@ -316,7 +317,7 @@ Returns:
 
 =cut
 
-sub setL4FarmBackendStatus ($farm_name, $backend, $status, $cutmode = undef) {
+sub setL4FarmBackendStatus ($farm_name, $backend_id, $status, $cutmode = undef) {
     require Relianoid::Farm::L4xNAT::Config;
     require Relianoid::Farm::L4xNAT::Action;
 
@@ -328,6 +329,7 @@ sub setL4FarmBackendStatus ($farm_name, $backend, $status, $cutmode = undef) {
     my @bks_updated_prio_status;
     my $output;
     my $msg;
+
     $status = 'off'  if ($status eq "maintenance");
     $status = 'down' if ($status eq "fgDOWN");
 
@@ -336,25 +338,26 @@ sub setL4FarmBackendStatus ($farm_name, $backend, $status, $cutmode = undef) {
     if ($status eq 'up' and @{ $$farm{servers} } > 1) {
         my $i = 0;
         my $bk_index;
+
         for my $server (@{ $$farm{servers} }) {
-            my $bk;
-            $bk_index = $i if $backend == $server->{id};
-            if ($server->{status} ne "up") {
-                $bk->{status} = "down";
-            }
-            else {
-                $bk->{status} = $server->{status};
-            }
-            $bk->{priority} = $server->{priority};
+            my $bk = {
+                status   => $server->{status} eq "up" ? $server->{status} : "down",
+                priority => $server->{priority}
+            };
+
             push(@backends, $bk);
+
+            if ($backend_id == $server->{id}) {
+                $bk_index = $i;
+            }
+
             $i++;
         }
+
         require Relianoid::Farm::Backend;
-        @bks_prio_status =
-          @{ &getPriorityAlgorithmStatus(\@backends)->{status} };
+        @bks_prio_status               = @{ &getPriorityAlgorithmStatus(\@backends)->{status} };
         $backends[$bk_index]->{status} = $status;
-        @bks_updated_prio_status =
-          @{ &getPriorityAlgorithmStatus(\@backends)->{status} };
+        @bks_updated_prio_status       = @{ &getPriorityAlgorithmStatus(\@backends)->{status} };
     }
 
     $output = &sendL4NlbCmd({
@@ -362,18 +365,18 @@ sub setL4FarmBackendStatus ($farm_name, $backend, $status, $cutmode = undef) {
         file   => "$configdir/$farm_filename",
         method => "PUT",
         body   =>
-          qq({"farms" : [ { "name" : "$farm_name", "backends" : [ { "name" : "bck$backend", "state" : "$status" } ] } ] })
+          qq({"farms" : [ { "name" : "$farm_name", "backends" : [ { "name" : "bck$backend_id", "state" : "$status" } ] } ] })
     });
 
     if ($output) {
-        $msg = "Status of backend $backend in farm '$farm_name' was not changed to $status";
+        $msg = "Status of backend $backend_id in farm '$farm_name' was not changed to $status";
         &log_error($msg, "LSLB");
         $error_ref->{code} = 1;
         $error_ref->{desc} = $msg;
         return $error_ref;
     }
     else {
-        $msg = "Status of backend $backend in farm '$farm_name' was changed to $status";
+        $msg = "Status of backend $backend_id in farm '$farm_name' was changed to $status";
         &log_info($msg, "LSLB");
         $error_ref->{code} = 0;
         $error_ref->{desc} = $msg;
@@ -394,8 +397,7 @@ sub setL4FarmBackendStatus ($farm_name, $backend, $status, $cutmode = undef) {
                 }
 
                 # remove conntrack
-                $output =
-                  &resetL4FarmBackendConntrackMark(@{ $farm->{servers} }[$i]);
+                $output = &resetL4FarmBackendConntrackMark(@{ $farm->{servers} }[$i]);
                 if ($output) {
                     $msg               = "Connections for unused backends in farm '$farm_name' were not deleted";
                     $error_ref->{code} = 3;
@@ -405,12 +407,13 @@ sub setL4FarmBackendStatus ($farm_name, $backend, $status, $cutmode = undef) {
         }
         $i++;
     }
+
     if ($status ne "up" and $cutmode eq "cut") {
         my $server;
 
         # get backend with id $backend
         for my $srv (@{ $$farm{servers} }) {
-            if ($srv->{id} == $backend) {
+            if ($srv->{id} == $backend_id) {
                 $server = $srv;
                 last;
             }
@@ -432,6 +435,7 @@ sub setL4FarmBackendStatus ($farm_name, $backend, $status, $cutmode = undef) {
             $error_ref->{desc} = $msg;
         }
     }
+
     if ($farm->{lbalg} eq 'leastconn') {
         require Relianoid::Farm::L4xNAT::L4sd;
         &sendL4sdSignal();
@@ -492,16 +496,16 @@ Returns:
 
     [
         {
-            $id, 
-            $alias, 
-            $family, 
-            $ip, 
-            $port, 
-            $tag, 
-            $weight, 
-            $priority, 
-            $status, 
-            $rip = $ip, 
+            $id,
+            $alias,
+            $family,
+            $ip,
+            $port,
+            $tag,
+            $weight,
+            $priority,
+            $status,
+            $rip = $ip,
             $max_conns
         },
         ...

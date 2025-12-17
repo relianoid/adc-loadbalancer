@@ -297,7 +297,7 @@ Returns:
 					   disks
 					   monitors # array with monitors configuration
 					   changed # 1 if changed by relianoid
-		}; 
+		};
 
 =cut
 

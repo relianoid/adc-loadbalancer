@@ -34,7 +34,7 @@ use Relianoid::Debug;
 
 =head1 Module
 
-Relianoid::Log 
+Relianoid::Log
 
 =cut
 

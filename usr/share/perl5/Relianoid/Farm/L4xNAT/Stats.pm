@@ -296,7 +296,7 @@ sub getL4BackendSYNConns ($farm_name, $be_ip, $be_port, $netstat) {
 
 =head1 getL4FarmSYNConns
 
-Get all SYN connections for a farm. This connection are called "pending". 
+Get all SYN connections for a farm. This connection are called "pending".
 
 UDP protocol doesn't have pending concept
 

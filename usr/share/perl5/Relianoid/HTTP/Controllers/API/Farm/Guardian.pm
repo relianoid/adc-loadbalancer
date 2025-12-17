@@ -114,14 +114,14 @@ sub create_farmguardian_controller ($json_obj) {
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg });
     }
 
-    if (exists $json_obj->{copy_from}
-        and not &getFGExists($json_obj->{copy_from}))
-    {
+    if (exists $json_obj->{copy_from} and not &getFGExists($json_obj->{copy_from})) {
         my $msg = "The parent farm guardian '$json_obj->{copy_from}' does not exist.";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
-    if    (not exists $json_obj->{copy_from}) { &createFGBlank($fg_name); }
+    if (not exists $json_obj->{copy_from}) {
+        &createFGBlank($fg_name);
+    }
     elsif (&getFGExistsTemplate($json_obj->{copy_from})) {
         &createFGTemplate($fg_name, $json_obj->{copy_from});
     }
@@ -253,7 +253,7 @@ sub delete_farmguardian_controller ($fg_name) {
 sub add_fg_to_farm_controller ($json_obj, $farm, $srv = undef) {
     my $srv_message = ($srv) ? "service '$srv' in the farm '$farm'" : "farm '$farm'";
 
-    my $desc = "Add the farm guardian '$json_obj->{name}' to the '$srv_message'";
+    my $desc = "Add the farm guardian '$json_obj->{name}' to the $srv_message";
 
     require Relianoid::Farm::Service;
 
@@ -285,7 +285,7 @@ sub add_fg_to_farm_controller ($json_obj, $farm, $srv = undef) {
     # check if another fg is applied to the farm
     my $fg_old = &getFGFarm($farm, $srv);
     if ($fg_old) {
-        my $msg = "The '$srv_message' has already linked a farm guardian";
+        my $msg = "The $srv_message has already linked a farm guardian";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
@@ -296,7 +296,7 @@ sub add_fg_to_farm_controller ($json_obj, $farm, $srv = undef) {
     # check if the farm guardian is already applied to the farm
     my $fg_obj = &getFGObject($json_obj->{name});
     if (grep { $farm_tag eq $_ } @{ $fg_obj->{farms} }) {
-        my $msg = "'$json_obj->{name}' is already applied in the '$srv_message'";
+        my $msg = "'$json_obj->{name}' is already applied in the $srv_message";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
@@ -320,7 +320,7 @@ sub add_fg_to_farm_controller ($json_obj, $farm, $srv = undef) {
             );
         }
 
-        my $msg  = "Success, The farm guardian '$json_obj->{name}' was added to the '$srv_message'";
+        my $msg  = "Success, The farm guardian '$json_obj->{name}' was added to the $srv_message";
         my $body = {
             description => $desc,
             message     => $msg,
@@ -329,7 +329,7 @@ sub add_fg_to_farm_controller ($json_obj, $farm, $srv = undef) {
         return &httpResponse({ code => 200, body => $body });
     }
     else {
-        my $msg = "There was an error trying to add '$json_obj->{name}' to the '$srv_message'";
+        my $msg = "There was an error trying to add '$json_obj->{name}' to the $srv_message";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 }
@@ -342,7 +342,7 @@ sub delete_fg_from_farm_controller ($farm, $srv, $fgname = undef) {
     }
 
     my $srv_message = ($srv) ? "service '$srv' in the farm '$farm'" : "farm '$farm'";
-    my $desc        = "Remove the farm guardian '$fgname' from the '$srv_message'";
+    my $desc        = "Remove the farm guardian '$fgname' from the $srv_message";
 
     require Relianoid::Farm::Service;
 
@@ -371,7 +371,7 @@ sub delete_fg_from_farm_controller ($farm, $srv, $fgname = undef) {
     # check if the farm guardian is already applied to the farm
     my $fg_obj = &getFGObject($fgname);
     if (not grep { $farm_tag eq $_ } @{ $fg_obj->{farms} }) {
-        my $msg = "The farm guardian '$fgname' is not applied to the '$srv_message'";
+        my $msg = "The farm guardian '$fgname' is not applied to the $srv_message";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
@@ -380,7 +380,7 @@ sub delete_fg_from_farm_controller ($farm, $srv, $fgname = undef) {
     # check output
     $fg_obj = &getFGObject($fgname);
     if (grep { $farm_tag eq $_ } @{ $fg_obj->{farms} } or &getFGPidFarm($farm)) {
-        my $msg = "Error removing '$fgname' from the '$srv_message'";
+        my $msg = "Error removing '$fgname' from the $srv_message";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
     else {
@@ -395,7 +395,7 @@ sub delete_fg_from_farm_controller ($farm, $srv, $fgname = undef) {
             );
         }
 
-        my $msg  = "Success, '$fgname' was removed from the '$srv_message'";
+        my $msg  = "Success, '$fgname' was removed from the $srv_message";
         my $body = {
             description => $desc,
             message     => $msg,

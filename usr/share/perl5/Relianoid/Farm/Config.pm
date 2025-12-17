@@ -671,7 +671,7 @@ sub reloadFarmsSourceAddressByFarm ($farm_name) {
 =head1 checkLocalFarmSourceAddress
 
 Check if an HTTP farm should exist as a local farm in nftlb in order to do snat in any of its backends.
-The function will return 1 in case the farm's vip contains floating ip or any of the farm's backends 
+The function will return 1 in case the farm's vip contains floating ip or any of the farm's backends
 are on a network with floating ip or is on an unknown network or custom routes.
 
 Parameters:

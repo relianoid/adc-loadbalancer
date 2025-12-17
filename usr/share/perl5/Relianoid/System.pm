@@ -529,5 +529,100 @@ sub setHttpFactoryReset () {
     return $output;
 }
 
+=pod
+
+=head1 getLocalPortalStatus
+
+Obtain if the Local web portal is running.
+
+Parameters: None
+
+Returns: integer - 1 is running, 0 if not running.
+
+=cut
+
+sub getLocalPortalStatus () {
+    my $pidof  = &getGlobalConfiguration('pidof');
+    my $output = (&logAndRunCheck("$pidof nginx")) ? 0 : 1;
+
+    return $output;
+}
+
+=pod
+
+=head1 runLocalWebPortalStart
+
+Start Local web portals or reload if it's already running.
+
+Parameters: None
+
+Returns: integer - 0 successful, <0 if not successful.
+
+=cut
+
+sub runLocalWebPortalStart () {
+    my $output = 0;
+    my $cmd;
+
+    if (!&getLocalPortalStatus()) {
+        $cmd = "systemctl enable --now nginx";
+    }
+    else {
+        $cmd = "systemctl reload nginx";
+    }
+
+    $output = &logAndRun($cmd);
+    return $output;
+}
+
+=pod
+
+=head1 runLocalWebPortalStop
+
+Stop and disable Local web portal.
+
+Parameters: None
+
+Returns: integer - 1 is running, 0 if not running.
+
+=cut
+
+sub runLocalWebPortalStop () {
+    my $output = 0;
+    my $cmd    = "";
+
+    if (&getLocalPortalStatus()) {
+        $cmd = "systemctl stop nginx && ";
+    }
+
+    $cmd .= "systemctl disable nginx";
+    $output = &logAndRun($cmd);
+    return $output;
+}
+
+=pod
+
+=head1 runLocalWebPortalInit
+
+Check if local web portal should be enabled or not.
+
+Parameters: None
+
+Returns: None.
+
+=cut
+
+sub runLocalWebPortalInit () {
+    my $mfaAuthConf  = &getGlobalConfiguration('mfaAuthConf');
+
+    if (-e $mfaAuthConf) {
+        &runLocalWebPortalStart();
+    } else {
+        &runLocalWebPortalStop();
+    }
+
+    return;
+}
+
 1;
 

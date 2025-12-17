@@ -120,17 +120,10 @@ sub getApplianceVersion() {
             if    ($kernel =~ /3\.2\.0\-4/)      { $version = "3110"; }
             elsif ($kernel =~ /3\.16\.0\-4/)     { $version = "4000"; }
             elsif ($kernel =~ /3\.16\.7\-ckt20/) { $version = "4100"; }
-            else                                 { $version = "System version not detected"; }
+            else                                 { $version = "8000"; }
 
-            # virtual appliance
-            if ($hypervisor[0] =~ /(xen|vm|hv|kvm)_/) {
-                $version = "ZVA $version";
-            }
-
-            # baremetal appliance
-            else {
-                $version = "ZBA $version";
-            }
+            # virtual appliance or baremetal
+            $version = "RSA $version";
         }
 
         # save version for future request

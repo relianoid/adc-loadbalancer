@@ -300,7 +300,7 @@ Parameters:
     path   - Tiny conguration file where to apply the change
     object - Group to apply the change
     key    - parameter to change or struct ref to overwrite.
-    value  - new value for the parameter or action for struct ref. The possible action values are: "update" to update only existing params , "new" to delete old params and set news ones or empty to add all new params. 
+    value  - new value for the parameter or action for struct ref. The possible action values are: "update" to update only existing params , "new" to delete old params and set news ones or empty to add all new params.
     action - This is a optional parameter. The possible values are: "add" to add
              a item to a list, or "del" to delete a item from a list, or "remove" to delete the key
 

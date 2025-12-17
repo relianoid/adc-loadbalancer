@@ -39,7 +39,7 @@ Relianoid::VPN::Tunnel::Core
 
 =head1 getVpnTunnelExists
 
-	Check if Tunnel VPN exits. 
+	Check if Tunnel VPN exits.
 
 Parameters:
 	$vpn_name - vpn connection name.
@@ -75,7 +75,7 @@ Parameters:
 Returns:
 	String - Tunnel VPN status . empty|connecting|up|down|unloaded|tunnel down|ipsec down
 
-=cut 
+=cut
 
 sub getVpnTunnelStatus ($vpn_name) {
     require Relianoid::VPN::Core;
@@ -137,7 +137,7 @@ Parameters:
 Returns:
 	String - Tunnel VPN Routing status . up|down
 
-=cut 
+=cut
 
 sub getVpnTunnelRouteStatus ($vpn_name) {
     require Relianoid::VPN::Core;
@@ -162,7 +162,7 @@ Parameters:
 Returns:
 	String - Tunnel VPN Routing status . up|down
 
-=cut 
+=cut
 
 sub getVpnTunnelRouteConfigStatus ($vpn_name) {
     require Relianoid::VPN::Core;
@@ -215,7 +215,7 @@ Parameters:
 Returns:
 	String - Tunnel VPN Routing status . up|down
 
-=cut 
+=cut
 
 sub getVpnTunnelRouteSystemStatus ($vpn_name) {
     require Relianoid::VPN::Core;

@@ -53,11 +53,11 @@ Authentication via HTTP basic access authentication, using the HTTP header
 
 C<Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==>
 
-B<Arguments>: 
+B<Arguments>:
 
 IMPORTANT:
 
-- Relianoid::HTTP::POST() has an exception to not include arguments when 
+- Relianoid::HTTP::POST() has an exception to not include arguments when
 C<POST /session> is called, because the web GUI is sending a non-empty body.
 
 - This call should have no body, so also no content type.

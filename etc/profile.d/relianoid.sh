@@ -2,7 +2,7 @@
 
 export PATH="${PATH}:/usr/local/relianoid/bin"
 
-# If not using bash, it's most likely the load balancer is running a command 
+# If not using bash, it's most likely the load balancer is running a command
 # with environment variables
 [ -z "$BASH_VERSION" ] && return
 

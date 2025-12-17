@@ -93,7 +93,7 @@ sub createVPNIPSecConn ($conn_name, $conn_ref) {
 
 =head1 delVPNIPsecConn
 
-	Delete a IPSec connection 
+	Delete a IPSec connection
 
 Parameters:
 	$vpn_name - vpn name
@@ -123,7 +123,7 @@ sub delVPNIPSecConn ($vpn_name) {
 
 =head1 setVPNIPsecConn
 
-	Update a IPSec connection 
+	Update a IPSec connection
 
 Parameters:
 	$vpn_name - vpn name

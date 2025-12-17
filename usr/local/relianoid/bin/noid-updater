@@ -33,7 +33,6 @@ else
 	exit
 fi
 
-# TODO check edition ce/ee
 EDITION="ce"
 if [ "$(uname -r | grep -c noid)" == 1 ]; then
 	EDITION="ee"
@@ -224,13 +223,6 @@ function internetCheck {
 	fi
 }
 
-# function fulfillUpgradeConditions {
-# 	if [ ! conditions_to_comply ]; then
-# 		return 0
-# 	fi
-# 	return 1
-# }
-
 case "$1" in
 '')
 	offline_mode=0
@@ -340,79 +332,81 @@ case "$1" in
 
 '-U')
 	# Major Upgrade
-	logger "noid-updater: Warning: Already installed the latest version"
-	echo "Warning: Already installed the latest version"
+	logger "noid-updater: Executing noid-updater -U"
+	echo "Executing noid-updater -U ..."
 	echo ""
-	exit
+	offline_mode=0
+	APT_SOURCES=$apt_source_relianoid
+	GPG_FILE=$gpg_key_relianoid
+	DISTRO="trixie"
+	REPOVERSION=""
 
-	# logger "noid-updater: Executing noid-updater -U"
-	# echo "Executing noid-updater -U ..."
-	# echo ""
-	# upgrade=1
-	# offline_mode=0
-	# APT_SOURCES=$apt_source_relianoid
-	# GPG_FILE=$gpg_key_relianoid
-	# DISTRO=""
-	# RELEASE=""
+	if [ "$EDITION" == "ee" ]; then
+		REPOVERSION="v10"
+	else
+		REPOVERSION="v9"
+	fi
 
-	# if [ ! fulfillUpgradeConditions ] ; then
-	# 	exit
-	# fi
+	REPOURL="https://repo.relianoid.com/${EDITION}/${REPOVERSION}"
 
-	# if [ "$EDITION" == "ee" ]; then
-	# 	enableClusterUpdate
-	# fi
+	# BEGIN - check conditions
+	STATUS_CODE=$(curl -k -o /dev/null -s -w "%{http_code}" "$REPOURL")
+	if [ "$STATUS_CODE" -eq 404 ]; then
+		echo "Major upgrades to ${REPOVERSION} are not permitted."
+		logger "noid-updater: Major upgrades to ${REPOVERSION} are not permitted."
+		exit
+	fi
 
-	# if [ $upgrade -eq 1 ]; then
+	if [ -s "/usr/local/relianoid/config/cluster.conf" ]; then
+		echo "Remove the cluster before proceeding with the major upgrade."
+		logger "noid-updater: Remove the cluster before proceeding with the major upgrade."
+		exit
+	fi
+	# END - check conditions
 
-	# 	if ! internetCheck; then
-	# 		echo "Error connecting to RELIANOID Update System, check connection to https://repo.relianoid.com"
-	# 		logger "noid-updater: Error connecting to RELIANOID Update System, check connection to https://repo.relianoid.com"
-	# 		logger "noid-updater: Flag netcat SSL = $flag_netcatSSL"
-	# 		setAptOffline
-	# 		offline_mode=1
-	# 	else
-	# 		UmountMountPoint
+	if ! internetCheck; then
+		echo "Error connecting to RELIANOID Update System, check connection to https://repo.relianoid.com"
+		logger "noid-updater: Error connecting to RELIANOID Update System, check connection to https://repo.relianoid.com"
+		logger "noid-updater: Flag netcat SSL = $flag_netcatSSL"
+		setAptOffline
+		offline_mode=1
+	else
+		UmountMountPoint
 
-	#		GPG_PATH="/usr/share/keyrings"
+		GPG_PATH="/usr/share/keyrings"
 
-	# 		if [ ! -f "${GPG_PATH}/${GPG_FILE}" ]; then
-	# 			echo "No GPG found at ${GPG_PATH}/${GPG_FILE}"
-	# 		fi
-	# 		echo "deb [arch=amd64 signed-by=${GPG_PATH}/${GPG_FILE}] https://repo.relianoid.com/ee/v${RELEASE} ${DISTRO} main" > ${APT_SOURCES}
-	# 	fi
+		if [ ! -f "${GPG_PATH}/${GPG_FILE}" ]; then
+			echo "No GPG found at ${GPG_PATH}/${GPG_FILE}"
+		fi
+		echo "deb [arch=amd64 signed-by=${GPG_PATH}/${GPG_FILE}] ${REPOURL} ${DISTRO} main" > ${APT_SOURCES}
+	fi
 
-	# 	$aptget_bin update > /dev/null
+	$aptget_bin update > /dev/null
 
-	# 	#do this in order to update the web GUI alerts after any installation
-	# 	logger "noid-updater: Upgrading to RELIANOID v${RELEASE}"
-	# 	echo "   Upgrading to RELIANOID v${RELEASE}"
-	# 	echo ""
+	#do this in order to update the web GUI alerts after any installation
+	logger "noid-updater: Upgrading to RELIANOID ${REPOVERSION}"
+	echo "   Upgrading to RELIANOID ${REPOVERSION}"
+	echo ""
 
-	# 	# "noninteractive" mode can't be used because the EULA acceptance will fail.
-	# 	if ! $apt_bin dist-upgrade
-	# 	then
-	# 		logger "noid-updater: Error: Can not upgrade to RELIANOID v${RELEASE}"
-	# 		error "Error: Can not upgrade to RELIANOID v${RELEASE}"
-	# 	else
-	# 		logger "noid-updater: Successfully upgraded to RELIANOID v${RELEASE}"
-	# 		echo ""
-	# 		echo "   Successfully upgraded to RELIANOID v${RELEASE}"
-	# 	fi
-	# 	echo "RELIANOID Packages are up-to-date." > $apt_msg
-	# 	$apt_bin list --upgradable 2>/dev/null | cut -d"/" -f 1  | sed '1d' | tr  '\n' ' ' > $apt_outdated_list
-	# 	if [ $offline_mode -eq 1 ]; then
-	# 		UmountMountPoint
-	# 	fi
-	# fi
+	# "noninteractive" mode can't be used because the EULA acceptance will fail.
+	if ! $apt_bin dist-upgrade
+	then
+		logger "noid-updater: Error: Can not upgrade to RELIANOID ${REPOVERSION}"
+		error "Error: Can not upgrade to RELIANOID ${REPOVERSION}"
+	else
+		logger "noid-updater: Successfully upgraded to RELIANOID ${REPOVERSION}"
+		echo ""
+		echo "   Successfully upgraded to RELIANOID ${REPOVERSION}"
+	fi
+	echo "RELIANOID Packages are up-to-date." > $apt_msg
+	$apt_bin list --upgradable 2>/dev/null | cut -d"/" -f 1  | sed '1d' | tr  '\n' ' ' > $apt_outdated_list
+	if [ $offline_mode -eq 1 ]; then
+		UmountMountPoint
+	fi
 
-	# if [ "$EDITION" == "ee" ]; then
-	# 	disableClusterUpdate
-	# fi
-
-	# logger "noid-updater: noid-updater -U has been executed successfully."
-	# echo ""
-	# echo "noid-updater -U has been executed successfully."
+	logger "noid-updater: noid-updater -U has been executed successfully."
+	echo ""
+	echo "noid-updater -U has been executed successfully."
 ;;
 
 '-E')

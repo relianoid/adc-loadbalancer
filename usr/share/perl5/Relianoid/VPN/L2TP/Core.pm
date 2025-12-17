@@ -305,7 +305,7 @@ Parameters:
 Returns:
 	String - L2TP conn status . empty|unloaded|connecting|up|down
 
-=cut 
+=cut
 
 sub getVpnL2TPLnsStatus ($conn_name) {
     require Relianoid::VPN::L2TP::Runtime;

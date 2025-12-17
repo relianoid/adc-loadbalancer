@@ -46,7 +46,7 @@ Returns: integer - Error code
 0 on success
 -1 service already started
 1 error on VPNIPSec command
-2 error on start service 
+2 error on start service
 
 =cut
 

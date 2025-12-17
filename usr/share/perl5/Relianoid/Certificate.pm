@@ -178,7 +178,7 @@ sub is_cert_used_by_farm ($cert_file) {
 
 =head1 getCertFarmsUsed
 
-Get HTTPS Farms list using the certificate file. 
+Get HTTPS Farms list using the certificate file.
 
 Parameters:
 

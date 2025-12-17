@@ -47,7 +47,7 @@ Returns farm vip or farm port
 
 Parameters:
 
-    tag - requested parameter. The options are 
+    tag - requested parameter. The options are
           - "vip" for virtual ip
           - "vipp" for virtual port
 
@@ -193,12 +193,12 @@ Returns:
 
     problem
 
-        The farm is up and there are some backend unreachable, 
+        The farm is up and there are some backend unreachable,
         but almost a backend is in up status
 
     maintenance
 
-        The farm is up and there are backends in up status, 
+        The farm is up and there are backends in up status,
         but almost a backend is in maintenance mode.
 
 NOTE:
@@ -249,7 +249,6 @@ sub getFarmVipStatus ($farm_name) {
             }
         }
     }
-
     elsif ($type eq "gslb" && $eload) {
         my $stats = &eload(
             module => 'Relianoid::EE::Farm::GSLB::Stats',
@@ -258,7 +257,6 @@ sub getFarmVipStatus ($farm_name) {
         );
         $backends = $stats->{backends};
     }
-
     elsif ($type eq "eproxy" && $eload) {
         $backends = &eload(
            module => 'Relianoid::EE::Farm::Eproxy::Backend',
@@ -266,7 +264,6 @@ sub getFarmVipStatus ($farm_name) {
            args   => [ { farm_name => $farm_name } ],
         );
     }
-
     else {
         $backends = &getFarmServers($farm_name);
     }

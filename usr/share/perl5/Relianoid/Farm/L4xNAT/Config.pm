@@ -374,23 +374,23 @@ Parse the farm file configuration and read/write a certain parameter
 
 Parameters:
 
-    param - requested parameter. The options are 
-            "family", 
-            "vip", 
-            "vipp", 
-            "status", 
-            "mode", 
-            "alg", 
-            "proto", 
-            "persist", 
-            "presisttm", 
-            "limitsec", 
-            "limitsecbrst", 
-            "limitconns", 
-            "limitrst", 
-            "limitrstbrst", 
-            "bogustcpflags", 
-            "nfqueue", 
+    param - requested parameter. The options are
+            "family",
+            "vip",
+            "vipp",
+            "status",
+            "mode",
+            "alg",
+            "proto",
+            "persist",
+            "presisttm",
+            "limitsec",
+            "limitsecbrst",
+            "limitconns",
+            "limitrst",
+            "limitrstbrst",
+            "bogustcpflags",
+            "nfqueue",
             "sourceaddr"
 
     value - value to be changed in case of write operation, undef for read only cases
@@ -641,20 +641,20 @@ Returns:
 
     hash ref - hash with farm values
 
-    # %farm = 
+    # %farm =
     {
         $name,
         $filename,
         $nattype,
-        $lbalg, 
-        $vip, 
-        $vport, 
-        $vproto, 
-        $sourceip, 
-        $persist, 
-        $ttl, 
-        $proto, 
-        $status, 
+        $lbalg,
+        $vip,
+        $vport,
+        $vproto,
+        $sourceip,
+        $persist,
+        $ttl,
+        $proto,
+        $status,
         \@servers
     }
 

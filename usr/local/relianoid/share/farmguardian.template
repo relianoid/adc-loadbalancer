@@ -115,15 +115,6 @@ interval=15
 cut_conns=true
 template=true
 
-[check_common]
-description=Check the folder /usr/local/relianoid/libexec, which includes more checks, get more info about the health check with <command> --help.
-command=
-farms=
-log=false
-interval=15
-cut_conns=false
-template=true
-
 [check_sip]
 description=This check will test a SIP server/device for availability and response time.
 command=check_sip --username <name> --password <pass> -R HOST:PORT

@@ -35,7 +35,7 @@ Relianoid::HTTP::Controllers::API::VPN::Structs
 
 =pod
 
-=head1 getVpnResponse 
+=head1 getVpnResponse
 
 Translate the VPN Config params to API params.
 

@@ -39,7 +39,7 @@ Relianoid::VPN::RemoteAccess::Core
 
 =head1 getVpnRemoteAccessExists
 
-	Check if Remote Access VPN exits. 
+	Check if Remote Access VPN exits.
 
 Parameters:
 	$vpn_name - vpn connection name.
@@ -81,7 +81,7 @@ Parameters:
 Returns:
 	String - Remote Access VPN status . empty|connecting|up|down|l2tp down|ipsec down
 
-=cut 
+=cut
 
 sub getVpnRemoteAccessStatus ($vpn_name) {
     require Relianoid::VPN::Core;

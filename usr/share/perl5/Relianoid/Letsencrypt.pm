@@ -127,7 +127,7 @@ Parameters:
 
 Returns:
 
-    Hash ref - Letsencrypt Certificates
+    Array ref - Letsencrypt Certificates
 
 =cut
 
@@ -146,7 +146,10 @@ sub getLetsencryptCertificates ($le_cert_name = undef) {
             while (defined(my $file = readdir $directory)) {
                 next if $file eq ".";
                 next if $file eq "..";
-                push @{$certs}, $file if -d "$le_live_path/$file";
+
+                if (-d "$le_live_path/$file") {
+                    push @{$certs}, $file;
+                }
             }
             closedir($directory);
         }
@@ -160,15 +163,15 @@ sub getLetsencryptCertificates ($le_cert_name = undef) {
     my $domains;
 
     for my $cert (@{$certs}) {
-        # name
+        my $key_path  = "${le_live_path}/${cert}/privkey.pem";
+        my $cert_path = "${le_live_path}/${cert}/fullchain.pem";
+
         $cert_ref->{name} = $cert;
 
-        # key path
-        my $key_path = $le_live_path . "/" . $cert . "/privkey.pem";
-        $cert_ref->{keypath} = $key_path if (-l $key_path);
+        if (-l $key_path) {
+            $cert_ref->{keypath} = $key_path;
+        }
 
-        # certificate path
-        my $cert_path = $le_live_path . "/" . $cert . "/fullchain.pem";
         if (-l $cert_path) {
             $cert_ref->{certpath} = $cert_path;
 
@@ -176,15 +179,23 @@ sub getLetsencryptCertificates ($le_cert_name = undef) {
             eval {
                 my $x509 = Crypt::OpenSSL::X509->new_from_file($cert_ref->{certpath});
                 my $exts = $x509->extensions_by_name();
+
                 if (defined $exts->{subjectAltName}) {
                     my $value = $exts->{subjectAltName}->to_string() . ", ";
                     @{$domains} = $value =~ /(?:DNS:(.*?), )/g;
                 }
             };
+            if ($@) {
+                log_error("Could not read Let's Encrypt certificate $cert_ref->{certpath}: $@");
+            }
+
             $cert_ref->{domains} = $domains;
         }
 
-        push @{$le_certs_ref}, $cert_ref if defined $domains;
+        if (defined $domains) {
+            push @{$le_certs_ref}, $cert_ref;
+        }
+
         $cert_ref = undef;
         $domains  = undef;
     }

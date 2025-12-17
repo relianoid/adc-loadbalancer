@@ -21,16 +21,6 @@
 #
 ###############################################################################
 
-if [ -f /etc/firstbootsetpw ]; then
-    # Get GCP VM Instance ID
-    passwd=$(curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/id)
-
-    if [ $? -eq 0 ] && [ -n "$passwd" ]; then
-        echo -e "${passwd}\n${passwd}" | sudo passwd root 2>/dev/null
-        rm -f /etc/firstbootsetpw
-    fi
-fi
-
 # initialize nics configuration
 /etc/network/if-up.d/configure_nics
 

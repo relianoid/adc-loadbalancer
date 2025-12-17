@@ -374,7 +374,7 @@ Parameters:
 
 Returns:
 
-    Array - service names if service name param does not exist. 
+    Array - service names if service name param does not exist.
     Hash ref  - Hash ref $service_ref if service name param exists.
 
 Variable: $service_ref

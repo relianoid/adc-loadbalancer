@@ -75,13 +75,10 @@ sub add_farm_service_controller ($json_obj, $farmname) {
     }
     elsif ($type =~ /^https?$/) {
         my $params = &getAPIModel("farm_http_service-create.json");
-
-        # Check allowed parameters
         if (my $error_msg = &checkApiParams($json_obj, $params, $desc)) {
             return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg });
         }
 
-        # HTTP profile
         require Relianoid::HTTP::Controllers::API::Farm::Get::HTTP;
         require Relianoid::Farm::HTTP::Service;
 

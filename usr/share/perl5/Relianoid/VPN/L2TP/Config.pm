@@ -123,7 +123,7 @@ sub delVPNL2TPConf ($conn_name) {
 
 =head1 setVPNL2TPConf
 
-	Update a L2TP Configuration 
+	Update a L2TP Configuration
 
 Parameters:
 	$conn_name - String. Connection name
@@ -232,7 +232,7 @@ Create or update a key in the L2TP key file
 
 Parameters:
 
-	$vpn_name - VPN name 
+	$vpn_name - VPN name
 	$user_name - User name
 	$user_pass - User password
 

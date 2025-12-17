@@ -646,7 +646,7 @@ sub getParentInterfaceName ($if_name) {
 
 Get a reference to a list of all running (up) and configured network interfaces.
 
-Parameters: 
+Parameters:
     none - .
 
 Returns:
@@ -2150,7 +2150,7 @@ Create a VLAN from an interface hash
 
 Parameters:
 
-    $if_ref - VLAN interface reference 
+    $if_ref - VLAN interface reference
 
 Returns: integer
 

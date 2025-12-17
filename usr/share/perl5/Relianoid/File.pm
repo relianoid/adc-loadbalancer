@@ -119,13 +119,17 @@ sub setFile ($path, $content) {
 
 Insert an array in a file before or after a pattern
 
+Returns: integer - Error code.
+
+    0 - Success.
+    1 - Pattern not found.
+
 =cut
 
 sub insertFileWithPattern ($file, $array, $pattern, $opt = 'after') {
-    my $err = 0;
-
     my $index = 0;
     my $found = 0;
+
     tie my @fileconf, 'Tie::File', $file;
 
     for my $line (@fileconf) {
@@ -136,14 +140,19 @@ sub insertFileWithPattern ($file, $array, $pattern, $opt = 'after') {
         $index++;
     }
 
-    return 1 if (!$found);
+    if (!$found) {
+        untie @fileconf;
+        return 1;
+    }
 
-    $index++ if ($opt eq 'after');
+    if ($opt eq 'after') {
+        $index++;
+    }
 
     splice @fileconf, $index, 0, @{$array};
     untie @fileconf;
 
-    return $err;
+    return 0;
 }
 
 =pod

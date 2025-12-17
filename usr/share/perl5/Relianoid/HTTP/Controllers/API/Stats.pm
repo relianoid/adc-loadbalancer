@@ -49,6 +49,11 @@ sub _get_all_farm_stats_controller () {
         my $name = &getFarmName($file);
         my $type = &getFarmType($name);
 
+        if ($type eq 'datalink') {
+            # datalink has no stats
+            next;
+        }
+
         if ($type eq 'eproxy') {
             if ($eload) {
                 my $farm_stats = &eload(
@@ -66,25 +71,21 @@ sub _get_all_farm_stats_controller () {
             my $established = 0;
             my $pending     = 0;
 
-            # datalink has no stats
-            if ($type eq 'datalink') {
-                $established = undef;
-                $pending     = undef;
-            }
-            elsif ($status ne "down") {
+            if ($status ne "down") {
                 require Relianoid::Net::ConnStats;
                 require Relianoid::Farm::Stats;
 
                 my $netstat;
-                $netstat = &getConntrack('', $vip, '', '', '')
-                  if $type !~ /^https?$/;
 
-                $pending     = &getFarmSYNConns($name, $netstat);
+                if ($type !~ /^https?$/) {
+                    $netstat = &getConntrack('', $vip, '', '', '');
+                }
+
                 $established = &getFarmEstConns($name, $netstat);
+                $pending     = &getFarmSYNConns($name, $netstat);
             }
 
-            push @farms,
-              {
+            my $current_farm = {
                 farmname    => $name,
                 profile     => $type,
                 status      => $status,
@@ -92,7 +93,9 @@ sub _get_all_farm_stats_controller () {
                 vport       => $port,
                 established => $established,
                 pending     => $pending,
-              };
+            };
+
+            push @farms, $current_farm;
         }
     }
 

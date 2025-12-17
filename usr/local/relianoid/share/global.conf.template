@@ -409,7 +409,7 @@ $collector_rrd_dir="$lb_dir/var/noid-collector/rrd";#update
 $img_dir="/tmp";#update
 
 
-#Service to configure RELIANOID replication directory 
+#Service to configure RELIANOID replication directory
 $cluster_notify="$bin_dir/enterprise.bin noid-cluster-notify";#update
 #RELIANOID inotify pid file
 $cluster_notify_pid="/var/run/noid-cluster-notify.pid";#update
@@ -488,6 +488,8 @@ $mfaPortalTpl="$templatedir/mfa/mfa-cgi";#update
 $mfaPortalStaticRoot="$templatedir/mfa/mfa-portal";#update
 $mfaPortalCgiRoot="$mfaPath/portals";#update
 $mfaWebSrvConf="$mfaPath/nginx_server.conf";#update
+$mfaCronScript="$templatedir/mfa/scripts/noid-mfa-refresh-cookies.cron";#update
+$mfaCronSysPath="/etc/cron.daily/noid-mfa-refresh-cookies";#update
 
 # IPDS stats
 # How time wait to execute the stats rotate

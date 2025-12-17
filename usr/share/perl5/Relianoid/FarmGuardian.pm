@@ -146,10 +146,12 @@ Returns:
 =cut
 
 sub getFGExistsTemplate ($fg_name) {
-    if (!-f "$fg_template") {
+    if (!-f $fg_template) {
         return 0;
     }
+
     my $fh = Config::Tiny->read($fg_template);
+
     return (exists $fh->{$fg_name}) ? 1 : 0;
 }
 
@@ -215,10 +217,12 @@ Returns:
 =cut
 
 sub getFGTemplateList() {
-    if (!-f "$fg_template") {
+    if (!-f $fg_template) {
         return ();
     }
+
     my $fg_file = Config::Tiny->read($fg_template);
+
     return keys %{$fg_file};
 }
 
@@ -287,36 +291,36 @@ sub getFGObject ($fg_name, $use_template = '') {
 
     my $file = "";
 
-    # using template file if this parameter is sent
     if ($use_template eq 'template') {
+        # using template file if this parameter is sent
+        $file = $fg_template;
+    }
+    elsif (grep { $fg_name eq $_ } &getFGConfigList()) {
+        # using farmguardian config file by default
+        $file = $fg_conf;
+    }
+    else {
+        # using template file if farmguardian is not defined in config file
         $file = $fg_template;
     }
 
-    # using farmguardian config file by default
-    elsif (grep { $fg_name eq $_ } &getFGConfigList()) {
-        $file = $fg_conf;
-    }
-
-    # using template file if farmguardian is not defined in config file
-    else { $file = $fg_template; }
-
-    my $obj;
-    if (!-f "$file") {
+    if (!-f $file) {
         require Relianoid::File;
         createFile($file);
-        $obj = Config::Tiny->new;
-        return $obj;
+
+        return Config::Tiny->new();
     }
 
-    $obj = Config::Tiny->read($file);
+    my $obj = Config::Tiny->read($file);
 
-    if (!defined $fg_name || $fg_name =~ /^$/) {
+    if (!defined $fg_name || $fg_name eq '') {
         return $obj;
     }
 
     if (exists $obj->{$fg_name}) {
         $obj = $obj->{$fg_name};
         $obj = &setConfigStr2Arr($obj, ['farms']);
+
         return $obj;
     }
 
@@ -600,7 +604,7 @@ sub linkFGFarm ($fg_name, $farm, $srv = undef) {
     my $out;
 
     require Relianoid::Farm::Base;
-    my $farm_tag = ($srv) ? "${farm}_$srv" : "$farm";
+    my $farm_tag = ($srv) ? "${farm}_${srv}" : $farm;
 
     # if the fg does not exist in config file, take it from template file
     unless (&getFGExistsConfig($fg_name)) {
@@ -1090,7 +1094,7 @@ sub runFGFarmStart ($farm, $svice = undef) {
         &log_debug("Starting fg $fgname, farm $farm, $svice", "FG");
         my $fg = &getFGObject($fgname);
 
-        if ($fg->{log} eq 'true') {
+        if ($fg->{log} && $fg->{log} eq 'true') {
             $log = "-l";
         }
 

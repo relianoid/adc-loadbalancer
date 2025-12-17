@@ -54,7 +54,7 @@ tunnel - Tunnel VPN object. A hashref that maps an Tunnel VPN object
     remotemask -
     remotetunip -
     remotemask -
-    password - 
+    password -
     auth -
     p1encrypt - Defines the encryption of Phase1.
     p1authen - Defines the authentication of Phase1.

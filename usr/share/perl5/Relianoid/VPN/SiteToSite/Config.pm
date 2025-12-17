@@ -48,7 +48,7 @@ site_to_site - Site-to-Site VPN object. A hashref that maps an Site-to-Site VPN 
     remote -
     localnet -
     remotenet -
-    password - 
+    password -
     auth -
     p1encrypt - Defines the encryption of Phase1.
     p1authen - Defines the authentication of Phase1.

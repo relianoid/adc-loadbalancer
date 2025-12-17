@@ -256,7 +256,7 @@ Parameters:
 
     farm_name - farm that is going to be modified
     status    - Status to check. Only "down" status.
-    fix       - True, do the necessary changes to get the inconsistency fixed. 
+    fix       - True, do the necessary changes to get the inconsistency fixed.
 
 Returns:
 

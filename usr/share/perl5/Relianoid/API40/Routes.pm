@@ -365,8 +365,8 @@ if ($PATH_INFO =~ qr{^/system/(?:version|info|license|support|supportsave|langua
     GET qr{^/system/info$}        => \&get_system_info_controller;
     GET qr{^/system/support$}     => \&get_support_file_controller;
     GET qr{^/system/supportsave$} => \&get_support_file_controller;
-    # Using a non-capturing group as support(?:save)? to avoid repeating the 
-    # call to get_support_file_controller will send a count of matches to 
+    # Using a non-capturing group as support(?:save)? to avoid repeating the
+    # call to get_support_file_controller will send a count of matches to
     # get_support_file_controller, but this function accepts no arguments.
     # This repetition can be removed when the compatibility with
     # /system/supportsave is droped.

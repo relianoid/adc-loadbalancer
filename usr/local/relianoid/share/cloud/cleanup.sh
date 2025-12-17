@@ -34,7 +34,7 @@ rm -rf /root/.ssh/*
 rm -rf /root/*
 rm /root/.bash_history
 passwd -d root
-#rm -rf /opt/*
+sed -i "s/^root\:.*/root:*LOCK*:14600::::::/g" /etc/shadow
 for user in `ls /home/`; do
 	if [ "$user" == "azureuser" ]; then
 		rm -rf /home/$user/*

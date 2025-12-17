@@ -591,7 +591,7 @@ Parameters:
 
 Returns:
 
-    string - The possible values are: 
+    string - The possible values are:
 
     - disabled (default)
     - enabled
@@ -1229,7 +1229,7 @@ Returns farm vip or farm port
 
 Parameters:
 
-    tag - requested parameter. The options are 
+    tag - requested parameter. The options are
           - vip, for virtual ip
           - vipp, for virtual port
 

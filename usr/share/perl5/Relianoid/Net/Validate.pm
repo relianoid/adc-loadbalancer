@@ -76,8 +76,8 @@ It returns the protocols of layer 4 that use a profile or another protocol.
 
 Parameters:
 
-    profile - This parameter accepts a load balancer profile 
-              (for Layer 4 it returns the default one when the farm is created): 
+    profile - This parameter accepts a load balancer profile
+              (for Layer 4 it returns the default one when the farm is created):
                 "http", "https", "l4xnat", "gslb"
               or another protocol:
                 "tcp", "udp", "sctp", "amanda", "tftp", "netbios-ns",
@@ -144,10 +144,10 @@ Parameters:
 
     vip      - virtual IP
     port     - It accepts multiport string format
-    proto    - it is an array reference with the list of protocols to check in the port. 
+    proto    - it is an array reference with the list of protocols to check in the port.
                 The protocols can be 'sctp', 'udp', 'tcp' or 'all'
-    farmname - It is the farm that is being modified, if this parameter is passed, 
-                the configuration of this farm is ignored to avoid checking with itself. 
+    farmname - It is the farm that is being modified, if this parameter is passed,
+                the configuration of this farm is ignored to avoid checking with itself.
                 This parameter is optional
 
 Returns: integer
@@ -274,7 +274,7 @@ Parameters:
     port     - TCP port number. It accepts l4xnat multport format: intervals (55:66,70), all ports (*).
     protocol - It is an array reference with the protocols to check ("udp", "tcp" and "sctp"), if some of them is used, the function returns 0.
     farmname - If the configuration is set in this farm, the check is ignored and true. This parameters is optional.
-    process  - It is the process name to ignore. It is used when a process wants to be modified with all IPs parameter. 
+    process  - It is the process name to ignore. It is used when a process wants to be modified with all IPs parameter.
                The services to ignore are: "cherokee", "sshd" and "snmp"
 
 Returns: integer
@@ -379,10 +379,10 @@ Parameters:
 
     ip       - IP address. If the IP is '0.0.0.0', it checks that other farm or process are not using the port
     port     - TCP port number. It accepts l4xnat multport format: intervals (55:66,70), all ports (*).
-    protocol - It is an array reference with the protocols to check, if some of them is used, the function returns 0. 
+    protocol - It is an array reference with the protocols to check, if some of them is used, the function returns 0.
                 The accepted protocols are: 'all' (no one is checked), sctp, tcp and udp
     farmname - If the configuration is set in this farm, the check is ignored and true. This parameters is optional.
-    process  - It is the process name to ignore. It is used when a process wants to be modified with all IPs parameter. 
+    process  - It is the process name to ignore. It is used when a process wants to be modified with all IPs parameter.
                 The services to ignore are: "cherokee", "sshd" and "snmp"
 
 Returns: integer

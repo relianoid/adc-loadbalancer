@@ -41,7 +41,7 @@ Relianoid::HTTP::Controllers::API::VPN::Core
 #GET /vpns
 sub list_vpn_controller () {
     my @out;
-    my $desc = "List VPNS";
+    my $desc = "List VPNs";
 
     require Relianoid::VPN::Core;
 
@@ -73,7 +73,7 @@ sub list_vpn_controller () {
 
 #GET /vpns/(vpn_re)
 sub get_vpn_controller ($vpn_name) {
-    my $desc = "List VPN $vpn_name";
+    my $desc = "Get VPN $vpn_name";
 
     require Relianoid::VPN::Core;
 

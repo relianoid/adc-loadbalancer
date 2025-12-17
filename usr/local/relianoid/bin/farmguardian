@@ -127,6 +127,7 @@ else {
     $fg_conf     = &getFGObject($fgname);
     $timetocheck = $fg_conf->{interval};
     $timeout     = $fg_conf->{timeout};
+
     if ($fg_conf->{command} =~ /(.*);(\w+)\s+((:?\d\s*)+)$/) {
         $check_cmd_tpl = $1;
         @{$http_prio} = split(/\s+/, $3) if $2 eq "priority";
@@ -134,6 +135,7 @@ else {
     else {
         $check_cmd_tpl = $fg_conf->{command};
     }
+
     $cutConns = $fg_conf->{cut_conns};
     $useAlias = $fg_conf->{backend_alias} if ($useAlias ne 'true');         #
     $logging  = 'enabled'                 if ($fg_conf->{log} eq 'true');

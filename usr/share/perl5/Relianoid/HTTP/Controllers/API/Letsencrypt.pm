@@ -48,6 +48,7 @@ sub list_le_cert_controller () {
             push @out, &getLetsencryptCertificateInfo($cert->{name});
         }
     }
+
     if ($eload) {
         my $wildcards = &eload(
             module => 'Relianoid::EE::Letsencrypt::Wildcard',

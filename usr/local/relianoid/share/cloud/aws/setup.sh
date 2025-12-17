@@ -23,7 +23,6 @@
 
 # setup rc.local
 dir="/usr/local/relianoid/share/cloud/aws"
-cp $dir/rc.local /etc/rc.local
 
 # setup dhcp interfaces
 SHARE_DIR="/usr/local/relianoid/share"

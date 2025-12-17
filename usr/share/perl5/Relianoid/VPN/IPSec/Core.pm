@@ -211,7 +211,7 @@ Parameters:
 Returns:
 	String - IPSec conn status . empty|unloaded|connecting|up|down
 
-=cut 
+=cut
 
 sub getVpnIPSecStatus ($conn_name) {
     require Relianoid::VPN::IPSec::Runtime;
@@ -264,7 +264,7 @@ Parameters:
 Returns:
 	Hash ref - Undef on error.
 
-=cut 
+=cut
 
 sub getVpnIPSecInfo ($conn_name) {
     require Relianoid::VPN::IPSec::Runtime;
@@ -293,7 +293,7 @@ Parameters:
 Returns:
 	Hash ref - Undef on error.
 
-=cut 
+=cut
 
 sub getVpnIPSecStats ($conn_name) {
     my $stats_ref;

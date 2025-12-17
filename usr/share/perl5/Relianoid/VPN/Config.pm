@@ -49,7 +49,7 @@ Parameters:
 
     vpn_ref - vpn object
 
-    site_to_site_sobject = ( 
+    site_to_site_sobject = (
         name =>  vpnname,
         profile => vpntype,
         leftauth => vpnauth,
@@ -485,7 +485,7 @@ Parameters:
     mode      - string - Type of Virtual Interface. gre, ip6gre
     local_ip  - string - Local End Point of the tunnel.
     remote_ip - string - Remote End Point of the tunnel.
-    ip        - string - Virtual Interface Ip address 
+    ip        - string - Virtual Interface Ip address
     mask      - string - Virtual Interface Netmask
 
 Returns: integer - error code

@@ -183,7 +183,7 @@ Parameters:
         In "--create" mode, the mask is ignored.
 
     label LABEL
-        Specify a conntrack label. 
+        Specify a conntrack label.
         This option is only available in conjunction with "-L, --dump", "-E, --event", "-U --update" or "-D --delete".
         Match entries whose labels match at least those specified.
         Use multiple -l commands to specify multiple labels that need to be set.

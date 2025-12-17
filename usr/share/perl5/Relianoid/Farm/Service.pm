@@ -49,7 +49,7 @@ Parameters:
 
 Returns:
 
-    Array - list of service names 
+    Array - list of service names
 
 =cut
 

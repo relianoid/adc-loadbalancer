@@ -93,7 +93,7 @@ Parameters:
 Returns: integer - Error code.
 
 - 0: success
-- 1: error 
+- 1: error
 
 =cut
 

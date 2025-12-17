@@ -21,16 +21,6 @@
 #
 ###############################################################################
 
-if [ -f /etc/firstbootsetpw ]; then
-    # Get Azure VM Instance ID
-    passwd=$(curl -s -H Metadata:true "http://169.254.169.254/metadata/instance/compute?api-version=2021-02-01" | jq -r '.vmId')
-
-    if [ $? -eq 0 ] && [ -n "$passwd" ]; then
-        echo -e "${passwd}\n${passwd}" | sudo passwd root 2>/dev/null
-        rm -f /etc/firstbootsetpw
-    fi
-fi
-
 # initialize nics configuration
 /etc/network/if-up.d/configure_nics
 

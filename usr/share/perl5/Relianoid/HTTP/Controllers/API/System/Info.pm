@@ -139,7 +139,7 @@ sub get_system_info_controller () {
 
 # POST /system/language
 sub set_language_controller ($json_obj) {
-    my $desc   = "Modify the WebGUI language";
+    my $desc   = "Modify the web GUI language";
     my $params = &getAPIModel("system_language-modify.json");
 
     # Check allowed parameters
@@ -162,7 +162,7 @@ sub set_language_controller ($json_obj) {
 
 # GET /system/language
 sub get_language_controller () {
-    my $desc = "List the WebGUI language";
+    my $desc = "Get the web GUI language";
     my $lang = &getGlobalConfiguration('lang') || 'en';
 
     return &httpResponse({

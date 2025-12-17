@@ -153,7 +153,7 @@ sub getBackupFilename ($backup) {
 
 =pod
 
-=head1 uploadBackup 
+=head1 uploadBackup
 
 Store an uploaded backup.
 

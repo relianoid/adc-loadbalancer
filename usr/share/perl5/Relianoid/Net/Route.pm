@@ -313,13 +313,13 @@ sub addlocalnet ($if_ref) {
 =head1 isRoute
 
 Checks if any of the routes applied to the system matchs according to the input parameters.
-It receives the ip route command line options and it checks the system. 
+It receives the ip route command line options and it checks the system.
 Example. "src 1.1.12.5 dev eth3 table table_eth3".
 
 Parameters:
 
     route      - command line options for the "ip route list" command.
-    ip_version - version used for the ip command. If this parameter is not used, 
+    ip_version - version used for the ip command. If this parameter is not used,
                 the command will be executed without this flag
 
 Returns:

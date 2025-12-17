@@ -39,7 +39,7 @@ use feature qw(signatures);
 
 Parameters:
 
-Returns: 
+Returns:
 
 =cut
 

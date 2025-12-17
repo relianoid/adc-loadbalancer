@@ -308,9 +308,12 @@ sub httpResponse ($response) {
     my $q      = &getCGI();
     my $origin = '*';
 
-    if (not get_http_api_key()) {
-        my $cors_devel_mode = &getGlobalConfiguration('cors_devel_mode') eq "true";
-        $origin = $cors_devel_mode ? $ENV{HTTP_ORIGIN} : "https://$ENV{HTTP_HOST}";
+    if (my $is_cors_devel_mode_enabled = &getGlobalConfiguration('cors_devel_mode') eq "true") {
+        # When CORS devel mode is enabled and an Origin is received
+        # the allowed origin is set. Defaults to *.
+        if ($ENV{HTTP_ORIGIN}) {
+            $origin = $ENV{HTTP_ORIGIN};
+        }
     }
 
     # Headers included in all the responses, any method, any URI, sucess or error

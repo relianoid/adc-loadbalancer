@@ -55,7 +55,7 @@ Returns:
 
     Hash ref - It is a hash with the following keys:
 
-    'session' 
+    'session'
 
         Returns the session token.
 
@@ -117,7 +117,7 @@ Returns:
 
     array ref - Returns a list of hash references with the following parameters:
 
-    "client" 
+    "client"
 
         is the client position entry in the session table
 
