@@ -318,3 +318,4 @@ mime!video/x-sgi-movie!extensions = movie
 mime!x-conference/x-cooltalk!extensions = ice
 mime!x-world/x-vrml!extensions = vrm,vrml,wrl
 admin!lang = en
+vserver!1!hsts = 1

@@ -299,6 +299,10 @@ case "$1" in
 			UmountMountPoint
 		fi
 
+		echo "   Cleaning-up obsolete kernels"
+		echo ""
+		DEBIAN_FRONTEND=noninteractive $aptget_bin remove -y --purge linux-*-4.* 2>/dev/null >/dev/null
+
 		$aptget_bin update > /dev/null
 		#do this in order to update the web GUI alerts after any installation
 		logger "noid-updater: Installing new RELIANOID Packages"
@@ -312,7 +316,29 @@ case "$1" in
 			logger "noid-updater: New RELIANOID Packages have been installed"
 			echo ""
 			echo "   New RELIANOID Packages have been installed"
+			echo ""
 		fi
+
+		echo "   Cleaning-up obsolete packages"
+		echo ""
+		# profile owned by zevenet-base-files
+		#cp /etc/profile /etc/profile_bck 2>/dev/null >/dev/null
+		#$aptget_bin remove -y --purge zevenet-base-files 2>/dev/null >/dev/null
+		#mv /etc/profile_bck /etc/profile 2>/dev/null >/dev/null
+		#$aptget_bin remove -y --purge zevenet 2>/dev/null >/dev/null
+		$aptget_bin remove -y --purge zproxy 2>/dev/null >/dev/null
+		#$aptget_bin remove -y --purge zevenet-gui-core 2>/dev/null >/dev/null
+		#$aptget_bin remove -y --purge zevenet-ipds 2>/dev/null >/dev/null
+		#$aptget_bin remove -y --purge zcli 2>/dev/null >/dev/null
+		DEBIAN_FRONTEND=noninteractive $aptget_bin remove -y --purge $(dpkg -l | grep deb10 | awk '{ print $2 }' | xargs)
+		DEBIAN_FRONTEND=noninteractive $aptget_bin -y autoremove
+		$aptget_bin clean
+		$aptget_bin update > /dev/null
+
+		if dpkg -s relianoid >/dev/null 2>&1 || dpkg -s relianoid-gui >/dev/null 2>&1 || dpkg -s relianoid-cli >/dev/null 2>&1 ; then
+			$aptget_bin -y install relianoid relianoid-gui relianoid-cli
+		fi
+
 		echo "RELIANOID Packages are up-to-date." > $apt_msg
 		$apt_bin list --upgradable 2>/dev/null | cut -d"/" -f 1  | sed '1d' | tr  '\n' ' ' > $apt_outdated_list
 		
