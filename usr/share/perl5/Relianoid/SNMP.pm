@@ -44,7 +44,7 @@ Start or stop the SNMP service.
 
 Parameters:
 
-    snmpd_status - 'true' to start, or 'stop' to stop the SNMP service.
+    snmpd_status - 'true' to start, or 'false' to stop the SNMP service.
 
 Returns:
 
@@ -199,6 +199,7 @@ Returns:
 
 sub setSnmpdDefaultConfig () {
     my $snmp_config = &getSnmpdConfig();
+    # $snmpd_conf->{changed} will be 1 always
     if ($snmp_config->{changed} == 0) {
         $snmp_config = &setSnmpdFactoryReset();
     }
@@ -242,6 +243,7 @@ sub getSnmpdDefaultConfig () {
         community_mode => "rocommunity",
         community      => "public",
         scope          => "0.0.0.0/0",
+        status         => "false",
     };
 
     return $snmpd_conf;
@@ -314,11 +316,17 @@ sub getSnmpdConfig () {
 
     for my $line (@config_file) {
         next if ($line =~ /^\s*$/);
+
+        # $snmpd_conf->{changed} will be zero if &getGlobalConfiguration('snmpdconfig_file')
+        # has (# EXAMPLE.conf|# An example configuration file) but now 
+        # &getGlobalConfiguration('snmpdconfig_file') is
+        # /etc/snmp/snmpd.conf.d/50-relianoid.conf, 
+        # so $snmpd_conf->{changed} will be 1 always
         $snmpd_conf->{changed} = 0
           if ($line =~ /^(# EXAMPLE.conf|# An example configuration file)/);
-        next if ($line =~ /^\s*#/);
+
         chomp($line);
-        if ($line =~ /^\s*agentAddress\s+/) {
+        if ($line =~ /^\s*#?\s*agentAddress\s+/i) {
             my (undef, $aline) = split(/\s+/, $line);
             if ($aline =~ /udp:|tcp:/) {
                 ($snmpd_conf->{proto}, $snmpd_conf->{ip}, $snmpd_conf->{port}) = split(/:/, $aline);
@@ -328,37 +336,38 @@ sub getSnmpdConfig () {
             }
             $snmpd_conf->{ip} = '*' if ($snmpd_conf->{ip} eq '0.0.0.0');
         }
-        elsif ($line =~ /^..community\s+/) {
+        elsif ($line =~ /^\s*#?\s*..community\s+/i) {
             ($snmpd_conf->{community_mode}, $snmpd_conf->{community}, $snmpd_conf->{scope}) =
               split(/\s+/, $line);
+            $snmpd_conf->{community_mode} =~ s/^\s*#\s*//;
             $snmpd_conf->{scope} = "0.0.0.0/0" if ($snmpd_conf->{scope} =~ /default/);
         }
-        elsif ($line =~ /^trapcommunity\s+/) {
+        elsif ($line =~ /^\s*#?\s*trapcommunity\b/i) {
             (undef, $snmpd_conf->{trapcommunity}) = split(/\s+/, $line);
         }
-        elsif ($line =~ /^authtrapenable\s+/) {
+        elsif ($line =~ /^\s*#?\s*authtrapenable\b/i) {
             (undef, $snmpd_conf->{authtrapenable}) = split(/\s+/, $line);
         }
-        elsif ($line =~ /^createuser\s+/) {
+        elsif ($line =~ /^\s*#?\s*createuser\b/i) {
             (
                 undef,                               $snmpd_conf->{createuser_user}, $snmpd_conf->{createuser_auth},
                 $snmpd_conf->{createuser_auth_pass}, $snmpd_conf->{createuser_priv}, $snmpd_conf->{createuser_priv_pass}
             ) = split(/\s+/, $line);
         }
-        elsif ($line =~ /^iquerysecname\s+/) {
+        elsif ($line =~ /^\s*#?\s*iquerysecname\b/i) {
             (undef, $snmpd_conf->{iquerysecname}) = split(/\s+/, $line);
         }
-        elsif ($line =~ /^..user\s+/) {
+        elsif ($line =~ /^\s*#?\s*..user\b/i) {
             ($snmpd_conf->{user_mode}, $snmpd_conf->{user}) = split(/\s+/, $line);
         }
-        elsif ($line =~ /^trapsink\s+/) {
+        elsif ($line =~ /^\s*#?\s*trapsink\b/i) {
             (undef, $snmpd_conf->{trapsink_host}, $snmpd_conf->{trapsink_port}) =
               split(/\s+/, $line);
         }
-        elsif ($line =~ /^trap2sink\s+/) {
+        elsif ($line =~ /^\s*#?\s*trap2sink\b/i) {
             (undef, $snmpd_conf->{trap2sink_host}) = split(/\s+/, $line);
         }
-        elsif ($line =~ /^trapsess\s+/) {
+        elsif ($line =~ /^\s*#?\s*trapsess\b/i) {
             $snmpd_conf->{trapsess} = 'true';
             my @trap_line = split(/\s+/, $line);
             my $i         = 0;
@@ -404,19 +413,19 @@ sub getSnmpdConfig () {
                 $i += 1;
             }
         }
-        elsif ($line =~ /^linkUpDownNotifications\s+/) {
+        elsif ($line =~ /^\s*#?\s*linkUpDownNotifications\b/i) {
             (undef, $snmpd_conf->{notif_linkupdown}) = split(/\s+/, $line);
         }
-        elsif ($line =~ /^defaultMonitors\s+/) {
+        elsif ($line =~ /^\s*#?\s*defaultMonitors\b/i) {
             (undef, $snmpd_conf->{notif_defmonitors}) = split(/\s+/, $line);
         }
-        elsif ($line =~ /^load\s+/) {
+        elsif ($line =~ /^\s*#?\s*load\b/i) {
             (undef, $snmpd_conf->{load}) = split(/\s+/, $line);
         }
-        elsif ($line =~ /^includeAllDisks\s+/) {
+        elsif ($line =~ /^\s*#?\s*includeAllDisks\b/i) {
             (undef, $snmpd_conf->{disks}) = split(/\s+/, $line);
         }
-        elsif ($line =~ /^monitor\s+/) {
+        elsif ($line =~ /^\s*#?\s*monitor\b/i) {
             $snmpd_conf->{monitors} = () unless (defined $snmpd_conf->{monitors});
             (my $newline = $line) =~ s/^monitor\s+//;
             push(@{ $snmpd_conf->{monitors} }, $newline);
@@ -475,8 +484,10 @@ sub _setSnmpdConfig ($snmpd_conf) {
 
     return -1 if ref $snmpd_conf ne 'HASH';
 
-    my $ip = $snmpd_conf->{ip};
-    $ip = '0.0.0.0' if ($snmpd_conf->{ip} eq '*');
+    my $ip = $snmpd_conf->{ip} eq '*' ? '0.0.0.0' : $snmpd_conf->{ip};
+
+    my $snmp_state = defined $snmpd_conf->{status} && $snmpd_conf->{status} eq "false" ? "#" : "";
+    $snmpd_conf->{community_mode} = "ro" if (!defined $snmpd_conf->{community_mode});
 
     # scope has to be network range definition
     require NetAddr::IP;
@@ -496,21 +507,21 @@ sub _setSnmpdConfig ($snmpd_conf) {
         close $lock_fh;
         unlink $lock_file;
 
-        @contents = grep { !/^agentAddress/ } @contents;
-        @contents = grep { !/^..community/ } @contents             if (defined $snmpd_conf->{community_mode});
-        @contents = grep { !/^trapcommunity/ } @contents           if (defined $snmpd_conf->{trapcommunity});
-        @contents = grep { !/^authtrapenable/ } @contents          if (defined $snmpd_conf->{authtrapenable});
-        @contents = grep { !/^createuser/ } @contents              if (defined $snmpd_conf->{createuser_user});
-        @contents = grep { !/^iquerysecname/ } @contents           if (defined $snmpd_conf->{iquerysecname});
-        @contents = grep { !/^..user/ } @contents                  if (defined $snmpd_conf->{user_mode});
-        @contents = grep { !/^trapsink/ } @contents                if (defined $snmpd_conf->{trapsink});
-        @contents = grep { !/^trap2sink/ } @contents               if (defined $snmpd_conf->{trap2sink});
-        @contents = grep { !/^trapsess/ } @contents                if (defined $snmpd_conf->{trapsess});
-        @contents = grep { !/^linkUpDownNotifications/ } @contents if (defined $snmpd_conf->{notif_linkupdown});
-        @contents = grep { !/^defaultMonitors/ } @contents         if (defined $snmpd_conf->{notif_defmonitors});
-        @contents = grep { !/^load/ } @contents                    if (defined $snmpd_conf->{load});
-        @contents = grep { !/^includeAllDisks/ } @contents         if (defined $snmpd_conf->{disks});
-        @contents = grep { !/^monitor/ } @contents                 if (defined $snmpd_conf->{monitors});
+        @contents = grep { !/^\s*#?\s*agentAddress\b/i } @contents;
+        @contents = grep { !/^\s*#?\s*..community\b/i } @contents             if (defined $snmpd_conf->{community_mode});
+        @contents = grep { !/^\s*#?\s*trapcommunity\b/i } @contents           if (defined $snmpd_conf->{trapcommunity});
+        @contents = grep { !/^\s*#?\s*authtrapenable\b/i } @contents          if (defined $snmpd_conf->{authtrapenable});
+        @contents = grep { !/^\s*#?\s*createuser\b/i } @contents              if (defined $snmpd_conf->{createuser_user});
+        @contents = grep { !/^\s*#?\s*iquerysecname\b/i } @contents           if (defined $snmpd_conf->{iquerysecname});
+        @contents = grep { !/^\s*#?\s*..user\b/i } @contents                  if (defined $snmpd_conf->{user_mode});
+        @contents = grep { !/^\s*#?\s*trapsink\b/i } @contents                if (defined $snmpd_conf->{trapsink});
+        @contents = grep { !/^\s*#?\s*trap2sink\b/i } @contents               if (defined $snmpd_conf->{trap2sink});
+        @contents = grep { !/^\s*#?\s*trapsess\b/i } @contents                if (defined $snmpd_conf->{trapsess});
+        @contents = grep { !/^\s*#?\s*linkUpDownNotifications\b/i } @contents if (defined $snmpd_conf->{notif_linkupdown});
+        @contents = grep { !/^\s*#?\s*defaultMonitors\b/i } @contents         if (defined $snmpd_conf->{notif_defmonitors});
+        @contents = grep { !/^\s*#?\s*load\b/i } @contents                    if (defined $snmpd_conf->{load});
+        @contents = grep { !/^\s*#?\s*includeAllDisks\b/i } @contents         if (defined $snmpd_conf->{disks});
+        @contents = grep { !/^\s*#?\s*monitor\b/i } @contents                 if (defined $snmpd_conf->{monitors});
     }
     else {
         close $lock_fh;
@@ -520,31 +531,32 @@ sub _setSnmpdConfig ($snmpd_conf) {
     my $index = $default_index;
 
     if (defined $snmpd_conf->{proto}) {
-        splice @contents, $index, 0, "agentAddress $snmpd_conf->{proto}:$ip:$snmpd_conf->{port}\n";
+        splice @contents, $index, 0, "${snmp_state}agentAddress $snmpd_conf->{proto}:$ip:$snmpd_conf->{port}\n";
         $index++;
     }
     else {
-        splice @contents, $index, 0, "agentAddress $ip:$snmpd_conf->{port}\n";
+        splice @contents, $index, 0, "${snmp_state}agentAddress $ip:$snmpd_conf->{port}\n";
         $index++;
     }
 
     if (defined $snmpd_conf->{community_mode} and $snmpd_conf->{community} and $snmpd_conf->{scope}) {
-        splice @contents, $index, 0, "$snmpd_conf->{community_mode} $snmpd_conf->{community} $snmpd_conf->{scope}\n";
+        splice @contents, $index, 0,
+          "${snmp_state}$snmpd_conf->{community_mode} $snmpd_conf->{community} $snmpd_conf->{scope}\n";
         $index++;
     }
 
     if (defined $snmpd_conf->{trapcommunity}) {
-        splice @contents, $index, 0, "trapcommunity $snmpd_conf->{trapcommunity}\n";
+        splice @contents, $index, 0, "${snmp_state}trapcommunity $snmpd_conf->{trapcommunity}\n";
         $index++;
     }
 
     if (defined $snmpd_conf->{authtrapenable}) {
-        splice @contents, $index, 0, "authtrapenable $snmpd_conf->{authtrapenable}\n";
+        splice @contents, $index, 0, "${snmp_state}authtrapenable $snmpd_conf->{authtrapenable}\n";
         $index++;
     }
 
     if (defined $snmpd_conf->{createuser_user}) {
-        my $line = "createuser $snmpd_conf->{createuser_user}";
+        my $line = "${snmp_state}createuser $snmpd_conf->{createuser_user}";
         $line .= " $snmpd_conf->{createuser_auth}"      if ($snmpd_conf->{createuser_auth});
         $line .= " $snmpd_conf->{createuser_auth_pass}" if ($snmpd_conf->{createuser_auth_pass});
         $line .= " $snmpd_conf->{createuser_priv}"      if ($snmpd_conf->{createuser_priv});
@@ -554,28 +566,28 @@ sub _setSnmpdConfig ($snmpd_conf) {
         $index++;
 
         if (defined $snmpd_conf->{user_mode}) {
-            splice @contents, $index, 0, "$snmpd_conf->{user_mode} $snmpd_conf->{createuser_user}\n";
+            splice @contents, $index, 0, "${snmp_state}$snmpd_conf->{user_mode} $snmpd_conf->{createuser_user}\n";
             $index++;
         }
     }
 
     if (defined $snmpd_conf->{iquerysecname}) {
-        splice @contents, $index, 0, "iquerysecname $snmpd_conf->{iquerysecname}\n";
+        splice @contents, $index, 0, "${snmp_state}iquerysecname $snmpd_conf->{iquerysecname}\n";
         $index++;
     }
 
     if (defined $snmpd_conf->{trapsink}) {
-        splice @contents, $index, 0, "trapsink $snmpd_conf->{trapsink}\n";
+        splice @contents, $index, 0, "${snmp_state}trapsink $snmpd_conf->{trapsink}\n";
         $index++;
     }
 
     if (defined $snmpd_conf->{trap2sink}) {
-        splice @contents, $index, 0, "trap2sink $snmpd_conf->{trap2sink}\n";
+        splice @contents, $index, 0, "${snmp_state}trap2sink $snmpd_conf->{trap2sink}\n";
         $index++;
     }
 
     if (defined $snmpd_conf->{trapsess}) {
-        my $line = "trapsess ";
+        my $line = "${snmp_state}trapsess ";
         $line .= "-v $snmpd_conf->{trapsess_version} "   if ($snmpd_conf->{trapsess_version});
         $line .= "-u $snmpd_conf->{trapsess_user} "      if ($snmpd_conf->{trapsess_user});
         $line .= "-e $snmpd_conf->{trapsess_engine} "    if ($snmpd_conf->{trapsess_engine});
@@ -591,28 +603,28 @@ sub _setSnmpdConfig ($snmpd_conf) {
     }
 
     if (defined $snmpd_conf->{notif_linkupdown}) {
-        splice @contents, $index, 0, "linkUpDownNotifications $snmpd_conf->{notif_linkupdown}\n";
+        splice @contents, $index, 0, "${snmp_state}linkUpDownNotifications $snmpd_conf->{notif_linkupdown}\n";
         $index++;
     }
 
     if (defined $snmpd_conf->{notif_defmonitors}) {
-        splice @contents, $index, 0, "defaultMonitors $snmpd_conf->{notif_defmonitors}\n";
+        splice @contents, $index, 0, "${snmp_state}defaultMonitors $snmpd_conf->{notif_defmonitors}\n";
         $index++;
     }
 
     if (defined $snmpd_conf->{load}) {
-        splice @contents, $index, 0, "load $snmpd_conf->{load}\n";
+        splice @contents, $index, 0, "${snmp_state}load $snmpd_conf->{load}\n";
         $index++;
     }
 
     if (defined $snmpd_conf->{disks}) {
-        splice @contents, $index, 0, "includeAllDisks $snmpd_conf->{disks}\n";
+        splice @contents, $index, 0, "${snmp_state}includeAllDisks $snmpd_conf->{disks}\n";
         $index++;
     }
 
     if (defined $snmpd_conf->{monitors}) {
         for my $monitor (@{ $snmpd_conf->{monitors} }) {
-            splice @contents, $index, 0, "monitor $monitor\n";
+            splice @contents, $index, 0, "${snmp_state}monitor $monitor\n";
             $index++;
         }
     }

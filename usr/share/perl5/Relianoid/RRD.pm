@@ -428,6 +428,7 @@ sub genDiskGraph ($type, $graph, $start, $end) {
             "-l 0",                                    #
             "-a",                                      #
             "$imagetype",                              #
+            "--base=1024",                             #
             "DEF:tot=${hd_db}:tot:AVERAGE",            #
             "DEF:used=${hd_db}:used:AVERAGE",          #
             "DEF:free=${hd_db}:free:AVERAGE",          #

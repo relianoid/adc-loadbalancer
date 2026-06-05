@@ -452,7 +452,7 @@ sub modify_farm_service_controller ($json_obj, $farmname, $service) {
                 );
 
                 if ($err) {
-                    my $msg = "Error modifying STS status.";
+                    my $msg = "Error modifying STS timeout.";
                     return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
                 }
             }

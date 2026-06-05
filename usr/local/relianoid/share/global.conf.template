@@ -96,7 +96,7 @@ $bios_version="/sys/devices/virtual/dmi/id/bios_version";
 $networking_service="networking.service";#update
 
 #SNMP Service
-$snmpdconfig_file="/etc/snmp/snmpd.conf";
+$snmpdconfig_file="/etc/snmp/snmpd.conf.d/50-relianoid.conf";#update
 $snmpd_service="snmpd.service";#update
 $snmptrap_cmd="/usr/bin/snmptrap";#update
 

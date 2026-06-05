@@ -427,22 +427,31 @@ Returns: none
 sub migrateConfigFiles () {
     # Avoid configuration dependency before migrations.
     my $migrations_dir = '/usr/local/relianoid/migrations';
+    my $migrations_count = 0;
+    my $errors_count = 0;
 
     opendir(my $dh, $migrations_dir);
     my @files = grep { -f "${migrations_dir}/$_" } sort readdir($dh);
     closedir $dh;
 
     for my $file (@files) {
-        my $errno = system("${migrations_dir}/${file} >/dev/null");
+        $migrations_count++;
+        my $command = "${migrations_dir}/${file}";
+        my $errno = system("$command >/dev/null");
         my $msg   = "";
 
         if ($errno == 0) {
             log_info($file);
         }
         else {
+            $errors_count++;
             log_error($file);
         }
     }
+
+    my $msg = "Ran $migrations_count migrations, $errors_count errors.";
+    log_info($msg);
+    say STDERR $msg;
 
     return;
 }

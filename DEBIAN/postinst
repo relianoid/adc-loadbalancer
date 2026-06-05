@@ -70,9 +70,6 @@ if systemctl -q is-active sshd.service; then
     systemctl reload sshd.service
 fi
 
-# SNMP service
-perl -MRelianoid::SNMP -E "&setSnmpdDefaultConfig();"
-
 ## Create configuration files
 
 # Install or update Relianoid cron file
@@ -94,8 +91,10 @@ if [ ! -L $LIBEXEC_PATH/check_uplink ]; then
 fi
 
 # Apply all migrating scripts to RELIANOID
-MIGRATIONS_DIR="/usr/local/relianoid/migrations"
-for SCRIPT in "$MIGRATIONS_DIR"/*; do $SCRIPT; done
+#
+# run migration
+#
+perl -MRelianoid::Config -e "migrateConfigFiles()"
 
 ## Migrations from Zevenet to Relianoid
 

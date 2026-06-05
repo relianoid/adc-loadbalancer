@@ -267,76 +267,26 @@ Returns:
 =cut
 
 sub restoreBackup ($backup) {
-    my $error;
-    my $tar               = &getGlobalConfiguration('tar');
-    my $file              = &getGlobalConfiguration('backupdir') . "/backup-$backup.tar.gz";
-    my $relianoid_service = &getGlobalConfiguration('relianoid_service');
-    my $systemctl         = &getGlobalConfiguration('systemctl');
+    my $backup_cmd = &getGlobalConfiguration('backup_cmd');
+    my $backup_dir = &getGlobalConfiguration('backupdir');
+    my $backup_file = "${backup_dir}/backup-${backup}.tar.gz";
 
-    # get current version
-    my $pre_restore_version = &getGlobalConfiguration('version');
-
-    &log_info("Stopping Relianoid service", "SYSTEM");
-    $error = &logAndRun("$systemctl stop $relianoid_service");
-    if ($error) {
-        &log_error("Problem stopping Relianoid Load Balancer service", "SYSTEM");
-        return $error;
+    unless (-f $backup_file) {
+        &log_error("Backup file ${backup_file} not found", "SYSTEM");
+        return 1;
     }
 
-    &log_info("Restoring backup $file", "SYSTEM");
-    my $cmd   = "$tar -xvzf $file -C /";
-    my $eject = &logAndGet($cmd, 'array');
+    my $cmd = "${backup_cmd} ${backup} --restore >>/var/log/syslog 2>&1 &";
 
-    if (not @{$eject}) {
-        &log_error("The backup $file could not be extracted", "SYSTEM");
-        return $error;
+    &log_info("Launching background restore for backup ${backup}", "SYSTEM");
+    &logAndRunBG($cmd);
+
+    if ($? != 0) {
+        &log_error("Unable to launch restore process", "SYSTEM");
+        return "Unable to launch restore";
     }
 
-    &log_info("unpacked files: @{$eject}", "SYSTEM");
-
-    my $backup_version = &getGlobalConfiguration('version');
-
-    # Reference: https://pmhahn.github.io/dpkg-compare-versions/
-    # From lower to greater version: 1.0~rc1 < 1.0 < 1.0-noid1 < 1.0+noid1
-
-    system("dpkg --compare-versions $backup_version lt $pre_restore_version");
-    my $backup_is_previous = ($? == 0);
-
-    # Flag migration if the backup version is previous to the current version
-    if ($backup_is_previous) {
-        my $migration_flag = &getGlobalConfiguration('migration_flag');
-
-        if (open(my $fh, '>', $migration_flag)) {
-            close($fh);
-
-            if (-e $migration_flag) {
-                &log_info("Migration Flag enabled");
-            }
-        }
-        else {
-            log_error("Failed to open file $migration_flag: $!");
-        }
-    }
-
-    system("dpkg --compare-versions $backup_version ne $pre_restore_version");
-    my $version_changed = ($? == 0);
-
-    if ($version_changed) {
-        &setGlobalConfiguration('version', $pre_restore_version);
-    }
-
-    unlink '/relianoid_version';
-
-    $error = &logAndRun("$systemctl start $relianoid_service");
-
-    if (!$error) {
-        &log_info("Backup applied and Relianoid Load Balancer restarted...", "SYSTEM");
-    }
-    else {
-        &log_error("Problem restarting Relianoid Load Balancer service", "SYSTEM");
-    }
-
-    return $error;
+    return 0;
 }
 
 =pod

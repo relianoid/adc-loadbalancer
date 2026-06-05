@@ -81,7 +81,8 @@ sub set_snmp_controller ($json_obj) {
         }
     }
 
-    delete $json_obj->{status} if exists $json_obj->{status};
+    my $old_status = $snmp->{status};
+
     for my $key (keys %{$json_obj}) {
         $snmp->{$key} = $json_obj->{$key};
     }
@@ -94,13 +95,13 @@ sub set_snmp_controller ($json_obj) {
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
-    if ($status eq 'true' && $snmp->{status} eq 'false') {
+    if ($status eq 'true' && $old_status eq 'false') {
         &setSnmpdStatus('true');
     }
-    elsif ($status eq 'false' && $snmp->{status} eq 'true') {
+    elsif ($status eq 'false' && $old_status eq 'true') {
         &setSnmpdStatus('false');
     }
-    elsif ($status ne 'false' && $snmp->{status} ne 'false') {
+    elsif ($status ne 'false' && $old_status ne 'false') {
         &setSnmpdStatus('false');
         &setSnmpdStatus('true');
     }

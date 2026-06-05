@@ -32,7 +32,7 @@ then
 	source /usr/local/relianoid/bin/load_global_conf
 	load_global_conf
 else
-	echo "Error loading the envirovement"
+	echo "Error loading the environment"
 fi
 
 NFTBIN=$nft_bin
@@ -42,6 +42,356 @@ hostname=$(hostname)
 home_dir="/usr/local/relianoid"
 ss_dir="support_${hostname}_${tmp_name}"
 prefix="/tmp"
+
+generate_rrd_graphs() {
+
+    local PERIOD="$1"
+    local GRAPH="$2"
+    local RRD="$3"
+
+    [ -f "$RRD" ] || return 1
+
+    local TYPE
+    TYPE=$(basename "$RRD" .rrd)
+
+    local START
+
+    case "$PERIOD" in
+        daily)   START="-1d" ;;
+        weekly)  START="-1w" ;;
+        monthly) START="-1m" ;;
+        yearly)  START="-1y" ;;
+        *)
+            echo "Invalid period: $PERIOD"
+            return 1
+            ;;
+    esac
+
+    mkdir -p "$(dirname "$GRAPH")"
+
+    #
+    # CPU
+    #
+    if [ "$TYPE" = "cpu" ]; then
+		rrdtool graph "$GRAPH" \
+			--imgformat=PNG \
+			--start="$START" \
+			--end=now \
+			--width=800 \
+			--height=300 \
+			--alt-autoscale-max \
+			--lower-limit=0 \
+			--title="CPU" \
+			--vertical-label="%" \
+			DEF:user="${RRD}":user:AVERAGE \
+			DEF:nice="${RRD}":nice:AVERAGE \
+			DEF:sys="${RRD}":sys:AVERAGE \
+			DEF:iowait="${RRD}":iowait:AVERAGE \
+			DEF:irq="${RRD}":irq:AVERAGE \
+			DEF:softirq="${RRD}":softirq:AVERAGE \
+			DEF:idle="${RRD}":idle:AVERAGE \
+			DEF:tused="${RRD}":tused:AVERAGE \
+			AREA:sys#DC374A:"System\t" \
+			GPRINT:sys:LAST:"Last\\:%8.2lf %%" \
+			GPRINT:sys:MIN:"Min\\:%8.2lf %%" \
+			GPRINT:sys:AVERAGE:"Avg\\:%8.2lf %%" \
+			GPRINT:sys:MAX:"Max\\:%8.2lf %%\\n" \
+			STACK:user#6B2E9A:"User\t\t" \
+			GPRINT:user:LAST:"Last\\:%8.2lf %%" \
+			GPRINT:user:MIN:"Min\\:%8.2lf %%" \
+			GPRINT:user:AVERAGE:"Avg\\:%8.2lf %%" \
+			GPRINT:user:MAX:"Max\\:%8.2lf %%\\n" \
+			STACK:nice#ACD936:"Nice\t\t" \
+			GPRINT:nice:LAST:"Last\\:%8.2lf %%" \
+			GPRINT:nice:MIN:"Min\\:%8.2lf %%" \
+			GPRINT:nice:AVERAGE:"Avg\\:%8.2lf %%" \
+			GPRINT:nice:MAX:"Max\\:%8.2lf %%\\n" \
+			STACK:iowait#8D85F3:"Iowait\t" \
+			GPRINT:iowait:LAST:"Last\\:%8.2lf %%" \
+			GPRINT:iowait:MIN:"Min\\:%8.2lf %%" \
+			GPRINT:iowait:AVERAGE:"Avg\\:%8.2lf %%" \
+			GPRINT:iowait:MAX:"Max\\:%8.2lf %%\\n" \
+			STACK:irq#46F2A2:"IRQ\t\t" \
+			GPRINT:irq:LAST:"Last\\:%8.2lf %%" \
+			GPRINT:irq:MIN:"Min\\:%8.2lf %%" \
+			GPRINT:irq:AVERAGE:"Avg\\:%8.2lf %%" \
+			GPRINT:irq:MAX:"Max\\:%8.2lf %%\\n" \
+			STACK:softirq#595959:"SoftIRQ\t" \
+			GPRINT:softirq:LAST:"Last\\:%8.2lf %%" \
+			GPRINT:softirq:MIN:"Min\\:%8.2lf %%" \
+			GPRINT:softirq:AVERAGE:"Avg\\:%8.2lf %%" \
+			GPRINT:softirq:MAX:"Max\\:%8.2lf %%\\n" \
+			STACK:idle#46b971:"Idle\t\t" \
+			GPRINT:idle:LAST:"Last\\:%8.2lf %%" \
+			GPRINT:idle:MIN:"Min\\:%8.2lf %%" \
+			GPRINT:idle:AVERAGE:"Avg\\:%8.2lf %%" \
+			GPRINT:idle:MAX:"Max\\:%8.2lf %%\\n" \
+			LINE1:tused#000000:"Total used\t" \
+			GPRINT:tused:LAST:"Last\\:%8.2lf %%" \
+			GPRINT:tused:MIN:"Min\\:%8.2lf %%" \
+			GPRINT:tused:AVERAGE:"Avg\\:%8.2lf %%" \
+			GPRINT:tused:MAX:"Max\\:%8.2lf %%\\n" > /dev/null
+
+    #
+    # LOAD
+    #
+    elif [ "$TYPE" = "load" ]; then
+		rrdtool graph "$GRAPH" \
+			--imgformat=PNG \
+			--start="$START" \
+			--end=now \
+			--width=800 \
+			--height=300 \
+			--alt-autoscale-max \
+			--lower-limit=0 \
+			--title="LOAD AVERAGE" \
+			--vertical-label="LOAD" \
+			DEF:load="${RRD}":load:AVERAGE \
+			DEF:load5="${RRD}":load5:AVERAGE \
+			DEF:load15="${RRD}":load15:AVERAGE \
+			AREA:load#729e00:"Last minute\t\t" \
+			GPRINT:load:LAST:"Last\\:%3.2lf" \
+			GPRINT:load:MIN:"Min\\:%3.2lf" \
+			GPRINT:load:AVERAGE:"Avg\\:%3.2lf" \
+			GPRINT:load:MAX:"Max\\:%3.2lf\\n" \
+			STACK:load5#46b971:"Last 5 minutes\t" \
+			GPRINT:load5:LAST:"Last\\:%3.2lf" \
+			GPRINT:load5:MIN:"Min\\:%3.2lf" \
+			GPRINT:load5:AVERAGE:"Avg\\:%3.2lf" \
+			GPRINT:load5:MAX:"Max\\:%3.2lf\\n" \
+			STACK:load15#595959:"Last 15 minutes\t" \
+			GPRINT:load15:LAST:"Last\\:%3.2lf" \
+			GPRINT:load15:MIN:"Min\\:%3.2lf" \
+			GPRINT:load15:AVERAGE:"Avg\\:%3.2lf" \
+			GPRINT:load15:MAX:"Max\\:%3.2lf\\n" > /dev/null
+
+    #
+    # MEMORY
+    #
+    elif [ "$TYPE" = "mem" ]; then
+		rrdtool graph "$GRAPH" \
+			--imgformat=PNG \
+			--start="$START" \
+			--end=now \
+			--width=800 \
+			--height=300 \
+			--alt-autoscale-max \
+			--lower-limit=0 \
+			--base=1024 \
+			--title="RAM" \
+			--vertical-label="MEMORY" \
+			DEF:memt="${RRD}":memt:AVERAGE \
+			DEF:memu="${RRD}":memu:AVERAGE \
+			DEF:memf="${RRD}":memf:AVERAGE \
+			DEF:memc="${RRD}":memc:AVERAGE \
+			AREA:memu#595959:"Used\t\t" \
+			GPRINT:memu:LAST:"Last\\:%8.2lf %s" \
+			GPRINT:memu:MIN:"Min\\:%8.2lf %s" \
+			GPRINT:memu:AVERAGE:"Avg\\:%8.2lf %s" \
+			GPRINT:memu:MAX:"Max\\:%8.2lf %s\\n" \
+			STACK:memf#46b971:"Free\t\t" \
+			GPRINT:memf:LAST:"Last\\:%8.2lf %s" \
+			GPRINT:memf:MIN:"Min\\:%8.2lf %s" \
+			GPRINT:memf:AVERAGE:"Avg\\:%8.2lf %s" \
+			GPRINT:memf:MAX:"Max\\:%8.2lf %s\\n" \
+			LINE2:memc#46F2A2:"Cache&Buffer\t" \
+			GPRINT:memc:LAST:"Last\\:%8.2lf %s" \
+			GPRINT:memc:MIN:"Min\\:%8.2lf %s" \
+			GPRINT:memc:AVERAGE:"Avg\\:%8.2lf %s" \
+			GPRINT:memc:MAX:"Max\\:%8.2lf %s\\n" \
+			LINE1:memt#000000:"Total\t\t" \
+			GPRINT:memt:LAST:"Last\\:%8.2lf %s" \
+			GPRINT:memt:MIN:"Min\\:%8.2lf %s" \
+			GPRINT:memt:AVERAGE:"Avg\\:%8.2lf %s" \
+			GPRINT:memt:MAX:"Max\\:%8.2lf %s\\n" > /dev/null
+
+    #
+    # SWAP
+    #
+    elif [ "$TYPE" = "memsw" ]; then
+		rrdtool graph "$GRAPH" \
+			--imgformat=PNG \
+			--start="$START" \
+			--end=now \
+			--width=800 \
+			--height=300 \
+			--alt-autoscale-max \
+			--lower-limit=0 \
+			--base=1024 \
+			--title="SWAP" \
+			--vertical-label="MEMORY" \
+			DEF:swt="${RRD}":swt:AVERAGE \
+			DEF:swu="${RRD}":swu:AVERAGE \
+			DEF:swf="${RRD}":swf:AVERAGE \
+			DEF:swc="${RRD}":swc:AVERAGE \
+			AREA:swu#595959:"Used\t\t" \
+			GPRINT:swu:LAST:"Last\\:%8.2lf %s" \
+			GPRINT:swu:MIN:"Min\\:%8.2lf %s" \
+			GPRINT:swu:AVERAGE:"Avg\\:%8.2lf %s" \
+			GPRINT:swu:MAX:"Max\\:%8.2lf %s\\n" \
+			STACK:swf#46b971:"Free\t\t" \
+			GPRINT:swf:LAST:"Last\\:%8.2lf %s" \
+			GPRINT:swf:MIN:"Min\\:%8.2lf %s" \
+			GPRINT:swf:AVERAGE:"Avg\\:%8.2lf %s" \
+			GPRINT:swf:MAX:"Max\\:%8.2lf %s\\n" \
+			LINE2:swc#46F2A2:"Cached\t\t" \
+			GPRINT:swc:LAST:"Last\\:%8.2lf %s" \
+			GPRINT:swc:MIN:"Min\\:%8.2lf %s" \
+			GPRINT:swc:AVERAGE:"Avg\\:%8.2lf %s" \
+			GPRINT:swc:MAX:"Max\\:%8.2lf %s\\n" \
+			LINE1:swt#000000:"Total\t\t" \
+			GPRINT:swt:LAST:"Last\\:%8.2lf %s" \
+			GPRINT:swt:MIN:"Min\\:%8.2lf %s" \
+			GPRINT:swt:AVERAGE:"Avg\\:%8.2lf %s" \
+			GPRINT:swt:MAX:"Max\\:%8.2lf %s\\n" > /dev/null
+
+    #
+    # NETWORK
+    #
+    elif [[ "$TYPE" =~ iface$ ]]; then
+		local IFACE="${TYPE%iface}"
+
+		rrdtool graph "$GRAPH" \
+			--imgformat=PNG \
+			--start="$START" \
+			--end=now \
+			--width=800 \
+			--height=300 \
+			--lazy \
+			--lower-limit=0 \
+			--alt-autoscale-max \
+			--title="TRAFFIC ON ${IFACE}" \
+			--vertical-label="BANDWIDTH" \
+			DEF:in="${RRD}":in:AVERAGE \
+			DEF:out="${RRD}":out:AVERAGE \
+			CDEF:in_bytes=in,1024,* \
+			CDEF:out_bytes=out,1024,* \
+			CDEF:out_bytes_neg=out_bytes,-1,* \
+			AREA:in_bytes#46b971:"In " \
+			LINE1:in_bytes#000000 \
+			GPRINT:in_bytes:LAST:"Last\\:%5.1lf %sByte/sec" \
+			GPRINT:in_bytes:MIN:"Min\\:%5.1lf %sByte/sec" \
+			GPRINT:in_bytes:AVERAGE:"Avg\\:%5.1lf %sByte/sec" \
+			GPRINT:in_bytes:MAX:"Max\\:%5.1lf %sByte/sec\\n" \
+			AREA:out_bytes_neg#595959:"Out" \
+			LINE1:out_bytes_neg#000000 \
+			GPRINT:out_bytes:LAST:"Last\\:%5.1lf %sByte/sec" \
+			GPRINT:out_bytes:MIN:"Min\\:%5.1lf %sByte/sec" \
+			GPRINT:out_bytes:AVERAGE:"Avg\\:%5.1lf %sByte/sec" \
+			GPRINT:out_bytes:MAX:"Max\\:%5.1lf %sByte/sec\\n" \
+			HRULE:0#000000 > /dev/null
+
+    #
+    # DISK
+    #
+    elif [[ "$TYPE" =~ ^dev- ]]; then
+		rrdtool graph "$GRAPH" \
+			--imgformat=PNG \
+			--start="$START" \
+			--end=now \
+			--width=800 \
+			--height=300 \
+			--lazy \
+			--lower-limit=0 \
+			--base=1024 \
+			--title="DISK ${TYPE}" \
+			--vertical-label="SPACE" \
+			DEF:tot="${RRD}":tot:AVERAGE \
+			DEF:used="${RRD}":used:AVERAGE \
+			DEF:free="${RRD}":free:AVERAGE \
+			CDEF:total=used,free,+ \
+			AREA:used#595959:"Used\t" \
+			GPRINT:used:LAST:"Last\\:%8.2lf %s" \
+			GPRINT:used:MIN:"Min\\:%8.2lf %s" \
+			GPRINT:used:AVERAGE:"Avg\\:%8.2lf %s" \
+			GPRINT:used:MAX:"Max\\:%8.2lf %s\\n" \
+			STACK:free#46b971:"Free\t" \
+			GPRINT:free:LAST:"Last\\:%8.2lf %s" \
+			GPRINT:free:MIN:"Min\\:%8.2lf %s" \
+			GPRINT:free:AVERAGE:"Avg\\:%8.2lf %s" \
+			GPRINT:free:MAX:"Max\\:%8.2lf %s\\n" \
+			LINE1:total#000000:"Total\t" \
+			GPRINT:total:LAST:"Last\\:%8.2lf %s" \
+			GPRINT:total:MIN:"Min\\:%8.2lf %s" \
+			GPRINT:total:AVERAGE:"Avg\\:%8.2lf %s" \
+			GPRINT:total:MAX:"Max\\:%8.2lf %s\\n" > /dev/null
+
+    #
+    # FARMS
+    #
+    elif [[ "$TYPE" =~ -farm$ ]]; then
+		local FARM="${TYPE%-farm}"
+
+		rrdtool graph "$GRAPH" \
+			--imgformat=PNG \
+			--start="$START" \
+			--end=now \
+			--width=800 \
+			--height=300 \
+			--lazy \
+			--lower-limit=0 \
+			--title="CONNECTIONS ON ${FARM} farm" \
+			--vertical-label="Connections" \
+			DEF:pending="${RRD}":pending:AVERAGE \
+			DEF:established="${RRD}":established:AVERAGE \
+			LINE2:pending#595959:"Pending\t" \
+			GPRINT:pending:LAST:"Last\\:%6.0lf" \
+			GPRINT:pending:MIN:"Min\\:%6.0lf" \
+			GPRINT:pending:AVERAGE:"Avg\\:%6.0lf" \
+			GPRINT:pending:MAX:"Max\\:%6.0lf\\n" \
+			LINE2:established#46b971:"Established\t" \
+			GPRINT:established:LAST:"Last\\:%6.0lf" \
+			GPRINT:established:MIN:"Min\\:%6.0lf" \
+			GPRINT:established:AVERAGE:"Avg\\:%6.0lf" \
+			GPRINT:established:MAX:"Max\\:%6.0lf\\n" > /dev/null
+
+    elif [[ "$TYPE" =~ ipds ]]; then
+		rrdtool graph "$GRAPH" \
+			--imgformat=PNG \
+			--start="$START" \
+			--end=now \
+			--width=800 \
+			--height=300 \
+			--alt-autoscale-max \
+			--lower-limit=0 \
+			--title="$TITLE" \
+			--vertical-label="ATTACKS" \
+			DEF:blacklist="${RRD}":blacklist:AVERAGE \
+			DEF:dos="${RRD}":dos:AVERAGE \
+			DEF:rbl="${RRD}":rbl:AVERAGE \
+			DEF:waf="${RRD}":waf:AVERAGE \
+			DEF:total="${RRD}":total:AVERAGE \
+			AREA:blacklist#729e00:"Blacklist\t" \
+			GPRINT:blacklist:LAST:"Last\\:%6.0lf" \
+			GPRINT:blacklist:MIN:"Min\\:%6.0lf" \
+			GPRINT:blacklist:AVERAGE:"Avg\\:%6.0lf" \
+			GPRINT:blacklist:MAX:"Max\\:%6.0lf\\n" \
+			STACK:dos#46b971:"DoS\t\t" \
+			GPRINT:dos:LAST:"Last\\:%6.0lf" \
+			GPRINT:dos:MIN:"Min\\:%6.0lf" \
+			GPRINT:dos:AVERAGE:"Avg\\:%6.0lf" \
+			GPRINT:dos:MAX:"Max\\:%6.0lf\\n" \
+			STACK:rbl#595959:"RBL\t\t" \
+			GPRINT:rbl:LAST:"Last\\:%6.0lf" \
+			GPRINT:rbl:MIN:"Min\\:%6.0lf" \
+			GPRINT:rbl:AVERAGE:"Avg\\:%6.0lf" \
+			GPRINT:rbl:MAX:"Max\\:%6.0lf\\n" \
+			STACK:waf#DC374A:"WAF\t\t" \
+			GPRINT:waf:LAST:"Last\\:%6.0lf" \
+			GPRINT:waf:MIN:"Min\\:%6.0lf" \
+			GPRINT:waf:AVERAGE:"Avg\\:%6.0lf" \
+			GPRINT:waf:MAX:"Max\\:%6.0lf\\n" \
+			LINE1:total#000000:"Total\t\t" \
+			GPRINT:total:LAST:"Last\\:%6.0lf" \
+			GPRINT:total:MIN:"Min\\:%6.0lf" \
+			GPRINT:total:AVERAGE:"Avg\\:%6.0lf" \
+			GPRINT:total:MAX:"Max\\:%6.0lf\\n" > /dev/null
+
+    else
+        echo "Skipping unsupported graph type: ${TYPE}"
+        return 0
+    fi
+}
 
 if [ -d "$1" ]; then
 	prefix="${1}"
@@ -58,6 +408,18 @@ echo "Saving information for support in the path ${backup_dir}.tar.gz"
 
 echo "Saving system information:"
 #################################
+
+echo "- Generating Graphs"
+mkdir -p $backup_dir/graphs
+for p in daily weekly monthly yearly; do
+	for rrdfile in ${home_dir}/var/noid-collector/rrd/*.rrd; do
+		rrdname=`basename $rrdfile`
+		generate_rrd_graphs \
+			"$p" \
+			"$backup_dir/graphs/${rrdname}-${p}.png" \
+			${rrdfile}
+	done
+done
 
 echo "- Hardware"
 /usr/sbin/dmidecode                     >> $backup_dir/dmi.txt

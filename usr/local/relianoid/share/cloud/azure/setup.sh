@@ -21,28 +21,32 @@
 #
 ###############################################################################
 
-# setup rc.local
 clouddir="/usr/local/relianoid/share/cloud/azure"
+
 cp $clouddir/rc.local /etc/rc.local
-cp $clouddir/configure_nics /etc/network/if-up.d/
+chmod +x /etc/rc.local
 
 systemctl enable rc-local
 systemctl start rc-local.service
 
-# setup global variables
-perl -MRelianoid::Config -e "setGlobalConfiguration('cloud_provider', 'azure')" >/dev/null
-perl -MRelianoid::Config -E "setGlobalConfiguration('cloud_address_metadata', '169.254.169.254')" >/dev/null
+cp $clouddir/configure_nics /etc/network/if-up.d/
+chmod +x /etc/network/if-up.d/configure_nics
 
-# setup repository
+perl -MRelianoid::Config -e "setGlobalConfiguration('cloud_provider', 'azure')" >/dev/null
+perl -MRelianoid::Config -e "setGlobalConfiguration('cloud_address_metadata', '169.254.169.254')" >/dev/null
+
 echo "deb https://packages.microsoft.com/repos/microsoft-debian-bookworm-prod bookworm main" > /etc/apt/sources.list.d/microsoft-prod.list
 cp $clouddir/microsoft.asc /etc/apt/trusted.gpg.d/microsoft.asc
 cp $clouddir/azure-cli.sources /etc/apt/sources.list.d/
 
-# install dependencies
-dpkg=`dpkg -l waagent`
-if [ $? -eq 1 ]; then
-    echo "Azure detected: After the installation, please run:"
-    echo "apt-get update && apt-get install cloud-init waagent azure-cli dnsmasq"
-fi
+export DEBIAN_FRONTEND=noninteractive
+
+apt-get update
+apt-get install -y walinuxagent cloud-init azure-cli dnsmasq
+
+systemctl enable walinuxagent
+systemctl start walinuxagent
+
+systemctl enable cloud-init
 
 exit 0

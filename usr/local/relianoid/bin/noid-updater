@@ -223,6 +223,23 @@ function internetCheck {
 	fi
 }
 
+function isLatestKernelRunning {
+	RUNNING_KERNEL="$(uname -r)"
+	LATEST_INSTALLED_KERNEL="$(
+		dpkg --list 'linux-image-[0-9]*' 2>/dev/null \
+		| awk '/^ii/ {print $2}' \
+		| sed 's/^linux-image-//' \
+		| sort -V \
+		| tail -n1
+	)"
+
+	if [ "$RUNNING_KERNEL" != "$LATEST_INSTALLED_KERNEL" ]; then
+		return 0
+	else
+		return 1
+	fi
+}
+
 case "$1" in
 '')
 	offline_mode=0
@@ -299,9 +316,16 @@ case "$1" in
 			UmountMountPoint
 		fi
 
-		echo "   Cleaning-up obsolete kernels"
-		echo ""
-		DEBIAN_FRONTEND=noninteractive $aptget_bin remove -y --purge linux-*-4.* 2>/dev/null >/dev/null
+		if [ "$EDITION" == "ee" ]; then
+			echo "   Cleaning-up obsolete kernels"
+			echo ""
+			# install new kernel first and then check which one can be freed
+			DEBIAN_FRONTEND=noninteractive $aptget_bin install linux-image-amd64
+			CURRENT_KERNEL="$(uname -r)"
+			NEW_KERNEL="$(dpkg -l | grep linux-image-amd64 | awk -F ' ' '{ printf $3 }')"
+			KERNELS_TO_REMOVE=`dpkg -l | awk '($2 ~ /^linux-(image|headers)-/) { print $2 }' | grep -vE "($CURRENT_KERNEL|$NEW_KERNEL|linux-image-amd64|linux-headers-amd64)"`
+			DEBIAN_FRONTEND=noninteractive $aptget_bin remove -y --purge $KERNELS_TO_REMOVE
+		fi
 
 		$aptget_bin update > /dev/null
 		#do this in order to update the web GUI alerts after any installation
@@ -351,6 +375,10 @@ case "$1" in
 		disableClusterUpdate
 	fi
 
+	if isLatestKernelRunning -eq 0; then
+		echo ""
+		echo "   A newer kernel is installed. Reboot recommended."
+	fi
 	logger "noid-updater: noid-updater -i has been executed successfully."
 	echo ""
 	echo "noid-updater -i has been executed successfully."

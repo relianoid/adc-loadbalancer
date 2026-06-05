@@ -180,15 +180,15 @@ sub restore_backup_controller ($json_obj, $backup) {
         }
     }
 
-    my $msg   = "The restore was properly applied. Some changes need a system reboot to work.";
+    my $msg   = "Launching background restore for backup $backup, please wait few minutes until the restore is completed.";
     my $error = &restoreBackup($backup);
 
     if ($error) {
-        $msg = "There was a error restoring the backup.";
+        $msg = "The backup $backup file was not found.";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
-    return &httpResponse({ code => 200, body => { description => $desc, message => $msg } });
+    return &httpResponse({ code => 202, body => { description => $desc, message => $msg } });
 }
 
 1;

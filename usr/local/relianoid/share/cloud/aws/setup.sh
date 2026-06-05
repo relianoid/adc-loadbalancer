@@ -21,30 +21,32 @@
 #
 ###############################################################################
 
-# setup rc.local
 dir="/usr/local/relianoid/share/cloud/aws"
 
-# setup dhcp interfaces
+cp $dir/rc.local /etc/rc.local
+chmod +x /etc/rc.local
+
+systemctl enable rc-local
+systemctl start rc-local.service
+
 SHARE_DIR="/usr/local/relianoid/share"
 CHECK_NIC_DHCP="check-nic-dhcp"
+
 if [ -f "$SHARE_DIR/$CHECK_NIC_DHCP" ]; then
-	NET_CONFIG_DIR="/etc/network/if-up.d"
-	cp $SHARE_DIR/$CHECK_NIC_DHCP $NET_CONFIG_DIR/
-	$NET_CONFIG_DIR/$CHECK_NIC_DHCP
+        NET_CONFIG_DIR="/etc/network/if-up.d"
+        cp $SHARE_DIR/$CHECK_NIC_DHCP $NET_CONFIG_DIR/
+        chmod +x $NET_CONFIG_DIR/$CHECK_NIC_DHCP
+        $NET_CONFIG_DIR/$CHECK_NIC_DHCP
 fi
 
-# setup global variables
 perl -MRelianoid::Config -E "setGlobalConfiguration('cloud_provider', 'aws')" >/dev/null
 perl -MRelianoid::Config -E "setGlobalConfiguration('cloud_address_metadata', '169.254.169.254')" >/dev/null
-perl -MRelianoid::Config -E "
-	&setGlobalConfiguration('netcat_bin', '$aws_netcat_bin');
-	&setGlobalConfiguration('cat_bin', '$aws_cat_bin');
-	&setGlobalConfiguration('lsmod', '$aws_lsmod');
-	&setGlobalConfiguration('modprobe', '$aws_modprobe');
-	&setGlobalConfiguration('poweroff_bin', '$aws_poweroff_bin');
-	&setGlobalConfiguration('reboot_bin', '$aws_reboot_bin');
-	&setGlobalConfiguration('dhcp_bin', '$aws_dhcp_bin');
-	&setGlobalConfiguration('ifconfig_bin', '$aws_ifconfig_bin');
-	&setGlobalConfiguration('fdisk_bin', '$aws_fdisk_bin');
-	&setGlobalConfiguration('date', '$aws_date_bin');
-	&setGlobalConfiguration('cut_bin', '$aws_cut_bin');"
+
+export DEBIAN_FRONTEND=noninteractive
+
+apt-get update
+apt-get install -y cloud-init
+
+systemctl enable cloud-init
+
+exit 0

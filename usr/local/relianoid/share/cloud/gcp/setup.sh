@@ -21,29 +21,30 @@
 #
 ###############################################################################
 
-# setup rc.local
 clouddir="/usr/local/relianoid/share/cloud/gcp"
+
 cp $clouddir/rc.local /etc/rc.local
+chmod +x /etc/rc.local
+
 cp $clouddir/configure_nics /etc/network/if-up.d/
+chmod +x /etc/network/if-up.d/configure_nics
 
 systemctl enable rc-local
 systemctl start rc-local.service
 
-# setup global variables
 perl -MRelianoid::Config -e "setGlobalConfiguration('cloud_provider', 'gcp')" >/dev/null
 perl -MRelianoid::Config -E "setGlobalConfiguration('cloud_address_metadata', 'metadata.google.internal')" >/dev/null
 
-# repositories
 cp $clouddir/cloud.google.gpg /usr/share/keyrings/
 cp $clouddir/google-cloud-sdk.list /etc/apt/sources.list.d/
 
-# install dependencies
-dpkg=`dpkg -l google-guest-agent`
-if [ $? -eq 1 ]; then
-    echo "GCP detected: After the installation, please run:"
-    echo "apt-get update && apt-get install -y cloud-init google-guest-agent google-cloud-sdk"
-fi
+export DEBIAN_FRONTEND=noninteractive
+
+apt-get update
+apt-get install -y cloud-init google-guest-agent
+
+systemctl enable cloud-init
+systemctl enable google-guest-agent
+systemctl start google-guest-agent
 
 exit 0
-google-cloud-sdk.list
-cloud.google.gpg

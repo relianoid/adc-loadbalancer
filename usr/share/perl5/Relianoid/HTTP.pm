@@ -47,6 +47,7 @@ my %http_status_codes = (
     # 2xx Success codes
     200 => 'OK',
     201 => 'Created',
+    202 => 'Accepted',
     204 => 'No Content',
 
     # 4xx Client Error codes

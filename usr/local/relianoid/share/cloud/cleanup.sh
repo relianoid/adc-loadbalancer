@@ -22,29 +22,45 @@
 ###############################################################################
 
 rm -rf /usr/local/relianoid/config/if_*
+
 systemctl stop rsyslog
 systemctl stop cron
+
 if [ -f "/usr/local/relianoid/www/activation-cert.pem" ]; then
     rm /usr/local/relianoid/www/activation-cert.pem
 fi
+
 rm -rf /var/log/*
 rm -rf /usr/local/relianoid/var/noid-collector/rrd/*
 rm -rf /etc/apt/apt.conf
+
+truncate -s 0 /etc/machine-id
+rm -rf /var/lib/cloud/*
+rm -rf /tmp/*
+rm -rf /var/tmp/*
+
+# clean root artifacts (do not wipe root directory)
 rm -rf /root/.ssh/*
-rm -rf /root/*
-rm /root/.bash_history
-passwd -d root
-sed -i "s/^root\:.*/root:*LOCK*:14600::::::/g" /etc/shadow
-for user in `ls /home/`; do
-	if [ "$user" == "azureuser" ]; then
-		rm -rf /home/$user/*
-		rm -rf /home/$user/.ssh/*
-		rm /home/$user/.bash_history
-		su -c "history -c" $user
-	else
-		rm -rf /home/$user/
-	fi
-fi
-touch /etc/firstbootsetpw
+rm -f /root/.bash_history
+rm -f /root/.wget-hsts
+
+# Properly lock root
+passwd -l root
+
+# remove non-default users completely
+for user in $(ls /home); do
+    if [ "$user" = "azureuser" ] || [ "$user" = "debian" ]; then
+        rm -f /home/$user/.bash_history
+        rm -f /home/$user/.ssh/authorized_keys
+        su -c "history -c" $user
+    else
+        userdel -r $user 2>/dev/null
+    fi
+done
+
+# ensure skeleton exists for new users
+mkdir -p /etc/skel
+chmod 755 /etc/skel
+
 apt clean
 history -c

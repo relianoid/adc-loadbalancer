@@ -27,39 +27,201 @@ use feature qw(signatures);
 
 use Relianoid::Log;
 use Relianoid::Config;
+use Relianoid::Lock;
 
-my $name   = $ARGV[0];
+sub print_help() {
+    print <<"EOF";
+Usage:
+    noid-backup <name> <action>
+
+Actions:
+    -c | --create
+        Create a backup.
+
+    -d | --decompress
+        Extract a backup into /.
+
+    -r | --restore
+        Restore a backup:
+          - stop relianoid service
+          - decompress backup
+          - handle migration flags
+          - restart relianoid service
+
+    -h | --help
+        Show this help.
+
+Examples:
+    noid-backup mybackup --create
+    noid-backup mybackup --decompress
+    noid-backup mybackup --restore
+
+EOF
+
+    return 0;
+}
+
+my $name   = $ARGV[0] // "";
 my $action = $ARGV[1] // "";
 
-if (not $action) {
-    print STDERR "No action requested\n";
+if (not $action or $action =~ /^(-h|--help)$/) {
+    print_help();
     exit 0;
 }
 
-my $backup_dir = &getGlobalConfiguration('backupdir');
-my $tar        = &getGlobalConfiguration('tar');
+if (not $name) {
+    print "No backup name provided\n";
+    &log_error("No backup name provided", "SYSTEM");
+    exit 0;
+}
 
-if ($action eq "-c") {
+my $backup_dir        = &getGlobalConfiguration('backupdir');
+my $tar               = &getGlobalConfiguration('tar');
+my $systemctl         = &getGlobalConfiguration('systemctl');
+my $relianoid_service = &getGlobalConfiguration('relianoid_service');
+my $lock_file         = &getLockFile("noid-backup");
+my $backup_file       = "${backup_dir}/backup-${name}.tar.gz";
+
+#
+# CREATE BACKUP
+#
+if ($action =~ /^(-c|--create)$/) {
     my $backup_for   = &getGlobalConfiguration('backupfor');
     my $version      = &getGlobalConfiguration('version');
     my $version_file = '/relianoid_version';
-    my $backup_file  = "${backup_dir}/backup-${name}.tar.gz";
+    my $file;
 
-    open my $file, '>', $version_file;
+    if (!open $file, '>', $version_file) {
+      print "Unable to create ${version_file}: $!";
+      &log_error("Unable to create ${version_file}: $!", "SYSTEM");
+      exit 1;
+    }
+
     print $file $version;
     close $file;
 
-    log_info("Creating backup ${backup_file}");
+    &log_info("Creating backup ${backup_file}", "SYSTEM");
 
-    my $cmd    = "${tar} -czf ${backup_file} ${backup_for}";
+    my $lock_fh = &openlock($lock_file, 'w');
+    my $cmd = "${tar} --ignore-failed-read --warning=no-file-ignored -czf ${backup_file} ${backup_for}";
     my $output = `${cmd} 2>&1`;
-    log_info($output);
+    close $lock_fh;
+
+    if ($output) {
+        print $output;
+        &log_info($output, "SYSTEM");
+    }
 
     unlink $version_file;
 }
 
-if ($action eq "-d") {
-    my $output = `${tar} -xzf ${backup_dir}/backup-${name}.tar.gz -C / 2>&1`;
-    print STDERR $output if $output;
-    log_info($output);
+#
+# DECOMPRESS BACKUP
+#
+elsif ($action =~ /^(-d|--decompress)$/) {
+    unless (-f $backup_file) {
+        print "Backup file ${backup_file} not found\n";
+        &log_error("Backup file ${backup_file} not found", "SYSTEM");
+        exit 1;
+    }
+
+    &log_info("Extracting backup ${backup_file}", "SYSTEM");
+
+    my $lock_fh = &openlock($lock_file, 'w');
+    my $cmd = "${tar} -xvzf ${backup_file} -C /";
+    my $output = `${cmd} 2>&1`;
+    close $lock_fh;
+
+    if ($output) {
+        &log_info($output, "SYSTEM");
+    }
+}
+
+#
+# RESTORE BACKUP
+#
+elsif ($action =~ /^(-r|--restore)$/) {
+    unless (-f $backup_file) {
+        print "Backup file ${backup_file} not found\n";
+        &log_error("Backup file ${backup_file} not found", "SYSTEM");
+        exit 1;
+    }
+
+    my $pre_restore_version = &getGlobalConfiguration('version');
+
+    my $lock_fh = &openlock($lock_file, 'w');
+    &log_info("Stopping Relianoid service", "SYSTEM");
+
+    my $stop_cmd = "${systemctl} stop ${relianoid_service}";
+    my $stop_output = `${stop_cmd} 2>&1`;
+
+    if ($stop_output) {
+        print $stop_output;
+        &log_info($stop_output, "SYSTEM");
+    }
+
+    if ($? != 0) {
+        &log_error("Unable to stop Relianoid service", "SYSTEM");
+    }
+
+    &log_info("Restoring backup ${backup_file}", "SYSTEM");
+
+    my $restore_cmd = "${tar} -xvzf ${backup_file} -C /";
+    my $restore_output = `${restore_cmd} 2>&1`;
+
+    if ($restore_output) {
+        print $restore_output;
+        &log_info($restore_output, "SYSTEM");
+    }
+
+    if ($? != 0) {
+        &log_error("Unable to extract backup", "SYSTEM");
+    }
+
+    my $backup_version = &getGlobalConfiguration('version');
+
+    system("dpkg --compare-versions '$backup_version' lt '$pre_restore_version'");
+    my $backup_is_previous = ($? == 0);
+    if ($backup_is_previous) {
+        my $migration_flag = &getGlobalConfiguration('migration_flag');
+        if (open(my $fh, '>', $migration_flag)) {
+            close($fh);
+            if (-e $migration_flag) {
+                &log_info("Migration flag enabled", "SYSTEM");
+            }
+        } else {
+            &log_error("Unable to create migration flag ${migration_flag}: $!", "SYSTEM");
+        }
+    }
+
+    system("dpkg --compare-versions '$backup_version' ne '$pre_restore_version'");
+
+    my $version_changed = ($? == 0);
+
+    if ($version_changed) {
+        &setGlobalConfiguration('version', $pre_restore_version);
+    }
+
+    unlink '/relianoid_version';
+
+    &log_info("Starting Relianoid service", "SYSTEM");
+
+    my $start_cmd = "${systemctl} start ${relianoid_service}";
+    my $start_output = `${start_cmd} 2>&1`;
+
+    print $start_output if $start_output;
+    &log_info($start_output, "SYSTEM");
+
+    close $lock_fh;
+
+    if ($? != 0) {
+        &log_error("Unable to start Relianoid service", "SYSTEM");
+    }
+
+    &log_info("Backup restored successfully", "SYSTEM");
+}
+
+else {
+    print "Unknown action '${action}'\n";
+    print_help();
 }

@@ -123,3 +123,12 @@ log=false
 interval=15
 cut_conns=true
 template=true
+
+[check_curl]
+description=Send advanced curl-based health checks.
+command=check_curl -I HOST -p PORT -e 200
+farms=
+log=false
+interval=15
+cut_conns=true
+template=true
