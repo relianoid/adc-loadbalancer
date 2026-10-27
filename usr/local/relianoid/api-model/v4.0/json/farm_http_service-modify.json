@@ -79,7 +79,7 @@
             "enabled-backends-path"
          ]
       },
-      "routingpolicy" : {
+      "routing_policy" : {
          "non_blank" : "true",
          "values" : [
             "ROUND_ROBIN",

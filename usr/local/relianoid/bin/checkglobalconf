@@ -43,10 +43,6 @@ if (!-f $global_conf) {
     die "File $global_conf not found";
 }
 
-# Migrate global.conf values of renamed variables to be kept
-if (system("/usr/bin/grep -q '^\$zapikey=' $global_conf")) {
-    system("/usr/bin/sed -i 's/^\$zapikey ?=/\$api_key=/' $global_conf");
-}
 
 sub get_file_lines ($filename) {
     if (open my $fh, '<', $filename) {

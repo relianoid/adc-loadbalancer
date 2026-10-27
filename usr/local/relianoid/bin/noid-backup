@@ -81,20 +81,20 @@ my $systemctl         = &getGlobalConfiguration('systemctl');
 my $relianoid_service = &getGlobalConfiguration('relianoid_service');
 my $lock_file         = &getLockFile("noid-backup");
 my $backup_file       = "${backup_dir}/backup-${name}.tar.gz";
+my $version_file      = '/relianoid_version';
 
 #
 # CREATE BACKUP
 #
 if ($action =~ /^(-c|--create)$/) {
-    my $backup_for   = &getGlobalConfiguration('backupfor');
-    my $version      = &getGlobalConfiguration('version');
-    my $version_file = '/relianoid_version';
+    my $backup_for = &getGlobalConfiguration('backupfor');
+    my $version    = &getGlobalConfiguration('version');
     my $file;
 
     if (!open $file, '>', $version_file) {
-      print "Unable to create ${version_file}: $!";
-      &log_error("Unable to create ${version_file}: $!", "SYSTEM");
-      exit 1;
+        print "Unable to create ${version_file}: $!";
+        &log_error("Unable to create ${version_file}: $!", "SYSTEM");
+        exit 1;
     }
 
     print $file $version;
@@ -103,8 +103,8 @@ if ($action =~ /^(-c|--create)$/) {
     &log_info("Creating backup ${backup_file}", "SYSTEM");
 
     my $lock_fh = &openlock($lock_file, 'w');
-    my $cmd = "${tar} --ignore-failed-read --warning=no-file-ignored -czf ${backup_file} ${backup_for}";
-    my $output = `${cmd} 2>&1`;
+    my $cmd     = "${tar} --ignore-failed-read --warning=no-file-ignored -czf ${backup_file} ${backup_for}";
+    my $output  = `${cmd} 2>&1`;
     close $lock_fh;
 
     if ($output) {
@@ -128,8 +128,8 @@ elsif ($action =~ /^(-d|--decompress)$/) {
     &log_info("Extracting backup ${backup_file}", "SYSTEM");
 
     my $lock_fh = &openlock($lock_file, 'w');
-    my $cmd = "${tar} -xvzf ${backup_file} -C /";
-    my $output = `${cmd} 2>&1`;
+    my $cmd     = "${tar} -xvzf ${backup_file} -C /";
+    my $output  = `${cmd} 2>&1`;
     close $lock_fh;
 
     if ($output) {
@@ -152,7 +152,7 @@ elsif ($action =~ /^(-r|--restore)$/) {
     my $lock_fh = &openlock($lock_file, 'w');
     &log_info("Stopping Relianoid service", "SYSTEM");
 
-    my $stop_cmd = "${systemctl} stop ${relianoid_service}";
+    my $stop_cmd    = "${systemctl} stop ${relianoid_service}";
     my $stop_output = `${stop_cmd} 2>&1`;
 
     if ($stop_output) {
@@ -166,7 +166,7 @@ elsif ($action =~ /^(-r|--restore)$/) {
 
     &log_info("Restoring backup ${backup_file}", "SYSTEM");
 
-    my $restore_cmd = "${tar} -xvzf ${backup_file} -C /";
+    my $restore_cmd    = "${tar} -xvzf ${backup_file} -C /";
     my $restore_output = `${restore_cmd} 2>&1`;
 
     if ($restore_output) {
@@ -189,7 +189,8 @@ elsif ($action =~ /^(-r|--restore)$/) {
             if (-e $migration_flag) {
                 &log_info("Migration flag enabled", "SYSTEM");
             }
-        } else {
+        }
+        else {
             &log_error("Unable to create migration flag ${migration_flag}: $!", "SYSTEM");
         }
     }
@@ -202,11 +203,11 @@ elsif ($action =~ /^(-r|--restore)$/) {
         &setGlobalConfiguration('version', $pre_restore_version);
     }
 
-    unlink '/relianoid_version';
+    unlink $version_file;
 
     &log_info("Starting Relianoid service", "SYSTEM");
 
-    my $start_cmd = "${systemctl} start ${relianoid_service}";
+    my $start_cmd    = "${systemctl} start ${relianoid_service}";
     my $start_output = `${start_cmd} 2>&1`;
 
     print $start_output if $start_output;

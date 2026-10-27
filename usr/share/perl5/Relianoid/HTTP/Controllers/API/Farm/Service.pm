@@ -235,6 +235,12 @@ sub modify_farm_service_controller ($json_obj, $farmname, $service) {
         );
     }
     elsif ($type eq "eproxy" && $eload) {
+        my $params = &getAPIModel("farm_eproxy_service-modify.json");
+
+        if (my $error_msg = &checkApiParams($json_obj, $params, $desc)) {
+            return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg });
+        }
+
         my $args = $json_obj;
         $args->{ farm_name } = $farmname;
         $args->{ service_name } = $service;
@@ -327,24 +333,6 @@ sub modify_farm_service_controller ($json_obj, $farmname, $service) {
             if (my $error = &setHTTPFarmVS($farmname, $service, "session", $session)) {
                 my $msg = "It's not possible to change the persistence parameter.";
                 return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
-            }
-
-            if ($eload) {
-                my $new_persistence = &getPersistence($farmname);
-                if (($new_persistence == 1) and ($old_persistence == 0)) {
-                    &eload(
-                        module => 'Relianoid::EE::Ssyncd',
-                        func   => 'setSsyncdFarmDown',
-                        args   => [$farmname],
-                    );
-                }
-                elsif (($new_persistence == 0) and ($old_persistence == 1)) {
-                    &eload(
-                        module => 'Relianoid::EE::Ssyncd',
-                        func   => 'setSsyncdFarmUp',
-                        args   => [$farmname],
-                    );
-                }
             }
         }
 

@@ -1,5 +1,6 @@
 [Unit]
 Description=RELIANOID ADC Load Balancer
+After=nftlb.service
 
 [Service]
 Type=oneshot

@@ -60,8 +60,8 @@ sub setSystemPackagesRepo () {
     my $host         = &getGlobalConfiguration('repo_url_relianoid');
     my $file         = &getGlobalConfiguration('apt_source_relianoid');
     my $aptget_bin   = &getGlobalConfiguration('aptget_bin');
-    my $distribution = "bookworm";
-    my $repo_version = "v7";
+    my $distribution = "trixie";
+    my $repo_version = "v9";
     my $content      = "deb http://$host/ce/$repo_version/ $distribution main\n";
 
     &log_info("Configuring the APT repository", "SYSTEM");

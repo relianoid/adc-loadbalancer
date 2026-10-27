@@ -50,7 +50,6 @@ sub get_system_user_controller () {
         my $params     = {
             user             => $user,
             api_permissions  => $api_status,
-            zapi_permissions => $api_status,
             service          => 'local',
         };
 
@@ -159,7 +158,7 @@ sub set_system_user_controller ($json_obj) {
         }
 
         # modify API permissions
-        my $json_api_permissions = $json_obj->{api_permissions} // $json_obj->{zapi_permissions};
+        my $json_api_permissions = $json_obj->{api_permissions};
 
         if (defined $json_api_permissions) {
             if ($json_api_permissions eq 'true' && !&get_api_key()) {

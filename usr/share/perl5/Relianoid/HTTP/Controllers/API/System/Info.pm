@@ -89,9 +89,6 @@ sub get_version_controller () {
         appliance_version => &getApplianceVersion(),
     };
 
-    # For compatibility with previous versions
-    $params->{zevenet_version} = $params->{relianoid_version};
-
     my $body = { description => $desc, params => $params };
 
     return &httpResponse({ code => 200, body => $body });
@@ -113,17 +110,12 @@ sub get_system_info_controller () {
         relianoid_version       => &getGlobalConfiguration('version'),
         hostname                => &getHostname(),
         user                    => &getUser(),
-        supported_zapi_versions => \@api_versions,
         supported_api_versions  => \@api_versions,
-        last_zapi_version       => $api_versions[-1],
         last_api_version        => $api_versions[-1],
         edition                 => $eload ? "enterprise" : "community",
         language                => &getGlobalConfiguration('lang'),
         platform                => &getGlobalConfiguration('cloud_provider'),
     };
-
-    # For compatibility with previous versions
-    $params->{zevenet_version} = $params->{relianoid_version};
 
     if ($eload) {
         $params = &eload(

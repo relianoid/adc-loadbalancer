@@ -75,11 +75,6 @@ sub _runHTTPFarmStart ($farm_name, $writeconf = undef) {
     return -1 if (&getHTTPFarmConfigIsOK($farm_name));
 
     my $args = '';
-    if ($eload) {
-        my $ssyncd_enabled = &getGlobalConfiguration('ssyncd_enabled');
-        $args = '-s' if ($ssyncd_enabled eq 'true');
-    }
-
     my $cmd = "$pound $args -f $configdir\/$farm_filename -p $piddir\/$farm_name\_proxy.pid";
     $status = &run_with_env("$cmd");
 
@@ -91,6 +86,20 @@ sub _runHTTPFarmStart ($farm_name, $writeconf = undef) {
     # set backend at status before that the farm stopped
     &setHTTPFarmBackendStatusFromFile($farm_name);
     &setHTTPFarmBootStatus($farm_name, "up") if ($writeconf);
+
+    if ($eload) {
+        my $stateful_is_enabled = &eload(
+            module => 'Relianoid::EE::Sessions',
+            func   => 'getSessionsDBIsEnabled'
+        );
+
+        &eload(
+            module => 'Relianoid::EE::Farm::HTTP::Session',
+            func   => 'enableHTTPFarmSessionsDB',
+            args   => [{ farm_name => $farm_name }],
+        ) if ($stateful_is_enabled);
+
+    }
 
     return $status;
 }
@@ -117,6 +126,20 @@ sub _runHTTPFarmStop ($farm_name, $writeconf = undef) {
     my $time = &getGlobalConfiguration("http_farm_stop_grace_time");
 
     &runFarmGuardianStop($farm_name);
+
+    if ($eload) {
+        my $stateful_is_enabled = &eload(
+            module => 'Relianoid::EE::Sessions',
+            func   => 'getSessionsDBIsEnabled'
+        );
+
+        &eload(
+            module => 'Relianoid::EE::Farm::HTTP::Session',
+            func   => 'disableHTTPFarmSessionsDB',
+            args   => [{ farm_name => $farm_name }],
+        ) if ($stateful_is_enabled);
+
+    }
 
     require Relianoid::Farm::HTTP::Config;
     &setHTTPFarmBootStatus($farm_name, "down") if ($writeconf);

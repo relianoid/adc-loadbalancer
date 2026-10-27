@@ -242,8 +242,8 @@ sub delete_le_cert_controller ($le_cert_name) {
     if ($eload) {
         # check the certificate is being used by API web server
         my $status = &eload(
-            module => 'Relianoid::EE::System::HTTP',
-            func   => 'getHttpsCertUsed',
+            module => 'Relianoid::EE::Service::HTTPServer',
+            func   => 'does_http_server_use_cert',
             args   => ['$cert_name']
         );
         if ($status == 0) {

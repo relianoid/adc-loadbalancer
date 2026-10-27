@@ -27,6 +27,15 @@ trap 'echo Failed at ${LINENO}: $BASH_COMMAND' ERR
 
 [ ! "$1" == "configure" ] && echo "Installation aborted $1 $2" && exit 1
 
+# Fix trixie messages: Failed to query local AF_VSOCK CID
+SSH_GEN_FILE="/etc/systemd/system-generators/systemd-ssh-generator"
+if [ ! -f "$SSH_GEN_FILE" ]; then
+    SYS_GEN_DIR="/etc/systemd/system-generators"
+    [ ! -d "$SYS_GEN_DIR" ] && mkdir "$SYS_GEN_DIR"
+    touch "$SSH_GEN_FILE"
+    systemctl daemon-reload
+fi
+
 _global_conf="/usr/local/relianoid/config/global.conf"
 
 if [ ! -f $_global_conf ]; then
@@ -39,11 +48,6 @@ if [ ! -f $_global_conf ]; then
     # remove #update tag
     /usr/bin/sed -E "s/;$tag\$/;/g" -i $_global_conf
 else
-    #
-    # run migration
-    #
-    # perl -MRelianoid::Config -e "migrateConfigFiles()"
-
     # upgrading global.conf
     /usr/local/relianoid/bin/checkglobalconf
 fi
@@ -92,37 +96,7 @@ fi
 
 # Apply all migrating scripts to RELIANOID
 #
-# run migration
-#
 perl -MRelianoid::Config -e "migrateConfigFiles()"
-
-## Migrations from Zevenet to Relianoid
-
-rm -f /etc/cron.d/zevenet
-
-RELIANOID_PATH=$lb_dir
-ZENRRD_DIR="${RELIANOID_PATH}/app/zenrrd"
-if [[ -d "${ZENRRD_DIR}" && ! -L "${ZENRRD_DIR}" ]]; then
-    mv "${RELIANOID_PATH}/app/zenrrd/rrd"/* "${RELIANOID_PATH}/var/noid-collector/rrd/" 2> /dev/null
-    rm -r "$ZENRRD_DIR"
-
-    # leaves a symbolic link $RELIANOID_PATH/app/zenrrd for compatibility
-    ln -s "../var/noid-collector" "${RELIANOID_PATH}/app/zenrrd"
-fi
-
-# Migrate API user
-if id --user zapi &> /dev/null; then
-    usermod --login api zapi
-fi
-
-zlb_start="/usr/local/relianoid/config/zlb-start"
-zlb_stop="/usr/local/relianoid/config/zlb-stop"
-if [ -f $zlb_start ]; then
-    mv $zlb_start $start_script
-fi
-if [ -f $zlb_stop ]; then
-    mv $zlb_stop $stop_script
-fi
 ## End of: Migrations from Zevenet to Relianoid
 
 # Create noid-start and noid-stop if they don't exist yet
@@ -182,10 +156,6 @@ systemctl start relianoid.service
 # Add RELIANOID Load Balancer service to boot process
 systemctl enable relianoid
 
-if systemctl list-unit-files zevenet.service >/dev/null; then
-    systemctl disable zevenet
-fi
-
 cat > /etc/motd << 'EOF'
 
 ██████  ███████ ██      ██  █████  ███    ██  ██████  ██ ██████
@@ -215,7 +185,6 @@ sed -i "s/1;30m/0;37m/g" /etc/bash.bashrc 2> /dev/null
 
 # Cluster
 sed -i '/changed-by-relianoid/d' /root/.bashrc &>/dev/null || true
-sed -i '/^export PROMPT_COMMAND=.*zevenet-ce-cluster.status/d' /root/.bashrc &>/dev/null || true # Deprecate Zevenet
 
 # Migrate ucarp location
 old_ucarp_bin="\/usr\/local\/relianoid\/app\/ucarp\/sbin\/ucarp"

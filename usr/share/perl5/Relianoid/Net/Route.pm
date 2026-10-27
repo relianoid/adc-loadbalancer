@@ -63,6 +63,7 @@ sub writeRoutes ($if_name) {
     my $rttables = &getGlobalConfiguration('rttables');
 
     &log_debug("Creating table 'table_$if_name'");
+    &createRouteTableFile();
 
     open my $fh, '<', $rttables;
     my @contents = <$fh>;
@@ -764,6 +765,20 @@ sub applyRoutes ($table, $if_ref, $gateway = undef) {
 
     # do not add routes if the inteface is down
     my $if_sys = &getSystemInterface($$if_ref{name});
+
+    # detect cases of ! defined $$if_sys{status}
+    if (! defined $$if_sys{status}) {
+        my $debug = &getGlobalConfiguration('debug');
+        if ($debug > 0) {
+            use Carp qw(longmess);
+            use Data::Dumper;
+            my $trace = longmess("Debug trace");
+            log_debug("Interface with undefined status");
+            log_debug(Dumper($if_sys));
+            log_debug($trace);
+        }
+    }
+
     if ($$if_sys{status} ne 'up') {
         return 0;
     }
@@ -1510,6 +1525,41 @@ sub splitRoutingCmd ($route_conf) {
     }
 
     $route_conf = $r;
+
+    return;
+}
+
+
+=pod
+
+=head1 createRouteTableFile
+
+Create route table if doesn't exist..
+
+Parameters:
+
+    none
+
+Returns:
+
+    integer - 0 if success, 1 error
+
+=cut
+
+sub createRouteTableFile () {
+    my $rttables = &getGlobalConfiguration("rttables");
+    my $rttables_tpl = &getGlobalConfiguration("rttables_tpl");
+
+    require File::Path;
+    require File::Basename;
+    require File::Copy;
+
+    my $directory = File::Basename::dirname($rttables);
+
+    if (!-d $directory) {
+        File::Path::make_path($directory);
+        File::Copy::copy("$rttables_tpl", "$rttables");
+    }
 
     return;
 }

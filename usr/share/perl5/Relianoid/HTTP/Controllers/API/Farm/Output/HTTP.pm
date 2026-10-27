@@ -50,8 +50,10 @@ sub getHTTPOutService ($farmname) {
     my @services_list = ();
 
     for my $service (&getHTTPFarmServices($farmname)) {
-        my $service_ref = &getHTTPServiceStruct($farmname, $service);
-        push @services_list, $service_ref;
+        if ($service !~ /MFA--/) {
+            my $service_ref = &getHTTPServiceStruct($farmname, $service);
+            push @services_list, $service_ref;
+        }
     }
 
     return \@services_list;

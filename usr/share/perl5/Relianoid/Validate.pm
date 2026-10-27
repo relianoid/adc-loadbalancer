@@ -106,11 +106,6 @@ my %format_re = (
     # log
     log => qr/[\.\-\w]+/,
 
-    # api
-    zapi_key      => qr/[a-zA-Z0-9]+/,
-    zapi_status   => $enable,
-    zapi_password => qr/.+/,
-
     # common
     port      => $port_range,
     multiport => qr/(?:\*|(?:$port_range|$port_range\:$port_range)(?:,$port_range|,$port_range\:$port_range)*)/,

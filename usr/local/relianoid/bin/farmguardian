@@ -77,7 +77,7 @@ my $pidfile;
 
 # validate FARM TYPE
 my $type = &getFarmType($farmname);
-unless ($type =~ /^(?:http|https|l4xnat)$/) {
+unless ($type =~ /^(?:http|https|eproxy|l4xnat)$/) {
     my $msg = "FarmGuardian does not support $type farm profile";
     &log_info($msg);
     exit -1;
@@ -108,11 +108,12 @@ for (my $it = 0 ; $it <= $#ARGV ; $it++) {
 
 # declare config files/path
 $pidfile = "${farmname}_${fservice}guardian.pid";
-
 my $fgname = &getFGFarm($farmname, $service);
+
 if (not $fgname) {
+
     my $ms  = ($service) ? "farm $farmname, service $service" : "farm $farmname";
-    my $msg = "Abort: Configuration for farm $ms was not found";
+    my $msg = "Abort: Configuration for $ms was not found";
 
     if ($logging eq 'enabled') {
         &log_info($msg);
@@ -135,9 +136,8 @@ else {
     else {
         $check_cmd_tpl = $fg_conf->{command};
     }
-
     $cutConns = $fg_conf->{cut_conns};
-    $useAlias = $fg_conf->{backend_alias} if ($useAlias ne 'true');         #
+    $useAlias = $fg_conf->{backend_alias} if ($useAlias ne 'true' && exists $fg_conf->{backend_alias});
     $logging  = 'enabled'                 if ($fg_conf->{log} eq 'true');
 }
 
@@ -160,10 +160,6 @@ else {
     exit 1;
 }
 
-# get farm port to use it if a backend has not defined the port field
-require Relianoid::Farm::Config;
-my $farm_st = &getFarmStruct($farmname);
-
 #Ask for the farm type
 $type = 'http' if $type eq 'https';
 
@@ -185,7 +181,9 @@ elsif ($type eq 'http') {
 
     $usemark = 0;
 }
-
+elsif ($type eq 'eproxy') {
+    $usemark = 0;
+}
 # This is a cluster bugfix, to ensure the backend status is correct in the config file.
 my $first_exec = 1;
 
@@ -270,11 +268,53 @@ while (1) {
             $backendprio[$i]   = $l_serv->{priority};
             $backendstatus[$i] = $l_serv->{status};
 
-            # use farm port if backend port is not defined
+            # get farm port to use it if a backend has not defined the port field
+            require Relianoid::Farm::Config;
+            my $farm_st = &getFarmStruct($farmname);
             $backendport[$i] = $l_serv->{port} // $farm_st->{vport};
             $backendport[$i] = $farm_st->{vport} if ($backendport[$i] eq "");
             $i++;
         }
+
+    } elsif ($type eq 'eproxy' && $eload) {
+
+        my $status = &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Action',
+            func   => 'getEproxyFarmStatus',
+            args   => [{ farm_name => $farmname }],
+        );
+
+        if ($status ne "up") {
+            my $msg = "Farm $farmname is down, abort.";
+
+            if ($logging eq 'enabled') {
+                &log_info($msg);
+            }
+            else {
+                print "$msg\n";
+            }
+
+            exit 1;
+        }
+
+        my $backends = &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Backend',
+            func   => 'getEproxyFarmBackends',
+            args   => [{ farm_name => $farmname, service_name => $service }],
+        );
+
+        for my $backend (@{$backends}) {
+            $backendmark[$i]   = '' if $usemark;
+            $backendid[$i]     = $backend->{id};
+            $backendserv[$i]   = ($useAlias eq 'true') ? &getFGAlias($backend->{ip}) : $backend->{ip};
+            $backendip[$i]     = $backend->{ip};
+            $backendport[$i]   = $backend->{port};
+            $backendstatus[$i] = $backend->{status};
+            $backendprio[$i]   = $backend->{priority};
+
+            $i++;
+        }
+
     }
 
     # Use the default timetocheck as the timeout for the backends response
@@ -377,6 +417,7 @@ while (1) {
         my $timedout     = 0;
         my $errorcode    = '';
         my $status_error = -1;
+        my $response;
 
         # run actual backend check
         eval {
@@ -440,7 +481,7 @@ while (1) {
             # Enabling backend for every type of farm supported
             if ($type eq 'http') {
                 if ($first_exec) {
-                    $status_error = &setHTTPFarmBackendStatus($farmname, $service, $backendid[$j], 'up', "");
+                    $response = &setHTTPFarmBackendStatus($farmname, $service, $backendid[$j], 'up', "");
                 }
                 else {
                     my @backends;
@@ -458,20 +499,63 @@ while (1) {
 
                     $y = 0;
 
-                    $status_error = &setHTTPFarmBackendStatus($farmname, $service, $backendid[$j], 'up', 'cut', \@backends);
+                    $response = &setHTTPFarmBackendStatus($farmname, $service, $backendid[$j], 'up', 'cut', \@backends);
                 }
-
+                $status_error = $response->{code};
                 $auxLog = " in farm: '$farmname', service: '$service'";
             }
             elsif ($type eq 'l4xnat') {
                 $auxLog       = " in farm: '$farmname'";
-                $status_error = &setL4FarmBackendStatus($farmname, $backendid[$j], 'up');
+                $response = &setL4FarmBackendStatus($farmname, $backendid[$j], 'up');
+                $status_error = $response->{code};
+
+            } elsif ($type eq 'eproxy' && $eload) {
+                if ($first_exec) {
+                    $status_error = &eload(
+                        module => 'Relianoid::EE::Farm::Eproxy::Backend',
+                        func   => 'setEproxyFarmBackendStatus',
+                        args   => [{ farm_name => $farmname, service_name => $service, backend_id => $backendid[$j], backend_status => "up" }],
+                    );
+                    $status_error += &eload(
+                        module => 'Relianoid::EE::Farm::Eproxy::Action',
+                        func   => 'runEproxyFarmReload',
+                        args   => [ { farm_name => $farmname } ],
+                    );
+                }
+                else {
+                    my @backends;
+                    my $y = 0;
+
+                    for my $bk (@backendstatus) {
+                        if ($bk eq "active") {
+                            $backends[$y]->{status} = "up";
+                        }
+                        else {
+                            $backends[$y]->{status} = "down";
+                        }
+                        $y++;
+                    }
+
+                    $y = 0;
+                    my $changed = &eload(
+                        module => 'Relianoid::EE::Farm::Eproxy::Backend',
+                        func   => 'setEproxyFarmBackendStatus',
+                        args   => [{ farm_name => $farmname, service_name => $service, backend_id => $backendid[$j], backend_status => "up" }],
+                    );
+                    $status_error += &eload(
+                        module => 'Relianoid::EE::Farm::Eproxy::Action',
+                        func   => 'runEproxyFarmReload',
+                        args   => [ { farm_name => $farmname } ],
+                    ) if ($changed);
+                }
+
+                $auxLog = " in farm: '$farmname', service: '$service'";
             }
 
             $backendstatus[$j] = 'active';
 
             # WARNING: This message format is expected by 'sec'
-            if (not $first_exec and ($status_error->{code} != 1 and $status_error->{code} != -1)) {
+            if (not $first_exec and ($status_error != 1 and $status_error != -1)) {
                 &log_info("BackEnd $backendserv[$j]:$backendport[$j] resurrect$auxLog");
             }
         }
@@ -492,23 +576,38 @@ while (1) {
             #if exec error put in blacklist the server
             if ($type eq 'http') {
                 if ($cutConns eq 'true') {
-                    $status_error = &setHTTPFarmBackendStatus($farmname, $service, $backendid[$j], 'fgDOWN', 'cut');
+                    $response = &setHTTPFarmBackendStatus($farmname, $service, $backendid[$j], 'fgDOWN', 'cut');
                 }
                 else {
-                    $status_error = &setHTTPFarmBackendStatus($farmname, $service, $backendid[$j], 'fgDOWN', "");
+                    $response = &setHTTPFarmBackendStatus($farmname, $service, $backendid[$j], 'fgDOWN', "");
                 }
+                $status_error = $response->{code};
                 $auxLog = " in farm: '$farmname', service: '$service'";
             }
             elsif ($type eq 'l4xnat') {
                 if ($cutConns eq 'true') {
-                    $status_error = &setL4FarmBackendStatus($farmname, $backendid[$j], 'fgDOWN', 'cut');
+                    $response = &setL4FarmBackendStatus($farmname, $backendid[$j], 'fgDOWN', 'cut');
                 }
                 else {
-                    $status_error = &setL4FarmBackendStatus($farmname, $backendid[$j], 'fgDOWN', "");
+                    $response = &setL4FarmBackendStatus($farmname, $backendid[$j], 'fgDOWN', "");
                 }
-
+                $status_error = $response->{code};
                 $auxLog = " in farm: '$farmname'";
+
+            } elsif ($type eq 'eproxy' && $eload) {
+                my $changed = &eload(
+                    module => 'Relianoid::EE::Farm::Eproxy::Backend',
+                    func   => 'setEproxyFarmBackendStatus',
+                    args   => [{ farm_name => $farmname, service_name => $service, backend_id => $backendid[$j], backend_status => "down" }],
+                );
+                $status_error += &eload(
+                    module => 'Relianoid::EE::Farm::Eproxy::Action',
+                    func   => 'runEproxyFarmReload',
+                    args   => [ { farm_name => $farmname } ],
+                ) if ($changed);
+                $auxLog = " in farm: '$farmname', service: '$service'";
             }
+
             if (defined $backendprio[$j] and ($backendprio[$j] <= $svc_prio)) {
                 $svc_prio++;
                 if ($logging eq 'enabled') {
@@ -519,7 +618,7 @@ while (1) {
             $backendstatus[$j] = 'fgDOWN';
 
             # WARNING: This message format is expected by 'sec'
-            if (not $first_exec and ($status_error->{code} != 1 and $status_error->{code} != -1)) {
+            if (not $first_exec and ($status_error != 1 and $status_error != -1)) {
                 &log_info("BackEnd $backendserv[$j]:$backendport[$j] down$auxLog");
             }
         }

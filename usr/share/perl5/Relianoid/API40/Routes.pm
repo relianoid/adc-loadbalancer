@@ -161,7 +161,6 @@ if ($PATH_INFO =~ qr{^/farms}) {
 
         GET qr{^/farms/modules/summary$} => \&get_farm_modules_controller;
         GET qr{^/farms/modules/lslb$}    => \&list_lslb_controller;
-        GET qr{^/farms/modules/dslb$}    => \&list_dslb_controller;
 
         GET qr{^/farms/($farm_re)$}         => \&get_farm_controller;
         GET qr{^/farms/($farm_re)/status$}  => \&get_farm_status_controller;
@@ -358,18 +357,12 @@ if ($PATH_INFO =~ qr{^/system/backup}) {
     POST qr{^/system/backup/(.+)/actions$} => \&restore_backup_controller;    #  POST  restore backups
 }
 
-if ($PATH_INFO =~ qr{^/system/(?:version|info|license|support|supportsave|language|packages)}) {
+if ($PATH_INFO =~ qr{^/system/(?:version|info|license|support|language|packages)}) {
     require Relianoid::HTTP::Controllers::API::System::Info;
 
     GET qr{^/system/version$}     => \&get_version_controller;
     GET qr{^/system/info$}        => \&get_system_info_controller;
     GET qr{^/system/support$}     => \&get_support_file_controller;
-    GET qr{^/system/supportsave$} => \&get_support_file_controller;
-    # Using a non-capturing group as support(?:save)? to avoid repeating the
-    # call to get_support_file_controller will send a count of matches to
-    # get_support_file_controller, but this function accepts no arguments.
-    # This repetition can be removed when the compatibility with
-    # /system/supportsave is droped.
 
     my $license_re = &getValidFormat('license_format');
     GET qr{^/system/license/($license_re)$} => \&get_license_controller;

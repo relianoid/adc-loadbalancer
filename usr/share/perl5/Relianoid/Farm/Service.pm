@@ -69,11 +69,12 @@ sub getFarmServices ($farm_name) {
         ) if $eload;
     }
     elsif ($farm_type eq "eproxy" && $eload) {
-        @output = &eload(
+        my $services = &eload(
             module => 'Relianoid::EE::Farm::Eproxy::Service',
             func   => 'getEproxyFarmServices',
             args   => [{ farm_name => $farm_name }],
-        ) if $eload;
+        );
+        @output = @{$services};
     }
 
     return @output;

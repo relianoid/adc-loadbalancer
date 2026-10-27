@@ -25,7 +25,13 @@ use strict;
 use warnings;
 use feature qw(signatures);
 
+use Relianoid::Config;
+
 my $eload = eval { require Relianoid::ELoad };
+
+my $le_config_path  = getGlobalConfiguration('le_config_path');
+my $le_cron_file    = getGlobalConfiguration('le_cron_file');
+my $le_http_service = "relianoid-httpd-letsencrypt.service";
 
 =pod
 
@@ -34,26 +40,6 @@ my $eload = eval { require Relianoid::ELoad };
 Relianoid::Letsencrypt
 
 =cut
-
-=pod
-
-=head1 getLetsencryptConfigPath
-
-Returns the dirpath for Letsencrypt Config
-
-Parameters:
-
-    none
-
-Returns:
-
-    string -  dir path.
-
-=cut
-
-sub getLetsencryptConfigPath () {
-    return &getGlobalConfiguration('le_config_path');
-}
 
 =pod
 
@@ -97,26 +83,6 @@ sub setLetsencryptConfig ($le_conf_re) {
 
 =pod
 
-=head1 getLetsencryptCronFile
-
-Returns the Letsencrypt Cron Filepath
-
-Parameters:
-
-    none
-
-Returns:
-
-    string - Letsencrypt Cron filepath
-
-=cut
-
-sub getLetsencryptCronFile () {
-    return &getGlobalConfiguration('le_cron_file');
-}
-
-=pod
-
 =head1 getLetsencryptCertificates
 
 Returns Letsencrypt Certificates
@@ -133,9 +99,7 @@ Returns:
 
 sub getLetsencryptCertificates ($le_cert_name = undef) {
     my $le_certs_ref = [];
-
-    my $le_config_path = &getLetsencryptConfigPath();
-    my $le_live_path   = $le_config_path . "live";
+    my $le_live_path = $le_config_path . "live";
 
     my $certs;
     if (defined $le_cert_name) {
@@ -211,7 +175,7 @@ Returns the Letsencrypt no Wildcard Certificates Info
 
 Parameters:
 
-    le_cert_name . LE Certificate name
+    le_cert_name - LE Certificate name
 
 Returns:
 
@@ -471,7 +435,21 @@ sub unsetLetsencryptFarmService ($farm_name) {
 
 =pod
 
-=head1 runLetsencryptLocalWebserverStart
+=head1 is_active_le_http_service
+Check Local Webserver is running
+
+Parameters: None
+
+Returns: Integer - 0 on succesfull, otherwise on error.
+=cut
+
+sub is_active_le_http_service () {
+    return logAndRun("systemctl is-active --quiet $le_http_service") == 0;
+}
+
+=pod
+
+=head1 start_le_http_service
 
 Start Local Webserver listening on localhost:80
 
@@ -485,42 +463,20 @@ Returns:
 
 =cut
 
-sub runLetsencryptLocalWebserverStart () {
-    my $http_dir                 = &getGlobalConfiguration('http_server_dir');
-    my $pid_file                 = "$http_dir/var/run/cherokee_localhost.pid";
-    my $le_webserver_config_file = &getGlobalConfiguration('le_webserver_config_file');
-    my $http_bin                 = &getGlobalConfiguration('http_bin');
+sub start_le_http_service () {
+    my $status = 0;
 
-    my $rc = 0;
-
-    my $status = &getLetsencryptLocalWebserverRunning();
-
-    if ($status == 1) {
-        &log_info("$http_bin -d -C $le_webserver_config_file", "letsencrypt");
-        &logAndRunBG("$http_bin -d -C $le_webserver_config_file");
+    unless (my $running = is_active_le_http_service()) {
+        my $cmd = "systemctl start $le_http_service && systemctl is-active --quiet $le_http_service";
+        $status = logAndRun($cmd);
     }
 
-    use Time::HiRes qw(usleep);
-    my $retry     = 0;
-    my $max_retry = 50;
-    while (not -f $pid_file and $retry < $max_retry) {
-        $retry++;
-        usleep(100_000);
-    }
-    if (not -f $pid_file) {
-        &log_error("Error starting Local Web Server", "letsencrypt");
-        $rc = 1;
-    }
-    else {
-        &log_info("Letsencrypt Local Web Server is running", "letsencrypt");
-    }
-
-    return $rc;
+    return $status;
 }
 
 =pod
 
-=head1 runLetsencryptLocalWebserverStop
+=head1 stop_le_http_service
 
 Stop Local Webserver listening on localhost:80
 
@@ -534,81 +490,12 @@ Returns:
 
 =cut
 
-sub runLetsencryptLocalWebserverStop () {
-    my $http_dir = &getGlobalConfiguration('http_server_dir');
-    my $pid_file = "$http_dir/var/run/cherokee_localhost.pid";
-    my $pid      = "0";
-    my $kill_bin = &getGlobalConfiguration('kill_bin');
-    my $cat_bin  = &getGlobalConfiguration('cat_bin');
-
-    my $status = &getLetsencryptLocalWebserverRunning();
-
-    if ($status == 0) {
-        $pid = &logAndGet("$cat_bin $pid_file");
-        my $error = &logAndRun("$kill_bin -15 $pid");
-        if ($error) {
-            &log_error("Error stopping Letsencrypt Local Web Server", "letsencrypt");
-            return 1;
-        }
-        use Time::HiRes qw(usleep);
-        my $retry     = 0;
-        my $max_retry = 20;
-        while (-f $pid_file and $retry < $max_retry) {
-            $retry++;
-            usleep(100_000);
-        }
-        unlink $pid_file if (-f $pid_file);
-        &log_info("Letsencrypt Local Web Server is stopped", "letsencrypt");
+sub stop_le_http_service () {
+    if (my $running = is_active_le_http_service()) {
+        logAndRun("systemctl stop $le_http_service");
     }
 
-    return 0;
-}
-
-=pod
-
-=head1 getLetsencryptLocalWebserverRunning
-
-Check Local Webserver is running
-
-Parameters:
-
-    None
-
-Returns:
-
-    Integer - 0 on succesfull, otherwise on error.
-
-=cut
-
-sub getLetsencryptLocalWebserverRunning () {
-    my $rc;
-    my $http_dir = &getGlobalConfiguration('http_server_dir');
-    my $pid_file = "$http_dir/var/run/cherokee_localhost.pid";
-
-    if (-f $pid_file) {
-        use Relianoid::System;
-
-        if (&checkPidFileRunning($pid_file)) {
-            &log_warn("Letsencrypt Local Webser is not running but PID file $pid_file exists!", "letsencrypt");
-            unlink $pid_file;
-        }
-        $rc = 0;
-    }
-    else {
-        my $pgrep                    = &getGlobalConfiguration('pgrep');
-        my $http_bin                 = &getGlobalConfiguration('http_bin');
-        my $le_webserver_config_file = &getGlobalConfiguration('le_webserver_config_file');
-
-        if (&logAndRunCheck("$pgrep -f \"$http_bin -d -C $le_webserver_config_file\"")) {
-            &log_warn("Letsencrypt Local Webserver is running but no PID file $pid_file exists!", "letsencrypt");
-            $rc = 2;
-        }
-        else {
-            $rc = 1;
-        }
-    }
-
-    return $rc;
+    return;
 }
 
 =pod
@@ -687,7 +574,7 @@ sub runLetsencryptObtain ($farm_name = undef, $vip = undef, $domains_list = unde
     my $challenge = "http";
 
     # start local Web Server
-    $status = &runLetsencryptLocalWebserverStart();
+    $status = &start_le_http_service();
 
     return 1 if $status;
 
@@ -706,7 +593,7 @@ sub runLetsencryptObtain ($farm_name = undef, $vip = undef, $domains_list = unde
     if ($challenge eq "http") {
         $method_opt = "--webroot --webroot-path " . &getGlobalConfiguration('le_webroot_path');
     }
-    my $configdir_opt = "--config-dir " . &getLetsencryptConfigPath();
+    my $configdir_opt = "--config-dir $le_config_path";
     my $email_opt     = "-m " . &getLetsencryptConfig()->{email};
     my $challenge_opt = "--preferred-challenges $challenge";
     my $opts          = "--agree-tos --no-eff-email -n";
@@ -741,7 +628,7 @@ sub runLetsencryptObtain ($farm_name = undef, $vip = undef, $domains_list = unde
     &unsetLetsencryptFarmService($farm_name);
 
     # stop local Web Server
-    &runLetsencryptLocalWebserverStop();
+    &stop_le_http_service();
 
     return $rc;
 }
@@ -763,7 +650,6 @@ Returns:
 =cut
 
 sub runLetsencryptDestroy ($le_cert_name) {
-    my $le_config_path = &getLetsencryptConfigPath();
     my $local_path     = &getGlobalConfiguration('localconfig');
     my $le_backup_file = "$local_path/le_backup-$le_cert_name.tgz";
     my $rm_bck_cmd     = "rm -f $le_backup_file";
@@ -783,8 +669,8 @@ sub runLetsencryptDestroy ($le_cert_name) {
     # run le_binary delete command
     # delete --cert-name $cert_name --config-dir $le_config_path --reason unspecified
 
-    my $certname_opt  = "--cert-name " . $le_cert_name;
-    my $configdir_opt = "--config-dir " . &getLetsencryptConfigPath();
+    my $certname_opt  = "--cert-name $le_cert_name";
+    my $configdir_opt = "--config-dir $le_config_path";
     my $opts          = "--reason unspecified";
 
     my $cmd = "$le_binary delete $certname_opt $configdir_opt $opts";
@@ -858,7 +744,7 @@ sub runLetsencryptRenew ($le_cert_name, $farm_name, $vip, $force, $lock_fh) {
     }
 
     # start local Web Server
-    $status = &runLetsencryptLocalWebserverStart();
+    $status = &start_le_http_service();
 
     if ($status) {
         $error_ref->{code} = 1;
@@ -884,13 +770,13 @@ sub runLetsencryptRenew ($le_cert_name, $farm_name, $vip, $force, $lock_fh) {
 
     my $fullchain_opt = "--fullchain-path " . &getGlobalConfiguration('le_fullchain_path');
     my $webroot_opt   = "--webroot --webroot-path " . &getGlobalConfiguration('le_webroot_path');
-    my $configdir_opt = "--config-dir " . &getLetsencryptConfigPath();
+    my $configdir_opt = "--config-dir $le_cert_name";
     my $email_opt     = "-m " . &getLetsencryptConfig()->{email};
     my $opts          = "--preferred-challenges http-01 --agree-tos --no-eff-email -n --no-random-sleep-on-renew";
 
     my $le_binary = &getGlobalConfiguration('le_certbot_bin');
     my $cmd =
-      "$le_binary certonly -d $le_cert_name $fullchain_opt $webroot_opt $configdir_opt $email_opt $test_opt $force_opt $opts";
+        "$le_binary certonly -d $le_cert_name $fullchain_opt $webroot_opt $configdir_opt $email_opt $test_opt $force_opt $opts";
 
     &log_info("Executing Letsencrypt renew command : $cmd", "letsencrypt");
     $status = &logRunAndGet($cmd, "array");
@@ -939,7 +825,7 @@ sub runLetsencryptRenew ($le_cert_name, $farm_name, $vip, $force, $lock_fh) {
     &unsetLetsencryptFarmService($farm_name);
 
     # stop local Web Server
-    &runLetsencryptLocalWebserverStop();
+    &stop_le_http_service();
 
     close $lock_le_renew_fh;
     unlink $lock_le_renew;
@@ -962,8 +848,7 @@ Returns: integer - 1 for staging, 0 for production.
 =cut
 
 sub isLetsencryptStaging ($le_cert_name) {
-    my $le_config_path = &getLetsencryptConfigPath();
-    my $rc             = 0;
+    my $rc = 0;
 
     return $rc if (!$le_cert_name);
 
@@ -1007,7 +892,6 @@ sub setLetsencryptCron ($le_cert_name, $farm_name, $vip, $force, $restart) {
     return 1 if (!$le_cert_name);
     return 2 if (!$vip && !$farm_name) or ($vip && $farm_name);
 
-    my $le_cron_file   = &getLetsencryptCronFile();
     my $le_renewal_bin = &getGlobalConfiguration('le_renewal_bin');
     my $minute         = int rand(59);
 
@@ -1049,7 +933,6 @@ sub unsetLetsencryptCron ($le_cert_name) {
 
     return 1 if (!$le_cert_name);
 
-    my $le_cron_file   = &getLetsencryptCronFile();
     my $le_renewal_bin = &getGlobalConfiguration('le_renewal_bin');
 
     require Relianoid::Lock;
@@ -1086,7 +969,6 @@ sub getLetsencryptCron ($le_cert_name) {
         restart => undef
     };
 
-    my $le_cron_file   = &getLetsencryptCronFile();
     my $le_renewal_bin = &getGlobalConfiguration('le_renewal_bin');
 
     my @le_cron_list = ();
@@ -1174,7 +1056,7 @@ sub runLetsencryptCertConfigBackup ($cert_name) {
     my $le_backup_path    = &getGlobalConfiguration('localconfig');
     my $le_backup_file    = "le_backup-$cert_name.tgz";
     my $cmd =
-      "cd $le_fullchain_path && tar zcf $le_backup_path/$le_backup_file live/$cert_name/ archive/$cert_name/ renewal/$cert_name.conf";
+        "cd $le_fullchain_path && tar zcf $le_backup_path/$le_backup_file live/$cert_name/ archive/$cert_name/ renewal/$cert_name.conf";
     my $output = 0;
 
     &log_info("Creating LetsEncrypt Configuration Backup to $le_backup_path/$le_backup_file", "letsencrypt");
@@ -1216,7 +1098,7 @@ sub runLetsencryptCertConfigRecovery ($cert_name) {
     my $le_backup_path    = &getGlobalConfiguration('localconfig');
     my $le_backup_file    = "le_backup-$cert_name.tgz";
     my $cmd =
-      "cd $le_fullchain_path && rm -rf live/$cert_name/ archive/$cert_name/ renewal/$cert_name.conf && tar zxf $le_backup_path/$le_backup_file";
+        "cd $le_fullchain_path && rm -rf live/$cert_name/ archive/$cert_name/ renewal/$cert_name.conf && tar zxf $le_backup_path/$le_backup_file";
     my $output = 0;
 
     if (-f "$le_backup_path/$le_backup_file") {

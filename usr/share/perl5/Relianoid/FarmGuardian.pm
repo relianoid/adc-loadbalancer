@@ -696,7 +696,6 @@ Returns:
 
 sub delFGFarm ($farm, $service = undef) {
     require Relianoid::Farm::Service;
-
     my $err  = &runFGFarmStop($farm, $service);
     my $type = &getFarmType($farm);
 
@@ -705,7 +704,6 @@ sub delFGFarm ($farm, $service = undef) {
         if (my $fg = &getFGFarm($farm)) {
             $err |= &setTinyObj($fg_conf, $fg, 'farms', $farm, 'del');
         }
-
         return;
     }
 
@@ -922,7 +920,6 @@ sub runFGFarmStop ($farm, $service = undef) {
     $service = undef if (defined $service and not length $service);
 
     my $out = 0;
-
     require Relianoid::Farm::Core;
     my $type = &getFarmType($farm);
 
@@ -938,7 +935,6 @@ sub runFGFarmStop ($farm, $service = undef) {
     }
 
     my $fgpid = &getFGPidFarm($farm, $service);
-
     if ($fgpid && $fgpid > 0) {
         my $service_str = $service // '';
         &log_debug("running 'kill 9, $fgpid' stopping FarmGuardian $farm $service_str", "FG");
@@ -1013,7 +1009,11 @@ sub runFGFarmStop ($farm, $service = undef) {
         }
 
         elsif ($type eq "eproxy") {
-            # TODO LGL
+            $out = &eload(
+                module => 'Relianoid::EE::Farm::Eproxy::Backend',
+                func   => 'setEproxyFarmServiceBackendsUp',
+                args   => [{ farm_name => $farm, service_name => $service }],
+            );
         }
     }
 
@@ -1081,7 +1081,6 @@ sub runFGFarmStart ($farm, $svice = undef) {
 
     if ($ftype =~ /http|eproxy/ && $svice eq "") {
         require Relianoid::Farm::Service;
-
         for my $service (&getFarmServices($farm)) {
             $errno |= &runFGFarmStart($farm, $service);
         }

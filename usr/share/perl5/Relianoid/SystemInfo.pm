@@ -69,6 +69,33 @@ sub getHostname() {
     return Sys::Hostname::hostname();
 }
 
+sub detect_appliance_version() {
+    my $version;
+    my $kernel   = &getKernelVersion();
+    my $awk      = &getGlobalConfiguration('awk');
+    my $ifconfig = &getGlobalConfiguration('ifconfig_bin');
+
+    # look for mgmt interface
+    my @ifaces = @{ &logAndGet("$ifconfig -s | $awk '{print $1}'", "array") };
+
+    # Network appliance
+    if (grep { /mgmt/ } @ifaces) {
+        $version = "ZNA 3300";
+    }
+    else {
+        # select appliance verison
+        if    ($kernel =~ /3\.2\.0\-4/)      { $version = "3110"; }
+        elsif ($kernel =~ /3\.16\.0\-4/)     { $version = "4000"; }
+        elsif ($kernel =~ /3\.16\.7\-ckt20/) { $version = "4100"; }
+        else                                 { $version = "10000"; }
+
+        # virtual appliance or baremetal
+        $version = "RSA $version";
+    }
+
+    return $version;
+}
+
 =pod
 
 =head1 getApplianceVersion
@@ -93,46 +120,27 @@ sub getApplianceVersion() {
 
     # look for appliance vesion
     if (-f $applianceFile) {
-        require Tie::File;
-        Tie::File->import;
-
-        tie my @filelines, 'Tie::File', $applianceFile;
-        $version = $filelines[0];
-        untie @filelines;
+        if (open(my $fh, '<', $applianceFile)) {
+            chomp($version = do { local $/; <$fh> });
+            close $fh;
+        }
+        else {
+            log_error("Could not open file $applianceFile: $!");
+        }
     }
 
     # generate appliance version
     if (!$version) {
-        my $kernel = &getKernelVersion();
-
-        my $awk      = &getGlobalConfiguration('awk');
-        my $ifconfig = &getGlobalConfiguration('ifconfig');
-
-        # look for mgmt interface
-        my @ifaces = @{ &logAndGet("$ifconfig -s | $awk '{print $1}'", "array") };
-
-        # Network appliance
-        if (grep { /mgmt/ } @ifaces) {
-            $version = "ZNA 3300";
-        }
-        else {
-            # select appliance verison
-            if    ($kernel =~ /3\.2\.0\-4/)      { $version = "3110"; }
-            elsif ($kernel =~ /3\.16\.0\-4/)     { $version = "4000"; }
-            elsif ($kernel =~ /3\.16\.7\-ckt20/) { $version = "4100"; }
-            else                                 { $version = "8000"; }
-
-            # virtual appliance or baremetal
-            $version = "RSA $version";
-        }
+        $version = detect_appliance_version();
 
         # save version for future request
-        require Tie::File;
-        Tie::File->import;
-
-        tie my @filelines, 'Tie::File', $applianceFile;
-        $filelines[0] = $version;
-        untie @filelines;
+        if (open(my $fh, '>', $applianceFile)) {
+            print {$fh} "$version\n";
+            close $fh;
+        }
+        else {
+            log_error("Could not open file $applianceFile: $!");
+        }
     }
 
     # virtual appliance

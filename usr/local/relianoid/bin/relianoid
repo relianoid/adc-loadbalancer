@@ -52,7 +52,7 @@ my $bin_dir           = &getGlobalConfiguration('bin_dir');
 my $systemctl         = &getGlobalConfiguration('systemctl');
 my $snmpd_srv         = &getGlobalConfiguration('snmpd_service');
 my $ssh_srv           = &getGlobalConfiguration('sshService');
-my $cherokee_srv      = &getGlobalConfiguration('http_server_service');
+my $http_srv          = &getGlobalConfiguration('http_server_service');
 my $cron_service      = &getGlobalConfiguration('cron_service');
 my $relianoid_service = &getGlobalConfiguration('relianoid_service');
 my $action            = shift @ARGV // '';
@@ -99,7 +99,7 @@ sub local_http_service ($command) {
         die "local_http_service '$command' command not recognized";
     }
 
-    &logAndRunBG("$systemctl $command $cherokee_srv");
+    &logAndRunBG("$systemctl $command $http_srv");
     return;
 }
 
@@ -251,6 +251,9 @@ if ($action eq "start") {
 
     require Relianoid::Net::Core;
     require Relianoid::VPN::Core;
+    require Relianoid::Net::Route;
+
+    &createRouteTableFile();
 
     # first real interfaces
     for my $iface (@interfaces) {
@@ -276,7 +279,6 @@ if ($action eq "start") {
                 }
 
                 # remove rt_tables entry
-                require Relianoid::Net::Route;
                 &deleteRoutesTable($$iface{name});
 
                 # remove routing config
@@ -339,7 +341,7 @@ if ($action eq "start") {
 
     # bugfix, force the start of the ssh and http services
     &logAndRun("$systemctl start $ssh_srv");
-    &logAndRun("$systemctl start $cherokee_srv");
+    &logAndRun("$systemctl start $http_srv");
 
     &log_info("Setting up VLAN interfaces...");
 
@@ -540,13 +542,10 @@ elsif ($action eq "stop") {
 
     log_info("Stopping nftlb service...");
 
-    &logAndRun("$systemctl stop nftlb");
-
-    my $status  = &logAndGet("$systemctl status nftlb");
     my $active  = system("$systemctl is-active --quiet nftlb");
-    my $msg     = "Stopping service: nftlb";
-
-    $active != 0 ? log_info($msg) : log_error($msg);
+    if ($active == 0) {
+        &logAndRun("/usr/local/relianoid/bin/nftlbd stop");
+    }
 
     require Relianoid::VPN::Action;
     stop_vpn_service();

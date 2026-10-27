@@ -174,7 +174,7 @@ Get all farms of a type
 
 Parameters:
 
-    type - Farm type. The available options are "http", "https", "datalink", "l4xnat" or "gslb"
+    type - Farm type. The available options are "http", "https", "datalink", "l4xnat", "gslb" or "eproxy"
 
 Returns:
 
@@ -188,8 +188,7 @@ sub getFarmsByType ($farm_type) {
     opendir(my $dir, "$configdir") || return -1;
 
     # gslb uses a directory, not a file
-    # my @farm_files = grep { /^.*\_.*\.cfg/ && -f "$configdir/$_" } readdir ( $dir );
-    my @farm_files = grep { /^.*\_.*\.cfg$/ } readdir($dir);
+    my @farm_files = grep { /^(?:.*_.*\.cfg|.*_eproxy\.yaml)$/ && -f "$configdir/$_" } readdir($dir);
     closedir $dir;
 
     for my $farm_filename (@farm_files) {

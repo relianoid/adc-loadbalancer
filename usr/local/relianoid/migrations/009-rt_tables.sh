@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/bash
 ###############################################################################
 #
 #    RELIANOID Software License
@@ -21,10 +21,15 @@
 #
 ###############################################################################
 
-cherokee_conf="/usr/local/relianoid/app/cherokee/etc/cherokee/cherokee.conf"
+set -e
 
-#Add DH param to 2048 in cherokee conf
-if [[ ! `grep "^vserver\!1\!ssl_dh_length.*" $cherokee_conf` ]]; then
-	echo "DH param not found in cherokee conf, adding"
-	sed -i '/server!user = root/a vserver!1!ssl_dh_length = 2048' $cherokee_conf
+rttables_base_dir="/etc/iproute2"
+rttables_old="$rttables_base_dir/rt_tables"
+rttables_new_dir="$rttables_base_dir/rt_tables.d"
+rttables_new_file="$rttables_new_dir/20-relianoid.conf"
+rttables_tpl="/usr/local/relianoid/share/rt_tables.template"
+
+if [ -f "$rttables_old" ]; then
+    mkdir -p "$rttables_new_dir"
+    mv "$rttables_old" "$rttables_new_file"
 fi

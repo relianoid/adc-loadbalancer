@@ -134,7 +134,7 @@ sub _runFarmStart ($farm_name, $writeconf = 0) {
 
 =head1 runFarmStart
 
-Run a farm completely a farm. Run farm, its farmguardian, ipds rules and ssyncd
+Run a farm. Run farm, its farmguardian and ipds rules
 
 Parameters:
 
@@ -167,15 +167,6 @@ sub runFarmStart ($farm_name, $writeconf = 0) {
             func   => 'runIPDSStartByFarm',
             args   => [$farm_name],
         );
-
-        require Relianoid::Farm::Config;
-        if (&getPersistence($farm_name) == 0) {
-            &eload(
-                module => 'Relianoid::EE::Ssyncd',
-                func   => 'setSsyncdFarmUp',
-                args   => [$farm_name],
-            );
-        }
     }
     return $status;
 }
@@ -184,7 +175,7 @@ sub runFarmStart ($farm_name, $writeconf = 0) {
 
 =head1 runFarmStop
 
-Stop a farm completely a farm. Stop the farm, its farmguardian, ipds rules and ssyncd
+Stop a farm. Stop the farm, its farmguardian and ipds rules
 
 Parameters:
 
@@ -203,11 +194,6 @@ sub runFarmStop ($farm_name, $writeconf = 0) {
         &eload(
             module => 'Relianoid::EE::IPDS::Base',
             func   => 'runIPDSStopByFarm',
-            args   => [$farm_name],
-        );
-        &eload(
-            module => 'Relianoid::EE::Ssyncd',
-            func   => 'setSsyncdFarmDown',
             args   => [$farm_name],
         );
     }

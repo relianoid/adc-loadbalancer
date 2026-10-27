@@ -275,7 +275,7 @@ Parameters:
     protocol - It is an array reference with the protocols to check ("udp", "tcp" and "sctp"), if some of them is used, the function returns 0.
     farmname - If the configuration is set in this farm, the check is ignored and true. This parameters is optional.
     process  - It is the process name to ignore. It is used when a process wants to be modified with all IPs parameter.
-               The services to ignore are: "cherokee", "sshd" and "snmp"
+               The services to ignore are: "lighttpd", "sshd" and "snmp"
 
 Returns: integer
 
@@ -383,7 +383,7 @@ Parameters:
                 The accepted protocols are: 'all' (no one is checked), sctp, tcp and udp
     farmname - If the configuration is set in this farm, the check is ignored and true. This parameters is optional.
     process  - It is the process name to ignore. It is used when a process wants to be modified with all IPs parameter.
-                The services to ignore are: "cherokee", "sshd" and "snmp"
+                The services to ignore are: "lighttpd", "sshd" and "snmp"
 
 Returns: integer
 

@@ -446,10 +446,12 @@ sub migrateConfigFiles () {
         else {
             $errors_count++;
             log_error($file);
+            say STDERR "Failed $file";
         }
     }
 
-    my $msg = "Ran $migrations_count migrations, $errors_count errors.";
+    my $errors_msg = $errors_count ? ", $errors_count errors" : "";
+    my $msg        = "Ran $migrations_count migrations$errors_msg.";
     log_info($msg);
     say STDERR $msg;
 

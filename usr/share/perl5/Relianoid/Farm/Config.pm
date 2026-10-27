@@ -94,28 +94,6 @@ sub setFarmSessionType ($session, $farm_name) {
         $output = &setL4FarmParam('persist', $session, $farm_name);
     }
 
-    #if persistence is enabled
-    require Relianoid::Farm::Config;
-    if (&getPersistence($farm_name) == 0) {
-        #register farm in ssyncd
-        if ($eload) {
-            &eload(
-                module => 'Relianoid::EE::Ssyncd',
-                func   => 'setSsyncdFarmUp',
-                args   => [$farm_name],
-            );
-        }
-    }
-    else {
-        #unregister farm in ssyncd
-        if ($eload) {
-            &eload(
-                module => 'Relianoid::EE::Ssyncd',
-                func   => 'setSsyncdFarmDown',
-                args   => [$farm_name],
-            );
-        }
-    }
     return $output;
 }
 

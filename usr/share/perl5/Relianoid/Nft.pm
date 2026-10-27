@@ -61,7 +61,7 @@ sub getNlbPid () {
     $nlbpid = <$fd>;
     close $fd;
 
-    if ($nlbpid eq "") {
+    if ($nlbpid eq "" || !(kill 0, $nlbpid)) {
         return -1;
     }
 

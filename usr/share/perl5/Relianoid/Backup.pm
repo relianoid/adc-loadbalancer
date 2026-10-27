@@ -203,13 +203,6 @@ sub uploadBackup ($filename, $upload_filehandle) {
         return $error;
     }
 
-    $error = &logAndRun("$tar -tf $filepath usr/local/zevenet/config/global.conf");
-    if (!$error) {
-        &log_info("Enable backup migration to RELIANOID", 'backup');
-        &logAndRun("ln -sf /usr/local/relianoid /usr/local/zevenet");
-        return $error;
-    }
-
     &log_error("$filename looks being a not valid backup", 'backup');
     unlink $filepath;
     return 2;
@@ -318,12 +311,6 @@ sub getBackupVersion ($backup) {
     my @lines = `$cmd`;
     if ($?) {
         log_error("errno: $?");
-        $cmd = "${tar} -xOf ${file} usr/local/zevenet/config/global.conf";
-        log_debug("Running: $cmd");
-        @lines = `$cmd`;
-        if ($?) {
-            log_error("errno: $?");
-        }
     }
 
     my $version = "";

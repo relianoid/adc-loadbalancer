@@ -43,51 +43,73 @@ Relianoid::HTTP::Controllers::API::Farm::HTTP
 sub add_addheader_controller ($json_obj, $farmname) {
     my $desc = "Add addheader directive.";
 
-    # Check that the farm exists
     if (!&getFarmExists($farmname)) {
         my $msg = "The farm '$farmname' does not exist.";
         return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
-    if (&getFarmType($farmname) !~ /http/) {
-        my $msg = "This feature is only for HTTP profiles.";
+    my $type = &getFarmType($farmname);
+    if ($type !~ /http|eproxy/) {
+        my $msg = "This feature is only for HTTP or Eproxy profiles.";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $params = &getAPIModel("farm_http_header_request_add-create.json");
 
-    # Check allowed parameters
     if (my $error_msg = &checkApiParams($json_obj, $params, $desc)) {
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg });
     }
 
-    # check if the header is already added
-    for my $header (@{ &getHTTPAddReqHeader($farmname) }) {
-        if ($header->{header} eq $json_obj->{header}) {
-            my $msg = "The header is already added.";
-            return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
-        }
-    }
+    my $message = "Added a new item to the addheader list";
+    my $body    = {
+        description => $desc,
+        success     => "true",
+        message     => $message,
+    };
 
-    unless (&addHTTPAddheader($farmname, $json_obj->{header})) {
-        # success
-        my $message = "Added a new item to the addheader list";
-        my $body    = {
-            description => $desc,
-            success     => "true",
-            message     => $message,
-        };
-
-        if (&getFarmStatus($farmname) ne 'down') {
-            require Relianoid::Farm::Action;
-            &setFarmRestart($farmname);
-            $body->{status} = 'needed restart';
+    if ($type =~ /http/) {
+        for my $header (@{ &getHTTPAddReqHeader($farmname) }) {
+            if ($header->{header} eq $json_obj->{header}) {
+                my $msg = "The header is already added.";
+                return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+            }
         }
+
+        if (!&addHTTPAddheader($farmname, $json_obj->{header})) {
+            if (&getFarmStatus($farmname) ne 'down') {
+                require Relianoid::Farm::Action;
+                &setFarmRestart($farmname);
+                $body->{status} = 'needed restart';
+            }
+
+            return &httpResponse({ code => 200, body => $body });
+        }
+    } elsif ($type eq "eproxy" && $eload) {
+        my $headers = &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Headers',
+            func   => 'getEproxyFarmHeaders',
+            args   => [ { farm_name => $farmname } ]
+        );
+
+        for my $header (@{ $headers->{request_headers_to_add} }) {
+            my $pair;
+            ($pair->{key}, $pair->{value}) = split(":",$json_obj->{header});
+            if ($header->{key} eq $pair->{key}) {
+                my $msg = "The header is already added.";
+                return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+            }
+        }
+
+        my $inbound_headers = { request_headers_to_add => [ { header => $json_obj->{header} } ] };
+        &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Headers',
+            func   => 'addEproxyFarmHeaders',
+            args   => [ { farm_name => $farmname, headers => $inbound_headers } ]
+        );
 
         return &httpResponse({ code => 200, body => $body });
     }
 
-    # error
     my $msg = "Error adding a new addheader";
     return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
 }
@@ -96,59 +118,72 @@ sub add_addheader_controller ($json_obj, $farmname) {
 sub modify_addheader_controller ($json_obj, $farmname, $index) {
     my $desc = "Modify an addheader directive.";
 
-    # Check that the farm exists
     if (!&getFarmExists($farmname)) {
         my $msg = "The farm '$farmname' does not exist.";
         return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
-    if (&getFarmType($farmname) !~ /http/) {
-        my $msg = "This feature is only for HTTP profiles.";
+    my $type = &getFarmType($farmname);
+    if ($type !~ /http|eproxy/) {
+        my $msg = "This feature is only for HTTP and Eproxy profiles.";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $params = &getAPIModel("farm_http_header_request_add-modify.json");
 
-    # Check allowed parameters
     if (my $error_msg = &checkApiParams($json_obj, $params, $desc)) {
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg });
     }
 
-    my @directives = @{ &getHTTPAddReqHeader($farmname) };
+    my $message = "Modified an item from the addheader list";
+    my $body    = {
+        description => $desc,
+        success     => "true",
+        message     => $message,
+    };
 
-    # check if the header exists
-    if ((scalar @directives) < $index + 1) {
-        my $msg = "The header with index $index not found.";
-        return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
-    }
+    if ($type =~ /http/) {
+        my @directives = @{ &getHTTPAddReqHeader($farmname) };
 
-    # check if the header is already added
-    for my $header (@directives) {
-        if ($header->{header} eq $json_obj->{header}) {
-            my $msg = "The header is already added.";
+        if ((scalar @directives) < $index + 1) {
+            my $msg = "The header with index $index not found.";
             return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
-    }
 
-    unless (&modifyHTTPAddheader($farmname, $json_obj->{header}, $index)) {
-        # success
-        my $message = "Modified an item from the addheader list";
-        my $body    = {
-            description => $desc,
-            success     => "true",
-            message     => $message,
-        };
-
-        if (&getFarmStatus($farmname) ne 'down') {
-            require Relianoid::Farm::Action;
-            &setFarmRestart($farmname);
-            $body->{status} = 'needed restart';
+        for my $header (@directives) {
+            if ($header->{header} eq $json_obj->{header}) {
+                my $msg = "The header is already added.";
+                return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+            }
         }
+
+        unless (&modifyHTTPAddheader($farmname, $json_obj->{header}, $index)) {
+
+            if (&getFarmStatus($farmname) ne 'down') {
+                require Relianoid::Farm::Action;
+                &setFarmRestart($farmname);
+                $body->{status} = 'needed restart';
+            }
+
+            return &httpResponse({ code => 200, body => $body });
+        }
+    } elsif ($type eq "eproxy" && $eload) {
+        my $inbound_headers_delete = { request_headers_to_add => [ { id => $index } ] };
+        &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Headers',
+            func   => 'delEproxyFarmHeaders',
+            args   => [ { farm_name => $farmname, headers => $inbound_headers_delete } ]
+        );
+        my $inbound_headers_add = { request_headers_to_add => [ { header => $json_obj->{header} } ] };
+        &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Headers',
+            func   => 'addEproxyFarmHeaders',
+            args   => [ { farm_name => $farmname, headers => $inbound_headers_add } ]
+        );
 
         return &httpResponse({ code => 200, body => $body });
     }
 
-    # error
     my $msg = "Error modifying an addheader";
     return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
 }
@@ -157,42 +192,50 @@ sub modify_addheader_controller ($json_obj, $farmname, $index) {
 sub del_addheader_controller ($farmname, $index) {
     my $desc = "Delete addheader directive.";
 
-    # Check that the farm exists
     if (!&getFarmExists($farmname)) {
         my $msg = "The farm '$farmname' does not exist.";
         return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
-    if (&getFarmType($farmname) !~ /http/) {
-        my $msg = "This feature is only for HTTP profiles.";
+    my $type = &getFarmType($farmname);
+    if ($type !~ /http|eproxy/) {
+        my $msg = "This feature is only for HTTP and Eproxy profiles.";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
-    # check if the header is already added
-    if ((scalar @{ &getHTTPAddReqHeader($farmname) }) < $index + 1) {
-        my $msg = "The index has not been found.";
-        return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
-    }
+    my $message = "The addheader was successfully deleted.";
+    my $body    = {
+        description => $desc,
+        success     => "true",
+        message     => $message,
+    };
 
-    unless (&delHTTPAddheader($farmname, $index)) {
-        # success
-        my $message = "The addheader $index was deleted successfully";
-        my $body    = {
-            description => $desc,
-            success     => "true",
-            message     => $message,
-        };
-
-        if (&getFarmStatus($farmname) ne 'down') {
-            require Relianoid::Farm::Action;
-            &setFarmRestart($farmname);
-            $body->{status} = 'needed restart';
+    if ($type =~ /http/) {
+        if ((scalar @{ &getHTTPAddReqHeader($farmname) }) < $index + 1) {
+            my $msg = "The index has not been found.";
+            return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
+
+        unless (&delHTTPAddheader($farmname, $index)) {
+            if (&getFarmStatus($farmname) ne 'down') {
+                require Relianoid::Farm::Action;
+                &setFarmRestart($farmname);
+                $body->{status} = 'needed restart';
+            }
+
+            return &httpResponse({ code => 200, body => $body });
+        }
+    } elsif ($type eq "eproxy" && $eload) {
+        my $inbound_headers = { request_headers_to_add => [ { id => $index } ] };
+        &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Headers',
+            func   => 'delEproxyFarmHeaders',
+            args   => [ { farm_name => $farmname, headers => $inbound_headers } ]
+        );
 
         return &httpResponse({ code => 200, body => $body });
     }
 
-    # error
     my $msg = "Error deleting the addheader $index";
     return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
 }
@@ -201,51 +244,71 @@ sub del_addheader_controller ($farmname, $index) {
 sub add_headremove_controller ($json_obj, $farmname) {
     my $desc = "Add headremove directive.";
 
-    # Check that the farm exists
     if (!&getFarmExists($farmname)) {
         my $msg = "The farm '$farmname' does not exist.";
         return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
-    if (&getFarmType($farmname) !~ /http/) {
-        my $msg = "This feature is only for HTTP profiles.";
+    my $type = &getFarmType($farmname);
+    if ($type !~ /http|eproxy/) {
+        my $msg = "This feature is only for HTTP and Eproxy profiles.";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $params = &getAPIModel("farm_http_header_request_remove-create.json");
 
-    # Check allowed parameters
     if (my $error_msg = &checkApiParams($json_obj, $params, $desc)) {
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg });
     }
 
-    # check if the header is already added
-    for my $header (@{ &getHTTPRemReqHeader($farmname) }) {
-        if ($header->{pattern} eq $json_obj->{pattern}) {
-            my $msg = "The pattern is already added.";
-            return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
-        }
-    }
+    my $message = "Added a new item to the headremove list";
+    my $body    = {
+        description => $desc,
+        success     => "true",
+        message     => $message,
+    };
 
-    unless (&addHTTPHeadremove($farmname, $json_obj->{pattern})) {
-        # success
-        my $message = "Added a new item to the headremove list";
-        my $body    = {
-            description => $desc,
-            success     => "true",
-            message     => $message,
-        };
-
-        if (&getFarmStatus($farmname) ne 'down') {
-            require Relianoid::Farm::Action;
-            &setFarmRestart($farmname);
-            $body->{status} = 'needed restart';
+    if ($type =~ /http/) {
+        for my $header (@{ &getHTTPRemReqHeader($farmname) }) {
+            if ($header->{pattern} eq $json_obj->{pattern}) {
+                my $msg = "The pattern is already added.";
+                return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+            }
         }
+
+        unless (&addHTTPHeadremove($farmname, $json_obj->{pattern})) {
+            if (&getFarmStatus($farmname) ne 'down') {
+                require Relianoid::Farm::Action;
+                &setFarmRestart($farmname);
+                $body->{status} = 'needed restart';
+            }
+
+            return &httpResponse({ code => 200, body => $body });
+        }
+    } elsif ($type eq "eproxy" && $eload) {
+        my $headers = &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Headers',
+            func   => 'getEproxyFarmHeaders',
+            args   => [ { farm_name => $farmname } ]
+        );
+
+        for my $header (@{ $headers->{request_headers_to_remove} }) {
+            if ($header eq $json_obj->{pattern}) {
+                my $msg = "The header is already added.";
+                return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+            }
+        }
+
+        my $inbound_headers = { request_headers_to_remove => [ $json_obj->{pattern} ] };
+        &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Headers',
+            func   => 'addEproxyFarmHeaders',
+            args   => [ { farm_name => $farmname, headers => $inbound_headers } ]
+        );
 
         return &httpResponse({ code => 200, body => $body });
     }
 
-    # error
     my $msg = "Error adding a new headremove";
     return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
 }
@@ -254,156 +317,198 @@ sub add_headremove_controller ($json_obj, $farmname) {
 sub modify_headremove_controller ($json_obj, $farmname, $index) {
     my $desc = "Modify an headremove directive.";
 
-    # Check that the farm exists
     if (!&getFarmExists($farmname)) {
         my $msg = "The farm '$farmname' does not exist.";
         return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
-    if (&getFarmType($farmname) !~ /http/) {
-        my $msg = "This feature is only for HTTP profiles.";
+    my $type = &getFarmType($farmname);
+    if ($type !~ /http|eproxy/) {
+        my $msg = "This feature is only for HTTP and Eproxy profiles.";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $params = &getAPIModel("farm_http_header_request_remove-modify.json");
 
-    # Check allowed parameters
     if (my $error_msg = &checkApiParams($json_obj, $params, $desc)) {
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg });
     }
 
-    my @directives = @{ &getHTTPRemReqHeader($farmname) };
+    my $message = "Modified an item from the headremove list";
+    my $body    = {
+        description => $desc,
+        success     => "true",
+        message     => $message,
+    };
 
-    # check if the header exists
-    if ((scalar @directives) < $index + 1) {
-        my $msg = "The header with index $index not found.";
-        return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
-    }
+    if ($type =~ /http/) {
+        my @directives = @{ &getHTTPRemReqHeader($farmname) };
 
-    # check if the new pattern is already added
-    for my $header (@directives) {
-        if ($header->{pattern} eq $json_obj->{pattern}) {
-            my $msg = "The pattern is already added.";
+        if ((scalar @directives) < $index + 1) {
+            my $msg = "The header with index $index not found.";
             return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
-    }
 
-    unless (&modifyHTTPHeadremove($farmname, $json_obj->{pattern}, $index)) {
-        # success
-        my $message = "Modified an item from the headremove list";
-        my $body    = {
-            description => $desc,
-            success     => "true",
-            message     => $message,
-        };
-
-        if (&getFarmStatus($farmname) ne 'down') {
-            require Relianoid::Farm::Action;
-            &setFarmRestart($farmname);
-            $body->{status} = 'needed restart';
+        for my $header (@directives) {
+            if ($header->{pattern} eq $json_obj->{pattern}) {
+                my $msg = "The pattern is already added.";
+                return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+            }
         }
+
+        unless (&modifyHTTPHeadremove($farmname, $json_obj->{pattern}, $index)) {
+            if (&getFarmStatus($farmname) ne 'down') {
+                require Relianoid::Farm::Action;
+                &setFarmRestart($farmname);
+                $body->{status} = 'needed restart';
+            }
+
+            return &httpResponse({ code => 200, body => $body });
+        }
+    } elsif ($type eq "eproxy" && $eload) {
+        my $inbound_headers_delete = { request_headers_to_remove => [ { id => $index } ] };
+        &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Headers',
+            func   => 'delEproxyFarmHeaders',
+            args   => [ { farm_name => $farmname, headers => $inbound_headers_delete } ]
+        );
+        my $inbound_headers_add = { request_headers_to_remove => [ $json_obj->{pattern} ] };
+        &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Headers',
+            func   => 'addEproxyFarmHeaders',
+            args   => [ { farm_name => $farmname, headers => $inbound_headers_add } ]
+        );
 
         return &httpResponse({ code => 200, body => $body });
     }
 
-    # error
     my $msg = "Error modifying an headremove";
     return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
 }
 
-#  DELETE	/farms/<>/addheader/<>
+#  DELETE	/farms/<>/headremove/<>
 sub del_headremove_controller ($farmname, $index) {
     my $desc = "Delete headremove directive.";
 
-    # Check that the farm exists
     if (!&getFarmExists($farmname)) {
         my $msg = "The farm '$farmname' does not exist.";
         return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
-    if (&getFarmType($farmname) !~ /http/) {
-        my $msg = "This feature is only for HTTP profiles.";
+    my $type = &getFarmType($farmname);
+    if ($type !~ /http|eproxy/) {
+        my $msg = "This feature is only for HTTP and Eproxy profiles.";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
-    # check if the headremove is already added
-    if ((scalar @{ &getHTTPRemReqHeader($farmname) }) < $index + 1) {
-        my $msg = "The index has not been found.";
-        return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
-    }
+    my $message = "The headremove was successfully deleted";
+    my $body    = {
+        description => $desc,
+        success     => "true",
+        message     => $message,
+    };
 
-    unless (&delHTTPHeadremove($farmname, $index)) {
-        # success
-        my $message = "The headremove $index was deleted successfully";
-        my $body    = {
-            description => $desc,
-            success     => "true",
-            message     => $message,
-        };
-
-        if (&getFarmStatus($farmname) ne 'down') {
-            require Relianoid::Farm::Action;
-            &setFarmRestart($farmname);
-            $body->{status} = 'needed restart';
+    if ($type =~ /http/) {
+        if ((scalar @{ &getHTTPRemReqHeader($farmname) }) < $index + 1) {
+            my $msg = "The index has not been found.";
+            return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
+
+        unless (&delHTTPHeadremove($farmname, $index)) {
+            if (&getFarmStatus($farmname) ne 'down') {
+                require Relianoid::Farm::Action;
+                &setFarmRestart($farmname);
+                $body->{status} = 'needed restart';
+            }
+        }
+        return &httpResponse({ code => 200, body => $body });
+
+    } elsif ($type eq "eproxy" && $eload) {
+        my $inbound_headers = { request_headers_to_remove => [ { id => $index } ] };
+
+        &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Headers',
+            func   => 'delEproxyFarmHeaders',
+            args   => [ { farm_name => $farmname, headers => $inbound_headers } ]
+        );
 
         return &httpResponse({ code => 200, body => $body });
     }
 
-    # error
     my $msg = "Error deleting the headremove $index";
     return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
 }
 
-# POST	/farms/<>/addheader
+# POST	/farms/<>/addresponseheader
 sub add_addResHeader_controller ($json_obj, $farmname) {
-    my $desc = "Add a header to the backend repsonse.";
+    my $desc = "Add a header to the backend response.";
 
-    # Check that the farm exists
     if (!&getFarmExists($farmname)) {
         my $msg = "The farm '$farmname' does not exist.";
         return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
-    if (&getFarmType($farmname) !~ /http/) {
-        my $msg = "This feature is only for HTTP profiles.";
+    my $type = &getFarmType($farmname);
+    if ($type !~ /http|eproxy/) {
+        my $msg = "This feature is only for HTTP and Eproxy profiles.";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $params = &getAPIModel("farm_http_header_response_add-create.json");
 
-    # Check allowed parameters
     if (my $error_msg = &checkApiParams($json_obj, $params, $desc)) {
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg });
     }
 
-    # check if the header is already added
-    for my $header (@{ &getHTTPAddRespHeader($farmname) }) {
-        if ($header->{header} eq $json_obj->{header}) {
-            my $msg = "The header is already added.";
-            return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
-        }
-    }
+    my $message = "Added a new header to the backend response";
+    my $body    = {
+        description => $desc,
+        success     => "true",
+        message     => $message,
+    };
 
-    unless (&addHTTPAddRespheader($farmname, $json_obj->{header})) {
-        # success
-        my $message = "Added a new header to the backend response";
-        my $body    = {
-            description => $desc,
-            success     => "true",
-            message     => $message,
-        };
-
-        if (&getFarmStatus($farmname) ne 'down') {
-            require Relianoid::Farm::Action;
-            &setFarmRestart($farmname);
-            $body->{status} = 'needed restart';
+    if ($type =~ /http/) {
+        for my $header (@{ &getHTTPAddRespHeader($farmname) }) {
+            if ($header->{header} eq $json_obj->{header}) {
+                my $msg = "The header is already added.";
+                return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+            }
         }
+
+        unless (&addHTTPAddRespheader($farmname, $json_obj->{header})) {
+            if (&getFarmStatus($farmname) ne 'down') {
+                require Relianoid::Farm::Action;
+                &setFarmRestart($farmname);
+                $body->{status} = 'needed restart';
+            }
+
+            return &httpResponse({ code => 200, body => $body });
+        }
+    } elsif ($type eq "eproxy" && $eload) {
+        my $headers = &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Headers',
+            func   => 'getEproxyFarmHeaders',
+            args   => [ { farm_name => $farmname } ]
+        );
+
+        for my $header (@{ $headers->{response_headers_to_add} }) {
+            my $pair;
+            ($pair->{key}, $pair->{value}) = split(":",$json_obj->{header});
+            if ($header->{key} eq $pair->{key}) {
+                my $msg = "The header is already added.";
+                return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+            }
+        }
+        my $inbound_headers = { response_headers_to_add => [ { header => $json_obj->{header} } ] };
+        &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Headers',
+            func   => 'addEproxyFarmHeaders',
+            args   => [ { farm_name => $farmname, headers => $inbound_headers } ]
+        );
 
         return &httpResponse({ code => 200, body => $body });
     }
 
-    # error
     my $msg = "Error adding a new response header";
     return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
 }
@@ -412,59 +517,70 @@ sub add_addResHeader_controller ($json_obj, $farmname) {
 sub modify_addResHeader_controller ($json_obj, $farmname, $index) {
     my $desc = "Modify an addresponseheader directive.";
 
-    # Check that the farm exists
     if (!&getFarmExists($farmname)) {
         my $msg = "The farm '$farmname' does not exist.";
         return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
-    if (&getFarmType($farmname) !~ /http/) {
-        my $msg = "This feature is only for HTTP profiles.";
+    my $type = &getFarmType($farmname);
+    if ($type !~ /http|eproxy/) {
+        my $msg = "This feature is only for HTTP and Eproxy profiles.";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $params = &getAPIModel("farm_http_header_response_add-modify.json");
-
-    # Check allowed parameters
     if (my $error_msg = &checkApiParams($json_obj, $params, $desc)) {
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg });
     }
 
-    my @directives = @{ &getHTTPAddRespHeader($farmname) };
+    my $message = "Modified an item from the addresponseheader list";
+    my $body    = {
+        description => $desc,
+        success     => "true",
+        message     => $message,
+    };
 
-    # check if the header exists
-    if ((scalar @directives) < $index + 1) {
-        my $msg = "The header with index $index not found.";
-        return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
-    }
+    if ($type =~ /http/) {
+        my @directives = @{ &getHTTPAddRespHeader($farmname) };
 
-    # check if the header is already added
-    for my $header (@directives) {
-        if ($header->{header} eq $json_obj->{header}) {
-            my $msg = "The header is already added.";
+        if ((scalar @directives) < $index + 1) {
+            my $msg = "The header with index $index not found.";
             return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
-    }
 
-    unless (&modifyHTTPAddRespheader($farmname, $json_obj->{header}, $index)) {
-        # success
-        my $message = "Modified an item from the addresponseheader list";
-        my $body    = {
-            description => $desc,
-            success     => "true",
-            message     => $message,
-        };
-
-        if (&getFarmStatus($farmname) ne 'down') {
-            require Relianoid::Farm::Action;
-            &setFarmRestart($farmname);
-            $body->{status} = 'needed restart';
+        for my $header (@directives) {
+            if ($header->{header} eq $json_obj->{header}) {
+                my $msg = "The header is already added.";
+                return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+            }
         }
+
+        unless (&modifyHTTPAddRespheader($farmname, $json_obj->{header}, $index)) {
+            if (&getFarmStatus($farmname) ne 'down') {
+                require Relianoid::Farm::Action;
+                &setFarmRestart($farmname);
+                $body->{status} = 'needed restart';
+            }
+
+            return &httpResponse({ code => 200, body => $body });
+        }
+    } elsif ($type eq "eproxy" && $eload) {
+        my $inbound_headers_delete = { response_headers_to_add => [ { id => $index } ] };
+        &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Headers',
+            func   => 'delEproxyFarmHeaders',
+            args   => [ { farm_name => $farmname, headers => $inbound_headers_delete } ]
+        );
+        my $inbound_headers_add = { response_headers_to_add => [ { header => $json_obj->{header} } ] };
+        &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Headers',
+            func   => 'addEproxyFarmHeaders',
+            args   => [ { farm_name => $farmname, headers => $inbound_headers_add } ]
+        );
 
         return &httpResponse({ code => 200, body => $body });
     }
 
-    # error
     my $msg = "Error modifying an addresponseheader";
     return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
 }
@@ -473,43 +589,51 @@ sub modify_addResHeader_controller ($json_obj, $farmname, $index) {
 sub del_addResHeader_controller ($farmname, $index) {
     my $desc = "Delete a header previously added to the backend response.";
 
-    # Check that the farm exists
     if (!&getFarmExists($farmname)) {
         my $msg = "The farm '$farmname' does not exist.";
         return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
-    if (&getFarmType($farmname) !~ /http/) {
-        my $msg = "This feature is only for HTTP profiles.";
+    my $type = &getFarmType($farmname);
+    if ($type !~ /http|eproxy/) {
+        my $msg = "This feature is only for HTTP and Eproxy profiles.";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
-    # check if the header is already added
-    if ((scalar @{ &getHTTPAddRespHeader($farmname) }) < $index + 1) {
-        my $msg = "The index has not been found.";
-        return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
-    }
+    my $message = "The header was successfully deleted.";
+    my $body    = {
+        description => $desc,
+        success     => "true",
+        message     => $message,
+    };
 
-    unless (&delHTTPAddRespheader($farmname, $index)) {
-        # success
-        my $message = "The header $index was deleted successfully";
-        my $body    = {
-            description => $desc,
-            success     => "true",
-            message     => $message,
-        };
-
-        if (&getFarmStatus($farmname) ne 'down') {
-            require Relianoid::Farm::Action;
-            &setFarmRestart($farmname);
-            $body->{status} = 'needed restart';
+    if ($type =~ /http/) {
+        if ((scalar @{ &getHTTPAddRespHeader($farmname) }) < $index + 1) {
+            my $msg = "The index has not been found.";
+            return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
+
+        unless (&delHTTPAddRespheader($farmname, $index)) {
+            if (&getFarmStatus($farmname) ne 'down') {
+                require Relianoid::Farm::Action;
+                &setFarmRestart($farmname);
+                $body->{status} = 'needed restart';
+            }
+
+            return &httpResponse({ code => 200, body => $body });
+        }
+    } elsif ($type eq "eproxy" && $eload) {
+        my $inbound_headers = { response_headers_to_add => [ { id => $index } ] };
+        &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Headers',
+            func   => 'delEproxyFarmHeaders',
+            args   => [ { farm_name => $farmname, headers => $inbound_headers } ]
+        );
 
         return &httpResponse({ code => 200, body => $body });
     }
 
-    # error
-    my $msg = "Error deleting the response header $index";
+    my $msg = "Error deleting the response header";
     return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
 }
 
@@ -517,51 +641,71 @@ sub del_addResHeader_controller ($farmname, $index) {
 sub add_delResHeader_controller ($json_obj, $farmname) {
     my $desc = "Remove a header from the backend response.";
 
-    # Check that the farm exists
     if (!&getFarmExists($farmname)) {
         my $msg = "The farm '$farmname' does not exist.";
         return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
-    if (&getFarmType($farmname) !~ /http/) {
-        my $msg = "This feature is only for HTTP profiles.";
+    my $type = &getFarmType($farmname);
+    if ($type !~ /http|eproxy/) {
+        my $msg = "This feature is only for HTTP and Eproxy profiles.";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $params = &getAPIModel("farm_http_header_response_remove-create.json");
 
-    # Check allowed parameters
     if (my $error_msg = &checkApiParams($json_obj, $params, $desc)) {
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg });
     }
 
-    # check if the header is already added
-    for my $header (@{ &getHTTPRemRespHeader($farmname) }) {
-        if ($header->{pattern} eq $json_obj->{pattern}) {
-            my $msg = "The pattern is already added.";
-            return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
-        }
-    }
+    my $message = "Added a patter to remove reponse headers";
+    my $body    = {
+        description => $desc,
+        success     => "true",
+        message     => $message,
+    };
 
-    unless (&addHTTPRemRespHeader($farmname, $json_obj->{pattern})) {
-        # success
-        my $message = "Added a patter to remove reponse headers";
-        my $body    = {
-            description => $desc,
-            success     => "true",
-            message     => $message,
-        };
-
-        if (&getFarmStatus($farmname) ne 'down') {
-            require Relianoid::Farm::Action;
-            &setFarmRestart($farmname);
-            $body->{status} = 'needed restart';
+    if ($type =~ "http") {
+        for my $header (@{ &getHTTPRemRespHeader($farmname) }) {
+            if ($header->{pattern} eq $json_obj->{pattern}) {
+                my $msg = "The pattern is already added.";
+                return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+            }
         }
+
+        unless (&addHTTPRemRespHeader($farmname, $json_obj->{pattern})) {
+            if (&getFarmStatus($farmname) ne 'down') {
+                require Relianoid::Farm::Action;
+                &setFarmRestart($farmname);
+                $body->{status} = 'needed restart';
+            }
+
+            return &httpResponse({ code => 200, body => $body });
+        }
+    } elsif ($type eq "eproxy" && $eload) {
+        my $headers = &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Headers',
+            func   => 'getEproxyFarmHeaders',
+            args   => [ { farm_name => $farmname } ]
+        );
+
+        for my $header (@{ $headers->{response_headers_to_remove} }) {
+            if ($header eq $json_obj->{pattern}) {
+                my $msg = "The header is already added.";
+                return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+            }
+        }
+
+        my $inbound_headers = { response_headers_to_remove => [ $json_obj->{pattern} ] };
+        &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Headers',
+            func   => 'addEproxyFarmHeaders',
+            args   => [ { farm_name => $farmname, headers => $inbound_headers } ]
+        );
 
         return &httpResponse({ code => 200, body => $body });
     }
 
-    # error
     my $msg = "Error adding the remove pattern";
     return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
 }
@@ -570,103 +714,123 @@ sub add_delResHeader_controller ($json_obj, $farmname) {
 sub modify_delResHeader_controller ($json_obj, $farmname, $index) {
     my $desc = "Modify a remove response header directive.";
 
-    # Check that the farm exists
     if (!&getFarmExists($farmname)) {
         my $msg = "The farm '$farmname' does not exist.";
         return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
-    if (&getFarmType($farmname) !~ /http/) {
-        my $msg = "This feature is only for HTTP profiles.";
+    my $type = &getFarmType($farmname);
+    if ($type !~ /http|eproxy/) {
+        my $msg = "This feature is only for HTTP and Eproxy profiles.";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
     my $params = &getAPIModel("farm_http_header_response_remove-modify.json");
-
-    # Check allowed parameters
     if (my $error_msg = &checkApiParams($json_obj, $params, $desc)) {
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg });
     }
 
-    my @directices = @{ &getHTTPRemRespHeader($farmname) };
+    my $message = "Modified an item from the removeresponseheader list";
+    my $body    = {
+        description => $desc,
+        success     => "true",
+        message     => $message,
+    };
 
-    # check if the header exists
-    if ((scalar @directices) < $index + 1) {
-        my $msg = "The header with index $index not found.";
-        return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
-    }
+    if ($type =~ /http/) {
+        my @directices = @{ &getHTTPRemRespHeader($farmname) };
 
-    # check if the header is already added
-    for my $header (@directices) {
-        if ($header->{pattern} eq $json_obj->{pattern}) {
-            my $msg = "The pattern is already added.";
+        if ((scalar @directices) < $index + 1) {
+            my $msg = "The header with index $index not found.";
             return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
-    }
 
-    unless (&modifyHTTPRemRespHeader($farmname, $json_obj->{header}, $index)) {
-        # success
-        my $message = "Modified an item from the removeresponseheader list";
-        my $body    = {
-            description => $desc,
-            success     => "true",
-            message     => $message,
-        };
-
-        if (&getFarmStatus($farmname) ne 'down') {
-            require Relianoid::Farm::Action;
-            &setFarmRestart($farmname);
-            $body->{status} = 'needed restart';
+        for my $header (@directices) {
+            if ($header->{pattern} eq $json_obj->{pattern}) {
+                my $msg = "The pattern is already added.";
+                return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+            }
         }
+
+        unless (&modifyHTTPRemRespHeader($farmname, $json_obj->{header}, $index)) {
+            if (&getFarmStatus($farmname) ne 'down') {
+                require Relianoid::Farm::Action;
+                &setFarmRestart($farmname);
+                $body->{status} = 'needed restart';
+            }
+
+            return &httpResponse({ code => 200, body => $body });
+        }
+    } elsif ($type eq "eproxy" && $eload) {
+        my $inbound_headers_delete = { response_headers_to_remove => [ { id => $index } ] };
+        &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Headers',
+            func   => 'delEproxyFarmHeaders',
+            args   => [ { farm_name => $farmname, headers => $inbound_headers_delete } ]
+        );
+        my $inbound_headers_add = { response_headers_to_remove => [ $json_obj->{pattern} ] };
+        &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Headers',
+            func   => 'addEproxyFarmHeaders',
+            args   => [ { farm_name => $farmname, headers => $inbound_headers_add } ]
+        );
 
         return &httpResponse({ code => 200, body => $body });
     }
 
-    # error
     my $msg = "Error modifying an removeresponseheader";
     return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
 }
 
-#  DELETE	/farms/<>/addheader/<>
+#  DELETE	/farms/<>/removeresponseheader/<>
 sub del_delResHeader_controller ($farmname, $index) {
     my $desc = "Delete a pattern to remove response headers.";
 
-    # Check that the farm exists
     if (!&getFarmExists($farmname)) {
         my $msg = "The farm '$farmname' does not exist.";
         return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
-    if (&getFarmType($farmname) !~ /http/) {
-        my $msg = "This feature is only for HTTP profiles.";
+    my $type = &getFarmType($farmname);
+    if ($type !~ /http|eproxy/) {
+        my $msg = "This feature is only for HTTP and Eproxy profiles.";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
-    # check if the headremove is already added
-    if ((scalar @{ &getHTTPRemRespHeader($farmname) }) < $index + 1) {
-        my $msg = "The index has not been found.";
-        return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
-    }
+    my $message = "The pattern was successfully deleted.";
+    my $body    = {
+        description => $desc,
+        success     => "true",
+        message     => $message,
+    };
 
-    unless (&delHTTPRemRespHeader($farmname, $index)) {
-        # success
-        my $message = "The pattern $index was deleted successfully";
-        my $body    = {
-            description => $desc,
-            success     => "true",
-            message     => $message,
-        };
-
-        if (&getFarmStatus($farmname) ne 'down') {
-            require Relianoid::Farm::Action;
-            &setFarmRestart($farmname);
-            $body->{status} = 'needed restart';
+    if ($type =~ /http/) {
+        if ((scalar @{ &getHTTPRemRespHeader($farmname) }) < $index + 1) {
+            my $msg = "The index has not been found.";
+            return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }
+
+        unless (&delHTTPRemRespHeader($farmname, $index)) {
+
+            if (&getFarmStatus($farmname) ne 'down') {
+                require Relianoid::Farm::Action;
+                &setFarmRestart($farmname);
+                $body->{status} = 'needed restart';
+            }
+
+            return &httpResponse({ code => 200, body => $body });
+        }
+    } elsif ($type eq "eproxy" && $eload) {
+        my $inbound_headers = { response_headers_to_remove => [ { id => $index } ] };
+        &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Headers',
+            func   => 'delEproxyFarmHeaders',
+            args   => [ { farm_name => $farmname, headers => $inbound_headers } ]
+        );
 
         return &httpResponse({ code => 200, body => $body });
     }
 
-    # error
     my $msg = "Error deleting the pattern $index";
     return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
 }

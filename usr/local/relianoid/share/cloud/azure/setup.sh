@@ -35,7 +35,7 @@ chmod +x /etc/network/if-up.d/configure_nics
 perl -MRelianoid::Config -e "setGlobalConfiguration('cloud_provider', 'azure')" >/dev/null
 perl -MRelianoid::Config -e "setGlobalConfiguration('cloud_address_metadata', '169.254.169.254')" >/dev/null
 
-echo "deb https://packages.microsoft.com/repos/microsoft-debian-bookworm-prod bookworm main" > /etc/apt/sources.list.d/microsoft-prod.list
+echo "deb https://packages.microsoft.com/repos/microsoft-debian-trixie-prod trixie main" > /etc/apt/sources.list.d/microsoft-prod.list
 cp $clouddir/microsoft.asc /etc/apt/trusted.gpg.d/microsoft.asc
 cp $clouddir/azure-cli.sources /etc/apt/sources.list.d/
 

@@ -124,48 +124,6 @@ sub list_lslb_controller () {
     return &httpResponse({ code => 200, body => $body });
 }
 
-# GET /farms/modules/dslb
-sub list_dslb_controller () {
-    require Relianoid::Farm::Base;
-
-    my @out;
-    my @files = &getFarmList();
-
-    for my $file (@files) {
-        my $name = &getFarmName($file);
-        my $type = &getFarmType($name);
-        next unless $type eq 'datalink';
-        my $status = &getFarmVipStatus($name);
-        my $vip    = &getFarmVip('vip',  $name);
-        my $iface  = &getFarmVip('vipp', $name);
-
-        push @out,
-          {
-            farmname  => $name,
-            status    => $status,
-            vip       => $vip,
-            interface => $iface
-          };
-    }
-
-    if ($eload) {
-        @out = @{
-            &eload(
-                module => 'Relianoid::EE::RBAC::Group::Core',
-                func   => 'getRBACUserSet',
-                args   => [ 'farms', \@out ],
-            )
-        };
-    }
-
-    my $body = {
-        description => "List DSLB farms",
-        params      => \@out,
-    };
-
-    return &httpResponse({ code => 200, body => $body });
-}
-
 #GET /farms/<name>/summary
 sub get_farm_summary_controller ($farmname) {
     my $desc = "Show farm $farmname";

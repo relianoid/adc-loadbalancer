@@ -196,84 +196,141 @@ sub set_service_backend_maintenance_controller ($json_obj, $farmname, $service, 
     require Relianoid::Farm::HTTP::Backend;
 
     my $desc = "Set service backend status";
+    my $msg;
 
-    # validate FARM NAME
     if (!&getFarmExists($farmname)) {
-        my $msg = "The farmname $farmname does not exist.";
+        $msg = "The farmname $farmname does not exist.";
         return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
     }
 
-    # validate FARM TYPE
-    if (&getFarmType($farmname) !~ /^https?$/) {
-        my $msg = "Only HTTP farm profile supports this feature.";
-        return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
-    }
+    my $type = &getFarmType($farmname);
+    my $body;
 
-    # validate SERVICE
-    my @services = &getHTTPFarmServices($farmname);
-    my $found_service;
-
-    for my $service_name (@services) {
-        if ($service eq $service_name) {
-            $found_service = 1;
-            last;
+    if ($type =~ /http/i) {
+        my @services = &getHTTPFarmServices($farmname);
+        my $found_service;
+        for my $service_name (@services) {
+            if ($service eq $service_name) {
+                $found_service = 1;
+                last;
+            }
         }
+
+        if (!$found_service) {
+            $msg = "Could not find the requested service.";
+            return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
+        }
+
+        my $be_aref = &getHTTPFarmBackends($farmname, $service);
+        my $be      = $be_aref->[ $backend_id - 1 ];
+        if (!$be) {
+            $msg = "Could not find a service backend with such id.";
+            return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
+        }
+
+        my $params = &getAPIModel("farm_http_service_backend-maintenance.json");
+        if ($json_obj->{action} ne 'maintenance') {
+            delete $params->{mode};
+        }
+
+        # Check allowed parameters
+        if (my $error_msg = &checkApiParams($json_obj, $params, $desc)) {
+            return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg });
+        }
+
+        # Do not allow to modify the maintenance status if the farm needs to be restarted
+        require Relianoid::Farm::Action;
+        if (&getFarmRestartStatus($farmname)) {
+            $msg = "The farm needs to be restarted before to apply this action.";
+            return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+        }
+
+        # validate STATUS
+        my $status;
+        if ($json_obj->{action} eq "maintenance") {
+            my $maintenance_mode = $json_obj->{mode} // "drain";    # default
+            $status = &setHTTPFarmBackendMaintenance($farmname, $backend_id, $maintenance_mode, $service);
+        }
+        elsif ($json_obj->{action} eq "up") {
+            $status = &setHTTPFarmBackendNoMaintenance($farmname, $backend_id, $service);
+        }
+
+        if ($status->{code} == 1 or $status->{code} == -1) {
+            $msg = "Errors found trying to change status backend to $json_obj->{action}";
+            return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+        }
+
+        $msg = "The action $json_obj->{action} has been performed in farm '$farmname'.";
+        my $warning;
+        if ($status->{code} != 0) {
+            $warning = $status->{desc};
+        }
+        $body->{warning} = $warning if $warning;
     }
+    elsif ($type eq "eproxy" && $eload) {
+        my $backends = &eload(
+            module => 'Relianoid::EE::Farm::Eproxy::Backend',
+            func   => 'getEproxyFarmBackends',
+            args   => [ { farm_name => $farmname, service_name => $service } ]
+        );
 
-    if (!$found_service) {
-        my $msg = "Could not find the requested service.";
-        return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
-    }
+        if (!$backends) {
+            $msg = "Could not find the requested service.";
+            return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
+        }
 
-    # validate BACKEND
-    my $be_aref = &getHTTPFarmBackends($farmname, $service);
-    my $be      = $be_aref->[ $backend_id - 1 ];
+        my $backend;
+        for my $be (@{$backends}) {
+            if ($be->{id} eq $backend_id) {
+                $backend = $be;
+                last;
+            }
+        }
 
-    if (!$be) {
-        my $msg = "Could not find a service backend with such id.";
-        return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
-    }
+        if (!$backend) {
+            $msg = "Could not find a service backend with such id.";
+            return &httpErrorResponse({ code => 404, desc => $desc, msg => $msg });
+        }
 
-    my $params = &getAPIModel("farm_http_service_backend-maintenance.json");
-    if ($json_obj->{action} ne 'maintenance') {
-        delete $params->{mode};
-    }
+        my $params = &getAPIModel("farm_http_service_backend-maintenance.json");
+        if ($json_obj->{action} ne 'maintenance') {
+            delete $params->{mode};
+        }
 
-    # Check allowed parameters
-    if (my $error_msg = &checkApiParams($json_obj, $params, $desc)) {
-        return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg });
-    }
+        if (my $error_msg = &checkApiParams($json_obj, $params, $desc)) {
+            return &httpErrorResponse({ code => 400, desc => $desc, msg => $error_msg });
+        }
 
-    # Do not allow to modify the maintenance status if the farm needs to be restarted
-    require Relianoid::Farm::Action;
-    if (&getFarmRestartStatus($farmname)) {
-        my $msg = "The farm needs to be restarted before to apply this action.";
+        my $status;
+        if ($json_obj->{action} eq "maintenance") {
+            my $maintenance_mode = $json_obj->{mode} // "drain";
+            $status = &eload(
+                module => 'Relianoid::EE::Farm::Eproxy::Backend',
+                func   => 'maintenanceOnEproxyFarmBackend',
+                args   => [ { farm_name => $farmname, service_name => $service, backend_id => $backend_id, mode => $maintenance_mode } ]
+            );
+        }
+        elsif ($json_obj->{action} eq "up") {
+                $status = &eload(
+                    module => 'Relianoid::EE::Farm::Eproxy::Backend',
+                    func   => 'maintenanceOffEproxyFarmBackend',
+                    args   => [ { farm_name => $farmname, service_name => $service, backend_id => $backend_id } ]
+                );
+        }
+
+        if ($status) {
+            $msg = "Errors found trying to change status backend to $json_obj->{action}";
+            return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
+        }
+
+        $msg = "The action $json_obj->{action} has been performed in farm '$farmname'.";
+
+    } else {
+        $msg = "Only HTTP and eProxy farm profiles support this feature.";
         return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
     }
 
-    # validate STATUS
-    my $status;
-    if ($json_obj->{action} eq "maintenance") {
-        my $maintenance_mode = $json_obj->{mode} // "drain";    # default
-
-        $status = &setHTTPFarmBackendMaintenance($farmname, $backend_id, $maintenance_mode, $service);
-    }
-    elsif ($json_obj->{action} eq "up") {
-        $status = &setHTTPFarmBackendNoMaintenance($farmname, $backend_id, $service);
-    }
-
-    if ($status->{code} == 1 or $status->{code} == -1) {
-        my $msg = "Errors found trying to change status backend to $json_obj->{action}";
-        return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
-    }
-
-    my $msg = "The action $json_obj->{action} has been performed in farm '$farmname'.";
-    my $warning;
-    if ($status->{code} != 0) {
-        $warning = $status->{desc};
-    }
-
-    my $body = {
+    $body = {
         description => $desc,
         params      => {
             action => $json_obj->{action},
@@ -283,13 +340,26 @@ sub set_service_backend_maintenance_controller ($json_obj, $farmname, $service, 
             message => $msg
         },
     };
-    $body->{warning} = $warning if $warning;
 
-    &eload(
-        module => 'Relianoid::EE::Cluster',
-        func   => 'runClusterRemoteManager',
-        args   => [ 'farm', 'restart', $farmname ],
-    ) if ($eload && &getFarmStatus($farmname) eq 'up');
+    require Relianoid::Farm::Base;
+    if (&getFarmStatus($farmname) ne 'down') {
+        if ($type eq "eproxy" && $eload) {
+            $body->{status} = &eload(
+                module => 'Relianoid::EE::Farm::Eproxy::Action',
+                func   => 'runEproxyFarmReload',
+                args   => [ { farm_name => $farmname } ],
+            );
+            require Relianoid::EE::Cluster;
+            &runClusterRemoteManager('farm', 'reload', $farmname);
+        }
+        else { # http
+            &eload(
+                module => 'Relianoid::EE::Cluster',
+                func   => 'runClusterRemoteManager',
+                args   => [ 'farm', 'restart', $farmname ],
+            ) if ($eload);
+        }
+    }
 
     return &httpResponse({ code => 200, body => $body });
 }

@@ -213,7 +213,7 @@ if (not defined $error_ref) {
         &log_error("Error in $action Farm '$farm_name'", "letsencrypt");
     }
 
-    &runLetsencryptLocalWebserverStop();
+    stop_le_http_service();
     &log_info("$action Farm '$farm_name' was succesfully", "letsencrypt");
 
     close $lock_le_renew_fh;

@@ -399,7 +399,7 @@ fi
 
 backup_dir="${prefix}/${ss_dir}"
 
-monitoring_paths="${home_dir}/var/noid-collector/rrd ${home_dir}/logs /var/log/messages* /var/log/syslog* /var/log/letsencrypt /var/log/cherokee* ${home_dir}/node_status /var/log/apt /var/run/*_proxy.pid";
+monitoring_paths="${home_dir}/var/noid-collector/rrd ${home_dir}/logs /var/log/messages* /var/log/syslog* /var/log/letsencrypt /var/log/lighttpd* ${home_dir}/node_status /var/log/apt /var/run/*_proxy.pid";
 
 
 echo "Saving information for support in the path ${backup_dir}.tar.gz"
@@ -454,12 +454,6 @@ echo "- Partitions"
 
 echo "- Time"
 $bin_dir/noid-ntp                    	&>> $backup_dir/ntp_test.txt
-
-if [ -n "$ssyncdctl_bin" ]; then
-	echo "- Sessions Table"
-	$ssyncdctl_bin show http            &>> $backup_dir/sessions_http.txt
-	$ssyncdctl_bin show nft	            &>> $backup_dir/sessions_nft.txt
-fi
 
 if [ -d "${home_dir}/lib/Relianoid/RBAC" ];
 then

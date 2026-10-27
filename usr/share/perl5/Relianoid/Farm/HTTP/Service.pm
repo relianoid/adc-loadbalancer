@@ -1122,7 +1122,9 @@ sub get_http_all_services_summary_struct ($farmname) {
     my @services_list = ();
 
     for my $service (&getHTTPFarmServices($farmname)) {
-        push @services_list, { id => $service };
+        if ($service !~ /MFA--/) {
+            push @services_list, { id => $service };
+        }
     }
 
     return \@services_list;

@@ -132,3 +132,12 @@ log=false
 interval=15
 cut_conns=true
 template=true
+
+[check_multiport]
+description=Send multiport TCP health checks.
+command=check_multiport -H HOST -p PORT -t 3
+farms=
+log=false
+interval=15
+cut_conns=true
+template=true

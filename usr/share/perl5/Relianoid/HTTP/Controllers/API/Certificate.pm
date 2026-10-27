@@ -115,8 +115,8 @@ sub delete_certificate_controller ($cert_filename) {
 
     if ($eload) {
         my $status = &eload(
-            module => 'Relianoid::EE::System::HTTP',
-            func   => 'getHttpsCertUsed',
+            module => 'Relianoid::EE::Service::HTTPServer',
+            func   => 'does_http_server_use_cert',
             args   => [$cert_filename]
         );
 
