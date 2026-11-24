@@ -402,16 +402,15 @@ sub httpResponse ($response) {
     my $is_exception    = $ENV{REQUEST_METHOD} eq 'GET' && grep { $ENV{PATH_INFO} eq $_ } @path_exceptions;
 
     if (not $is_exception) {
-        # log request if debug is enabled
-        my $req_msg = "STATUS: $response->{code} REQUEST: $ENV{REQUEST_METHOD} $ENV{SCRIPT_URL}";
+        my $req_msg = "$response->{code} $ENV{REQUEST_METHOD} $ENV{REQUEST_URI}";
 
         # include memory usage if debug is 2 or higher
-        $req_msg = sprintf("%s %s", $req_msg, &getMemoryUsage()) if &debug();
-        &log_info($req_msg, $LOG_TAG);
+        $req_msg = sprintf("%s %s", $req_msg, getMemoryUsage()) if debug();
+        log_info($req_msg, $LOG_TAG);
 
-        # log error message on error.
+        # log response message if available.
         if (ref $response->{body} eq 'HASH' and exists $response->{body}{message}) {
-            &log_info($response->{body}{message}, $LOG_TAG);
+            log_info($response->{body}{message}, $LOG_TAG);
         }
     }
 

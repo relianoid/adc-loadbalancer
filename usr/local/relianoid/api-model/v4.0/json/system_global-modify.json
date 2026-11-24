@@ -27,8 +27,8 @@
             "false"
          ]
       },
-      "ssyncd" : {
-         "description" : "Session synchronization daemon is which replies the client sessions between master and backup nodes for a cluster. This feature is enabled with the value true and disabled with false.",
+      "stateful_cluster" : {
+         "description" : "Cluster session DB synchronization service. Enabled when true and disabled when false.",
          "non_blank" : "true",
          "values" : [
             "true",

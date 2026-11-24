@@ -262,7 +262,7 @@ sub stopIf ($if_ref) {
     my $if     = $$if_ref{name};
 
     # If $if is Vini do nothing
-    if (!$$if_ref{vini}) {
+    if (! defined $$if_ref{vini}) {
         # If $if is a Interface, delete that IP
         my $ip_cmd = "$ip_bin address flush dev $$if_ref{name}";
         $status = &logAndRun($ip_cmd);

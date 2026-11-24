@@ -84,6 +84,20 @@ sub startL4Farm ($farm_name, $writeconf = 0) {
         &sendL4sdSignal();
     }
 
+    if ($eload) {
+        my $sessions_enabled = &eload(
+            module => 'Relianoid::EE::Sessions',
+            func   => 'getSessionsDBIsEnabled'
+        );
+
+        &eload(
+            module => 'Relianoid::EE::Farm::L4xNAT::Session',
+            func   => 'enableL4FarmSessionsDB',
+            args   => [{ farm_name => $farm_name }],
+        ) if ($sessions_enabled);
+
+    }
+
     return $status;
 }
 
@@ -111,6 +125,20 @@ sub stopL4Farm ($farm_name, $writeconf) {
     require Relianoid::Farm::L4xNAT::Config;
 
     &log_info("Stopping L4xNAT farm $farm_name") if &debug();
+
+    if ($eload) {
+        my $sessions_enabled = &eload(
+            module => 'Relianoid::EE::Sessions',
+            func   => 'getSessionsDBIsEnabled'
+        );
+
+        &eload(
+            module => 'Relianoid::EE::Farm::L4xNAT::Session',
+            func   => 'disableL4FarmSessionsDB',
+            args   => [{ farm_name => $farm_name }],
+        ) if ($sessions_enabled);
+
+    }
 
     my $farm = &getL4FarmStruct($farm_name);
 

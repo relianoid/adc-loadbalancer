@@ -241,12 +241,12 @@ sub delete_le_cert_controller ($le_cert_name) {
 
     if ($eload) {
         # check the certificate is being used by API web server
-        my $status = &eload(
+        my $is_used = &eload(
             module => 'Relianoid::EE::Service::HTTPServer',
             func   => 'does_http_server_use_cert',
-            args   => ['$cert_name']
+            args   => [$cert_name]
         );
-        if ($status == 0) {
+        if ($is_used) {
             my $msg = "Let's Encrypt Certificate $le_cert_name can not be deleted because it is in use by HTTPS server";
             return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }

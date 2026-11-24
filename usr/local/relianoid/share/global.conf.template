@@ -96,8 +96,10 @@ $bios_version="/sys/devices/virtual/dmi/id/bios_version";
 $networking_service="networking.service";#update
 
 #SNMP Service
-$snmpdconfig_file="/etc/snmp/snmpd.conf.d/50-relianoid.conf";#update
-$snmpd_service="snmpd.service";#update
+$snmpd_conf="/etc/snmp/snmpd.conf.d/50-relianoid.conf";#update
+$snmpd_service="relianoid-snmpd.service";#update
+$snmpd_service_path="/etc/systemd/system/relianoid-snmpd.service";
+$snmpd_service_template="/usr/local/relianoid/share/relianoid-snmpd.service";
 $snmptrap_cmd="/usr/bin/snmptrap";#update
 
 # start / stop scripts
@@ -464,11 +466,22 @@ $key_id="id_rsa";
 # ssh keygen command
 $keygen_cmd="ssh-keygen -t rsa -f $key_path/$key_id -N '' -q";#update
 
+# redis sessions db
+$stateful_cluster="true";#update
+$redis_config_file="/etc/redis/redis.conf.d/20-relianoid.conf";#update
+$redis_host="127.0.0.1";#update
+$redis_port="6379";#update
+$redis_max_db="200";#update
+$redis_timer_seconds="5";#update
+$redis_max_retries="10";#update
+$redis_retry_seconds="2";#update
+$redis_diagnosis_timer_seconds="5";#update
+
 #RELIANOID backup
 $backup_cmd="$bin_dir/noid-backup";#update
 
 #Do backup to
-$backupfor="$configdir $http_server_conf $rttables $sshConf $snmpdconfig_file /etc/hostname $filedns /etc/cron.d/relianoid";#update
+$backupfor="$configdir $http_server_conf $rttables $sshConf $snmpd_conf $snmpd_service_path /etc/hostname $filedns /etc/cron.d/relianoid";#update
 
 #Bonding interfaces
 $bonding_hwaddr_filename="bonding_slave/perm_hwaddr";
@@ -565,15 +578,5 @@ $docker_flag="/.dockerenv";
 
 # eproxy
 
-# redis sessions db
-$stateful_enabled="true";#update
-$redis_config_file="/etc/redis/redis.conf.d/20-relianoid.conf";#update
-$redis_host="127.0.0.1";#update
-$redis_port="6379";#update
-$redis_max_db="200";#update
-$redis_timer_seconds="5";#update
-$redis_max_retries="10";#update
-$redis_retry_seconds="2";#update
-$redis_diagnosis_timer_seconds="5";#update
 
 #::END Global Section

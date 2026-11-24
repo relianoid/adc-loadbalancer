@@ -102,8 +102,6 @@ sub detect_appliance_version() {
 
 Returns a string with the description of the appliance.
 
-NOTE: This function uses Tie::File, this module should be used only for writing files.
-
 Parameters: none
 
 Returns: string - Version string.

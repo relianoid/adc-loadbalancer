@@ -42,13 +42,9 @@ Relianoid::SNMP
 
 Start or stop the SNMP service.
 
-Parameters:
+Parameters: snmpd_status - 'true' to start, or 'false' to stop the SNMP service.
 
-    snmpd_status - 'true' to start, or 'false' to stop the SNMP service.
-
-Returns:
-
-    scalar - 0 on success, non-zero on failure.
+Returns: scalar - 0 on success, non-zero on failure.
 
 =cut
 
@@ -81,19 +77,16 @@ sub setSnmpdStatus ($snmpd_status) {
 
 Get if the SNMP service is running.
 
-Parameters:
+Parameters: none
 
-    none
-
-Returns:
-
-    string - Boolean. 'true' if it is running, or 'false' if it is not running.
+Returns: string - Boolean. 'true' if it is running, or 'false' if it is not running.
 
 =cut
 
 sub getSnmpdStatus () {
-    my $pidof       = &getGlobalConfiguration('pidof');
-    my $return_code = (&logAndRunCheck("$pidof snmpd")) ? 'false' : 'true';
+    my $systemctl   = getGlobalConfiguration('systemctl');
+    my $snmpd_srv   = getGlobalConfiguration('snmpd_service');
+    my $return_code = (logAndRunCheck("$systemctl is-active --quiet $snmpd_srv")) == 0 ? 'true' : 'false';
 
     return $return_code;
 }
@@ -104,50 +97,58 @@ sub getSnmpdStatus () {
 
 Set configuration and disable the snmpd service.
 
-Parameters:
+Parameters: snmp_conf - Configuration for SNMP
 
-    snmp_conf - Configuration for SNMP
-
-Returns:
-
-    integer - 0 if success, error in another case.
+Returns: integer - 0 if success, error in another case.
 
 =cut
 
 sub setSnmpdLaunchConfig ($snmp_conf) {
-    my @config  = ("/etc/default/snmpd", "/usr/lib/systemd/system/snmpd.service");
-    my $changed = 0;
+    my $snmpd_service_path = getGlobalConfiguration('snmpd_service_path');
+    my $changed            = 0;
+    my $service_file;
 
-    require Tie::File;
+    if (open(my $fh, '<', $snmpd_service_path)) {
+        $service_file = do { local $/; <$fh> };
+        close $fh;
+    }
+    else {
+        log_error("Could not open file $snmpd_service_path: $!");
+        return 1;
+    }
 
-    for my $file (@config) {
-        tie my @config_file, 'Tie::File', $file;
+    if (   defined $snmp_conf->{trapsess}
+        && $snmp_conf->{trapsess} eq "true"
+        && $service_file =~ /mteTrigger/)
+    {
+        $service_file =~ s/ -I -smux,mteTrigger,mteTriggerConf//;
+        $changed = 1;
+    }
+    elsif ((!defined $snmp_conf->{trapsess} || $snmp_conf->{trapsess} eq "false")
+        && $service_file !~ /mteTrigger/)
+    {
+        $service_file =~ s/ -f / -I -smux,mteTrigger,mteTriggerConf -f /;
+        $changed = 1;
+    }
 
-        if (   defined $snmp_conf->{trapsess}
-            && $snmp_conf->{trapsess} eq "true"
-            && grep { /mteTrigger/ } @config_file)
-        {
-            s/ -I -smux,mteTrigger,mteTriggerConf// for @config_file;
-            $changed = 1;
-        }
-        elsif ((!defined $snmp_conf->{trapsess} || $snmp_conf->{trapsess} eq "false")
-            && !grep { /mteTrigger/ } @config_file)
-        {
-            s/ -f / -I -smux,mteTrigger,mteTriggerConf -f / for @config_file;
-            $changed = 1;
-        }
-
-        if (!grep { /LS6d / } @config_file) {
-            s/-L[^\s]+ /-LS6d / for @config_file;
-            $changed = 1;
-        }
-
-        untie @config_file;
+    # Configure logging
+    if ($service_file !~ /LS6d /) {
+        $service_file =~ s/-L[^\s]+ /-LS6d /;
+        $changed = 1;
     }
 
     if ($changed) {
-        my $systemctl = &getGlobalConfiguration('systemctl');
-        return &logAndRun("$systemctl daemon-reload");
+        if (open(my $fh, '>', $snmpd_service_path)) {
+            print {$fh} $service_file;
+            close $fh;
+        }
+        else {
+            log_error("Could not open file $snmpd_service_path: $!");
+            return 1;
+        }
+
+        my $systemctl = getGlobalConfiguration('systemctl');
+        return logAndRun("$systemctl daemon-reload");
     }
 
     return 0;
@@ -159,25 +160,30 @@ sub setSnmpdLaunchConfig ($snmp_conf) {
 
 Set default configuration and disable the snmpd service.
 
-Parameters:
+Parameters: none
 
-    none
-
-Returns:
-
-    integer - 0 on success, or -1 on failure.
+Returns: integer - 0 on success, or -1 on failure.
 
 =cut
 
 sub setSnmpdFactoryReset () {
-    my $default_snmp_conf = &getSnmpdDefaultConfig();
-    my $snmpdconfig_file  = &getGlobalConfiguration('snmpdconfig_file');
+    my $systemctl              = getGlobalConfiguration('systemctl');
+    my $snmpd_conf             = getGlobalConfiguration('snmpd_conf');
+    my $snmpd_service_path     = getGlobalConfiguration('snmpd_service_path');
+    my $snmpd_service_template = getGlobalConfiguration('snmpd_service_template');
+    my $default_snmp_conf      = getSnmpdDefaultConfig();
 
-    unlink($snmpdconfig_file);
+    # configure snmpd
+    unlink($snmpd_conf) if -f $snmpd_conf;
+    _setSnmpdConfig($default_snmp_conf);
 
-    &_setSnmpdConfig($default_snmp_conf);
-    &setSnmpdLaunchConfig($default_snmp_conf);
-    return &setSnmpdStatus("false");
+    # setup systemd snmpd service
+    logAndRun("cp $snmpd_service_template $snmpd_service_path");
+    setSnmpdLaunchConfig($default_snmp_conf);
+    logAndRun("$systemctl daemon-reload");
+
+    # disable systemd service
+    return setSnmpdStatus("false");
 }
 
 =pod
@@ -187,13 +193,9 @@ sub setSnmpdFactoryReset () {
 Apply default SNMP config if it was not changed by this service
 before. Then, reload the service generators.
 
-Parameters:
+Parameters: none
 
-    none
-
-Returns:
-
-    scalar - Hash reference with SNMP default configuration.
+Returns: scalar - Hash reference with SNMP default configuration.
 
 =cut
 
@@ -216,22 +218,18 @@ sub setSnmpdDefaultConfig () {
 
 Get the default configuration of the SNMP service.
 
-Parameters:
+Parameters: none
 
-    none
+Returns: scalar - Hash reference with SNMP default configuration.
 
-Returns:
-
-    scalar - Hash reference with SNMP default configuration.
-
-		$snmpd_conf = {
-				proto # agentAddress line
-				ip
-				port
-				community # community line
-				community_mode
-				scope
-			};
+    $snmpd_conf = {
+        proto # agentAddress line
+        ip
+        port
+        community # community line
+        community_mode
+        scope
+    };
 
 =cut
 
@@ -256,74 +254,70 @@ sub getSnmpdDefaultConfig () {
 Get the configuration of the SNMP service according to the
 snmpd.conf file.
 
-Parameters:
+Parameters: none
 
-    none
+Returns: scalar - Hash reference with SNMP configuration.
 
-Returns:
-
-    scalar - Hash reference with SNMP configuration.
-
-		$snmpd_conf = {
-					   status
-					   proto # agentAddress line
-					   ip
-					   port
-					   community # community line
-					   community_mode
-					   scope
-					   authtrapenable # authtrapenable line
-					   createuser_user # createuser line
-					   createuser_auth
-					   createuser_auth_pass
-					   createuser_priv
-					   createuser_priv_pass
-					   iquerysecname # iquerysecname line
-					   user_mode # xxuser line
-					   user
-					   trapsink_host # trapsink line
-					   trapsink_port
-					   trap2sink_host # trap2sink
-					   trapsess_version # trapsess line
-					   trapsess_user
-					   trapsess_engine
-					   trapsess_authproto
-					   trapsess_authpass
-					   trapsess_privproto
-					   trapsess_privpass
-					   trapsess_host
-					   trapsess_port
-					   notif_linkupdown
-					   notif_defmonitors
-					   load
-					   disks
-					   monitors # array with monitors configuration
-					   changed # 1 if changed by relianoid
-		};
+    $snmpd_conf = {
+        status
+        proto # agentAddress line
+        ip
+        port
+        community # community line
+        community_mode
+        scope
+        authtrapenable # authtrapenable line
+        createuser_user # createuser line
+        createuser_auth
+        createuser_auth_pass
+        createuser_priv
+        createuser_priv_pass
+        iquerysecname # iquerysecname line
+        user_mode # xxuser line
+        user
+        trapsink_host # trapsink line
+        trapsink_port
+        trap2sink_host # trap2sink
+        trapsess_version # trapsess line
+        trapsess_user
+        trapsess_engine
+        trapsess_authproto
+        trapsess_authpass
+        trapsess_privproto
+        trapsess_privpass
+        trapsess_host
+        trapsess_port
+        notif_linkupdown
+        notif_defmonitors
+        load
+        disks
+        monitors # array with monitors configuration
+        changed # 1 if changed by relianoid
+    };
 
 =cut
 
 sub getSnmpdConfig () {
     require Tie::File;
 
-    my $snmpdconfig_file = &getGlobalConfiguration('snmpdconfig_file');
+    my $snmpd_conf_filename = &getGlobalConfiguration('snmpd_conf');
     my $snmpd_conf;
 
     $snmpd_conf->{status}  = &getSnmpdStatus();
     $snmpd_conf->{changed} = 1;
 
-    tie my @config_file, 'Tie::File', $snmpdconfig_file;
+    tie my @config_file, 'Tie::File', $snmpd_conf_filename;
 
     for my $line (@config_file) {
         next if ($line =~ /^\s*$/);
 
-        # $snmpd_conf->{changed} will be zero if &getGlobalConfiguration('snmpdconfig_file')
-        # has (# EXAMPLE.conf|# An example configuration file) but now 
-        # &getGlobalConfiguration('snmpdconfig_file') is
-        # /etc/snmp/snmpd.conf.d/50-relianoid.conf, 
+        # $snmpd_conf->{changed} will be zero if &getGlobalConfiguration('snmpd_conf')
+        # has (# EXAMPLE.conf|# An example configuration file) but now
+        # &getGlobalConfiguration('snmpd_conf') is
+        # /etc/snmp/snmpd.conf.d/50-relianoid.conf,
         # so $snmpd_conf->{changed} will be 1 always
         $snmpd_conf->{changed} = 0
-          if ($line =~ /^(# EXAMPLE.conf|# An example configuration file)/);
+            if ($line =~ /^(# EXAMPLE.conf|# An example configuration file)/);
 
         chomp($line);
         if ($line =~ /^\s*#?\s*agentAddress\s+/i) {
@@ -338,7 +332,7 @@ sub getSnmpdConfig () {
         }
         elsif ($line =~ /^\s*#?\s*..community\s+/i) {
             ($snmpd_conf->{community_mode}, $snmpd_conf->{community}, $snmpd_conf->{scope}) =
-              split(/\s+/, $line);
+                split(/\s+/, $line);
             $snmpd_conf->{community_mode} =~ s/^\s*#\s*//;
             $snmpd_conf->{scope} = "0.0.0.0/0" if ($snmpd_conf->{scope} =~ /default/);
         }
@@ -362,7 +356,7 @@ sub getSnmpdConfig () {
         }
         elsif ($line =~ /^\s*#?\s*trapsink\b/i) {
             (undef, $snmpd_conf->{trapsink_host}, $snmpd_conf->{trapsink_port}) =
-              split(/\s+/, $line);
+                split(/\s+/, $line);
         }
         elsif ($line =~ /^\s*#?\s*trap2sink\b/i) {
             (undef, $snmpd_conf->{trap2sink_host}) = split(/\s+/, $line);
@@ -403,7 +397,7 @@ sub getSnmpdConfig () {
                 elsif ($i == (scalar @trap_line) - 1) {
                     if ($trap_line[$i] =~ /:/) {
                         ($snmpd_conf->{trapsess_host}, $snmpd_conf->{trapsess_port}) =
-                          split(/:/, $trap_line[$i]);
+                            split(/:/, $trap_line[$i]);
                     }
                     else {
                         $snmpd_conf->{trapsess_host} = $trap_line[$i];
@@ -445,13 +439,9 @@ sub getSnmpdConfig () {
 
 Apply SNMP configuration and reload services.
 
-Parameters:
+Parameters: snmpd_conf - Hash reference with SNMP configuration.
 
-    snmpd_conf - Hash reference with SNMP configuration.
-
-Returns:
-
-    integer - 0 on success, or -1 on failure.
+Returns: integer - 0 on success, or -1 on failure.
 
 =cut
 
@@ -468,19 +458,15 @@ sub setSnmpdConfig ($snmpd_conf) {
 
 Store SNMP configuration.
 
-Parameters:
+Parameters: snmpd_conf - Hash reference with SNMP configuration.
 
-    snmpd_conf - Hash reference with SNMP configuration.
-
-Returns:
-
-    integer - 0 on success, or -1 on failure.
+Returns: integer - 0 on success, or -1 on failure.
 
 =cut
 
 sub _setSnmpdConfig ($snmpd_conf) {
-    my $snmpdconfig_file = &getGlobalConfiguration('snmpdconfig_file');
-    my $default_index    = 0;                                             # line to insert the configuration
+    my $snmpd_conf_filename = &getGlobalConfiguration('snmpd_conf');
+    my $default_index       = 0;                                       # line to insert the configuration
 
     return -1 if ref $snmpd_conf ne 'HASH';
 
@@ -501,7 +487,7 @@ sub _setSnmpdConfig ($snmpd_conf) {
     my $lock_file = &getLockFile("snmpd_conf");
     my $lock_fh   = &openlock($lock_file, 'w');
 
-    if (open my $config_file, '<', $snmpdconfig_file) {
+    if (open my $config_file, '<', $snmpd_conf_filename) {
         @contents = <$config_file>;
         close $config_file;
         close $lock_fh;
@@ -541,7 +527,7 @@ sub _setSnmpdConfig ($snmpd_conf) {
 
     if (defined $snmpd_conf->{community_mode} and $snmpd_conf->{community} and $snmpd_conf->{scope}) {
         splice @contents, $index, 0,
-          "${snmp_state}$snmpd_conf->{community_mode} $snmpd_conf->{community} $snmpd_conf->{scope}\n";
+            "${snmp_state}$snmpd_conf->{community_mode} $snmpd_conf->{community} $snmpd_conf->{scope}\n";
         $index++;
     }
 
@@ -631,7 +617,7 @@ sub _setSnmpdConfig ($snmpd_conf) {
 
     $lock_fh = &openlock($lock_file, 'w');
 
-    if (open my $config_file, '>', $snmpdconfig_file) {
+    if (open my $config_file, '>', $snmpd_conf_filename) {
         print $config_file @contents;
         close $config_file;
         close $lock_fh;
@@ -640,7 +626,7 @@ sub _setSnmpdConfig ($snmpd_conf) {
     else {
         close $lock_fh;
         unlink $lock_file;
-        &log_warn("Could not open ${snmpdconfig_file}: $!", "SYSTEM");
+        &log_warn("Could not open ${snmpd_conf_filename}: $!", "SYSTEM");
         return -1;
     }
 
@@ -653,13 +639,9 @@ sub _setSnmpdConfig ($snmpd_conf) {
 
 Translate the SNMP Config params to API params.
 
-Parameters:
+Parameters: config_ref - Array of snmp config params.
 
-    config_ref - Array of snmp config params.
-
-Returns:
-
-    Hash ref - Translated params.
+Returns: Hash ref - Translated params.
 
 =cut
 

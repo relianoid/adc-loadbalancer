@@ -46,7 +46,7 @@ $adver_script="/usr/local/relianoid/app/ucarp/sbin/relianoid-ce-cluster-advertis
 $configdir="/usr/local/relianoid/config";
 
 #replication of rt_tables file
-$rttables="/etc/iproute2/rt_tables";
+$rttables="/etc/iproute2/rt_tables.d/20-relianoid.conf";
 
 #where to save logs
 $zeninolog="/var/log/noid-cluster-notify.log";

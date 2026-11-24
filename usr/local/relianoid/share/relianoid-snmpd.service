@@ -1,0 +1,13 @@
+[Unit]
+Description=Simple Network Management Protocol (SNMP) Daemon.
+After=network-online.target
+ConditionPathExists=/etc/snmp/relianoid-snmpd.conf
+
+[Service]
+Type=notify
+RuntimeDirectory=agentx
+ExecStart=/usr/sbin/snmpd -C -c /etc/snmp/relianoid-snmpd.conf -LOw -u Debian-snmp -g Debian-snmp -I -smux,mteTrigger,mteTriggerConf -f
+ExecReload=/bin/kill -HUP $MAINPID
+
+[Install]
+WantedBy=multi-user.target

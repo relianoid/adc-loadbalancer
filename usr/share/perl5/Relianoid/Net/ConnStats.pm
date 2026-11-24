@@ -80,9 +80,14 @@ sub getConntrack ($orig_src, $orig_dst, $reply_src, $reply_dst, $protocol) {
     # return an array reference
     my @output = @{ &logAndGet($conntrack_cmd, "array") };
 
-    # my $conns_count = scalar @output;
-    # &log_info( "getConntrack command: $conntrack_cmd", "MONITOR" );
-    # &log_info( "getConntrack returned $conns_count connections.", "MONITOR" );
+
+    my $conns_count = scalar @output;
+    &log_info( "getConntrack command: $conntrack_cmd", "MONITOR" );
+    &log_info( "getConntrack returned $conns_count connections.", "MONITOR" );
+
+    my @filtered = grep { /ESTABLISHED/ } @output;
+    my $filtered_count = scalar @filtered;
+    &log_debug( "getConntrack returned ESTABLISHED $filtered_count connections.", "MONITOR" );
 
     return \@output;
 }
@@ -325,12 +330,12 @@ sub getConntrackCount ($conntrack_params) {
 
     require Relianoid::Debug;
 
-    &log_debug("Conntrack count: $conntrack_cmd", "MONITOR") if &debug();
-
     # Do not use the function 'logAndGet', this function manages the output error and code
     my $summary = `$conntrack_cmd`;
     my $error   = $?;
     my ($count) = $summary =~ m/: ([0-9]+) flow entries have been shown./;
+
+    &log_debug("Conntrack count $count: $conntrack_cmd", "MONITOR") if &debug();
 
     &log_error("Conntrack count: An error happened running the command: $conntrack_cmd", "MONITOR")
       if $error;

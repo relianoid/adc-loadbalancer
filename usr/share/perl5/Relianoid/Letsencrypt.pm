@@ -444,7 +444,7 @@ Returns: Integer - 0 on succesfull, otherwise on error.
 =cut
 
 sub is_active_le_http_service () {
-    return logAndRun("systemctl is-active --quiet $le_http_service") == 0;
+    return logAndRunCheck("systemctl is-active --quiet $le_http_service") == 0;
 }
 
 =pod

@@ -114,13 +114,13 @@ sub delete_certificate_controller ($cert_filename) {
     }
 
     if ($eload) {
-        my $status = &eload(
+        my $is_used = &eload(
             module => 'Relianoid::EE::Service::HTTPServer',
             func   => 'does_http_server_use_cert',
             args   => [$cert_filename]
         );
 
-        if ($status == 0) {
+        if ($is_used) {
             my $msg = "File can't be deleted because it's in use by HTTPS server";
             return &httpErrorResponse({ code => 400, desc => $desc, msg => $msg });
         }

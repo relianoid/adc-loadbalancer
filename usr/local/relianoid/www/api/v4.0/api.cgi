@@ -39,7 +39,7 @@ use Relianoid::HTTP;
 local $ENV{API_VERSION} = "4.0";
 
 ##### Debugging messages #############################################
-&log_info("REQUEST: $ENV{REQUEST_METHOD} $ENV{SCRIPT_URL}") if &debug();
+log_info("$ENV{REQUEST_METHOD} $ENV{REQUEST_URI}") if debug();
 
 ##### No authentication required #####################################
 if ($ENV{REQUEST_METHOD} eq 'OPTIONS') {

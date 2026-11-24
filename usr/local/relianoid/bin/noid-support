@@ -393,6 +393,102 @@ generate_rrd_graphs() {
     fi
 }
 
+
+dumpSessionsDB() {
+    local redis_conf="$redis_config_file"
+    local redis_host="$redis_host"
+    local redis_port="$redis_port"
+
+    local REDISCLI_AUTH
+    local alias_key alias db_index key type
+
+    REDISCLI_AUTH=$(
+        awk '
+            /^[[:space:]]*#/ { next }
+            /^[[:space:]]*requirepass[[:space:]]+/ {
+                sub(/^[[:space:]]*requirepass[[:space:]]+/, "")
+                sub(/[[:space:]]+#.*/, "")
+                gsub(/^[[:space:]]+|[[:space:]]+$/, "")
+                gsub(/^["'\'']|["'\'']$/, "")
+                password = $0
+            }
+            END { if (password != "") print password }
+        ' "$redis_conf"
+    )
+
+    export REDISCLI_AUTH
+
+    local -a redis_cli=(redis-cli -h "$redis_host" -p "$redis_port" --raw -e)
+
+    if ! "${redis_cli[@]}" PING >/dev/null; then
+        logger "noid-support ERROR: Cannot connect to Redis" >&2
+        return 1
+    fi
+
+	{
+    # Discover aliases from DB 0
+    while IFS= read -r alias_key; do
+
+        [[ "$alias_key" == _db_alias:* ]] || continue
+
+        alias="${alias_key#_db_alias:}"
+
+        db_index=$("${redis_cli[@]}" -n 0 GET "$alias_key") || continue
+
+        [[ "$db_index" =~ ^[0-9]+$ ]] || continue
+
+        echo
+        echo "=========================================="
+        echo "Alias: $alias"
+        echo "Database index: $db_index"
+        echo "=========================================="
+
+        # List keys and values in the corresponding database
+        while IFS= read -r key; do
+
+            [[ -z "$key" ]] && continue
+
+            type=$("${redis_cli[@]}" -n "$db_index" TYPE "$key") || continue
+
+            echo
+            echo "KEY: $key"
+            echo "TYPE: $type"
+
+            case "$type" in
+                string)
+                    "${redis_cli[@]}" -n "$db_index" GET "$key"
+                    ;;
+                hash)
+                    "${redis_cli[@]}" -n "$db_index" HGETALL "$key"
+                    ;;
+                list)
+                    "${redis_cli[@]}" -n "$db_index" LRANGE "$key" 0 -1
+                    ;;
+                set)
+                    "${redis_cli[@]}" -n "$db_index" SMEMBERS "$key"
+                    ;;
+                zset)
+                    "${redis_cli[@]}" -n "$db_index" ZRANGE "$key" 0 -1 WITHSCORES
+                    ;;
+                stream)
+                    "${redis_cli[@]}" -n "$db_index" XRANGE "$key" - +
+                    ;;
+                *)
+                    echo "Unsupported type: $type"
+                    ;;
+            esac
+
+        done < <("${redis_cli[@]}" -n "$db_index" --scan)
+
+    done < <("${redis_cli[@]}" -n 0 --scan --pattern '_db_alias:*')
+	} > $backup_dir/sessions.txt
+
+    unset REDISCLI_AUTH
+
+    return 0
+}
+
+
 if [ -d "$1" ]; then
 	prefix="${1}"
 fi
@@ -410,13 +506,13 @@ echo "Saving system information:"
 #################################
 
 echo "- Generating Graphs"
-mkdir -p $backup_dir/graphs
 for p in daily weekly monthly yearly; do
+	mkdir -p $backup_dir/graphs/${p}
 	for rrdfile in ${home_dir}/var/noid-collector/rrd/*.rrd; do
 		rrdname=`basename $rrdfile`
 		generate_rrd_graphs \
 			"$p" \
-			"$backup_dir/graphs/${rrdname}-${p}.png" \
+			"$backup_dir/graphs/${p}/${rrdname}.png" \
 			${rrdfile}
 	done
 done
@@ -454,6 +550,11 @@ echo "- Partitions"
 
 echo "- Time"
 $bin_dir/noid-ntp                    	&>> $backup_dir/ntp_test.txt
+
+if [ "$stateful_cluster" == "true" ]; then
+	echo "- Sessions DB"
+	dumpSessionsDB
+fi
 
 if [ -d "${home_dir}/lib/Relianoid/RBAC" ];
 then
@@ -496,7 +597,7 @@ then
 	done
 fi
 echo "- Routes"
-for i in $(grep "table_" /etc/iproute2/rt_tables | grep -v '^#' | awk '{print $2}')
+for i in $(grep "table_" /etc/iproute2/rt_tables.d/20-relianoid.conf | grep -v '^#' | awk '{print $2}')
 do
     echo "ip route list table $i"       >> $backup_dir/route.txt
     /sbin/ip route list table $i        &>> $backup_dir/route.txt

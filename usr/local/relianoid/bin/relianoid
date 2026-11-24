@@ -55,6 +55,7 @@ my $ssh_srv           = &getGlobalConfiguration('sshService');
 my $http_srv          = &getGlobalConfiguration('http_server_service');
 my $cron_service      = &getGlobalConfiguration('cron_service');
 my $relianoid_service = &getGlobalConfiguration('relianoid_service');
+my $redis_srv         = "redis.service";
 my $action            = shift @ARGV // '';
 
 # Read interfaces data blocks
@@ -342,6 +343,15 @@ if ($action eq "start") {
     # bugfix, force the start of the ssh and http services
     &logAndRun("$systemctl start $ssh_srv");
     &logAndRun("$systemctl start $http_srv");
+    if ($eload) {
+        my $action = `systemctl is-active $redis_srv 2>/dev/null`;
+        chomp($action);
+        if ($action eq 'active') {
+            &logAndRun("$systemctl restart $redis_srv");
+        } else {
+            &logAndRun("$systemctl start $redis_srv");
+        }
+    }
 
     &log_info("Setting up VLAN interfaces...");
 

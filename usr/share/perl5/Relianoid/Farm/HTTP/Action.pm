@@ -88,7 +88,7 @@ sub _runHTTPFarmStart ($farm_name, $writeconf = undef) {
     &setHTTPFarmBootStatus($farm_name, "up") if ($writeconf);
 
     if ($eload) {
-        my $stateful_is_enabled = &eload(
+        my $sessions_enabled = &eload(
             module => 'Relianoid::EE::Sessions',
             func   => 'getSessionsDBIsEnabled'
         );
@@ -97,8 +97,7 @@ sub _runHTTPFarmStart ($farm_name, $writeconf = undef) {
             module => 'Relianoid::EE::Farm::HTTP::Session',
             func   => 'enableHTTPFarmSessionsDB',
             args   => [{ farm_name => $farm_name }],
-        ) if ($stateful_is_enabled);
-
+        ) if ($sessions_enabled);
     }
 
     return $status;
@@ -128,7 +127,7 @@ sub _runHTTPFarmStop ($farm_name, $writeconf = undef) {
     &runFarmGuardianStop($farm_name);
 
     if ($eload) {
-        my $stateful_is_enabled = &eload(
+        my $sessions_enabled = &eload(
             module => 'Relianoid::EE::Sessions',
             func   => 'getSessionsDBIsEnabled'
         );
@@ -137,7 +136,7 @@ sub _runHTTPFarmStop ($farm_name, $writeconf = undef) {
             module => 'Relianoid::EE::Farm::HTTP::Session',
             func   => 'disableHTTPFarmSessionsDB',
             args   => [{ farm_name => $farm_name }],
-        ) if ($stateful_is_enabled);
+        ) if ($sessions_enabled);
 
     }
 
